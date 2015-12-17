@@ -20,58 +20,58 @@ chop $date;
 
 sub maplink
 {
-	my $tag = shift;
-	if( exists $url{ $tag } ){
-		return $url{ $tag };
-	} else {
-		#warn "Unknown hyperlink target: $tag\n";
-		$tag =~ s/</&lt;/g;
-		$tag =~ s/>/&gt;/g;
-		return "<code class=\"badlink\">$tag</code>";
-	}
+    my $tag = shift;
+    if( exists $url{ $tag } ){
+        return $url{ $tag };
+    } else {
+        #warn "Unknown hyperlink target: $tag\n";
+        $tag =~ s/</&lt;/g;
+        $tag =~ s/>/&gt;/g;
+        return "<code class=\"badlink\">$tag</code>";
+    }
 }
 
 sub readTagFile
 {
-	my($tagfile) = @_;
-	my( $tag, $file, $name );
+    my($tagfile) = @_;
+    my( $tag, $file, $name );
 
-	open(TAGS,"$tagfile") || die "can't read tags\n";
+    open(TAGS,"$tagfile") || die "can't read tags\n";
 
-	while( <TAGS> ) {
-		next unless /^(\S+)\s+(\S+)\s+/;
+    while( <TAGS> ) {
+        next unless /^(\S+)\s+(\S+)\s+/;
 
-		$tag = $1;
-		my $label = $tag;
-		($file= $2) =~ s/.\w+$/.html/g;
+        $tag = $1;
+        my $label = $tag;
+        ($file= $2) =~ s/.\w+$/.html/g;
 
-		$url{ $tag } = "<a href=\"$file#".escurl($tag)."\">".esctext($label)."</a>";
-	}
-	$url{ "help-tags" } = "<a href=\"tags.html"."\">".esctext("help-tags")."</a>";
-	close( TAGS );
+        $url{ $tag } = "<a href=\"$file#".escurl($tag)."\">".esctext($label)."</a>";
+    }
+    $url{ "help-tags" } = "<a href=\"tags.html"."\">".esctext("help-tags")."</a>";
+    close( TAGS );
 }
 
 sub esctext
 {
-	my $text = shift;
-	$text =~ s/&/&amp;/g;
-	$text =~ s/</&lt;/g;
-	$text =~ s/>/&gt;/g;
-	return $text;
+    my $text = shift;
+    $text =~ s/&/&amp;/g;
+    $text =~ s/</&lt;/g;
+    $text =~ s/>/&gt;/g;
+    return $text;
 }
 
 sub escurl
 {
-	my $url = shift;
-	$url =~ s/"/%22/g;
-	$url =~ s/~/%7E/g;
-	$url =~ s/</%3C/g;
-	$url =~ s/>/%3E/g;
-	$url =~ s/=/%20/g;
-	$url =~ s/#/%23/g;
-	$url =~ s/\//%2F/g;
+    my $url = shift;
+    $url =~ s/"/%22/g;
+    $url =~ s/~/%7E/g;
+    $url =~ s/</%3C/g;
+    $url =~ s/>/%3E/g;
+    $url =~ s/=/%20/g;
+    $url =~ s/#/%23/g;
+    $url =~ s/\//%2F/g;
 
-	return $url;
+    return $url;
 }
 
 # expand() count bytes when computing tabstops. But each utf-8 character may
@@ -81,13 +81,13 @@ $tabstop = 8;
 sub mylength
 {
     my ($str) = @_;
-	my $length = length($str);
-	my $i = 0;
-	my @chars = unpack("U*", $str);
-	foreach $i (@chars) {
-		$length++ if $i > 255;
-	}
-	return $length;
+    my $length = length($str);
+    my $i = 0;
+    my @chars = unpack("U*", $str);
+    foreach $i (@chars) {
+        $length++ if $i > 255;
+    }
+    return $length;
 }
 
 sub myexpand
@@ -106,26 +106,26 @@ sub myexpand
 
 sub vim2html
 {
-	my( $infile ) = @_;
-	my( $outfile );
+    my( $infile ) = @_;
+    my( $outfile );
 
-	open(IN, "<:utf8", "$infile" ) || die "Couldn't read from $infile: $!.\n";
+    open(IN, "<:utf8", "$infile" ) || die "Couldn't read from $infile: $!.\n";
 
-	($outfile = $infile) =~ s:.*/::g;
+    ($outfile = $infile) =~ s:.*/::g;
 
-	my $tagfile =  ($outfile =~ /^tags(-..)?$/);
-	if ($tagfile) {
-		$outfile = "tags";
-	} else {
-		$outfile =~ s/\.\w+$//g;
-	}
+    my $tagfile =  ($outfile =~ /^tags(-..)?$/);
+    if ($tagfile) {
+        $outfile = "tags";
+    } else {
+        $outfile =~ s/\.\w+$//g;
+    }
 
-	open( OUT, ">:utf8", "$outfile.html" )
-			|| die "Couldn't write to $outfile.html: $!.\n";
-	binmode STDOUT, ":utf8";
-	my $head = uc( $outfile );
+    open( OUT, ">:utf8", "$outfile.html" )
+            || die "Couldn't write to $outfile.html: $!.\n";
+    binmode STDOUT, ":utf8";
+    my $head = uc( $outfile );
 
-	print OUT<<EOF;
+    print OUT<<EOF;
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html>
 <head>
@@ -136,125 +136,125 @@ sub vim2html
 </head>
 <body>
 <header class="site-header">
-	<div class="wrap">
-		<div class="site-title"><a href="/vim-zh/usr_toc.html">vim中文手册</a></div>
-		<div class="site-description">{"type":"programming"}</div>
-	</div>
+    <div class="wrap">
+        <div class="site-title"><a href="/vim-zh/usr_toc.html">vim中文手册</a></div>
+        <div class="site-description">{"type":"programming"}</div>
+    </div>
 </header>
 <div class="page-content">
 <h2>$head</h2>
 <pre>
 EOF
 
-	my $inexample = 0;
-	my $inheader = 0;
-	if ($tagfile) {
-		print OUT "<table>\n";
-	}
-	while( <IN> ) {
-		chop;
-		if ($tagfile) {
-			print OUT "<tr>";
-			my @fields = split(/\t/);
-			if ($fields[0] eq "!_TAG_FILE_ENCODING") {
-				print OUT "<td>" .  $fields[0] .  "</td><td>" .  $fields[1];
-				print OUT "</td><td>" .  $fields[2] .  "</td></tr>\n";
-			}
-			else {
-				$fields[1] =~ s/\.\w+/\.txt/;
-				print OUT "<td>" .  maplink($fields[0]) .  "</td><td>";
-				print OUT maplink($fields[1]) . "</td><td>". esctext($fields[2]);
-				print OUT "</td></tr>\n";
-			}
-			next;
-		}
+    my $inexample = 0;
+    my $inheader = 0;
+    if ($tagfile) {
+        print OUT "<table>\n";
+    }
+    while( <IN> ) {
+        chop;
+        if ($tagfile) {
+            print OUT "<tr>";
+            my @fields = split(/\t/);
+            if ($fields[0] eq "!_TAG_FILE_ENCODING") {
+                print OUT "<td>" .  $fields[0] .  "</td><td>" .  $fields[1];
+                print OUT "</td><td>" .  $fields[2] .  "</td></tr>\n";
+            }
+            else {
+                $fields[1] =~ s/\.\w+/\.txt/;
+                print OUT "<td>" .  maplink($fields[0]) .  "</td><td>";
+                print OUT maplink($fields[1]) . "</td><td>". esctext($fields[2]);
+                print OUT "</td></tr>\n";
+            }
+            next;
+        }
 
-		$_ = myexpand($_);
-		if ( /^=+\s*$/ ) {
-			print OUT "</pre><hr class=\"doubleline\" /><pre>\n";
-			$inheader = 1;
-			next;
-		}
-		elsif ( /^\s*-+\s*$/ ) {
-			print OUT "</pre><hr class=\"singleline\" /><pre>\n";
-			next;
-		}
+        $_ = myexpand($_);
+        if ( /^=+\s*$/ ) {
+            print OUT "</pre><hr class=\"doubleline\" /><pre>\n";
+            $inheader = 1;
+            next;
+        }
+        elsif ( /^\s*-+\s*$/ ) {
+            print OUT "</pre><hr class=\"singleline\" /><pre>\n";
+            next;
+        }
 
-		# examples
-		elsif( /^>$/ || /\s>$/ ) {
-			if ( $inexample && /^(<)/ ) {
-				$_ = $';
-				$_ = " " . $_ if /^\s/;
-			}
-			$inexample = 1;
-			chop;
-		}
-		elsif ( $inexample && /^([<\S])/ ) {
-			$inexample = 0;
-			$_ = $' if $1 eq "<";
-			$_ = " " . $_ if /^\s/;
-		}
+        # examples
+        elsif( /^>$/ || /\s>$/ ) {
+            if ( $inexample && /^(<)/ ) {
+                $_ = $';
+                $_ = " " . $_ if /^\s/;
+            }
+            $inexample = 1;
+            chop;
+        }
+        elsif ( $inexample && /^([<\S])/ ) {
+            $inexample = 0;
+            $_ = $' if $1 eq "<";
+            $_ = " " . $_ if /^\s/;
+        }
 
-		s/\s+$//g;
+        s/\s+$//g;
 
-		# Various vim highlights. note that < and > have already been escaped
-		# so that HTML doesn't get screwed up.
+        # Various vim highlights. note that < and > have already been escaped
+        # so that HTML doesn't get screwed up.
 
-		my @out = ();
-		#		print "Text: $_\n";
-		LOOP:
-		foreach my $token ( split /((?:\|[^*"|[:space:]]+\|)|(?:\*[^*"|[:space:]]+\*))/ ) {
-			if ( $token =~ /^\|([^*"|[:space:]]+)\|/ ) {
-				# link
-				push( @out, "|".maplink( $1 )."|" );
-				next LOOP;
-			}
-			elsif ( $token =~ /^\*([^*"|[:space:]]+)\*/ ) {
-				# target
-				push( @out,
-					"<b class=\"vimtag\">\*<a name=\"".escurl($1)."\">".esctext($1)."<\/a>\*<\/b>");
-				next LOOP;
-			}
+        my @out = ();
+        #       print "Text: $_\n";
+        LOOP:
+        foreach my $token ( split /((?:\|[^*"|[:space:]]+\|)|(?:\*[^*"|[:space:]]+\*))/ ) {
+            if ( $token =~ /^\|([^*"|[:space:]]+)\|/ ) {
+                # link
+                push( @out, "|".maplink( $1 )."|" );
+                next LOOP;
+            }
+            elsif ( $token =~ /^\*([^*"|[:space:]]+)\*/ ) {
+                # target
+                push( @out,
+                    "<b class=\"vimtag\">\*<a name=\"".escurl($1)."\">".esctext($1)."<\/a>\*<\/b>");
+                next LOOP;
+            }
 
-			$_ = esctext($token);
-			s/CTRL-(\w+|.)/<code class="keystroke">CTRL-$1<\/code>/g;
-			# parameter <...>
-			s/&lt;(.*?)&gt;/<code class="special">&lt;$1&gt;<\/code>/g;
+            $_ = esctext($token);
+            s/CTRL-(\w+|.)/<code class="keystroke">CTRL-$1<\/code>/g;
+            # parameter <...>
+            s/&lt;(.*?)&gt;/<code class="special">&lt;$1&gt;<\/code>/g;
 
-			# parameter [...]
-			s/\[(range|line|count|offset|cmd|[-+]?num)\]/<code class="special">\[$1\]<\/code>/g;
-			# note
-			s/(Note[:\s])/<code class="note">$1<\/code>/gi;
+            # parameter [...]
+            s/\[(range|line|count|offset|cmd|[-+]?num)\]/<code class="special">\[$1\]<\/code>/g;
+            # note
+            s/(Note[:\s])/<code class="note">$1<\/code>/gi;
 
-			s/(注意|备注)( (?=[^[:print:][:space:]]))?/<code class="note">$1<\/code>/g;
-			s/VIM (?:参考手册|用户手册).*|译者[注]?/<code class="vim">$&<\/code>/g;
+            s/(注意|备注)( (?=[^[:print:][:space:]]))?/<code class="note">$1<\/code>/g;
+            s/VIM (?:参考手册|用户手册).*|译者[注]?/<code class="vim">$&<\/code>/g;
 
-			# local heading
-			s/^(.*)\~$/<code class="section">$1<\/code>/g;
-			push( @out, $_ );
-		}
+            # local heading
+            s/^(.*)\~$/<code class="section">$1<\/code>/g;
+            push( @out, $_ );
+        }
 
-		$_ = join( "", @out );
+        $_ = join( "", @out );
 
-		# parameter {...}
-		s/\{([^{}'"|]*)\}/<code class="special">{$1}<\/code>/g;
-		s/\{((?:Vi|仅)[^}]*)\}/<code class="special">{$1}<\/code>/g;
+        # parameter {...}
+        s/\{([^{}'"|]*)\}/<code class="special">{$1}<\/code>/g;
+        s/\{((?:Vi|仅)[^}]*)\}/<code class="special">{$1}<\/code>/g;
 
-		if( $inexample == 2 ) {
-			print OUT "<code class=\"example\">$_</code>\n";
-		} elsif ($inheader == 1) {
-			print OUT "<h4>$_</h4>";
-		} else {
-			print OUT $_,"\n";
-		}
+        if( $inexample == 2 ) {
+            print OUT "<code class=\"example\">$_</code>\n";
+        } elsif ($inheader == 1) {
+            print OUT "<h4>$_</h4>";
+        } else {
+            print OUT $_,"\n";
+        }
 
-		$inexample = 2 if $inexample == 1;
-		$inheader = 0;
-	}
-	if ($tagfile) {
-		print OUT "</table>\n";
-	}
-	print OUT<<EOF;
+        $inexample = 2 if $inexample == 1;
+        $inheader = 0;
+    }
+    if ($tagfile) {
+        print OUT "</table>\n";
+    }
+    print OUT<<EOF;
 </pre>
 <p><i>Generated by vim2html on $date</i></p>
 </div>
@@ -262,8 +262,8 @@ EOF
 </body>
 </html>
 EOF
-	close ( IN );
-	close ( OUT );
+    close ( IN );
+    close ( OUT );
 }
 
 sub usage
@@ -271,9 +271,9 @@ sub usage
 die<<EOF;
 vim2html.pl: converts vim documentation to HTML.
 usage:
-
-	vim2html.pl <tag file> <text files>
-	sed -i 's|<code class="badlink">\\([^|]*\\).txt<\\/code>|<a class="vim-doc" href="\\1.html">\\1.txt<\\/a>|g' *.html
+    ctags *.cnx
+    ./vim2html.pl tags *.cnx
+    sed -i 's|<code class="badlink">\\([^|]*\\).txt<\\/code>|<a class="vim-doc" href="\\1.html">\\1.txt<\\/a>|g' *.html
 EOF
 }
 
@@ -288,7 +288,7 @@ readTagFile( $ARGV[ 0 ] );
 
 vim2html( $ARGV[ 0 ] );
 foreach my $file ( 1..$#ARGV ) {
-	print "Processing ".$ARGV[ $file ]."...\n";
-	vim2html( $ARGV[ $file ] );
+    print "Processing ".$ARGV[ $file ]."...\n";
+    vim2html( $ARGV[ $file ] );
 }
 print "done.\n"
