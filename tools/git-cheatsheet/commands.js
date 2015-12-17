@@ -375,8 +375,8 @@ var translations = {
         stash: '当你去修改别的东西的时候，隐藏（临时保存）当前的修改',
         workspace: '本地检出',
         index: '索引（暂存区）保存了一份工作(树)的快照,作为下次提交的内容',
-        local_repo: '.git 文件夹保存版本库需要的全部信息(Git 版本库的骨架)，一般包括分支<strong>master</strong>, <strong>feature-x</strong>, <strong>bugfix-y</strong>',
-        remote_repo: '在网络（局域或因特网）上共享给其他开发者的版本库，一般叫"origin". 一般包括分支<strong>master</strong>, <strong>shared-feature-x</strong>, <strong>release-y</strong>'
+        local_repo: '.git 文件夹保存版本库需要的全部信息(Git 版本库的骨架)，一般包括分支【master】, 【feature-x】, 【bugfix-y】',
+        remote_repo: '在网络（局域或因特网）上共享给其他开发者的版本库，一般叫"origin". 一般包括分支【master】, 【shared-feature-x】, 【release-y】'
       }
     },
 
@@ -386,11 +386,11 @@ var translations = {
       "diff": {"cmd": "diff", "docs": "显示未添加到暂存区的不同"},
       "diff x": {"cmd": "diff <commit or branch>", "docs": "查看工作区与某一提交之间的不同。你也可以使用 HEAD 来对比上一提交，或是用分支名来和分支比较"},
       "add x": {"cmd": "add <file... or dir...>", "docs": "添加当前的新内容或是修改的文件到暂存区，作为下次提交的(部分)内容。用`add --interactive` 来交互式操作"},
-      "add -u": {"cmd": "add -u", "docs": "添加当前修改(<strong>不包括新文件</strong>)到暂存区, 这与'git commit -a'准备提交内容的方式一致"},
+      "add -u": {"cmd": "add -u", "docs": "添加当前修改(【不包括新文件】)到暂存区, 这与'git commit -a'准备提交内容的方式一致"},
       "rm x": {"cmd": "rm <file(s)...>", "docs": "从工作区和暂存区删除某个文件"},
       "mv x": {"cmd": "mv <file(s)...>", "docs": "从工作区和暂存区移动文件"},
       "commit -a": {"cmd": "commit -a [-m 'msg']", "docs": "提交上次提交之后的所有修改，1)未追踪的除外(即：所有暂存区有记录的文件)；2)从暂存区删除已在工作区删除的文件"},
-      "checkout x": {"cmd": "checkout <files(s)... or dir>", "docs": "更新工作区文件或文件夹，<strong>不会</strong>切换分支"},
+      "checkout x": {"cmd": "checkout <files(s)... or dir>", "docs": "更新工作区文件或文件夹，【不会】切换分支"},
       "reset head x": {"cmd": "reset HEAD <file(s)...>", "docs": "从下次提交中移除指定文件。重置暂存区记录但是不处理工作区(即: 文件改动被保留但不会被提交)，同时报告没有被更新的文件"},
       "reset --soft head^": {"cmd": "reset --soft HEAD^", "docs": "恢复上一次提交，保留暂存区的改动"},
       "reset --hard": {"cmd": "reset --hard", "docs": "恢复工作区和暂存区到上次提交的状态，警告： 所有工作区修改都会被丢弃。使用这条命令来解决合并错误，如果你想从头开始的话传入 ORIG_HEAD 来撤销该次提交以来的所有改动"},
@@ -424,7 +424,7 @@ var translations = {
       "stash list": {"cmd": "stash list", "docs": "显示当前你有的所有存档"},
       "stash show": {"cmd": "stash show [<stash>]", "docs": "显示存档中记录的改动，对比存档生成时的原来状态；不指定<stash>则显示最后一个"},
       "stash drop": {"cmd": "stash drop [<stash>]", "docs": "从存储区中删除单个存档；不指定<stash>则删除最后一个"},
-      "stash clear": {"cmd": "stash clear", "docs": "清空存档库。注意相关存档会被清理，此操作<strong>不能被恢复</strong>"},
+      "stash clear": {"cmd": "stash clear", "docs": "清空存档库。注意相关存档会被清理，此操作【不能被恢复】"},
       "stash branch x": {
         "cmd": "stash branch <branchname> [<stash>]",
         "docs": "新建并检出一个新分支<branchname>, 分支开始于存档建立时的源提交，应用存档的变化作为新的工作区和暂存区。如果成功并且<stash>是以 stash@{<revision>}方式给出的，则从存档库删除它。未给出则使用最后一个存档。这在当前分支运行 stash save 导致冲突时很好用，因为存档应用于它生成时的提交一定不会有冲突发生"
