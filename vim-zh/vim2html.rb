@@ -49,7 +49,9 @@ def vim2html anchors, file
     elsif ( /^(<)$/ =~ line )
       line = line.sub($1, "\n\n")
     else
-      line = line.gsub(/<([.='\s"\/\-\w]+?)>/, '&lt;\1&gt;')
+      # processing < and > for html tags
+      line = line.sub(/<([.='\s"\/\-\w]+?)>/, '&lt;\1&gt;')
+      line = line.sub(/(\s>)$/, "\n").sub(/^<(\s{3,})/, '\1')
       line = line.gsub(/>/, '&gt;').gsub(/</, '&lt;')
     end
 
@@ -62,7 +64,7 @@ def vim2html anchors, file
   document = document.gsub(/\*([\w.\-]*?)\*/, '*<span id="\1" class="anchor">\1</span>*')
 
   document = document.gsub(/\|(\w\S+?)\|/) do |m|
-    anchor = anchors[$1]
+    anchor = anchors[$1] || '#'
     "|<a href=\"#{anchor}\">#{$1}</a>|"
   end
 
