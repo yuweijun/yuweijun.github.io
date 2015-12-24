@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of LDAP_SEARCH</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>LDAP_SEARCH</H1>
+Section: C Library Functions (3)<BR>Updated: 2010/06/30<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ldap_search, ldap_search_s, ldap_search_st, ldap_search_ext, ldap_search_ext_s - Perform an LDAP search operation
+<A NAME="lbAC">&nbsp;</A>
+<H2>LIBRARY</H2>
+
+OpenLDAP LDAP (libldap, -lldap)
+<A NAME="lbAD">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/ldap.h">ldap.h</A>&gt;
+
+int ldap_search_ext(
+<DL COMPACT><DT><DD>LDAP *</B><I>ld</I><B>,
+char *</B><I>base</I><B>,
+int </B><I>scope</I><B>,
+char *</B><I>filter</I><B>,
+char *</B><I>attrs</I><B>[],
+int </B><I>attrsonly</I><B>,
+LDAPControl **</B><I>serverctrls</I><B>,
+LDAPControl **</B><I>clientctrls</I><B>,
+struct timeval *</B><I>timeout</I><B>,
+int </B><I>sizelimit</I><B>,
+int *</B><I>msgidp</I><B> );
+</DL>
+
+int ldap_search_ext_s(
+<DL COMPACT><DT><DD>LDAP *</B><I>ld</I><B>,
+char *</B><I>base</I><B>,
+int </B><I>scope</I><B>,
+char *</B><I>filter</I><B>,
+char *</B><I>attrs</I><B>[],
+int </B><I>attrsonly</I><B>,
+LDAPControl **</B><I>serverctrls</I><B>,
+LDAPControl **</B><I>clientctrls</I><B>,
+struct timeval *</B><I>timeout</I><B>,
+int </B><I>sizelimit</I><B>,
+LDAPMessage **</B><I>res</I><B> );
+</DL>
+</B></PRE><A NAME="lbAE">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+These routines are used to perform LDAP search operations.
+The
+<B>ldap_search_ext_s()</B>
+
+routine
+does the search synchronously (i.e., not
+returning until the operation completes), providing a pointer
+to the resulting LDAP messages at the location pointed to by
+the <I>res</I> parameter.
+<P>
+
+The
+<B>ldap_search_ext()</B>
+
+routine is the asynchronous version, initiating the search and returning
+the message id of the operation it initiated in the integer
+pointed to by the <I>msgidp</I> parameter.
+<P>
+
+The <I>base</I> parameter is the DN of the entry at which to start the search.
+<P>
+
+The <I>scope</I> parameter is the scope of the search and should be one
+of LDAP_SCOPE_BASE, to search the object itself, LDAP_SCOPE_ONELEVEL,
+to search the object's immediate children, LDAP_SCOPE_SUBTREE, to
+search the object and all its descendants, or LDAP_SCOPE_CHILDREN,
+to search all of the descendants.   Note that the latter requires
+the server support the LDAP Subordinates Search Scope extension.
+<P>
+
+The <I>filter</I> is a string representation of the filter to
+apply in the search.  The string should conform to the format
+specified in RFC 4515 as extended by RFC 4526.  For instance,
+&quot;(cn=Jane Doe)&quot;.  Note that use of the extension requires the
+server to support the LDAP Absolute True/False Filter extension.
+NULL may be specified to indicate the library should send the
+filter (objectClass=*).
+<P>
+
+The <I>attrs</I> parameter is a null-terminated array of attribute
+descriptions to return from matching entries.
+If NULL is specified, the return of all user attributes is requested.
+The description &quot;*&quot; (LDAP_ALL_USER_ATTRIBUTES) may be used to request
+all user attributes to be returned.
+The description &quot;+&quot;(LDAP_ALL_OPERATIONAL_ATTRIBUTES) may be used to
+request all operational attributes to be returned.  Note that this
+requires the server to support the LDAP All Operational Attribute
+extension.
+To request no attributes, the description &quot;1.1&quot; (LDAP_NO_ATTRS)
+should be listed by itself.
+<P>
+
+The <I>attrsonly</I> parameter should be set to a non-zero value
+if only attribute descriptions are wanted.  It should be set to zero (0)
+if both attributes descriptions and attribute values are wanted.
+<P>
+
+The <I>serverctrls</I> and <I>clientctrls</I> parameters may be used
+to specify server and client controls, respectively.
+<P>
+
+The
+<B>ldap_search_ext_s()</B>
+
+routine is the synchronous version of
+<B>ldap_search_ext().</B>
+
+<P>
+
+It also returns a code indicating success or, in the
+case of failure, indicating the nature of the failure
+of the operation.  See
+<B><A HREF="/man/index.html?3+ldap_error">ldap_error</A></B>(3)
+
+for details.
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTES</H2>
+
+Note that both read
+and list functionality are subsumed by these routines,
+by using a filter like &quot;(objectclass=*)&quot; and a scope of LDAP_SCOPE_BASE (to
+emulate read) or LDAP_SCOPE_ONELEVEL (to emulate list).
+<P>
+
+These routines may dynamically allocate memory. The caller is
+responsible for freeing such memory using supplied deallocation
+routines. Return values are contained in &lt;<A HREF="file:/usr/include/ldap.h">ldap.h</A>&gt;.
+<P>
+
+Note that <I>res</I> parameter of
+<B>ldap_search_ext_s()</B>
+
+and
+<B>ldap_search_s()</B>
+
+should be freed with
+<B>ldap_msgfree()</B>
+
+regardless of return value of these functions.
+<A NAME="lbAG">&nbsp;</A>
+<H2>DEPRECATED INTERFACES</H2>
+
+The 
+<B>ldap_search()</B>
+
+routine is deprecated in favor of the
+<B>ldap_search_ext()</B>
+
+routine.  The 
+<B>ldap_search_s()</B>
+
+and
+<B>ldap_search_st()</B>
+
+routines are deprecated in favor of the
+<B>ldap_search_ext_s()</B>
+
+routine.
+<P>
+
+
+Deprecated interfaces generally remain in the library.  The macro
+LDAP_DEPRECATED can be defined to a non-zero value
+(e.g., -DLDAP_DEPRECATED=1) when compiling program designed to use
+deprecated interfaces.  It is recommended that developers writing new
+programs, or updating old programs, avoid use of deprecated interfaces.
+Over time, it is expected that documentation (and, eventually, support) for
+deprecated interfaces to be eliminated.
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?3+ldap">ldap</A></B>(3),
+
+<B><A HREF="/man/index.html?3+ldap_result">ldap_result</A></B>(3),
+
+<B><A HREF="/man/index.html?3+ldap_error">ldap_error</A></B>(3)
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>ACKNOWLEDGEMENTS</H2>
+
+
+
+<B>OpenLDAP Software</B>
+
+is developed and maintained by The OpenLDAP Project &lt;<A HREF="http://www.openldap.org/">http://www.openldap.org/</A>&gt;.
+<B>OpenLDAP Software</B>
+
+is derived from University of Michigan LDAP 3.3 Release.  
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">LIBRARY</A><DD>
+<DT><A HREF="#lbAD">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAE">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAF">NOTES</A><DD>
+<DT><A HREF="#lbAG">DEPRECATED INTERFACES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">ACKNOWLEDGEMENTS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:31 GMT, December 24, 2015
+</div></body>
+</HTML>

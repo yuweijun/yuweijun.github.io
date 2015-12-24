@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PTHREAD_ATTR_SETGUARDSIZE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PTHREAD_ATTR_SETGUARDSIZE</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2008-10-24<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+pthread_attr_setguardsize, pthread_attr_getguardsize - set/get guard size
+attribute in thread attributes object
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/pthread.h">pthread.h</A>&gt;</B>
+
+<B>int pthread_attr_setguardsize(pthread_attr_t *</B><I>attr</I><B>, size_t </B><I>guardsize</I><B>);</B>
+<B>int pthread_attr_getguardsize(pthread_attr_t *</B><I>attr</I><B>, size_t *</B><I>guardsize</I><B>);</B>
+
+Compile and link with <I>-pthread</I>.
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>pthread_attr_setguardsize</B>()
+
+function sets the guard size attribute of the
+thread attributes object referred to by
+<I>attr</I>
+
+to the value specified in
+<I>guardsize</I>.
+
+<P>
+If
+<I>guardsize</I>
+
+is greater than 0,
+then for each new thread created using
+<I>attr</I>
+
+the system allocates an additional region of at least
+<I>guardsize</I>
+
+bytes at the end of the thread's stack to act as the guard area
+for the stack (but see BUGS).
+<P>
+If
+<I>guardsize</I>
+
+is 0, then new threads created with
+<I>attr</I>
+
+will not have a guard area.
+<P>
+The default guard size is the same as the system page size.
+<P>
+If the stack address attribute has been set in
+<I>attr</I>
+
+(using
+<B><A HREF="/man/index.html?3+pthread_attr_setstack">pthread_attr_setstack</A></B>(3)
+
+or
+<B><A HREF="/man/index.html?3+pthread_attr_setstackaddr">pthread_attr_setstackaddr</A></B>(3)),
+
+meaning that the caller is allocating the thread's stack,
+then the guard size attribute is ignored
+(i.e., no guard area is created by the system):
+it is the application's responsibility to handle stack overflow
+(perhaps by using
+<B><A HREF="/man/index.html?2+mprotect">mprotect</A></B>(2)
+
+to manually define a guard area at the end of the stack
+that it has allocated).
+<P>
+The
+<B>pthread_attr_getguardsize</B>()
+
+function returns the guard size attribute of the
+thread attributes object referred to by
+<I>attr</I>
+
+in the buffer pointed to by
+<I>guardsize</I>.
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success, these functions return 0;
+on error, they return a non-zero error number.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+POSIX.1-2001 documents an
+<B>EINVAL</B>
+
+error if
+<I>attr</I>
+
+or
+<I>guardsize</I>
+
+is invalid.
+On Linux these functions always succeed
+(but portable and future-proof applications should nevertheless
+handle a possible error return).
+<A NAME="lbAG">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+These functions are provided by glibc since version 2.1.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+POSIX.1-2001.
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+A guard area consists of virtual memory pages that are protected
+to prevent read and write access.
+If a thread overflows its stack into the guard area,
+then, on most hard architectures, it receives a
+<B>SIGSEGV</B>
+
+signal, thus notifying it of the overflow.
+Guard areas start on page boundaries,
+and the guard size is internally rounded up to
+the system page size when creating a thread.
+(Nevertheless,
+<B>pthread_attr_getguardsize</B>()
+
+returns the guard size that was set by
+<B>pthread_attr_setguardsize</B>().)
+
+<P>
+Setting a guard size of 0 may be useful to save memory
+in an application that creates many threads
+and knows that stack overflow can never occur.
+<P>
+Choosing a guard size larger than the default size
+may be necessary for detecting stack overflows
+if a thread allocates large data structures on the stack.
+<P>
+As at glibc 2.8, the NPTL threading implementation includes
+the guard area within the stack size allocation,
+rather than allocating extra space at the end of the stack,
+as POSIX.1 requires.
+(This can result in an
+<B>EINVAL</B>
+
+error from
+<B><A HREF="/man/index.html?3+pthread_create">pthread_create</A></B>(3)
+
+if the guard size value is too large,
+leaving no space for the actual stack.)
+<P>
+The obsolete LinuxThreads implementation did the right thing,
+allocating extra space at the end of the stack for the guard area.
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+See
+<B><A HREF="/man/index.html?3+pthread_getattr_np">pthread_getattr_np</A></B>(3).
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+mmap">mmap</A></B>(2),
+
+<B><A HREF="/man/index.html?2+mprotect">mprotect</A></B>(2),
+
+<B><A HREF="/man/index.html?3+pthread_attr_init">pthread_attr_init</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_create">pthread_create</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setstack">pthread_attr_setstack</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setstacksize">pthread_attr_setstacksize</A></B>(3),
+
+<B><A HREF="/man/index.html?7+pthreads">pthreads</A></B>(7)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">VERSIONS</A><DD>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DT><A HREF="#lbAJ">EXAMPLE</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:37 GMT, December 24, 2015
+</div></body>
+</HTML>

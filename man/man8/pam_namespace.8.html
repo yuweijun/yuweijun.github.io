@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PAM_NAMESPACE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PAM_NAMESPACE</H1>
+Section: Linux-PAM Manual (8)<BR>Updated: 06/16/2009<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pam_namespace - PAM module for configuring namespace for a session
+<A NAME="lbAB">&nbsp;</A>
+<H2>Synopsis</H2>
+
+
+<DL COMPACT>
+<DT>
+<B>pam_namespace.so</B> [debug] [unmnt_remnt] [unmnt_only] [require_selinux] [gen_hash] [ignore_config_error] [ignore_instance_parent_mode] [no_unmount_on_close] [use_current_context] [use_default_context]
+
+</DL>
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<DD>The pam_namespace PAM module sets up a private namespace for a session with polyinstantiated directories. A polyinstantiated directory provides a different instance of itself based on user name, or when using SELinux, user name, security context or both. If an executable script
+FC/etc/security/namespace.initF[]
+exists, it is used to initialize the instance directory after it is set up and mounted on the polyinstantiated directory. The script receives the polyinstantiated directory path, the instance directory path, flag whether the instance directory was newly created (0 for no, 1 for yes), and the user name as its arguments.
+<P>
+
+The pam_namespace module disassociates the session namespace from the parent namespace. Any mounts/unmounts performed in the parent namespace, such as mounting of devices, are not reflected in the session namespace. To propagate selected mount/unmount events from the parent namespace into the disassociated session namespace, an administrator may use the special shared-subtree feature. For additional information on shared-subtree feature, please refer to the <A HREF="/man/index.html?8+mount">mount</A>(8) man page and the shared-subtree description at <A HREF="http://lwn.net/Articles/159077">http://lwn.net/Articles/159077</A> and <A HREF="http://lwn.net/Articles/159092.">http://lwn.net/Articles/159092.</A>
+<A NAME="lbAD">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+
+<B>debug</B>
+<DL COMPACT><DT><DD>
+A lot of debug information is logged using syslog
+</DL>
+
+<P>
+
+<B>unmnt_remnt</B>
+<DL COMPACT><DT><DD>
+For programs such as su and newrole, the login session has already setup a polyinstantiated namespace. For these programs, polyinstantiation is performed based on new user id or security context, however the command first needs to undo the polyinstantiation performed by login. This argument instructs the command to first undo previous polyinstantiation before proceeding with new polyinstantiation based on new id/context
+</DL>
+
+<P>
+
+<B>unmnt_only</B>
+<DL COMPACT><DT><DD>
+For trusted programs that want to undo any existing bind mounts and process instance directories on their own, this argument allows them to unmount currently mounted instance directories
+</DL>
+
+<P>
+
+<B>require_selinux</B>
+<DL COMPACT><DT><DD>
+If selinux is not enabled, return failure
+</DL>
+
+<P>
+
+<B>gen_hash</B>
+<DL COMPACT><DT><DD>
+Instead of using the security context string for the instance name, generate and use its md5 hash.
+</DL>
+
+<P>
+
+<B>ignore_config_error</B>
+<DL COMPACT><DT><DD>
+If a line in the configuration file corresponding to a polyinstantiated directory contains format error, skip that line process the next line. Without this option, pam will return an error to the calling program resulting in termination of the session.
+</DL>
+
+<P>
+
+<B>ignore_instance_parent_mode</B>
+<DL COMPACT><DT><DD>
+Instance parent directories by default are expected to have the restrictive mode of 000. Using this option, an administrator can choose to ignore the mode of the instance parent. This option should be used with caution as it will reduce security and isolation goals of the polyinstantiation mechanism.
+</DL>
+
+<P>
+
+<B>no_unmount_on_close</B>
+<DL COMPACT><DT><DD>
+For certain trusted programs such as newrole, open session is called from a child process while the parent performs close session and pam end functions. For these commands use this option to instruct pam_close_session to not unmount the bind mounted polyinstantiated directory in the parent.
+</DL>
+
+<P>
+
+<B>use_current_context</B>
+<DL COMPACT><DT><DD>
+Useful for services which do not change the SELinux context with setexeccon call. The module will use the current SELinux context of the calling process for the level and context polyinstantiation.
+</DL>
+
+<P>
+
+<B>use_default_context</B>
+<DL COMPACT><DT><DD>
+Useful for services which do not use pam_selinux for changing the SELinux context with setexeccon call. The module will use the default SELinux context of the user for the level and context polyinstantiation.
+</DL>
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>MODULE TYPES PROVIDED</H2>
+
+<P>
+
+Only the
+<B>session</B>
+module type is provided. The module must not be called from multithreaded processes.
+<A NAME="lbAF">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<P>
+
+PAM_SUCCESS
+<DL COMPACT><DT><DD>
+Namespace setup was successful.
+</DL>
+
+<P>
+
+PAM_SERVICE_ERR
+<DL COMPACT><DT><DD>
+Unexpected system error occurred while setting up namespace.
+</DL>
+
+<P>
+
+PAM_SESSION_ERR
+<DL COMPACT><DT><DD>
+Unexpected namespace configuration error occurred.
+</DL>
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>FILES</H2>
+
+<P>
+
+FC/etc/security/namespace.confF[]
+<DL COMPACT><DT><DD>
+Main configuration file
+</DL>
+
+<P>
+
+FC/etc/security/namespace.dF[]
+<DL COMPACT><DT><DD>
+Directory for additional configuration files
+</DL>
+
+<P>
+
+FC/etc/security/namespace.initF[]
+<DL COMPACT><DT><DD>
+Init script for instance directories
+</DL>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+For the &lt;service&gt;s you need polyinstantiation (login for example) put the following line in /etc/pam.d/&lt;service&gt; as the last line for session group:
+<P>
+
+session required pam_namespace.so [arguments]
+<P>
+
+To use polyinstantiation with graphical display manager gdm, insert the following line, before exit 0, in /etc/gdm/PostSession/Default:
+<P>
+
+/usr/sbin/gdm-safe-restart
+<P>
+
+This allows gdm to restart after each session and appropriately adjust namespaces of display manager and the X server. If polyinstantiation of /tmp is desired along with the graphical environment, then additional configuration changes are needed to address the interaction of X server and font server namespaces with their use of /tmp to create communication sockets. Please use the initialization script
+FC/etc/security/namespace.initF[]
+to ensure that the X server and its clients can appropriately access the communication socket X0. Please refer to the sample instructions provided in the comment section of the instance initialization script
+FC/etc/security/namespace.initF[]. In addition, perform the following changes to use graphical environment with polyinstantiation of /tmp:
+<P>
+
+<P>
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+
+<FONT SIZE="-1">
+</FONT><PRE>
+
+
+      1. Disable the use of font server by commenting out &quot;FontPath&quot;
+         line in /etc/X11/xorg.conf. If you do want to use the font server
+         then you will have to augment the instance initialization
+         script to appropriately provide /tmp/.font-unix from the
+         polyinstantiated /tmp.
+      2. Ensure that the gdm service is setup to use pam_namespace,
+         as described above, by modifying /etc/pam.d/gdm.
+      3. Ensure that the display manager is configured to restart X server
+         with each new session. This default setup can be verified by
+         making sure that /usr/share/gdm/defaults.conf contains
+         &quot;AlwaysRestartServer=true&quot;, and it is not overridden by
+         /etc/gdm/custom.conf.
+    
+</PRE>
+
+
+<FONT SIZE="+1">
+</DL>
+
+
+
+
+<P>
+</FONT><A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<P>
+<B><A HREF="/man/index.html?5+namespace.conf">namespace.conf</A></B>(5),
+<B><A HREF="/man/index.html?5+pam.d">pam.d</A></B>(5),
+<B><A HREF="/man/index.html?8+mount">mount</A></B>(8),
+<B><A HREF="/man/index.html?8+pam">pam</A></B>(8).
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<P>
+
+The namespace setup scheme was designed by Stephen Smalley, Janak Desai and Chad Sellers. The pam_namespace PAM module was developed by Janak Desai &lt;<A HREF="mailto:janak@us.ibm.com">janak@us.ibm.com</A>&gt;, Chad Sellers &lt;<A HREF="mailto:csellers@tresys.com">csellers@tresys.com</A>&gt; and Steve Grubb &lt;<A HREF="mailto:sgrubb@redhat.com">sgrubb@redhat.com</A>&gt;. Additional improvements by Xavier Toth &lt;<A HREF="mailto:txtoth@gmail.com">txtoth@gmail.com</A>&gt; and Tomas Mraz &lt;<A HREF="mailto:tmraz@redhat.com">tmraz@redhat.com</A>&gt;.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">Synopsis</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">OPTIONS</A><DD>
+<DT><A HREF="#lbAE">MODULE TYPES PROVIDED</A><DD>
+<DT><A HREF="#lbAF">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAG">FILES</A><DD>
+<DT><A HREF="#lbAH">EXAMPLES</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:28 GMT, December 24, 2015
+</div></body>
+</HTML>

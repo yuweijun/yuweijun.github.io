@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of docs::api::ModPerl::RegistryLoader</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>docs::api::ModPerl::RegistryLoader</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-11-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ModPerl::RegistryLoader - Compile ModPerl::RegistryCooker scripts at server startup
+<A NAME="lbAC">&nbsp;</A>
+<H2>Synopsis</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  # in startup.pl
+  use ModPerl::RegistryLoader ();
+  use File::Spec ();
+  
+  # explicit uri =&gt; filename mapping
+  my $rlbb = ModPerl::RegistryLoader-&gt;new(
+      package =&gt; 'ModPerl::RegistryBB',
+      debug   =&gt; 1, # default 0
+  );
+
+  $rlbb-&gt;handler($uri, $filename);
+  
+  ###
+  # uri =&gt; filename mapping using a helper function
+  sub trans {
+      my $uri = shift;
+      $uri =~ s|^/registry/|cgi-bin/|;
+      return File::Spec-&gt;catfile(Apache2::ServerUtil::server_root, $uri);
+  }
+  my $rl = ModPerl::RegistryLoader-&gt;new(
+      package =&gt; 'ModPerl::Registry',
+      trans   =&gt; \&amp;trans,
+  );
+  $rl-&gt;handler($uri);
+  
+  ###
+  $rlbb-&gt;handler($uri, $filename, $virtual_hostname);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>Description</H2>
+
+<A NAME="ixAAD"></A>
+This modules allows compilation of scripts, running under packages
+derived from <TT>&quot;ModPerl::RegistryCooker&quot;</TT>, at server startup.  The
+script's handler routine is compiled by the parent server, of which
+children get a copy and thus saves some memory by initially sharing
+the compiled copy with the parent and saving the overhead of script's
+compilation on the first request in every httpd instance.
+<P>
+
+This module is of course useless for those running the
+<TT>&quot;ModPerl::PerlRun&quot;</TT> handler, because the scripts get recompiled on
+each request under this handler.
+<A NAME="lbAE">&nbsp;</A>
+<H2>Methods</H2>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT><I>new()</I><DD>
+<A NAME="ixAAF"></A>
+When creating a new <TT>&quot;ModPerl::RegistryLoader&quot;</TT> object, one has to
+specify which of the <TT>&quot;ModPerl::RegistryCooker&quot;</TT> derived modules to
+use. For example if a script is going to run under
+<TT>&quot;ModPerl::RegistryBB&quot;</TT> the object is initialized as:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $rlbb = ModPerl::RegistryLoader-&gt;new(
+      package =&gt; 'ModPerl::RegistryBB',
+  );
+
+</PRE>
+
+
+
+
+<P>
+
+
+If the package is not specified <TT>&quot;ModPerl::Registry&quot;</TT> is assumed:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $rlbb = ModPerl::RegistryLoader-&gt;new();
+
+</PRE>
+
+
+
+
+<P>
+
+
+To turn the debugging on, set the <I>debug</I> attribute to a true value:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $rlbb = ModPerl::RegistryLoader-&gt;new(
+      package =&gt; 'ModPerl::RegistryBB',
+      debug   =&gt; 1,
+  );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Instead of specifying explicitly a filename for each uri passed to
+<I>handler()</I>, a special attribute <I>trans</I> can be set to a subroutine to
+perform automatic remapping.
+
+
+<P>
+
+
+
+
+<PRE>
+  my $rlbb = ModPerl::RegistryLoader-&gt;new(
+      package =&gt; 'ModPerl::RegistryBB',
+      trans   =&gt; \&amp;trans,
+  );
+
+</PRE>
+
+
+
+
+<P>
+
+
+See the <I>handler()</I> item for an example of using the <I>trans</I> attribute.
+<DT><I>handler()</I><DD>
+<A NAME="ixAAG"></A>
+
+
+<PRE>
+  $rl-&gt;handler($uri, [$filename, [$virtual_hostname]]);
+
+</PRE>
+
+
+
+
+<P>
+
+
+The <I>handler()</I> method takes argument of <TT>&quot;uri&quot;</TT> and optionally of
+<TT>&quot;filename&quot;</TT> and of <TT>&quot;virtual_hostname&quot;</TT>.
+
+
+<P>
+
+
+<FONT SIZE="-1">URI</FONT> to filename translation normally doesn't happen until <FONT SIZE="-1">HTTP</FONT> request
+time, so we're forced to roll our own translation. If the filename is
+supplied it's used in translation.
+
+
+<P>
+
+
+If the filename is omitted and a <TT>&quot;trans&quot;</TT> subroutine was not set in
+<I>new()</I>, the loader will try using the <TT>&quot;uri&quot;</TT> relative to the
+<TT>&quot;ServerRoot&quot;</TT> configuration directive.  For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  httpd.conf:
+  -----------
+  ServerRoot /usr/local/apache
+  Alias /registry/ /usr/local/apache/cgi-bin/
+
+  startup.pl:
+  -----------
+  use ModPerl::RegistryLoader ();
+  my $rl = ModPerl::RegistryLoader-&gt;new(
+      package =&gt; 'ModPerl::Registry',
+  );
+  # preload /usr/local/apache/cgi-bin/test.pl
+  $rl-&gt;handler(/registry/test.pl);
+
+</PRE>
+
+
+
+
+<P>
+
+
+To make the loader smarter about the <FONT SIZE="-1">URI-</FONT>&gt;filename translation,
+you may provide the <TT>&quot;new()&quot;</TT> method with a <TT>&quot;trans()&quot;</TT> function to
+translate the uri to filename.
+
+
+<P>
+
+
+The following example will pre-load all files ending with <I>.pl</I> in
+the <I>cgi-bin</I> directory relative to <TT>&quot;ServerRoot&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+  httpd.conf:
+  -----------
+  ServerRoot /usr/local/apache
+  Alias /registry/ /usr/local/apache/cgi-bin/
+
+  startup.pl:
+  -----------
+  {
+      # test the scripts pre-loading by using trans sub
+      use ModPerl::RegistryLoader ();
+      use File::Spec ();
+      use DirHandle ();
+      use strict;
+  
+      my $dir = File::Spec-&gt;catdir(Apache2::ServerUtil::server_root,
+                                  &quot;cgi-bin&quot;);
+  
+      sub trans {
+          my $uri = shift; 
+          $uri =~ s|^/registry/|cgi-bin/|;
+          return File::Spec-&gt;catfile(Apache2::ServerUtil::server_root,
+                                     $uri);
+      }
+  
+      my $rl = ModPerl::RegistryLoader-&gt;new(
+          package =&gt; &quot;ModPerl::Registry&quot;,
+          trans   =&gt; \&amp;trans,
+      );
+      my $dh = DirHandle-&gt;new($dir) or die $!;
+  
+      for my $file ($dh-&gt;read) {
+          next unless $file =~ /\.pl$/;
+          $rl-&gt;handler(&quot;/registry/$file&quot;);
+      }
+  }
+
+</PRE>
+
+
+
+
+<P>
+
+
+If <TT>$virtual_hostname</TT> argument is passed it'll be used in the
+creation of the package name the script will be compiled into for
+those registry handlers that use <I>namespace_from_uri()</I> method.  See
+also the notes on <TT>$ModPerl::RegistryCooker::NameWithVirtualHost</TT> in
+the <TT>&quot;ModPerl::RegistryCooker&quot;</TT> documentation.
+
+
+<P>
+
+
+Also
+explained in the <TT>&quot;ModPerl::RegistryLoader&quot;</TT> documentation, this
+only has an effect at run time if
+<TT>$ModPerl::RegistryCooker::NameWithVirtualHost</TT> is set to true,
+otherwise the <TT>$virtual_hostname</TT> argument is ignored.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>Implementation Notes</H2>
+
+<A NAME="ixAAH"></A>
+<TT>&quot;ModPerl::RegistryLoader&quot;</TT> performs a very simple job, at run time it
+loads and sub-classes the module passed via the <I>package</I> attribute
+and overrides some of its functions, to emulate the run-time
+environment. This allows to preload the same script into different
+registry environments.
+<A NAME="lbAG">&nbsp;</A>
+<H2>Authors</H2>
+
+<A NAME="ixAAI"></A>
+The original <TT>&quot;Apache2::RegistryLoader&quot;</TT> implemented by Doug MacEachern.
+<P>
+
+Stas Bekman did the porting to the new registry framework based on
+<TT>&quot;ModPerl::RegistryLoader&quot;</TT>.
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAJ"></A>
+<TT>&quot;ModPerl::RegistryCooker&quot;</TT>, <TT>&quot;ModPerl::Registry&quot;</TT>,
+<TT>&quot;ModPerl::RegistryBB&quot;</TT>, <TT>&quot;ModPerl::PerlRun&quot;</TT>, <I><A HREF="/man/index.html?3+Apache">Apache</A></I>(3),
+<I><A HREF="/man/index.html?3+mod_perl">mod_perl</A></I>(3)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">Synopsis</A><DD>
+<DT><A HREF="#lbAD">Description</A><DD>
+<DT><A HREF="#lbAE">Methods</A><DD>
+<DT><A HREF="#lbAF">Implementation Notes</A><DD>
+<DT><A HREF="#lbAG">Authors</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:34 GMT, December 24, 2015
+</div></body>
+</HTML>

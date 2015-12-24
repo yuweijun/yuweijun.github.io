@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of TS</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>TS</H1>
+Section: OpenSSL (1)<BR>Updated: 2009-04-10<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ts - Time Stamping Authority tool (client/server)
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+<B>openssl</B> <B>ts</B>
+<B>-query</B>
+[<B>-rand</B> file:file...]
+[<B>-config</B> configfile]
+[<B>-data</B> file_to_hash]
+[<B>-digest</B> digest_bytes]
+[<B>-md2</B>|<B>-md4</B>|<B>-md5</B>|<B>-sha</B>|<B>-sha1</B>|<B>-mdc2</B>|<B>-ripemd160</B>|<B>...</B>]
+[<B>-policy</B> object_id]
+[<B>-no_nonce</B>]
+[<B>-cert</B>]
+[<B>-in</B> request.tsq]
+[<B>-out</B> request.tsq]
+[<B>-text</B>]
+<P>
+
+<B>openssl</B> <B>ts</B>
+<B>-reply</B>
+[<B>-config</B> configfile]
+[<B>-section</B> tsa_section]
+[<B>-queryfile</B> request.tsq]
+[<B>-passin</B> password_src]
+[<B>-signer</B> tsa_cert.pem]
+[<B>-inkey</B> private.pem]
+[<B>-chain</B> certs_file.pem]
+[<B>-policy</B> object_id]
+[<B>-in</B> response.tsr]
+[<B>-token_in</B>]
+[<B>-out</B> response.tsr]
+[<B>-token_out</B>]
+[<B>-text</B>]
+[<B>-engine</B> id]
+<P>
+
+<B>openssl</B> <B>ts</B>
+<B>-verify</B>
+[<B>-data</B> file_to_hash]
+[<B>-digest</B> digest_bytes]
+[<B>-queryfile</B> request.tsq]
+[<B>-in</B> response.tsr]
+[<B>-token_in</B>]
+[<B>-CApath</B> trusted_cert_path]
+[<B>-CAfile</B> trusted_certs.pem]
+[<B>-untrusted</B> cert_file.pem]
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <B>ts</B> command is a basic Time Stamping Authority (<FONT SIZE="-1">TSA</FONT>) client and server
+application as specified in <FONT SIZE="-1">RFC</FONT> 3161 (Time-Stamp Protocol, <FONT SIZE="-1">TSP</FONT>). A
+<FONT SIZE="-1">TSA</FONT> can be part of a <FONT SIZE="-1">PKI</FONT> deployment and its role is to provide long
+term proof of the existence of a certain datum before a particular
+time. Here is a brief description of the protocol:
+<DL COMPACT>
+<DT>1.<DD>
+The <FONT SIZE="-1">TSA</FONT> client computes a one-way hash value for a data file and sends
+the hash to the <FONT SIZE="-1">TSA</FONT>.
+<DT>2.<DD>
+The <FONT SIZE="-1">TSA</FONT> attaches the current date and time to the received hash value,
+signs them and sends the time stamp token back to the client. By
+creating this token the <FONT SIZE="-1">TSA</FONT> certifies the existence of the original
+data file at the time of response generation.
+<DT>3.<DD>
+The <FONT SIZE="-1">TSA</FONT> client receives the time stamp token and verifies the
+signature on it. It also checks if the token contains the same hash
+value that it had sent to the <FONT SIZE="-1">TSA</FONT>.
+</DL>
+<P>
+
+There is one <FONT SIZE="-1">DER</FONT> encoded protocol data unit defined for transporting a time
+stamp request to the <FONT SIZE="-1">TSA</FONT> and one for sending the time stamp response
+back to the client. The <B>ts</B> command has three main functions:
+creating a time stamp request based on a data file,
+creating a time stamp response based on a request, verifying if a
+response corresponds to a particular request or a data file.
+<P>
+
+There is no support for sending the requests/responses automatically
+over <FONT SIZE="-1">HTTP</FONT> or <FONT SIZE="-1">TCP</FONT> yet as suggested in <FONT SIZE="-1">RFC</FONT> 3161. The users must send the
+requests either by ftp or e-mail.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<A NAME="ixAAE"></A>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Time Stamp Request generation</H3>
+
+<A NAME="ixAAF"></A>
+The <B>-query</B> switch can be used for creating and printing a time stamp
+request with the following options:
+<DL COMPACT>
+<DT><B>-rand</B> file:file...<DD>
+<A NAME="ixAAG"></A>
+The files containing random data for seeding the random number
+generator. Multiple files can be specified, the separator is <B>;</B> for
+MS-Windows, <B>,</B> for <FONT SIZE="-1">VMS</FONT> and <B>:</B> for all other platforms. (Optional)
+<DT><B>-config</B> configfile<DD>
+<A NAME="ixAAH"></A>
+The configuration file to use, this option overrides the
+<B></B><FONT SIZE="-1"><B>OPENSSL_CONF</B></FONT><B></B> environment variable. Only the <FONT SIZE="-1">OID</FONT> section
+of the config file is used with the <B>-query</B> command. (Optional)
+<DT><B>-data</B> file_to_hash<DD>
+<A NAME="ixAAI"></A>
+The data file for which the time stamp request needs to be
+created. stdin is the default if neither the <B>-data</B> nor the <B>-digest</B>
+parameter is specified. (Optional)
+<DT><B>-digest</B> digest_bytes<DD>
+<A NAME="ixAAJ"></A>
+It is possible to specify the message imprint explicitly without the data
+file. The imprint must be specified in a hexadecimal format, two characters
+per byte, the bytes optionally separated by colons (e.g. 1A:F6:01:... or
+1AF601...). The number of bytes must match the message digest algorithm 
+in use. (Optional)
+<DT><B>-md2</B>|<B>-md4</B>|<B>-md5</B>|<B>-sha</B>|<B>-sha1</B>|<B>-mdc2</B>|<B>-ripemd160</B>|<B>...</B><DD>
+<A NAME="ixAAK"></A>
+The message digest to apply to the data file, it supports all the message
+digest algorithms that are supported by the openssl <B>dgst</B> command.
+The default is <FONT SIZE="-1">SHA-1</FONT>. (Optional)
+<DT><B>-policy</B> object_id<DD>
+<A NAME="ixAAL"></A>
+The policy that the client expects the <FONT SIZE="-1">TSA</FONT> to use for creating the
+time stamp token. Either the dotted <FONT SIZE="-1">OID</FONT> notation or <FONT SIZE="-1">OID</FONT> names defined
+in the config file can be used. If no policy is requested the <FONT SIZE="-1">TSA</FONT> will
+use its own default policy. (Optional)
+<DT><B>-no_nonce</B><DD>
+<A NAME="ixAAM"></A>
+No nonce is specified in the request if this option is
+given. Otherwise a 64 bit long pseudo-random none is
+included in the request. It is recommended to use nonce to
+protect against replay-attacks. (Optional)
+<DT><B>-cert</B><DD>
+<A NAME="ixAAN"></A>
+The <FONT SIZE="-1">TSA</FONT> is expected to include its signing certificate in the
+response. (Optional)
+<DT><B>-in</B> request.tsq<DD>
+<A NAME="ixAAO"></A>
+This option specifies a previously created time stamp request in <FONT SIZE="-1">DER</FONT>
+format that will be printed into the output file. Useful when you need
+to examine the content of a request in human-readable
+
+
+<P>
+
+
+format. (Optional)
+<DT><B>-out</B> request.tsq<DD>
+<A NAME="ixAAP"></A>
+Name of the output file to which the request will be written. Default
+is stdout. (Optional)
+<DT><B>-text</B><DD>
+<A NAME="ixAAQ"></A>
+If this option is specified the output is human-readable text format
+instead of <FONT SIZE="-1">DER</FONT>. (Optional)
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Time Stamp Response generation</H3>
+
+<A NAME="ixAAR"></A>
+A time stamp response (TimeStampResp) consists of a response status
+and the time stamp token itself (ContentInfo), if the token generation was
+successful. The <B>-reply</B> command is for creating a time stamp
+response or time stamp token based on a request and printing the
+response/token in human-readable format. If <B>-token_out</B> is not
+specified the output is always a time stamp response (TimeStampResp),
+otherwise it is a time stamp token (ContentInfo).
+<DL COMPACT>
+<DT><B>-config</B> configfile<DD>
+<A NAME="ixAAS"></A>
+The configuration file to use, this option overrides the
+<B></B><FONT SIZE="-1"><B>OPENSSL_CONF</B></FONT><B></B> environment variable. See <B></B><FONT SIZE="-1"><B>CONFIGURATION</B></FONT><B> </B><FONT SIZE="-1"><B>FILE</B></FONT><B>
+</B><FONT SIZE="-1"><B>OPTIONS</B></FONT><B></B> for configurable variables. (Optional)
+<DT><B>-section</B> tsa_section<DD>
+<A NAME="ixAAT"></A>
+The name of the config file section conatining the settings for the
+response generation. If not specified the default <FONT SIZE="-1">TSA</FONT> section is
+used, see <B></B><FONT SIZE="-1"><B>CONFIGURATION</B></FONT><B> </B><FONT SIZE="-1"><B>FILE</B></FONT><B> </B><FONT SIZE="-1"><B>OPTIONS</B></FONT><B></B> for details. (Optional)
+<DT><B>-queryfile</B> request.tsq<DD>
+<A NAME="ixAAU"></A>
+The name of the file containing a <FONT SIZE="-1">DER</FONT> encoded time stamp request. (Optional)
+<DT><B>-passin</B> password_src<DD>
+<A NAME="ixAAV"></A>
+Specifies the password source for the private key of the <FONT SIZE="-1">TSA</FONT>. See
+<B></B><FONT SIZE="-1"><B>PASS</B></FONT><B> </B><FONT SIZE="-1"><B>PHRASE</B></FONT><B> </B><FONT SIZE="-1"><B>ARGUMENTS</B></FONT><B></B> in <I><A HREF="/man/index.html?1+openssl">openssl</A></I>(1). (Optional)
+<DT><B>-signer</B> tsa_cert.pem<DD>
+<A NAME="ixAAW"></A>
+The signer certificate of the <FONT SIZE="-1">TSA</FONT> in <FONT SIZE="-1">PEM</FONT> format. The <FONT SIZE="-1">TSA</FONT> signing
+certificate must have exactly one extended key usage assigned to it:
+timeStamping. The extended key usage must also be critical, otherwise
+the certificate is going to be refused. Overrides the <B>signer_cert</B>
+variable of the config file. (Optional)
+<DT><B>-inkey</B> private.pem<DD>
+<A NAME="ixAAX"></A>
+The signer private key of the <FONT SIZE="-1">TSA</FONT> in <FONT SIZE="-1">PEM</FONT> format. Overrides the
+<B>signer_key</B> config file option. (Optional)
+<DT><B>-chain</B> certs_file.pem<DD>
+<A NAME="ixAAY"></A>
+The collection of certificates in <FONT SIZE="-1">PEM</FONT> format that will all
+be included in the response in addition to the signer certificate if
+the <B>-cert</B> option was used for the request. This file is supposed to
+contain the certificate chain for the signer certificate from its
+issuer upwards. The <B>-reply</B> command does not build a certificate
+chain automatically. (Optional)
+<DT><B>-policy</B> object_id<DD>
+<A NAME="ixAAZ"></A>
+The default policy to use for the response unless the client
+explicitly requires a particular <FONT SIZE="-1">TSA</FONT> policy. The <FONT SIZE="-1">OID</FONT> can be specified
+either in dotted notation or with its name. Overrides the
+<B>default_policy</B> config file option. (Optional)
+<DT><B>-in</B> response.tsr<DD>
+<A NAME="ixABA"></A>
+Specifies a previously created time stamp response or time stamp token
+(if <B>-token_in</B> is also specified) in <FONT SIZE="-1">DER</FONT> format that will be written
+to the output file. This option does not require a request, it is
+useful e.g. when you need to examine the content of a response or
+token or you want to extract the time stamp token from a response. If
+the input is a token and the output is a time stamp response a default
+'granted' status info is added to the token. (Optional)
+<DT><B>-token_in</B><DD>
+<A NAME="ixABB"></A>
+This flag can be used together with the <B>-in</B> option and indicates
+that the input is a <FONT SIZE="-1">DER</FONT> encoded time stamp token (ContentInfo) instead
+of a time stamp response (TimeStampResp). (Optional)
+<DT><B>-out</B> response.tsr<DD>
+<A NAME="ixABC"></A>
+The response is written to this file. The format and content of the
+file depends on other options (see <B>-text</B>, <B>-token_out</B>). The default is
+stdout. (Optional)
+<DT><B>-token_out</B><DD>
+<A NAME="ixABD"></A>
+The output is a time stamp token (ContentInfo) instead of time stamp
+response (TimeStampResp). (Optional)
+<DT><B>-text</B><DD>
+<A NAME="ixABE"></A>
+If this option is specified the output is human-readable text format
+instead of <FONT SIZE="-1">DER</FONT>. (Optional)
+<DT><B>-engine</B> id<DD>
+<A NAME="ixABF"></A>
+Specifying an engine (by its unique <B>id</B> string) will cause <B>ts</B>
+to attempt to obtain a functional reference to the specified engine,
+thus initialising it if needed. The engine will then be set as the default
+for all available algorithms. Default is builtin. (Optional)
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Time Stamp Response verification</H3>
+
+<A NAME="ixABG"></A>
+The <B>-verify</B> command is for verifying if a time stamp response or time
+stamp token is valid and matches a particular time stamp request or
+data file. The <B>-verify</B> command does not use the configuration file.
+<DL COMPACT>
+<DT><B>-data</B> file_to_hash<DD>
+<A NAME="ixABH"></A>
+The response or token must be verified against file_to_hash. The file
+is hashed with the message digest algorithm specified in the token. 
+The <B>-digest</B> and <B>-queryfile</B> options must not be specified with this one.
+(Optional)
+<DT><B>-digest</B> digest_bytes<DD>
+<A NAME="ixABI"></A>
+The response or token must be verified against the message digest specified
+with this option. The number of bytes must match the message digest algorithm
+specified in the token. The <B>-data</B> and <B>-queryfile</B> options must not be
+specified with this one. (Optional)
+<DT><B>-queryfile</B> request.tsq<DD>
+<A NAME="ixABJ"></A>
+The original time stamp request in <FONT SIZE="-1">DER</FONT> format. The <B>-data</B> and <B>-digest</B>
+options must not be specified with this one. (Optional)
+<DT><B>-in</B> response.tsr<DD>
+<A NAME="ixABK"></A>
+The time stamp response that needs to be verified in <FONT SIZE="-1">DER</FONT> format. (Mandatory)
+<DT><B>-token_in</B><DD>
+<A NAME="ixABL"></A>
+This flag can be used together with the <B>-in</B> option and indicates
+that the input is a <FONT SIZE="-1">DER</FONT> encoded time stamp token (ContentInfo) instead
+of a time stamp response (TimeStampResp). (Optional)
+<DT><B>-CApath</B> trusted_cert_path<DD>
+<A NAME="ixABM"></A>
+The name of the directory containing the trused <FONT SIZE="-1">CA</FONT> certificates of the
+client. See the similar option of <I><A HREF="/man/index.html?1+verify">verify</A></I>(1) for additional
+details. Either this option or <B>-CAfile</B> must be specified. (Optional)
+<DT><B>-CAfile</B> trusted_certs.pem<DD>
+<A NAME="ixABN"></A>
+The name of the file containing a set of trusted self-signed <FONT SIZE="-1">CA</FONT> 
+certificates in <FONT SIZE="-1">PEM</FONT> format. See the similar option of 
+<I><A HREF="/man/index.html?1+verify">verify</A></I>(1) for additional details. Either this option 
+or <B>-CApath</B> must be specified.
+(Optional)
+<DT><B>-untrusted</B> cert_file.pem<DD>
+<A NAME="ixABO"></A>
+Set of additional untrusted certificates in <FONT SIZE="-1">PEM</FONT> format which may be
+needed when building the certificate chain for the <FONT SIZE="-1">TSA</FONT>'s signing
+certificate. This file must contain the <FONT SIZE="-1">TSA</FONT> signing certificate and
+all intermediate <FONT SIZE="-1">CA</FONT> certificates unless the response includes them.
+(Optional)
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>CONFIGURATION FILE OPTIONS</H2>
+
+<A NAME="ixABP"></A>
+The <B>-query</B> and <B>-reply</B> commands make use of a configuration file
+defined by the <B></B><FONT SIZE="-1"><B>OPENSSL_CONF</B></FONT><B></B> environment variable. See <I><A HREF="/man/index.html?5+config">config</A></I>(5)
+for a general description of the syntax of the config file. The
+<B>-query</B> command uses only the symbolic <FONT SIZE="-1">OID</FONT> names section
+and it can work without it. However, the <B>-reply</B> command needs the
+config file for its operation.
+<P>
+
+When there is a command line switch equivalent of a variable the
+switch always overrides the settings in the config file.
+<DL COMPACT>
+<DT><B>tsa</B> section, <B>default_tsa</B><DD>
+<A NAME="ixABQ"></A>
+This is the main section and it specifies the name of another section
+that contains all the options for the <B>-reply</B> command. This default
+section can be overriden with the <B>-section</B> command line switch. (Optional)
+<DT><B>oid_file</B><DD>
+<A NAME="ixABR"></A>
+See <I><A HREF="/man/index.html?1+ca">ca</A></I>(1) for description. (Optional)
+<DT><B>oid_section</B><DD>
+<A NAME="ixABS"></A>
+See <I><A HREF="/man/index.html?1+ca">ca</A></I>(1) for description. (Optional)
+<DT><B></B><FONT SIZE="-1"><B>RANDFILE</B></FONT><B></B><DD>
+<A NAME="ixABT"></A>
+See <I><A HREF="/man/index.html?1+ca">ca</A></I>(1) for description. (Optional)
+<DT><B>serial</B><DD>
+<A NAME="ixABU"></A>
+The name of the file containing the hexadecimal serial number of the
+last time stamp response created. This number is incremented by 1 for
+each response. If the file does not exist at the time of response
+generation a new file is created with serial number 1. (Mandatory)
+<DT><B>crypto_device</B><DD>
+<A NAME="ixABV"></A>
+Specifies the OpenSSL engine that will be set as the default for 
+all available algorithms. The default value is builtin, you can specify 
+any other engines supported by OpenSSL (e.g. use chil for the NCipher <FONT SIZE="-1">HSM</FONT>).
+(Optional)
+<DT><B>signer_cert</B><DD>
+<A NAME="ixABW"></A>
+<FONT SIZE="-1">TSA</FONT> signing certificate in <FONT SIZE="-1">PEM</FONT> format. The same as the <B>-signer</B>
+command line option. (Optional)
+<DT><B>certs</B><DD>
+<A NAME="ixABX"></A>
+A file containing a set of <FONT SIZE="-1">PEM</FONT> encoded certificates that need to be
+included in the response. The same as the <B>-chain</B> command line
+option. (Optional)
+<DT><B>signer_key</B><DD>
+<A NAME="ixABY"></A>
+The private key of the <FONT SIZE="-1">TSA</FONT> in <FONT SIZE="-1">PEM</FONT> format. The same as the <B>-inkey</B>
+command line option. (Optional)
+<DT><B>default_policy</B><DD>
+<A NAME="ixABZ"></A>
+The default policy to use when the request does not mandate any
+policy. The same as the <B>-policy</B> command line option. (Optional)
+<DT><B>other_policies</B><DD>
+<A NAME="ixACA"></A>
+Comma separated list of policies that are also acceptable by the <FONT SIZE="-1">TSA</FONT>
+and used only if the request explicitly specifies one of them. (Optional)
+<DT><B>digests</B><DD>
+<A NAME="ixACB"></A>
+The list of message digest algorithms that the <FONT SIZE="-1">TSA</FONT> accepts. At least
+one algorithm must be specified. (Mandatory)
+<DT><B>accuracy</B><DD>
+<A NAME="ixACC"></A>
+The accuracy of the time source of the <FONT SIZE="-1">TSA</FONT> in seconds, milliseconds
+and microseconds. E.g. secs:1, millisecs:500, microsecs:100. If any of
+the components is missing zero is assumed for that field. (Optional)
+<DT><B>clock_precision_digits</B><DD>
+<A NAME="ixACD"></A>
+Specifies the maximum number of digits, which represent the fraction of 
+seconds, that  need to be included in the time field. The trailing zeroes
+must be removed from the time, so there might actually be fewer digits,
+or no fraction of seconds at all. Supported only on <FONT SIZE="-1">UNIX</FONT> platforms.
+The maximum value is 6, default is 0.
+(Optional)
+<DT><B>ordering</B><DD>
+<A NAME="ixACE"></A>
+If this option is yes the responses generated by this <FONT SIZE="-1">TSA</FONT> can always
+be ordered, even if the time difference between two responses is less
+than the sum of their accuracies. Default is no. (Optional)
+<DT><B>tsa_name</B><DD>
+<A NAME="ixACF"></A>
+Set this option to yes if the subject name of the <FONT SIZE="-1">TSA</FONT> must be included in
+the <FONT SIZE="-1">TSA</FONT> name field of the response. Default is no. (Optional)
+<DT><B>ess_cert_id_chain</B><DD>
+<A NAME="ixACG"></A>
+The SignedData objects created by the <FONT SIZE="-1">TSA</FONT> always contain the
+certificate identifier of the signing certificate in a signed
+attribute (see <FONT SIZE="-1">RFC</FONT> 2634, Enhanced Security Services). If this option
+is set to yes and either the <B>certs</B> variable or the <B>-chain</B> option
+is specified then the certificate identifiers of the chain will also
+be included in the SigningCertificate signed attribute. If this
+variable is set to no, only the signing certificate identifier is
+included. Default is no. (Optional)
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>ENVIRONMENT VARIABLES</H2>
+
+<A NAME="ixACH"></A>
+<B></B><FONT SIZE="-1"><B>OPENSSL_CONF</B></FONT><B></B> contains the path of the configuration file and can be
+overriden by the <B>-config</B> command line option.
+<A NAME="lbAK">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixACI"></A>
+All the examples below presume that <B></B><FONT SIZE="-1"><B>OPENSSL_CONF</B></FONT><B></B> is set to a proper
+configuration file, e.g. the example configuration file 
+openssl/apps/openssl.cnf will do.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Time Stamp Request</H3>
+
+<A NAME="ixACJ"></A>
+To create a time stamp request for design1.txt with <FONT SIZE="-1">SHA-1</FONT> 
+without nonce and policy and no certificate is required in the response:
+<P>
+
+
+
+<PRE>
+  openssl ts -query -data design1.txt -no_nonce \
+        -out design1.tsq
+
+</PRE>
+
+
+<P>
+
+To create a similar time stamp request with specifying the message imprint
+explicitly:
+<P>
+
+
+
+<PRE>
+  openssl ts -query -digest b7e5d3f93198b38379852f2c04e78d73abdd0f4b \
+         -no_nonce -out design1.tsq
+
+</PRE>
+
+
+<P>
+
+To print the content of the previous request in human readable format:
+<P>
+
+
+
+<PRE>
+  openssl ts -query -in design1.tsq -text
+
+</PRE>
+
+
+<P>
+
+To create a time stamp request which includes the <FONT SIZE="-1">MD-5</FONT> digest 
+of design2.txt, requests the signer certificate and nonce,
+specifies a policy id (assuming the tsa_policy1 name is defined in the
+<FONT SIZE="-1">OID</FONT> section of the config file):
+<P>
+
+
+
+<PRE>
+  openssl ts -query -data design2.txt -md5 \
+        -policy tsa_policy1 -cert -out design2.tsq
+
+</PRE>
+
+
+<A NAME="lbAM">&nbsp;</A>
+<H3>Time Stamp Response</H3>
+
+<A NAME="ixACK"></A>
+Before generating a response a signing certificate must be created for
+the <FONT SIZE="-1">TSA</FONT> that contains the <B>timeStamping</B> critical extended key usage extension
+without any other key usage extensions. You can add the
+'extendedKeyUsage = critical,timeStamping' line to the user certificate section
+of the config file to generate a proper certificate. See <I><A HREF="/man/index.html?1+req">req</A></I>(1),
+<I><A HREF="/man/index.html?1+ca">ca</A></I>(1), <I><A HREF="http://localhost/cgi-bin/man/man2html?1+x509">x509</A></I>(1) for instructions. The examples
+below assume that cacert.pem contains the certificate of the <FONT SIZE="-1">CA</FONT>,
+tsacert.pem is the signing certificate issued by cacert.pem and
+tsakey.pem is the private key of the <FONT SIZE="-1">TSA</FONT>.
+<P>
+
+To create a time stamp response for a request:
+<P>
+
+
+
+<PRE>
+  openssl ts -reply -queryfile design1.tsq -inkey tsakey.pem \
+        -signer tsacert.pem -out design1.tsr
+
+</PRE>
+
+
+<P>
+
+If you want to use the settings in the config file you could just write:
+<P>
+
+
+
+<PRE>
+  openssl ts -reply -queryfile design1.tsq -out design1.tsr
+
+</PRE>
+
+
+<P>
+
+To print a time stamp reply to stdout in human readable format:
+<P>
+
+
+
+<PRE>
+  openssl ts -reply -in design1.tsr -text
+
+</PRE>
+
+
+<P>
+
+To create a time stamp token instead of time stamp response:
+<P>
+
+
+
+<PRE>
+  openssl ts -reply -queryfile design1.tsq -out design1_token.der -token_out
+
+</PRE>
+
+
+<P>
+
+To print a time stamp token to stdout in human readable format:
+<P>
+
+
+
+<PRE>
+  openssl ts -reply -in design1_token.der -token_in -text -token_out
+
+</PRE>
+
+
+<P>
+
+To extract the time stamp token from a response:
+<P>
+
+
+
+<PRE>
+  openssl ts -reply -in design1.tsr -out design1_token.der -token_out
+
+</PRE>
+
+
+<P>
+
+To add 'granted' status info to a time stamp token thereby creating a
+valid response:
+<P>
+
+
+
+<PRE>
+  openssl ts -reply -in design1_token.der -token_in -out design1.tsr
+
+</PRE>
+
+
+<A NAME="lbAN">&nbsp;</A>
+<H3>Time Stamp Verification</H3>
+
+<A NAME="ixACL"></A>
+To verify a time stamp reply against a request:
+<P>
+
+
+
+<PRE>
+  openssl ts -verify -queryfile design1.tsq -in design1.tsr \
+        -CAfile cacert.pem -untrusted tsacert.pem
+
+</PRE>
+
+
+<P>
+
+To verify a time stamp reply that includes the certificate chain:
+<P>
+
+
+
+<PRE>
+  openssl ts -verify -queryfile design2.tsq -in design2.tsr \
+        -CAfile cacert.pem
+
+</PRE>
+
+
+<P>
+
+To verify a time stamp token against the original data file:
+<BR>&nbsp;&nbsp;openssl&nbsp;ts&nbsp;-verify&nbsp;-data&nbsp;design2.txt&nbsp;-in&nbsp;design2.tsr&nbsp;\
+<TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT>-CAfile cacert.pem<BR>
+<P>
+
+To verify a time stamp token against a message imprint:
+<BR>&nbsp;&nbsp;openssl&nbsp;ts&nbsp;-verify&nbsp;-digest&nbsp;b7e5d3f93198b38379852f2c04e78d73abdd0f4b&nbsp;\
+<TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT> -in design2.tsr -CAfile cacert.pem<BR>
+<P>
+
+You could also look at the 'test' directory for more examples.
+<A NAME="lbAO">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixACM"></A>
+If you find any bugs or you have suggestions please write to
+Zoltan Glozik &lt;<A HREF="mailto:zglozik@opentsa.org">zglozik@opentsa.org</A>&gt;. Known issues:
+<DL COMPACT>
+<DT>*<DD>
+No support for time stamps over <FONT SIZE="-1">SMTP</FONT>, though it is quite easy
+to implement an automatic e-mail based <FONT SIZE="-1">TSA</FONT> with <I><A HREF="/man/index.html?1+procmail">procmail</A></I>(1) 
+and <I><A HREF="/man/index.html?1+perl">perl</A></I>(1). <FONT SIZE="-1">HTTP</FONT> server support is provided in the form of 
+a separate apache module. <FONT SIZE="-1">HTTP</FONT> client support is provided by
+<I><A HREF="/man/index.html?1+tsget">tsget</A></I>(1). Pure <FONT SIZE="-1">TCP/IP</FONT> protocol is not supported.
+<DT>*<DD>
+The file containing the last serial number of the <FONT SIZE="-1">TSA</FONT> is not
+locked when being read or written. This is a problem if more than one
+instance of <I><A HREF="/man/index.html?1+openssl">openssl</A></I>(1) is trying to create a time stamp
+response at the same time. This is not an issue when using the apache
+server module, it does proper locking.
+<DT>*<DD>
+Look for the <FONT SIZE="-1">FIXME</FONT> word in the source files.
+<DT>*<DD>
+The source code should really be reviewed by somebody else, too.
+<DT>*<DD>
+More testing is needed, I have done only some basic tests (see
+test/testtsa).
+</DL>
+<A NAME="lbAP">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixACN"></A>
+Zoltan Glozik &lt;<A HREF="mailto:zglozik@opentsa.org">zglozik@opentsa.org</A>&gt;, OpenTSA project (<A HREF="http://www.opentsa.org)">http://www.opentsa.org)</A>
+<A NAME="lbAQ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixACO"></A>
+<I><A HREF="/man/index.html?1+tsget">tsget</A></I>(1), <I><A HREF="http://localhost/cgi-bin/man/man2html?1+openssl">openssl</A></I>(1), <I><A HREF="http://localhost/cgi-bin/man/man2html?1+req">req</A></I>(1), 
+<I><A HREF="/man/index.html?1+x509">x509</A></I>(1), <I><A HREF="http://localhost/cgi-bin/man/man2html?1+ca">ca</A></I>(1), <I><A HREF="http://localhost/cgi-bin/man/man2html?1+genrsa">genrsa</A></I>(1), 
+<I><A HREF="/man/index.html?5+config">config</A></I>(5)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAF">Time Stamp Request generation</A><DD>
+<DT><A HREF="#lbAG">Time Stamp Response generation</A><DD>
+<DT><A HREF="#lbAH">Time Stamp Response verification</A><DD>
+</DL>
+<DT><A HREF="#lbAI">CONFIGURATION FILE OPTIONS</A><DD>
+<DT><A HREF="#lbAJ">ENVIRONMENT VARIABLES</A><DD>
+<DT><A HREF="#lbAK">EXAMPLES</A><DD>
+<DL>
+<DT><A HREF="#lbAL">Time Stamp Request</A><DD>
+<DT><A HREF="#lbAM">Time Stamp Response</A><DD>
+<DT><A HREF="#lbAN">Time Stamp Verification</A><DD>
+</DL>
+<DT><A HREF="#lbAO">BUGS</A><DD>
+<DT><A HREF="#lbAP">AUTHOR</A><DD>
+<DT><A HREF="#lbAQ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:11 GMT, December 24, 2015
+</div></body>
+</HTML>

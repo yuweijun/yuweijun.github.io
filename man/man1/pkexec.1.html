@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PKEXEC</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PKEXEC</H1>
+Section: pkexec (1)<BR>Updated: May 2009<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+pkexec - Execute a command as another user
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<DL COMPACT>
+<DT>
+<B>pkexec</B> [<B>--version</B>] [<B>--help</B>]
+<DT>
+<B>pkexec</B> [<B>--user</B>&nbsp;<I>username</I>] <I>PROGRAM</I> [<I>ARGUMENTS</I>...]
+</DL>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<P>
+<B>pkexec</B>
+<DD>allows an authorized user to execute
+<I>PROGRAM</I>
+as another user. If
+<I>username</I>
+is not specified, then the program will be executed as the administrative super user,
+<I>root</I>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+<P>
+
+Upon successful completion, the return value is the return value of
+<I>PROGRAM</I>. If the calling process is not authorized or an authorization could not be obtained through authentication or an error occured,
+<B>pkexec</B>
+exits with a return value of 127.
+<A NAME="lbAF">&nbsp;</A>
+<H2>SECURITY NOTES</H2>
+
+<P>
+
+Executing a program as another user is a privileged operation. By default the required authorization (See
+the section called lqREQUIRED AUTHORIZATIONSrq) requires administrator authentication. In addition, the authentication dialog presented to the user will display the full path to the program to be executed so the user is aware of what will happen:
+<P>
+<DL COMPACT><DT><DD>
+[IMAGE]<FONT SIZE="-2">[1]</FONT>
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
++----------------------------------------------------------+
+|                     Authenticate                     [X] |
++----------------------------------------------------------+
+|                                                          |
+|  [Icon]  Authentication is needed to run `/bin/bash'     |
+|          as the super user                               |
+|                                                          |
+|          An application is attempting to perform an      |
+|          action that requires privileges. Authentication |
+|          as the super user is required to perform this   |
+|          action.                                         |
+|                                                          |
+|          Password for root: [_________________________]  |
+|                                                          |
+| [V] Details:                                             |
+|  Command: /bin/bash                                      |
+|  Run As:  Super User (root)                              |
+|  Action:  org.freedesktop.policykit.exec                 |
+|  Vendor:  The PolicyKit Project                          |
+|                                                          |
+|                                  [Cancel] [Authenticate] |
++----------------------------------------------------------+
+</PRE>
+
+</DL>
+
+
+
+
+</DL>
+
+<P>
+
+The environment that
+<I>PROGRAM</I>
+will run it, will be set to a minimal known and safe environment in order to avoid injecting code through
+LD_LIBRARY_PATH
+or similar mechanisms. In addition the
+PKEXEC_UID
+environment variable is set to the user id of the process invoking
+<B>pkexec</B>. As a result,
+<B>pkexec</B>
+will not allow you to run e.g. X11 applications as another user since the
+$DISPLAY
+environment variable is not set.
+<A NAME="lbAG">&nbsp;</A>
+<H2>REQUIRED AUTHORIZATIONS</H2>
+
+<P>
+
+By default, the
+<I>org.freedesktop.policykit.exec</I>
+authorization is required unless an action definition file is present for the program in question. To require another authorization, it can be specified using the
+<I>org.freedesktop.policykit.exec.path</I>
+annotation on an action (See
+the section called lqEXAMPLErq
+for details).
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<P>
+
+To specify what kind of authorization is needed to execute the program
+/usr/bin/pk-example-frobnicate
+as another user, simply write an action definition file like this
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+&lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+&lt;!DOCTYPE policyconfig PUBLIC
+ &quot;-//freedesktop//DTD PolicyKit Policy Configuration 1.0//EN&quot;
+ &quot;<A HREF="http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd">http://www.freedesktop.org/standards/PolicyKit/1/policyconfig.dtd</A>&quot;&gt;
+&lt;policyconfig&gt;
+
+  &lt;vendor&gt;Examples for the PolicyKit Project&lt;/vendor&gt;
+  &lt;vendor_url&gt;<A HREF="http://hal.freedesktop.org/docs/PolicyKit/">http://hal.freedesktop.org/docs/PolicyKit/</A>&lt;/vendor_url&gt;
+
+  &lt;action id=&quot;org.freedesktop.policykit.example.pkexec.run-frobnicate&quot;&gt;
+    &lt;description&gt;Run the PolicyKit example program Frobnicate&lt;/description&gt;
+    &lt;description xml:lang=&quot;da&quot;&gt;Kør PolicyKit eksemplet Frobnicate&lt;/description&gt;
+    &lt;message&gt;Authentication is required to run the PolicyKit example program Frobnicate&lt;/message&gt;
+    &lt;message xml:lang=&quot;da&quot;&gt;Autorisering er påkrævet for at afvikle PolicyKit eksemplet Frobnicate&lt;/message&gt;
+    &lt;icon_name&gt;audio-x-generic&lt;/icon_name&gt; 
+    &lt;defaults&gt;
+      &lt;allow_any&gt;no&lt;/allow_any&gt;
+      &lt;allow_inactive&gt;no&lt;/allow_inactive&gt;
+      &lt;allow_active&gt;auth_self_keep&lt;/allow_active&gt;
+    &lt;/defaults&gt;
+    &lt;annotate key=&quot;org.freedesktop.policykit.exec.path&quot;&gt;/usr/bin/pk-example-frobnicate&lt;/annotate&gt;
+  &lt;/action&gt;
+
+&lt;/policyconfig&gt;
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+
+and drop it in the
+/usr/share/polkit-1/actions
+directory under a suitable name (e.g. matching the namespace of the action). Note that in addition to specifying the program, the authentication message, description, icon and defaults can be specified. For example, for the action defined above, the following authentication dialog will be shown:
+<P>
+<DL COMPACT><DT><DD>
+[IMAGE]<FONT SIZE="-2">[2]</FONT>
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
++----------------------------------------------------------+
+|                     Authenticate                     [X] |
++----------------------------------------------------------+
+|                                                          |
+|  [Icon]  Authentication is required to run the PolicyKit |
+|          example program Frobnicate                      |
+|                                                          |
+|          An application is attempting to perform an      |
+|          action that requires privileges. Authentication |
+|          is required to perform this action.             |
+|                                                          |
+|          Password: [__________________________________]  |
+|                                                          |
+| [V] Details:                                             |
+|  Command: /usr/bin/pk-example-frobnicate                 |
+|  Run As:  Super User (root)                              |
+|  Action:  org.fd.pk.example.pkexec.run-frobnicate        |
+|  Vendor:  Examples for the PolicyKit Project             |
+|                                                          |
+|                                  [Cancel] [Authenticate] |
++----------------------------------------------------------+
+</PRE>
+
+</DL>
+
+
+
+
+</DL>
+
+<P>
+
+If the user is using the
+da_DK
+locale, the dialog looks like this:
+<P>
+<DL COMPACT><DT><DD>
+[IMAGE]<FONT SIZE="-2">[3]</FONT>
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
++----------------------------------------------------------+
+|                     Autorisering                     [X] |
++----------------------------------------------------------+
+|                                                          |
+|  [Icon]  Autorisering er påkrævet for at afvikle         |
+|          PolicyKit eksemplet Frobnicate                  |
+|                                                          |
+|          Et program forsøger at udføre en handling der   |
+|          kræver privilegier. Autorisering er påkrævet.   |
+|                                                          |
+|          Kodeord: [___________________________________]  |
+|                                                          |
+| [V] Detaljer:                                            |
+|  Bruger:   Super User (root)                             |
+|  Program:  /usr/bin/pk-example-frobnicate                |
+|  Handling: org.fd.pk.example.pkexec.run-frobnicate       |
+|  Vendor:   Examples for the PolicyKit Project            |
+|                                                          |
+|                                [Annullér] [Autorisering] |
++----------------------------------------------------------+
+</PRE>
+
+</DL>
+
+
+
+
+</DL>
+
+<P>
+
+Note that
+<B>pkexec</B>
+does no validation of the
+<I>ARGUMENTS</I>
+passed to
+<I>PROGRAM</I>. In the normal case (where administrator authentication is required every time
+<B>pkexec</B>
+is used), this is not a problem since if the user is an administrator he might as well just run
+<B>pkexec bash</B>
+to get root.
+<P>
+
+However, if an action is used for which the user can retain authorization (or if the user is implicitly authorized), such as with
+pk-example-frobnicate
+above, this could be a security hole. Therefore, as a rule of thumb, programs for which the default required authorization is changed, should never implicitly trust user input (e.g. like any other well-written
+<I>suid</I>
+program).
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<P>
+
+Written by David Zeuthen
+<A HREF="mailto:davidz@redhat.com">davidz@redhat.com</A>
+with a lot of help from many others.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>BUGS</H2>
+
+<P>
+
+Please send bug reports to either the distribution or the polkit-devel mailing list, see the link
+m[blue]<B><A HREF="http://lists.freedesktop.org/mailman/listinfo/polkit-devel">http://lists.freedesktop.org/mailman/listinfo/polkit-devel</A></B>m[]
+on how to subscribe.
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<P>
+<B><A HREF="/man/index.html?8+polkit">polkit</A></B>(8),
+<B><A HREF="/man/index.html?1+pkaction">pkaction</A></B>(1),
+<B><A HREF="/man/index.html?1+pkcheck">pkcheck</A></B>(1)
+<A NAME="lbAL">&nbsp;</A>
+<H2>NOTES</H2>
+
+<DL COMPACT>
+<DT> 1.<DD>
+/usr/share/gtk-doc/html/polkit-1/pkexec-bash.png
+<DT> 2.<DD>
+/usr/share/gtk-doc/html/polkit-1/pkexec-frobnicate.png
+<DT> 3.<DD>
+/usr/share/gtk-doc/html/polkit-1/pkexec-frobnicate-da.png
+<P>
+</DL>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">SECURITY NOTES</A><DD>
+<DT><A HREF="#lbAG">REQUIRED AUTHORIZATIONS</A><DD>
+<DT><A HREF="#lbAH">EXAMPLE</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+<DT><A HREF="#lbAJ">BUGS</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">NOTES</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:09 GMT, December 24, 2015
+</div></body>
+</HTML>

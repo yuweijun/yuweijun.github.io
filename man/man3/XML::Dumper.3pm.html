@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Dumper</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Dumper</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2006-04-05<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+XML::Dumper - Perl module for dumping Perl objects from/to XML
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  # ===== Using an object
+  use XML::Dumper;
+  $dump = new XML::Dumper;
+
+  $xml  = $dump-&gt;pl2xml( $perl );
+  $perl = $dump-&gt;xml2pl( $xml );
+  $dump-&gt;pl2xml( $perl, &quot;my_perl_data.xml.gz&quot; );
+
+  # ===== Using function calls
+  use XML::Dumper;
+
+  $xml  = pl2xml( $perl );
+  $perl = xml2pl( $xml );
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>EXTENDED SYNOPSIS</H2>
+
+<A NAME="ixAAD"></A>
+
+
+<PRE>
+  use XML::Dumper;
+  my $dump = new XML::Dumper;
+
+  my $perl  = '';
+  my $xml   = '';
+
+  # ===== Convert Perl code to XML
+  $perl = [
+    {
+                fname       =&gt; 'Fred',
+                lname       =&gt; 'Flintstone',
+                residence   =&gt; 'Bedrock'
+    },
+    {
+                fname       =&gt; 'Barney',
+                lname       =&gt; 'Rubble',
+                residence   =&gt; 'Bedrock'
+    }
+  ];
+  $xml = $dump-&gt;pl2xml( $perl );
+
+  # ===== Dump to a file
+  my $file = &quot;dump.xml&quot;;
+  $dump-&gt;pl2xml( $perl, $file );
+
+  # ===== Convert XML to Perl code
+  $xml = q|
+  &lt;perldata&gt;
+   &lt;arrayref&gt;
+    &lt;item key=&quot;0&quot;&gt;
+     &lt;hashref&gt;
+        &lt;item key=&quot;fname&quot;&gt;Fred&lt;/item&gt;
+        &lt;item key=&quot;lname&quot;&gt;Flintstone&lt;/item&gt;
+        &lt;item key=&quot;residence&quot;&gt;Bedrock&lt;/item&gt;
+     &lt;/hashref&gt;
+    &lt;/item&gt;
+    &lt;item key=&quot;1&quot;&gt;
+     &lt;hashref&gt;
+        &lt;item key=&quot;fname&quot;&gt;Barney&lt;/item&gt;
+        &lt;item key=&quot;lname&quot;&gt;Rubble&lt;/item&gt;
+        &lt;item key=&quot;residence&quot;&gt;Bedrock&lt;/item&gt;
+     &lt;/hashref&gt;
+    &lt;/item&gt;
+   &lt;/arrayref&gt;
+  &lt;/perldata&gt;
+  |;
+
+  my $perl = $dump-&gt;xml2pl( $xml );
+
+  # ===== Convert an XML file to Perl code
+  my $perl = $dump-&gt;xml2pl( $file );
+  
+  # ===== And serialize Perl code to an XML file
+  $dump-&gt;pl2xml( $perl, $file );
+
+  # ===== USE COMPRESSION
+  $dump-&gt;pl2xml( $perl, $file.&quot;.gz&quot; );
+
+  # ===== INCLUDE AN IN-DOCUMENT DTD
+  $dump-&gt;dtd;
+  my $xml_with_dtd = $dump-&gt;pl2xml( $perl );
+
+  # ===== USE EXTERNAL DTD
+  $dump-&gt;dtd( $file, $url );
+  my $xml_with_link_to_dtd = $dump-&gt;pl2xml( $perl );
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAE"></A>
+XML::Dumper dumps Perl data to <FONT SIZE="-1">XML</FONT> format. XML::Dumper can also read <FONT SIZE="-1">XML</FONT> data 
+that was previously dumped by the module and convert it back to Perl. You can
+use the module read the <FONT SIZE="-1">XML</FONT> from a file and write the <FONT SIZE="-1">XML</FONT> to a file. Perl
+objects are blessed back to their original packaging; if the modules are
+installed on the system where the perl objects are reconstituted from xml, they
+will behave as expected. Intuitively, if the perl objects are converted and
+reconstituted in the same environment, all should be well. And it is.
+<P>
+
+Additionally, because <FONT SIZE="-1">XML</FONT> benefits so nicely from compression, XML::Dumper
+understands gzipped <FONT SIZE="-1">XML</FONT> files. It does so with an optional dependency on
+Compress::Zlib. So, if you dump a Perl variable with a file that has an
+extension of '.xml.gz', it will store and compress the file in gzipped format.
+Likewise, if you read a file with the extension '.xml.gz', it will uncompress
+the file in memory before parsing the <FONT SIZE="-1">XML</FONT> back into a Perl variable.
+<P>
+
+Another fine challenge that this module rises to meet is that it understands
+circular definitions and multiple references to a single object. This includes 
+doubly-linked lists, circular references, and the so-called 'Flyweight' pattern of 
+Object Oriented programming. So it can take the gnarliest of your perl data, and 
+should do just fine.
+<P>
+
+One caveat; XML::Dumper does not handle binary data. There have been
+discussions in the expat mailing list archives discussing the challenges
+associated with encoding binary data with <FONT SIZE="-1">XML</FONT>. I chose the cowardly path
+of making the problem a non-issue by not addressing it. To store binary
+data, one could encode the data into <FONT SIZE="-1">ASCII</FONT> before encapsulating the data
+as <FONT SIZE="-1">XML</FONT>, and then reverse the process to restore the data. There are several
+Perl modules that one can use for this, Convert::UU, for example.
+<A NAME="lbAF">&nbsp;</A>
+<H3><FONT SIZE="-1">FUNCTIONS</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">METHODS</FONT></H3>
+
+<A NAME="ixAAF"></A>
+<DL COMPACT>
+<DT>*<DD>
+<I>new()</I> - XML::Dumper constructor.
+
+
+<P>
+
+
+Creates a lean, mean, <FONT SIZE="-1">XML</FONT> dumping machine. It's also completely 
+at your disposal.
+<DT>*<DD>
+dtd -
+
+
+<P>
+
+
+Generates a Document Type Dictionary for the 'perldata' data
+type. The default behaviour is to embed the <FONT SIZE="-1">DTD</FONT> in the <FONT SIZE="-1">XML</FONT>,
+thereby creating valid <FONT SIZE="-1">XML</FONT>. Given a filename, the <FONT SIZE="-1">DTD</FONT> will be
+written out to that file and the <FONT SIZE="-1">XML</FONT> document for your Perl data 
+will link to the file. Given a filename and an <FONT SIZE="-1">URL</FONT>, the <FONT SIZE="-1">DTD</FONT> will
+be written out the file and the <FONT SIZE="-1">XML</FONT> document will link to the <FONT SIZE="-1">URL</FONT>.
+XML::Dumper doesn't try really hard to determine where your <FONT SIZE="-1">DTD</FONT>'s
+ought to go or relative paths or anything, so be careful with
+what arguments you supply this method, or just go with the default
+with the embedded <FONT SIZE="-1">DTD</FONT>. Between <FONT SIZE="-1">DTD</FONT>'s and Schemas, the potential
+for more free-form data to be imported and exported becomes
+feasible.
+
+
+<P>
+
+
+Usage:
+
+
+<P>
+
+
+
+
+<PRE>
+  dtd();                                # Causes XML to include embedded DTD
+  dtd( $file );                 # DTD saved to $file; XML will link to $file
+  dtd( $file, $url );   # DTD saved to $file; XML will link to $url
+  dtd( 0 );                             # Prevents XML from including embedded DTD
+
+</PRE>
+
+
+<DT>*<DD>
+pl2xml( <TT>$xml</TT>, [ <TT>$file</TT> ] ) -
+
+
+<P>
+
+
+(Also <I>perl2xml()</I>, for those who enjoy readability over brevity).
+
+
+<P>
+
+
+Converts Perl data to <FONT SIZE="-1">XML</FONT>. If a second argument is given, then the Perl data
+will be stored to disk as <FONT SIZE="-1">XML</FONT>, using the second argument as a filename.
+
+
+<P>
+
+
+Usage: See Synopsis
+<DT>*<DD>
+xml2pl( <TT>$xml_or_filename</TT>, [ <TT>$callback</TT> ] ) -
+
+
+<P>
+
+
+(Also <I>xml2perl()</I>, for those who enjoy readability over brevity.)
+
+
+<P>
+
+
+Converts <FONT SIZE="-1">XML</FONT> to a Perl datatype. If this method is given a second argument, 
+XML::Dumper will use the second argument as a callback (if possible). If
+the first argument isn't <FONT SIZE="-1">XML</FONT> and exists as a file, that file will be read
+and its contents will be used as the input <FONT SIZE="-1">XML</FONT>.
+
+
+<P>
+
+
+Currently, the only supported invocation of callbacks is through soft
+references. That is to say, the callback argument ought to be a string
+that matches the name of a callable method for your classes. If you have
+a congruent interface, this should work like a peach. If your class
+interface doesn't have such a named method, it won't be called.
+<DT>*<DD>
+xml_compare( <TT>$xml1</TT>, <TT>$xml2</TT> ) - Compares xml for content
+
+
+<P>
+
+
+Compares two dumped Perl data structures (that is, compares the xml) for
+identity in content. Use this function rather than perl's built-in string 
+comparison. This function will return true for any two perl data that are 
+either deep clones of each other, or identical. This method is exported 
+by default.
+<DT>*<DD>
+xml_identity( <TT>$xml1</TT>, <TT>$xml2</TT> ) - Compares xml for identity
+
+
+<P>
+
+
+Compares two dumped Perl data structures (that is, compares the xml) for
+identity in instantiation. This function will return true for any two
+perl data that are identical, but not for deep clones of each other. This
+method is also exported by default.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXPORTS</H2>
+
+<A NAME="ixAAG"></A>
+By default, the following methods are exported:
+<P>
+
+
+
+<PRE>
+  xml2pl, pl2xml, xml_compare, xml_identity
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>BUGS AND DEPENDENCIES</H2>
+
+<A NAME="ixAAH"></A>
+XML::Dumper has changed <FONT SIZE="-1">API</FONT> since 0.4, as a response to a bug report 
+from PerlMonks. I felt it was necessary, as the functions simply didn't 
+work as advertised. That is, xml2pl really didnt accept xml as an 
+argument; what it wanted was an <FONT SIZE="-1">XML</FONT> Parse tree. To correct for the 
+<FONT SIZE="-1">API</FONT> change, simply don't parse the <FONT SIZE="-1">XML</FONT> before feeding it to XML::Dumper.
+<P>
+
+XML::Dumper also has no understanding of typeglobs (references or not),
+references to regular expressions, or references to Perl subroutines.
+Turns out that Data::Dumper doesn't do references to Perl subroutines,
+either, so at least I'm in somewhat good company.
+<P>
+
+XML::Dumper requires one perl module, available from <FONT SIZE="-1">CPAN</FONT>
+<P>
+
+
+
+<PRE>
+        XML::Parser
+
+</PRE>
+
+
+<P>
+
+XML::Parser itself relies on Clark Cooper's Expat implementation in Perl,
+which in turn requires James Clark's expat package itself. See the
+documentation for XML::Parser for more information.
+<A NAME="lbAI">&nbsp;</A>
+<H2>REVISIONS AND CREDITS</H2>
+
+<A NAME="ixAAI"></A>
+The list of credits got so long that I had to move it to the Changes
+file. Thanks to all those who've contributed with bug reports and
+suggested features! Keep 'em coming!
+<P>
+
+I've had ownership of the module since June of 2002, and very much
+appreciate requests on how to make the module better. It has served me
+well, both as a learning tool on how I can repay my debt to the Perl
+Community, and as a practical module that is useful. I'm thrilled to
+be able to offer this bit of code. So, if you have suggestions, bug
+reports, or feature requests, please let me know and I'll do my best 
+to make this a better module.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>CURRENT MAINTAINER</H2>
+
+<A NAME="ixAAJ"></A>
+Mike Wong &lt;<A HREF="mailto:mike_w3@pacbell.net">mike_w3@pacbell.net</A>&gt;
+<P>
+
+XML::Dumper is free software. You can redistribute it and/or
+modify it under the same terms as Perl itself.
+<A NAME="lbAK">&nbsp;</A>
+<H2>ORIGINAL AUTHOR</H2>
+
+<A NAME="ixAAK"></A>
+Jonathan Eisenzopf &lt;<A HREF="mailto:eisen@pobox.com">eisen@pobox.com</A>&gt;
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAL"></A>
+<I><A HREF="/man/index.html?1+perl">perl</A></I>(1)
+<I><A HREF="/man/index.html?3+Compress::Zlib">Compress::Zlib</A></I>(3)
+<I><A HREF="/man/index.html?3+XML::Parser">XML::Parser</A></I>(3)
+<I><A HREF="/man/index.html?3+Data::DumpXML">Data::DumpXML</A></I>(3)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">EXTENDED SYNOPSIS</A><DD>
+<DT><A HREF="#lbAE">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAF"><FONT SIZE="-1">FUNCTIONS</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">METHODS</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAG">EXPORTS</A><DD>
+<DT><A HREF="#lbAH">BUGS AND DEPENDENCIES</A><DD>
+<DT><A HREF="#lbAI">REVISIONS AND CREDITS</A><DD>
+<DT><A HREF="#lbAJ">CURRENT MAINTAINER</A><DD>
+<DT><A HREF="#lbAK">ORIGINAL AUTHOR</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:46 GMT, December 24, 2015
+</div></body>
+</HTML>

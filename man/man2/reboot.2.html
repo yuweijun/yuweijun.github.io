@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of REBOOT</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>REBOOT</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2008-02-11<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+reboot - reboot or enable/disable Ctrl-Alt-Del
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+/* For libc4 and libc5 the library call and the system call
+<BR>&nbsp;&nbsp;&nbsp;are&nbsp;identical,&nbsp;and&nbsp;since&nbsp;kernel&nbsp;version&nbsp;2.1.30&nbsp;there&nbsp;are
+<BR>&nbsp;&nbsp;&nbsp;symbolic&nbsp;names&nbsp;LINUX_REBOOT_*&nbsp;for&nbsp;the&nbsp;constants&nbsp;and&nbsp;a
+<BR>&nbsp;&nbsp;&nbsp;fourth&nbsp;argument&nbsp;to&nbsp;the&nbsp;call:&nbsp;*/
+<P>
+<B>#include &lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;</B>
+
+<BR>
+
+<B>#include &lt;<A HREF="file:/usr/include/linux/reboot.h">linux/reboot.h</A>&gt;</B>
+
+<P>
+<B>int reboot(int </B><I>magic</I><B>, int </B><I>magic2</I><B>, int </B><I>cmd</I><B>, void *</B><I>arg</I><B>);</B>
+
+<P>
+/* Under glibc some of the constants involved have gotten
+<BR>&nbsp;&nbsp;&nbsp;symbolic&nbsp;names&nbsp;RB_*,&nbsp;and&nbsp;the&nbsp;library&nbsp;call&nbsp;is&nbsp;a&nbsp;1-argument
+<BR>&nbsp;&nbsp;&nbsp;wrapper&nbsp;around&nbsp;the&nbsp;3-argument&nbsp;system&nbsp;call:&nbsp;*/
+<P>
+<B>#include &lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;</B>
+
+<BR>
+
+<B>#include &lt;<A HREF="file:/usr/include/sys/reboot.h">sys/reboot.h</A>&gt;</B>
+
+<P>
+<B>int reboot(int </B><I>cmd</I><B>);</B>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>reboot</B>()
+
+call reboots the system, or enables/disables the reboot keystroke
+(abbreviated CAD, since the default is Ctrl-Alt-Delete;
+it can be changed using
+<B><A HREF="/man/index.html?1+loadkeys">loadkeys</A></B>(1)).
+
+<P>
+
+This system call will fail (with
+<B>EINVAL</B>)
+
+unless
+<I>magic</I>
+
+equals
+<B>LINUX_REBOOT_MAGIC1</B>
+
+(that is, 0xfee1dead) and
+<I>magic2</I>
+
+equals
+<B>LINUX_REBOOT_MAGIC2</B>
+
+(that is, 672274793).
+However, since 2.1.17 also
+<B>LINUX_REBOOT_MAGIC2A</B>
+
+(that is, 85072278)
+and since 2.1.97 also
+<B>LINUX_REBOOT_MAGIC2B</B>
+
+(that is, 369367448)
+and since 2.5.71 also
+<B>LINUX_REBOOT_MAGIC2C</B>
+
+(that is, 537993216)
+are permitted as value for
+<I>magic2</I>.
+
+(The hexadecimal values of these constants are meaningful.)
+The
+<I>cmd</I>
+
+argument can have the following values:
+<DL COMPACT>
+<DT><B>LINUX_REBOOT_CMD_RESTART</B>
+
+<DD>
+(RB_AUTOBOOT, 0x1234567).
+The message &quot;Restarting system.&quot; is printed, and a default
+restart is performed immediately.
+If not preceded by a
+<B><A HREF="/man/index.html?2+sync">sync</A></B>(2),
+
+data will be lost.
+<DT><B>LINUX_REBOOT_CMD_HALT</B>
+
+<DD>
+(RB_HALT_SYSTEM, 0xcdef0123; since 1.1.76).
+The message &quot;System halted.&quot; is printed, and the system is halted.
+Control is given to the ROM monitor, if there is one.
+If not preceded by a
+<B><A HREF="/man/index.html?2+sync">sync</A></B>(2),
+
+data will be lost.
+<DT><B>LINUX_REBOOT_CMD_POWER_OFF</B>
+
+<DD>
+(0x4321fedc; since 2.1.30).
+The message &quot;Power down.&quot; is printed, the system is stopped,
+and all power is removed from the system, if possible.
+If not preceded by a
+<B><A HREF="/man/index.html?2+sync">sync</A></B>(2),
+
+data will be lost.
+<DT><B>LINUX_REBOOT_CMD_RESTART2</B>
+
+<DD>
+(0xa1b2c3d4; since 2.1.30).
+The message &quot;Restarting system with command aq%saq&quot; is printed,
+and a restart (using the command string given in
+<I>arg</I>)
+
+is performed immediately.
+If not preceded by a
+<B><A HREF="/man/index.html?2+sync">sync</A></B>(2),
+
+data will be lost.
+<DT><B>LINUX_REBOOT_CMD_CAD_ON</B>
+
+<DD>
+(RB_ENABLE_CAD, 0x89abcdef).
+CAD is enabled.
+This means that the CAD keystroke will immediately cause
+the action associated with
+<B>LINUX_REBOOT_CMD_RESTART</B>.
+
+<DT><B>LINUX_REBOOT_CMD_CAD_OFF</B>
+
+<DD>
+(RB_DISABLE_CAD, 0).
+CAD is disabled.
+This means that the CAD keystroke will cause a
+<B>SIGINT</B>
+
+signal to be
+sent to init (process 1), whereupon this process may decide upon a
+proper action (maybe: kill all processes, sync, reboot).
+</DL>
+<P>
+
+Only the superuser may call
+<B>reboot</B>().
+
+<P>
+
+The precise effect of the above actions depends on the architecture.
+For the i386 architecture, the additional argument does not do
+anything at present (2.1.122), but the type of reboot can be
+determined by kernel command-line arguments (&quot;reboot=...&quot;) to be
+either warm or cold, and either hard or through the BIOS.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+For the values of
+<I>cmd</I>
+
+that stop or restart the system,
+a successful call to
+<B>reboot</B>()
+
+does not return.
+For the other
+<I>cmd</I>
+
+values, zero is returned on success.
+In all cases, -1 is returned on failure, and
+<I>errno</I>
+
+is set appropriately.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EFAULT</B>
+
+<DD>
+Problem with getting userspace data under
+<B>LINUX_REBOOT_CMD_RESTART2</B>.
+
+<DT><B>EINVAL</B>
+
+<DD>
+Bad magic numbers or <I>cmd</I>.
+<DT><B>EPERM</B>
+
+<DD>
+The calling process has insufficient privilege to call
+<B>reboot</B>();
+
+the
+<B>CAP_SYS_BOOT</B>
+
+capability is required.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+<B>reboot</B>()
+
+is Linux-specific,
+and should not be used in programs intended to be portable.
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+sync">sync</A></B>(2),
+
+<B><A HREF="/man/index.html?7+bootparam">bootparam</A></B>(7),
+
+<B><A HREF="/man/index.html?7+capabilities">capabilities</A></B>(7),
+
+<B><A HREF="/man/index.html?8+ctrlaltdel">ctrlaltdel</A></B>(8),
+
+<B><A HREF="/man/index.html?8+halt">halt</A></B>(8),
+
+<B><A HREF="/man/index.html?8+reboot">reboot</A></B>(8)
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:04 GMT, December 24, 2015
+</div></body>
+</HTML>

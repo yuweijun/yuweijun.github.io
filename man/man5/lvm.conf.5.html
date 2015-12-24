@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of LVM.CONF</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>LVM.CONF</H1>
+Section: File Formats (5)<BR>Updated: LVM TOOLS <A HREF="/man/index.html?2+2.02.95">2.02.95</A>(2)-RHEL6 (2012-10-16)<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+lvm.conf - Configuration file for LVM2
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>/etc/lvm/lvm.conf</B>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+lvm.conf is loaded during the initialisation phase of 
+<B>lvm</B> (8).  This file can in turn lead to other files
+being loaded - settings read in later override earlier
+settings.  File timestamps are checked between commands and if 
+any have changed, all the files are reloaded.  
+<P>
+
+Use <B>lvm dumpconfig</B> to check what settings are in use.
+<A NAME="lbAE">&nbsp;</A>
+<H2>SYNTAX</H2>
+
+<P>
+
+This section describes the configuration file syntax.
+<P>
+
+Whitespace is not significant unless it is within quotes. 
+This provides a wide choice of acceptable indentation styles.
+Comments begin with # and continue to the end of the line.
+They are treated as whitespace.
+<P>
+
+Here is an informal grammar:
+<DL COMPACT>
+<DT><B>file = value*</B><DD>
+<BR>
+
+A configuration file consists of a set of values.
+<DT><B>value = section | assignment</B><DD>
+<BR>
+
+A value can either be a new section, or an assignment.
+<DT><B>section = identifier '{' value* '}'</B><DD>
+<BR>
+
+A section is groups associated values together.  
+<BR>
+
+It is denoted by a name and delimited by curly brackets.
+<BR>
+
+e.g.<TT>&nbsp;&nbsp;&nbsp;</TT>backup {<BR>
+<BR>
+
+<TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT>...<BR>
+<BR>
+
+<TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT>}<BR>
+<DT><B>assignment = identifier '=' (array | type)</B><DD>
+<BR>
+
+An assignment associates a type with an identifier.
+<BR>
+
+e.g.<TT>&nbsp;&nbsp;&nbsp;</TT>max_archives = 42<BR>
+<BR>
+
+<DT><B>array = '[' (type ',')* type ']' | '[' ']'</B><DD>
+<BR>
+
+Inhomogeneous arrays are supported. 
+<BR>
+
+Elements must be separated by commas.  
+<BR>
+
+An empty array is acceptable.
+<DT><B>type = integer | float | string</B><DD>
+<B>integer = [0-9]*</B>
+<BR>
+
+<B>float = [0-9]*.[0-9]*</B>
+<BR>
+
+<B>string = '&quot;' .* '&quot;'</B>
+<DT><DD>
+Strings must be enclosed in double quotes.
+<P>
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>SECTIONS</H2>
+
+<P>
+
+The sections that may be present in the file are:
+<DL COMPACT>
+<DT><B>devices</B> --- Device settings<DD>
+<DT><DD>
+<B>dir</B> --- Directory in which to create volume group device nodes.
+Defaults to &quot;/dev&quot;.  Commands also accept this as a prefix on volume 
+group names.
+<DT><DD>
+<B>scan</B> --- List of directories to scan recursively for 
+LVM physical volumes.
+Devices in directories outside this hierarchy will be ignored.
+Defaults to &quot;/dev&quot;.
+<DT><DD>
+<B>preferred_names</B> --- List of patterns compared in turn against
+all the pathnames referencing the same device in in the scanned directories.
+The pathname that matches the earliest pattern in the list is the
+one used in any output.  As an example, if device-mapper multipathing
+is used, the following will select multipath device names:
+<BR>
+
+<B>devices { preferred_names = [ &quot;^/dev/mapper/mpath&quot; ] }</B>
+<DT><DD>
+<B>filter</B> --- List of patterns to apply to devices found by a scan.
+Patterns are regular expressions delimited by any character and preceded
+by <B>a</B> (for accept) or <B>r</B> (for reject).  The list is traversed
+in order, and the first regex that matches determines if the device
+will be accepted or rejected (ignored).  Devices that don't match
+any patterns are accepted. If you want to reject patterns that
+don't match, end the list with &quot;r/.*/&quot;.
+If there are several names for the same device (e.g. symbolic links
+in /dev), if the first matching pattern in the list for any of the names is an
+<B>a</B> pattern, the device is accepted; otherwise if the first matching
+pattern in the list for any of the names is an <B>r</B> pattern it is rejected;
+otherwise it is accepted.  As an example, to ignore /dev/cdrom you could use:
+<BR>
+
+<B>devices { filter=[&quot;r|cdrom|&quot;] }</B> 
+<DT><DD>
+<B>cache_dir</B> --- Persistent filter cache file directory.
+Defaults to &quot;/etc/lvm/cache&quot;.
+<DT><DD>
+<B>write_cache_state</B> --- Set to 0 to disable the writing out of the 
+persistent filter cache file when <B>lvm</B> exits.
+Defaults to 1.
+<DT><DD>
+<B>types</B> --- List of pairs of additional acceptable block device types
+found in /proc/devices together with maximum (non-zero) number of
+partitions (normally 16).  By default, LVM2 supports ide, sd, md, loop, 
+dasd, dac960, nbd, ida, cciss, ubd, ataraid, drbd, power2, i2o_block
+and iseries/vd.  Block devices with major
+numbers of different types are ignored by LVM2.  
+Example: <B>types = [&quot;fd&quot;, 16]</B>.
+To create physical volumes on device-mapper volumes
+created outside LVM2, perhaps encrypted ones from <B>cryptsetup</B>,
+you'll need <B>types = [&quot;device-mapper&quot;, 16]</B>.  But if you do this,
+be careful to avoid recursion within LVM2.  The figure for number 
+of partitions is not currently used in LVM2 - and might never be.
+<DT><DD>
+<B>sysfs_scan</B> --- If set to 1 and your kernel supports sysfs and 
+it is mounted, sysfs will be used as a quick way of filtering out
+block devices that are not present.
+<DT><DD>
+<B>md_component_detection</B> --- If set to 1, LVM2 will ignore devices
+used as components of software RAID (md) devices by looking for md
+superblocks. This doesn't always work satisfactorily e.g. if a device 
+has been reused without wiping the md superblocks first.
+<DT><DD>
+<B>md_chunk_alignment</B> --- If set to 1, and a Physical Volume is placed
+directly upon an md device, LVM2 will align its data blocks with the
+md device's stripe-width.
+<DT><DD>
+<B>data_alignment_detection</B> --- If set to 1, and your kernel provides
+topology information in sysfs for the Physical Volume, the start of data
+area will be aligned on a multiple of the ’minimum_io_size’ or
+’optimal_io_size’ exposed in sysfs.  minimum_io_size is the smallest
+request the device can perform without incurring a read-modify-write
+penalty (e.g. MD's chunk size).  optimal_io_size is the device's
+preferred unit of receiving I/O (e.g. MD's stripe width).  minimum_io_size
+is used if optimal_io_size is undefined (0).  If both <B>md_chunk_alignment</B>
+and <B>data_alignment_detection</B> are enabled the result of
+<B>data_alignment_detection</B> is used.
+<DT><DD>
+<B>data_alignment</B> --- Default alignment (in KB) of start of data area
+when creating a new Physical Volume using the <B>lvm2</B> format.
+If a Physical Volume is placed directly upon an md device and
+<B>md_chunk_alignment</B> or <B>data_alignment_detection</B> is enabled
+this parameter is ignored.  Set to 0 to use the default alignment of
+64KB or the page size, if larger.
+<DT><DD>
+<B>data_alignment_offset_detection</B> --- If set to 1, and your kernel
+provides topology information in sysfs for the Physical Volume, the
+start of the aligned data area of the Physical Volume will be shifted
+by the alignment_offset exposed in sysfs.
+<P>
+To see the location of the first Physical Extent of an existing Physical Volume
+use <B>pvs -o +pe_start</B> .  It will be a multiple of the requested
+<B>data_alignment</B> plus the alignment_offset from
+<B>data_alignment_offset_detection</B> (if enabled) or the pvcreate
+commandline.
+<DT><DD>
+<B>disable_after_error_count</B> --- During each LVM operation errors received
+from each device are counted.  If the counter of a particular device exceeds
+the limit set here, no further I/O is sent to that device for the remainder of
+the respective operation. Setting the parameter to 0 disables the counters
+altogether.
+<DT><DD>
+<B>pv_min_size</B> ---
+Minimal size (in KB) of the block device which can be used as a PV.
+In clustered environment all nodes have to use the same value.
+Any value smaller than 512KB is ignored.  Up to and include version 2.02.84
+the default was 512KB.  From 2.02.85 onwards it was changed to 2MB to
+avoid floppy drives by default.
+<DT><DD>
+<B>issue_discards</B> ---
+Issue discards to a logical volumes's underlying physical volume(s) when the
+logical volume is no longer using the physical volumes' space (e.g. lvremove,
+lvreduce, etc).  Discards inform the storage that a region is no longer in use.
+Storage that supports discards advertise the protocol specific way discards
+should be issued by the kernel (TRIM, UNMAP, or WRITE SAME with UNMAP bit set).
+Not all storage will support or benefit from discards but SSDs and thinly
+provisioned LUNs generally do.  If set to 1, discards will only be issued if
+both the storage and kernel provide support.  
+<DT><DD>
+<DT><B>allocation</B> --- Space allocation policies<DD>
+<DT><DD>
+<B>cling_tag_list</B> --- List of PV tags matched by the <B>cling</B> allocation policy.
+<DT><DD>
+When searching for free space to extend an LV, the <B>cling</B>
+allocation policy will choose space on the same PVs as the last
+segment of the existing LV.  If there is insufficient space and a
+list of tags is defined here, it will check whether any of them are
+attached to the PVs concerned and then seek to match those PV tags
+between existing extents and new extents.
+<DT><DD>
+The @ prefix for tags is required.
+Use the special tag &quot;@*&quot; as a wildcard to match any PV tag and so use 
+all PV tags for this purpose.
+<DT><DD>
+For example, LVs are mirrored between two sites within a single VG.
+PVs are tagged with either @site1 or @site2 to indicate where
+they are situated and these two PV tags are selected for use with this
+allocation policy:
+<DT><DD>
+cling_tag_list = [ &quot;@site1&quot;, &quot;@site2&quot; ]
+<DT><B>log</B> --- Default log settings<DD>
+<DT><DD>
+<B>file</B> --- Location of log file.  If this entry is not present, no
+log file is written.
+<DT><DD>
+<B>overwrite</B> --- Set to 1 to overwrite the log file each time a tool
+is invoked.  By default tools append messages to the log file.
+<DT><DD>
+<B>level</B> --- Log level (0-9) of messages to write to the file.
+9 is the most verbose; 0 should produce no output.
+<DT><DD>
+<B>verbose</B> --- Default level (0-3) of messages sent to stdout or stderr.
+3 is the most verbose; 0 should produce the least output.
+<DT><DD>
+<B>syslog</B> --- Set to 1 (the default) to send log messages through syslog.
+Turn off by setting to 0.  If you set to an integer greater than one,
+this is used - unvalidated - as the facility.  The default is LOG_USER.  
+See /usr/include/sys/syslog.h for safe facility values to use.
+For example, LOG_LOCAL0 might be 128.
+<DT><DD>
+<B>indent</B> --- When set to 1 (the default) messages are indented 
+according to their severity, two spaces per level.  
+Set to 0 to turn off indentation.
+<DT><DD>
+<B>command_names</B> --- When set to 1, the command name is used as a
+prefix for each message.
+Default is 0 (off).
+<DT><DD>
+<B>prefix</B> --- Prefix used for all messages (after the command name).
+Default is two spaces.
+<DT><DD>
+<B>activation</B> --- Set to 1 to log messages while
+devices are suspended during activation.  
+Only set this temporarily while debugging a problem because
+in low memory situations this setting can cause your machine to lock up.
+<DT><B>backup</B> --- Configuration for metadata backups.<DD>
+<DT><DD>
+<B>archive_dir</B> --- Directory used for automatic metadata archives.
+Backup copies of former metadata for each volume group are archived here.
+Defaults to &quot;/etc/lvm/archive&quot;.
+<DT><DD>
+<B>backup_dir</B> --- Directory used for automatic metadata backups.
+A single backup copy of the current metadata for each volume group 
+is stored here.
+Defaults to &quot;/etc/lvm/backup&quot;.
+<DT><DD>
+<B>archive</B> --- Whether or not tools automatically archive existing
+metadata into <B>archive_dir</B> before making changes to it.
+Default is 1 (automatic archives enabled).  
+Set to 0 to disable.  
+Disabling this might make metadata recovery difficult or impossible 
+if something goes wrong.
+<DT><DD>
+<B>backup</B> --- Whether or not tools make an automatic backup 
+into <B>backup_dir</B> after changing metadata.  
+Default is 1 (automatic backups enabled).  Set to 0 to disable.
+Disabling this might make metadata recovery difficult or impossible 
+if something goes wrong.
+<DT><DD>
+<B>retain_min</B> --- Minimum number of archives to keep.
+Defaults to 10.
+<DT><DD>
+<B>retain_days</B> --- Minimum number of days to keep archive files.
+Defaults to 30.
+<DT><B>shell</B> --- LVM2 built-in readline shell settings<DD>
+<DT><DD>
+<B>history_size</B> --- Maximum number of lines of shell history to retain (default 100) in $HOME/.lvm_history
+<DT><B>global</B> --- Global settings<DD>
+<DT><DD>
+<B>test</B> --- If set to 1, run tools in test mode i.e. no changes to
+the on-disk metadata will get made.  It's equivalent to having the
+-t option on every command.
+<DT><DD>
+<B>activation</B> --- Set to 0 to turn off all communication with
+the device-mapper driver.  Useful if you want to manipulate logical
+volumes while device-mapper is not present in your kernel.
+<DT><DD>
+<B>proc</B> --- Mount point of proc filesystem.
+Defaults to /proc.
+<DT><DD>
+<B>umask</B> --- File creation mask for any files and directories created.
+Interpreted as octal if the first digit is zero.
+Defaults to 077.  
+Use 022 to allow other users to read the files by default.
+<DT><DD>
+<B>format</B> --- The default value of <B>--metadatatype</B> used
+to determine which format of metadata to use when creating new 
+physical volumes and volume groups. <B>lvm1</B> or <B>lvm2</B>.
+<DT><DD>
+<B>fallback_to_lvm1</B> --- Set this to 1 if you need to 
+be able to switch between 2.4 kernels using LVM1 and kernels
+including device-mapper.
+The LVM2 tools should be installed as normal and
+the LVM1 tools should be installed with a .lvm1 suffix e.g.
+vgscan.lvm1.  
+If an LVM2 tool is then run but unable to communicate
+with device-mapper, it will automatically invoke the equivalent LVM1 
+version of the tool.  Note that for LVM1 tools to 
+manipulate physical volumes and volume groups created by LVM2 you 
+must use <B>--metadataformat lvm1</B> when creating them.
+<DT><DD>
+<B>library_dir</B> --- A directory searched for LVM2's shared libraries
+ahead of the places <B>dlopen</B> (3) searches.
+<DT><DD>
+<B>format_libraries</B> --- A list of shared libraries to load that contain
+code to process different formats of metadata. For example, liblvm2formatpool.so
+is needed to read GFS pool metadata if LVM2 was configured <B>--with-pool=shared</B>.
+<DT><DD>
+<B>locking_type</B> --- What type of locking to use.
+1 is the default, which use flocks on files in <B>locking_dir</B>
+(see below) to
+avoid conflicting LVM2 commands running concurrently on a single
+machine. 0 disables locking and risks corrupting your metadata.
+If set to 2, the tools will load the external <B>locking_library</B>
+(see below).
+If the tools were configured <B>--with-cluster=internal</B> 
+(the default) then 3 means to use built-in cluster-wide locking.
+Type 4 enforces read-only metadata and forbids any operations that
+might want to modify Volume Group metadata.
+All changes to logical volumes and their states are communicated
+using locks.
+<DT><DD>
+<B>wait_for_locks</B> --- When set to 1, the default, the tools
+wait if a lock request cannot be satisfied immediately.
+When set to 0, the operation is aborted instead.
+<DT><DD>
+<B>locking_dir</B> --- The directory LVM2 places its file locks
+if <B>locking_type</B> is set to 1.  The default is <B>/var/lock/lvm</B>.
+<DT><DD>
+<B>locking_library</B> --- The name of the external locking
+library to load if <B>locking_type</B> is set to 2.
+The default is <B>liblvm2clusterlock.so</B>.  If you need to write
+such a library, look at the lib/locking source code directory.
+<DT><B>tags</B> --- Host tag settings<DD>
+<DT><DD>
+<B>hosttags</B> --- If set to 1, create a host tag with the machine name.
+Setting this to 0 does nothing, neither creating nor destroying any tag.
+The machine name used is the nodename as returned by <B>uname</B> (2).
+<DT><DD>
+Additional host tags to be set can be listed here as subsections. 
+The @ prefix for tags is optional.
+Each of these host tag subsections can contain a <B>host_list</B> 
+array of host names. If any one of these entries matches the machine 
+name exactly then the host tag gets defined on this particular host, 
+otherwise it doesn't.
+<DT><DD>
+After lvm.conf has been processed, LVM2 works through each host
+tag that has been defined in turn, and if there is a configuration
+file called lvm_<B>&lt;host_tag&gt;</B>.conf it attempts to load it.
+Any settings read in override settings found in earlier files.
+Any additional host tags defined get appended to the search list,
+so in turn they can lead to further configuration files being processed.
+Use <B>lvm dumpconfig</B> to check the result of config
+file processing.
+<DT><DD>
+The following example always sets host tags <B>tag1</B> and
+sets <B>tag2</B> on machines fs1 and fs2:
+<DT><DD>
+tags { tag1 { } tag2 { host_list = [ &quot;fs1&quot;, &quot;fs2&quot; ] } }
+<DT><DD>
+These options are useful if you are replicating configuration files
+around a cluster.  Use of <B>hosttags = 1</B> means every machine
+can have static and identical local configuration files yet use 
+different settings and activate different logical volumes by
+default.  See also <B>volume_list</B> below and <B>--addtag</B> 
+in <B>lvm</B> (8).
+<DT><B>activation</B> --- Settings affecting device-mapper activation<DD>
+<DT><DD>
+<B>missing_stripe_filler</B> --- When activating an incomplete logical
+volume in partial mode, this option dictates how the missing data is
+replaced.  A value of &quot;error&quot; will cause activation to create error
+mappings for the missing data, meaning that read access to missing
+portions of the volume will result in I/O errors. You can instead also
+use a device path, and in that case this device will be used in place of
+missing stripes. However, note that using anything other than
+&quot;error&quot; with mirrored or snapshotted volumes is likely to result in data
+corruption.  For instructions on how to create a device that always
+returns zeros, see <B>lvcreate</B> (8).
+<DT><DD>
+<B>mirror_region_size</B> --- Unit size in KB for copy operations
+when mirroring.
+<DT><DD>
+<B>readahead</B> --- Used when there is no readahead value stored 
+in the volume group metadata.  Set to <B>none</B> to disable
+readahead in these circumstances or <B>auto</B> to use the default
+value chosen by the kernel.
+<DT><DD>
+<B>reserved_memory</B>, <B>reserved_stack</B> --- How many KB to reserve 
+for LVM2 to use while logical volumes are suspended.  If insufficient 
+memory is reserved before suspension, there is a risk of machine deadlock.
+<DT><DD>
+<B>process_priority</B> --- The nice value to use while devices are
+suspended.  This is set to a high priority so that logical volumes
+are suspended (with I/O generated by other processes to those
+logical volumes getting queued) for the shortest possible time.
+<DT><DD>
+<B>volume_list</B> --- This acts as a filter through which
+all requests to activate a logical volume on this machine
+are passed.  A logical volume is only activated if it matches
+an item in the list.  Tags must be preceded by @ and are checked
+against all tags defined in the logical volume and volume group 
+metadata for a match.
+@* is short-hand to check every tag set on the host machine (see
+<B>tags</B> above).
+Logical volume and volume groups can also be included in the list
+by name e.g. vg00, vg00/lvol1.
+<DT><DD>
+<B>read_only_volume_list</B> --- This acts as a filter through
+which all requests to activate a logical volume on this machine
+are passed.  A logical volume is activated in read-only mode (instead
+of read-write) if it matches an item in the list.  Volumes must first
+pass the <B>volume_list</B> filter, if present.  Tags must be preceded
+by @ and are checked against all tags defined in the logical volume
+and volume group metadata for a match.
+@* is short-hand to check every tag set on the host machine (see
+<B>tags</B> above).
+Logical volume and volume groups can also be included in the list
+by name e.g. vg00, vg00/lvol1.
+<DT><B>metadata</B> --- Advanced metadata settings<DD>
+<DT><DD>
+<B>pvmetadatacopies</B> --- When creating a physical volume using the
+LVM2 metadata format, this is the default number of copies of metadata
+to store on each physical volume.  
+Currently it can be set to 0, 1 or 2.  The default is 1.  
+If set to 2, one copy is placed at the beginning of the disk
+and the other is placed at the end.
+It can be overridden on the command line with <B>--pvmetadatacopies</B>
+(see <B>pvcreate</B>).
+If creating a volume group with just one physical volume, it's a
+good idea to have 2 copies.  If creating a large volume group with
+many physical volumes, you may decide that 3 copies of the metadata
+is sufficient, i.e. setting it to 1 on three of the physical volumes,
+and 0 on the rest.  Every volume group must contain at least one 
+physical volume with at least 1 copy of the metadata (unless using
+the text files described below).  The disadvantage of having lots
+of copies is that every time the tools access the volume group, every
+copy of the metadata has to be accessed, and this slows down the
+tools.
+<DT><DD>
+<B>pvmetadatasize</B> --- Approximate number of sectors to set aside
+for each copy of the metadata. Volume groups with large numbers of
+physical or logical volumes, or volumes groups containing complex 
+logical volume structures will need additional space for their metadata.
+The metadata areas are treated as circular buffers, so
+unused space becomes filled with an archive of the most recent
+previous versions of the metadata.
+<DT><DD>
+<B>pvmetadataignore</B> When creating a physical volume using the LVM2
+metadata format, this states whether metadata areas should be ignored.
+The default is &quot;n&quot;.  If metadata areas on a physical volume are ignored,
+LVM will not not store metadata in the metadata areas present on newly
+created Physical Volumes.  The option can be overridden on the command
+line with <B>--metadataignore</B> (See <B>pvcreate</B> and <B>pvchange</B>).
+Metadata areas cannot be created or extended after Logical Volumes have
+been allocated on the device.
+If you do not want to store metadata on this device, it is still wise
+always to allocate a metadata area (use a non-zero value for
+<B>--pvmetadatacopies</B>) in case you need it in the future and to use
+this option to instruct LVM2 to ignore it.
+<DT><DD>
+<B>vgmetadatacopies</B> --- When creating a volume group using the
+LVM2 metadata format, this is the default number of copies of metadata
+desired across all the physical volumes in the volume group.  If set to
+a non-zero value, LVM will automatically set or clear the metadataignore
+flag on the physical volumes (see <B>pvcreate</B> and <B>pvchange</B>
+<B>--metadataignore</B>) in order to achieve the desired number of metadata
+copies.  An LVM command that adds or removes physical volumes (for example,
+<B>vgextend</B>, <B>vgreduce</B>, <B>vgsplit</B>, or <B>vgmerge</B>), may cause
+LVM to automatically set or clear the metadataignore flags.  Also, if
+physical volumes go missing or reappear, or a new number of copies is
+explicitly set (see <B>vgchange --vgmetadatacopies</B>), LVM may adjust
+the metadataignore flags.
+Set <B>vgmetadatacopies</B> to 0 instructs LVM not to set or clear the
+metadataignore flags automatically.  You may set a value larger than the
+sum of all metadata areas on all physical volumes.  The value can
+be overridden on the command line with <B>--vgmetadatacopies</B> for various
+commands (for example, <B>vgcreate</B> and <B>vgchange</B>), and can be
+queryied with the <B>vg_mda_copies</B> field of <B>vgs</B>.  This option
+is useful for volume groups containing large numbers of physical volumes
+with metadata as it may be used to minimize metadata read and write overhead.
+<DT><DD>
+<B>dirs</B> --- List of directories holding live copies of LVM2
+metadata as text files.  These directories must not be on logical
+volumes.  It is possible to use LVM2 with a couple of directories
+here, preferably on different (non-logical-volume) filesystems
+and with no other on-disk metadata, <B>pvmetadatacopies = 0</B>.
+Alternatively these directories can be in addition to the
+on-disk metadata areas.  This feature was created during the
+development of the LVM2 metadata before the new on-disk metadata
+areas were designed and no longer gets tested.  
+It is not supported under low-memory conditions, and it is 
+important never to edit these metadata files unless you fully 
+understand how things work: to make changes you should always use 
+the tools as normal, or else vgcfgbackup, edit backup, vgcfgrestore.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>FILES</H2>
+
+<I>/etc/lvm/lvm.conf</I>
+
+<I>/etc/lvm/archive</I>
+
+<I>/etc/lvm/backup</I>
+
+<I>/etc/lvm/cache/.cache</I>
+
+<I>/var/lock/lvm</I>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?8+lvm">lvm</A></B>(8),
+
+<B><A HREF="/man/index.html?2+umask">umask</A></B>(2),
+
+<B><A HREF="/man/index.html?2+uname">uname</A></B>(2),
+
+<B><A HREF="/man/index.html?3+dlopen">dlopen</A></B>(3),
+
+<B><A HREF="/man/index.html?3+syslog">syslog</A></B>(3),
+
+<B><A HREF="/man/index.html?5+syslog.conf">syslog.conf</A></B>(5)
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">SYNTAX</A><DD>
+<DT><A HREF="#lbAF">SECTIONS</A><DD>
+<DT><A HREF="#lbAG">FILES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Net::SMTP</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Net::SMTP</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Net::SMTP - Simple Mail Transfer Protocol Client
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Net::SMTP;
+
+    # Constructors
+    $smtp = Net::SMTP-&gt;new('mailhost');
+    $smtp = Net::SMTP-&gt;new('mailhost', Timeout =&gt; 60);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This module implements a client interface to the <FONT SIZE="-1">SMTP</FONT> and <FONT SIZE="-1">ESMTP</FONT>
+protocol, enabling a perl5 application to talk to <FONT SIZE="-1">SMTP</FONT> servers. This
+documentation assumes that you are familiar with the concepts of the
+<FONT SIZE="-1">SMTP</FONT> protocol described in <FONT SIZE="-1">RFC821</FONT>.
+<P>
+
+A new Net::SMTP object must be created with the <I>new</I> method. Once
+this has been done, all <FONT SIZE="-1">SMTP</FONT> commands are accessed through this object.
+<P>
+
+The Net::SMTP class is a subclass of Net::Cmd and IO::Socket::INET.
+<A NAME="lbAE">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAE"></A>
+This example prints the mail domain name of the <FONT SIZE="-1">SMTP</FONT> server known as mailhost:
+<P>
+
+
+
+<PRE>
+    #!/usr/local/bin/perl -w
+
+    use Net::SMTP;
+
+    $smtp = Net::SMTP-&gt;new('mailhost');
+    print $smtp-&gt;domain,&quot;\n&quot;;
+    $smtp-&gt;quit;
+
+</PRE>
+
+
+<P>
+
+This example sends a small message to the postmaster at the <FONT SIZE="-1">SMTP</FONT> server
+known as mailhost:
+<P>
+
+
+
+<PRE>
+    #!/usr/local/bin/perl -w
+
+    use Net::SMTP;
+
+    $smtp = Net::SMTP-&gt;new('mailhost');
+
+    $smtp-&gt;mail($ENV{USER});
+    $smtp-&gt;to('postmaster');
+
+    $smtp-&gt;data();
+    $smtp-&gt;datasend(&quot;To: postmaster\n&quot;);
+    $smtp-&gt;datasend(&quot;\n&quot;);
+    $smtp-&gt;datasend(&quot;A simple test message\n&quot;);
+    $smtp-&gt;dataend();
+
+    $smtp-&gt;quit;
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONSTRUCTOR</H2>
+
+<A NAME="ixAAF"></A>
+<DL COMPACT>
+<DT>new ( [ <FONT SIZE="-1">HOST</FONT> ] [, <FONT SIZE="-1">OPTIONS</FONT> ] )<DD>
+<A NAME="ixAAG"></A>
+This is the constructor for a new Net::SMTP object. <TT>&quot;HOST&quot;</TT> is the
+name of the remote host to which an <FONT SIZE="-1">SMTP</FONT> connection is required.
+
+
+<P>
+
+
+<TT>&quot;HOST&quot;</TT> is optional. If <TT>&quot;HOST&quot;</TT> is not given then it may instead be
+passed as the <TT>&quot;Host&quot;</TT> option described below. If neither is given then
+the <TT>&quot;SMTP_Hosts&quot;</TT> specified in <TT>&quot;Net::Config&quot;</TT> will be used.
+
+
+<P>
+
+
+<TT>&quot;OPTIONS&quot;</TT> are passed in a hash like fashion, using key and value pairs.
+Possible options are:
+
+
+<P>
+
+
+<B>Hello</B> - <FONT SIZE="-1">SMTP</FONT> requires that you identify yourself. This option
+specifies a string to pass as your mail domain. If not given localhost.localdomain
+will be used.
+
+
+<P>
+
+
+<B>Host</B> - <FONT SIZE="-1">SMTP</FONT> host to connect to. It may be a single scalar, as defined for
+the <TT>&quot;PeerAddr&quot;</TT> option in IO::Socket::INET, or a reference to
+an array with hosts to try in turn. The ``host'' method will return the value
+which was used to connect to the host.
+
+
+<P>
+
+
+<B>LocalAddr</B> and <B>LocalPort</B> - These parameters are passed directly
+to IO::Socket to allow binding the socket to a local port.
+
+
+<P>
+
+
+<B>Timeout</B> - Maximum time, in seconds, to wait for a response from the
+<FONT SIZE="-1">SMTP</FONT> server (default: 120)
+
+
+<P>
+
+
+<B>ExactAddresses</B> - If true the all <FONT SIZE="-1">ADDRESS</FONT> arguments must be as
+defined by <TT>&quot;addr-spec&quot;</TT> in <FONT SIZE="-1">RFC2822</FONT>. If not given, or false, then
+Net::SMTP will attempt to extract the address from the value passed.
+
+
+<P>
+
+
+<B>Debug</B> - Enable debugging information
+
+
+<P>
+
+
+Example:
+
+
+<P>
+
+
+
+
+<PRE>
+    $smtp = Net::SMTP-&gt;new('mailhost',
+                           Hello =&gt; 'my.mail.domain',
+                           Timeout =&gt; 30,
+                           Debug   =&gt; 1,
+                          );
+
+    # the same
+    $smtp = Net::SMTP-&gt;new(
+                           Host =&gt; 'mailhost',
+                           Hello =&gt; 'my.mail.domain',
+                           Timeout =&gt; 30,
+                           Debug   =&gt; 1,
+                          );
+
+    # Connect to the default server from Net::config
+    $smtp = Net::SMTP-&gt;new(
+                           Hello =&gt; 'my.mail.domain',
+                           Timeout =&gt; 30,
+                          );
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAH"></A>
+Unless otherwise stated all methods return either a <I>true</I> or <I>false</I>
+value, with <I>true</I> meaning that the operation was a success. When a method
+states that it returns a value, failure will be returned as <I>undef</I> or an
+empty list.
+<DL COMPACT>
+<DT>banner ()<DD>
+<A NAME="ixAAI"></A>
+Returns the banner message which the server replied with when the
+initial connection was made.
+<DT>domain ()<DD>
+<A NAME="ixAAJ"></A>
+Returns the domain that the remote <FONT SIZE="-1">SMTP</FONT> server identified itself as during
+connection.
+<DT>hello ( <FONT SIZE="-1">DOMAIN</FONT> )<DD>
+<A NAME="ixAAK"></A>
+Tell the remote server the mail domain which you are in using the <FONT SIZE="-1">EHLO</FONT>
+command (or <FONT SIZE="-1">HELO</FONT> if <FONT SIZE="-1">EHLO</FONT> fails).  Since this method is invoked
+automatically when the Net::SMTP object is constructed the user should
+normally not have to call it manually.
+<DT>host ()<DD>
+<A NAME="ixAAL"></A>
+Returns the value used by the constructor, and passed to IO::Socket::INET,
+to connect to the host.
+<DT>etrn ( <FONT SIZE="-1">DOMAIN</FONT> )<DD>
+<A NAME="ixAAM"></A>
+Request a queue run for the <FONT SIZE="-1">DOMAIN</FONT> given.
+<DT>auth ( <FONT SIZE="-1">USERNAME</FONT>, <FONT SIZE="-1">PASSWORD</FONT> )<DD>
+<A NAME="ixAAN"></A>
+Attempt <FONT SIZE="-1">SASL</FONT> authentication.
+<DT>mail ( <FONT SIZE="-1">ADDRESS</FONT> [, <FONT SIZE="-1">OPTIONS</FONT>] )<DD>
+<A NAME="ixAAO"></A>
+
+<DT>send ( <FONT SIZE="-1">ADDRESS</FONT> )<DD>
+<A NAME="ixAAP"></A>
+<DT>send_or_mail ( <FONT SIZE="-1">ADDRESS</FONT> )<DD>
+<A NAME="ixAAQ"></A>
+<DT>send_and_mail ( <FONT SIZE="-1">ADDRESS</FONT> )<DD>
+<A NAME="ixAAR"></A>
+
+Send the appropriate command to the server <FONT SIZE="-1">MAIL</FONT>, <FONT SIZE="-1">SEND</FONT>, <FONT SIZE="-1">SOML</FONT> or <FONT SIZE="-1">SAML</FONT>. <TT>&quot;ADDRESS&quot;</TT>
+is the address of the sender. This initiates the sending of a message. The
+method <TT>&quot;recipient&quot;</TT> should be called for each address that the message is to
+be sent to.
+
+
+<P>
+
+
+The <TT>&quot;mail&quot;</TT> method can some additional <FONT SIZE="-1">ESMTP</FONT> <FONT SIZE="-1">OPTIONS</FONT> which is passed
+in hash like fashion, using key and value pairs.  Possible options are:
+
+
+<P>
+
+
+
+
+<PRE>
+ Size        =&gt; &lt;bytes&gt;
+ Return      =&gt; &quot;FULL&quot; | &quot;HDRS&quot;
+ Bits        =&gt; &quot;7&quot; | &quot;8&quot; | &quot;binary&quot;
+ Transaction =&gt; &lt;ADDRESS&gt;
+ Envelope    =&gt; &lt;ENVID&gt;     # xtext-encodes its argument
+ ENVID       =&gt; &lt;ENVID&gt;     # similar to Envelope, but expects argument encoded
+ XVERP       =&gt; 1
+ AUTH        =&gt; &lt;submitter&gt; # encoded address according to RFC 2554
+
+</PRE>
+
+
+
+
+<P>
+
+
+The <TT>&quot;Return&quot;</TT> and <TT>&quot;Envelope&quot;</TT> parameters are used for <FONT SIZE="-1">DSN</FONT> (Delivery
+Status Notification).
+
+
+<P>
+
+
+The submitter address in <TT>&quot;AUTH&quot;</TT> option is expected to be in a format as
+required by <FONT SIZE="-1">RFC</FONT> 2554, in an RFC2821-quoted form and xtext-encoded, or &lt;&gt; .
+<DT>reset ()<DD>
+<A NAME="ixAAS"></A>
+Reset the status of the server. This may be called after a message has been 
+initiated, but before any data has been sent, to cancel the sending of the
+message.
+<DT>recipient ( <FONT SIZE="-1">ADDRESS</FONT> [, <FONT SIZE="-1">ADDRESS</FONT>, [...]] [, <FONT SIZE="-1">OPTIONS</FONT> ] )<DD>
+<A NAME="ixAAT"></A>
+Notify the server that the current message should be sent to all of the
+addresses given. Each address is sent as a separate command to the server.
+Should the sending of any address result in a failure then the process is
+aborted and a <I>false</I> value is returned. It is up to the user to call
+<TT>&quot;reset&quot;</TT> if they so desire.
+
+
+<P>
+
+
+The <TT>&quot;recipient&quot;</TT> method can also pass additional case-sensitive <FONT SIZE="-1">OPTIONS</FONT> as an
+anonymous hash using key and value pairs.  Possible options are:
+
+
+<P>
+
+
+
+
+<PRE>
+  Notify  =&gt; ['NEVER'] or ['SUCCESS','FAILURE','DELAY']  (see below)
+  ORcpt   =&gt; &lt;ORCPT&gt;
+  SkipBad =&gt; 1        (to ignore bad addresses)
+
+</PRE>
+
+
+
+
+<P>
+
+
+If <TT>&quot;SkipBad&quot;</TT> is true the <TT>&quot;recipient&quot;</TT> will not return an error when a bad
+address is encountered and it will return an array of addresses that did
+succeed.
+
+
+<P>
+
+
+
+
+<PRE>
+  $smtp-&gt;recipient($recipient1,$recipient2);  # Good
+  $smtp-&gt;recipient($recipient1,$recipient2, { SkipBad =&gt; 1 });  # Good
+  $smtp-&gt;recipient($recipient1,$recipient2, { Notify =&gt; ['FAILURE','DELAY'], SkipBad =&gt; 1 });  # Good
+  @goodrecips=$smtp-&gt;recipient(@recipients, { Notify =&gt; ['FAILURE'], SkipBad =&gt; 1 });  # Good
+  $smtp-&gt;recipient(&quot;$recipient,$recipient2&quot;); # BAD
+
+</PRE>
+
+
+
+
+<P>
+
+
+Notify is used to request Delivery Status Notifications (DSNs), but your
+<FONT SIZE="-1">SMTP/ESMTP</FONT> service may not respect this request depending upon its version and
+your site's <FONT SIZE="-1">SMTP</FONT> configuration.
+
+
+<P>
+
+
+Leaving out the Notify option usually defaults an <FONT SIZE="-1">SMTP</FONT> service to its default
+behavior equivalent to ['<FONT SIZE="-1">FAILURE</FONT>'] notifications only, but again this may be
+dependent upon your site's <FONT SIZE="-1">SMTP</FONT> configuration.
+
+
+<P>
+
+
+The <FONT SIZE="-1">NEVER</FONT> keyword must appear by itself if used within the Notify option and ``requests
+that a <FONT SIZE="-1">DSN</FONT> not be returned to the sender under any conditions.''
+
+
+<P>
+
+
+
+
+<PRE>
+  {Notify =&gt; ['NEVER']}
+
+  $smtp-&gt;recipient(@recipients, { Notify =&gt; ['NEVER'], SkipBad =&gt; 1 });  # Good
+
+</PRE>
+
+
+
+
+<P>
+
+
+You may use any combination of these three values '<FONT SIZE="-1">SUCCESS</FONT>','<FONT SIZE="-1">FAILURE</FONT>','<FONT SIZE="-1">DELAY</FONT>' in
+the anonymous array reference as defined by <FONT SIZE="-1">RFC3461</FONT> (see <A HREF="http://rfc.net/rfc3461.html">http://rfc.net/rfc3461.html</A>
+for more information.  Note: quotations in this topic from same.).
+
+
+<P>
+
+
+A Notify parameter of '<FONT SIZE="-1">SUCCESS</FONT>' or '<FONT SIZE="-1">FAILURE</FONT>' ``requests that a <FONT SIZE="-1">DSN</FONT> be issued on
+successful delivery or delivery failure, respectively.''
+
+
+<P>
+
+
+A Notify parameter of '<FONT SIZE="-1">DELAY</FONT>' ``indicates the sender's willingness to receive
+delayed DSNs.  Delayed DSNs may be issued if delivery of a message has been
+delayed for an unusual amount of time (as determined by the Message Transfer
+Agent (<FONT SIZE="-1">MTA</FONT>) at which the message is delayed), but the final delivery status
+(whether successful or failure) cannot be determined.  The absence of the <FONT SIZE="-1">DELAY</FONT>
+keyword in a <FONT SIZE="-1">NOTIFY</FONT> parameter requests that a ''delayed`` <FONT SIZE="-1">DSN</FONT> <FONT SIZE="-1">NOT</FONT> be issued under
+any conditions.''
+
+
+<P>
+
+
+
+
+<PRE>
+  {Notify =&gt; ['SUCCESS','FAILURE','DELAY']}
+
+  $smtp-&gt;recipient(@recipients, { Notify =&gt; ['FAILURE','DELAY'], SkipBad =&gt; 1 });  # Good
+
+</PRE>
+
+
+
+
+<P>
+
+
+ORcpt is also part of the <FONT SIZE="-1">SMTP</FONT> <FONT SIZE="-1">DSN</FONT> extension according to <FONT SIZE="-1">RFC3461</FONT>.
+It is used to pass along the original recipient that the mail was first
+sent to.  The machine that generates a <FONT SIZE="-1">DSN</FONT> will use this address to inform
+the sender, because he can't know if recipients get rewritten by mail servers.
+It is expected to be in a format as required by <FONT SIZE="-1">RFC3461</FONT>, xtext-encoded.
+<DT>to ( <FONT SIZE="-1">ADDRESS</FONT> [, <FONT SIZE="-1">ADDRESS</FONT> [...]] )<DD>
+<A NAME="ixAAU"></A>
+
+<DT>cc ( <FONT SIZE="-1">ADDRESS</FONT> [, <FONT SIZE="-1">ADDRESS</FONT> [...]] )<DD>
+<A NAME="ixAAV"></A>
+<DT>bcc ( <FONT SIZE="-1">ADDRESS</FONT> [, <FONT SIZE="-1">ADDRESS</FONT> [...]] )<DD>
+<A NAME="ixAAW"></A>
+
+Synonyms for <TT>&quot;recipient&quot;</TT>.
+<DT>data ( [ <FONT SIZE="-1">DATA</FONT> ] )<DD>
+<A NAME="ixAAX"></A>
+Initiate the sending of the data from the current message.
+
+
+<P>
+
+
+<TT>&quot;DATA&quot;</TT> may be a reference to a list or a list. If specified the contents
+of <TT>&quot;DATA&quot;</TT> and a termination string <TT>&quot;.\r\n&quot;</TT> is sent to the server. And the
+result will be true if the data was accepted.
+
+
+<P>
+
+
+If <TT>&quot;DATA&quot;</TT> is not specified then the result will indicate that the server
+wishes the data to be sent. The data must then be sent using the <TT>&quot;datasend&quot;</TT>
+and <TT>&quot;dataend&quot;</TT> methods described in Net::Cmd.
+<DT>expand ( <FONT SIZE="-1">ADDRESS</FONT> )<DD>
+<A NAME="ixAAY"></A>
+Request the server to expand the given address Returns an array
+which contains the text read from the server.
+<DT>verify ( <FONT SIZE="-1">ADDRESS</FONT> )<DD>
+<A NAME="ixAAZ"></A>
+Verify that <TT>&quot;ADDRESS&quot;</TT> is a legitimate mailing address.
+
+
+<P>
+
+
+Most sites usually disable this feature in their <FONT SIZE="-1">SMTP</FONT> service configuration.
+Use ``Debug =&gt; 1'' option under <I>new()</I> to see if disabled.
+<DT>help ( [ $subject ] )<DD>
+
+
+<A NAME="ixABA"></A>
+Request help text from the server. Returns the text or undef upon failure
+<DT>quit ()<DD>
+<A NAME="ixABB"></A>
+Send the <FONT SIZE="-1">QUIT</FONT> command to the remote <FONT SIZE="-1">SMTP</FONT> server and close the socket connection.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>ADDRESSES</H2>
+
+<A NAME="ixABC"></A>
+Net::SMTP attempts to <FONT SIZE="-1">DWIM</FONT> with addresses that are passed. For
+example an application might extract The From: line from an email
+and pass that to <I>mail()</I>. While this may work, it is not recommended.
+The application should really use a module like Mail::Address
+to extract the mail address and pass that.
+<P>
+
+If <TT>&quot;ExactAddresses&quot;</TT> is passed to the constructor, then addresses
+should be a valid rfc2821-quoted address, although Net::SMTP will
+accept accept the address surrounded by angle brackets.
+<P>
+
+
+
+<PRE>
+ funny <A HREF="mailto:user@domain">user@domain</A>      WRONG
+ &quot;funny user&quot;@domain    RIGHT, recommended
+ &lt;&quot;funny user&quot;@domain&gt;  OK
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABD"></A>
+Net::Cmd
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABE"></A>
+Graham Barr &lt;<A HREF="mailto:gbarr@pobox.com">gbarr@pobox.com</A>&gt;
+<A NAME="lbAK">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABF"></A>
+Copyright (c) 1995-2004 Graham Barr. All rights reserved.
+This program is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">EXAMPLES</A><DD>
+<DT><A HREF="#lbAF">CONSTRUCTOR</A><DD>
+<DT><A HREF="#lbAG">METHODS</A><DD>
+<DT><A HREF="#lbAH">ADDRESSES</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">AUTHOR</A><DD>
+<DT><A HREF="#lbAK">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:35 GMT, December 24, 2015
+</div></body>
+</HTML>

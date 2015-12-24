@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of HTTP::Daemon</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>HTTP::Daemon</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-06-15<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+HTTP::Daemon - a simple http server class
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use HTTP::Daemon;
+  use HTTP::Status;
+
+  my $d = HTTP::Daemon-&gt;new || die;
+  print &quot;Please contact me at: &lt;URL:&quot;, $d-&gt;url, &quot;&gt;\n&quot;;
+  while (my $c = $d-&gt;accept) {
+      while (my $r = $c-&gt;get_request) {
+          if ($r-&gt;method eq 'GET' and $r-&gt;uri-&gt;path eq &quot;/xyzzy&quot;) {
+              # remember, this is *not* recommended practice :-)
+              $c-&gt;send_file_response(&quot;/etc/passwd&quot;);
+          }
+          else {
+              $c-&gt;send_error(RC_FORBIDDEN)
+          }
+      }
+      $c-&gt;close;
+      undef($c);
+  }
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Instances of the <TT>&quot;HTTP::Daemon&quot;</TT> class are <FONT SIZE="-1">HTTP/1</FONT>.1 servers that
+listen on a socket for incoming requests. The <TT>&quot;HTTP::Daemon&quot;</TT> is a
+subclass of <TT>&quot;IO::Socket::INET&quot;</TT>, so you can perform socket operations
+directly on it too.
+<P>
+
+The <I>accept()</I> method will return when a connection from a client is
+available.  The returned value will be an <TT>&quot;HTTP::Daemon::ClientConn&quot;</TT>
+object which is another <TT>&quot;IO::Socket::INET&quot;</TT> subclass.  Calling the
+<I>get_request()</I> method on this object will read data from the client and
+return an <TT>&quot;HTTP::Request&quot;</TT> object.  The ClientConn object also provide
+methods to send back various responses.
+<P>
+
+This <FONT SIZE="-1">HTTP</FONT> daemon does not <I><A HREF="/man/index.html?2+fork">fork</A></I>(2) for you.  Your application, i.e. the
+user of the <TT>&quot;HTTP::Daemon&quot;</TT> is responsible for forking if that is
+desirable.  Also note that the user is responsible for generating
+responses that conform to the <FONT SIZE="-1">HTTP/1</FONT>.1 protocol.
+<P>
+
+The following methods of <TT>&quot;HTTP::Daemon&quot;</TT> are new (or enhanced) relative
+to the <TT>&quot;IO::Socket::INET&quot;</TT> base class:
+<DL COMPACT>
+<DT>$d = HTTP::Daemon-&gt;new<DD>
+
+
+<A NAME="ixAAE"></A>
+
+<DT>$d = HTTP::Daemon-&gt;new( %opts )<DD>
+
+
+<A NAME="ixAAF"></A>
+
+The constructor method takes the same arguments as the
+<TT>&quot;IO::Socket::INET&quot;</TT> constructor, but unlike its base class it can also
+be called without any arguments.  The daemon will then set up a listen
+queue of 5 connections and allocate some random port number.
+
+
+<P>
+
+
+A server that wants to bind to some specific address on the standard
+<FONT SIZE="-1">HTTP</FONT> port will be constructed like this:
+
+
+<P>
+
+
+
+
+<PRE>
+  $d = HTTP::Daemon-&gt;new(
+           LocalAddr =&gt; '<A HREF="http://www.thisplace.com">www.thisplace.com</A>',
+           LocalPort =&gt; 80,
+       );
+
+</PRE>
+
+
+
+
+<P>
+
+
+See IO::Socket::INET for a description of other arguments that can
+be used configure the daemon during construction.
+<DT>$c = $d-&gt;accept<DD>
+
+
+<A NAME="ixAAG"></A>
+
+<DT>$c = $d-&gt;accept( $pkg )<DD>
+
+
+<A NAME="ixAAH"></A>
+<DT>($c, $peer_addr) = $d-&gt;accept<DD>
+
+
+<A NAME="ixAAI"></A>
+
+This method works the same the one provided by the base class, but it
+returns an <TT>&quot;HTTP::Daemon::ClientConn&quot;</TT> reference by default.  If a
+package name is provided as argument, then the returned object will be
+blessed into the given class.  It is probably a good idea to make that
+class a subclass of <TT>&quot;HTTP::Daemon::ClientConn&quot;</TT>.
+
+
+<P>
+
+
+The accept method will return <TT>&quot;undef&quot;</TT> if timeouts have been enabled
+and no connection is made within the given time.  The <I>timeout()</I> method
+is described in IO::Socket.
+
+
+<P>
+
+
+In list context both the client object and the peer address will be
+returned; see the description of the accept method IO::Socket for
+details.
+<DT>$d-&gt;url<DD>
+
+
+<A NAME="ixAAJ"></A>
+Returns a <FONT SIZE="-1">URL</FONT> string that can be used to access the server root.
+<DT>$d-&gt;product_tokens<DD>
+
+
+<A NAME="ixAAK"></A>
+Returns the name that this server will use to identify itself.  This
+is the string that is sent with the <TT>&quot;Server&quot;</TT> response header.  The
+main reason to have this method is that subclasses can override it if
+they want to use another product name.
+
+
+<P>
+
+
+The default is the string ``libwww-perl-daemon/#.##'' where ``#.##'' is
+replaced with the version number of this module.
+</DL>
+<P>
+
+The <TT>&quot;HTTP::Daemon::ClientConn&quot;</TT> is a <TT>&quot;IO::Socket::INET&quot;</TT>
+subclass. Instances of this class are returned by the <I>accept()</I> method
+of <TT>&quot;HTTP::Daemon&quot;</TT>.  The following methods are provided:
+<DL COMPACT>
+<DT>$c-&gt;get_request<DD>
+
+
+<A NAME="ixAAL"></A>
+
+<DT>$c-&gt;get_request( $headers_only )<DD>
+
+
+<A NAME="ixAAM"></A>
+
+This method reads data from the client and turns it into an
+<TT>&quot;HTTP::Request&quot;</TT> object which is returned.  It returns <TT>&quot;undef&quot;</TT>
+if reading fails.  If it fails, then the <TT>&quot;HTTP::Daemon::ClientConn&quot;</TT>
+object ($c) should be discarded, and you should not try call this
+method again on it.  The <TT>$c</TT>-&gt;reason method might give you some
+information about why <TT>$c</TT>-&gt;get_request failed.
+
+
+<P>
+
+
+The <I>get_request()</I> method will normally not return until the whole
+request has been received from the client.  This might not be what you
+want if the request is an upload of a large file (and with chunked
+transfer encoding <FONT SIZE="-1">HTTP</FONT> can even support infinite request messages -
+uploading live audio for instance).  If you pass a <FONT SIZE="-1">TRUE</FONT> value as the
+<TT>$headers_only</TT> argument, then <I>get_request()</I> will return immediately
+after parsing the request headers and you are responsible for reading
+the rest of the request content.  If you are going to call
+<TT>$c</TT>-&gt;get_request again on the same connection you better read the
+correct number of bytes.
+<DT>$c-&gt;read_buffer<DD>
+
+
+<A NAME="ixAAN"></A>
+
+<DT>$c-&gt;read_buffer( $new_value )<DD>
+
+
+<A NAME="ixAAO"></A>
+
+Bytes read by <TT>$c</TT>-&gt;get_request, but not used are placed in the <I>read
+buffer</I>.  The next time <TT>$c</TT>-&gt;get_request is called it will consume the
+bytes in this buffer before reading more data from the network
+connection itself.  The read buffer is invalid after <TT>$c</TT>-&gt;get_request
+has failed.
+
+
+<P>
+
+
+If you handle the reading of the request content yourself you need to
+empty this buffer before you read more and you need to place
+unconsumed bytes here.  You also need this buffer if you implement
+services like <I>101 Switching Protocols</I>.
+
+
+<P>
+
+
+This method always returns the old buffer content and can optionally
+replace the buffer content if you pass it an argument.
+<DT>$c-&gt;reason<DD>
+
+
+<A NAME="ixAAP"></A>
+When <TT>$c</TT>-&gt;get_request returns <TT>&quot;undef&quot;</TT> you can obtain a short string
+describing why it happened by calling <TT>$c</TT>-&gt;reason.
+<DT>$c-&gt;proto_ge( $proto )<DD>
+
+
+<A NAME="ixAAQ"></A>
+Return <FONT SIZE="-1">TRUE</FONT> if the client announced a protocol with version number
+greater or equal to the given argument.  The <TT>$proto</TT> argument can be a
+string like ``<FONT SIZE="-1">HTTP/1</FONT>.1'' or just ``1.1''.
+<DT>$c-&gt;antique_client<DD>
+
+
+<A NAME="ixAAR"></A>
+Return <FONT SIZE="-1">TRUE</FONT> if the client speaks the <FONT SIZE="-1">HTTP/0</FONT>.9 protocol.  No status
+code and no headers should be returned to such a client.  This should
+be the same as !$c-&gt;proto_ge(``<FONT SIZE="-1">HTTP/1</FONT>.0'').
+<DT>$c-&gt;head_request<DD>
+
+
+<A NAME="ixAAS"></A>
+Return <FONT SIZE="-1">TRUE</FONT> if the last request was a <TT>&quot;HEAD&quot;</TT> request.  No content
+body must be generated for these requests.
+<DT>$c-&gt;force_last_request<DD>
+
+
+<A NAME="ixAAT"></A>
+Make sure that <TT>$c</TT>-&gt;get_request will not try to read more requests off
+this connection.  If you generate a response that is not self
+delimiting, then you should signal this fact by calling this method.
+
+
+<P>
+
+
+This attribute is turned on automatically if the client announces
+protocol <FONT SIZE="-1">HTTP/1</FONT>.0 or worse and does not include a ``Connection:
+Keep-Alive'' header.  It is also turned on automatically when <FONT SIZE="-1">HTTP/1</FONT>.1
+or better clients send the ``Connection: close'' request header.
+<DT>$c-&gt;send_status_line<DD>
+
+
+<A NAME="ixAAU"></A>
+
+<DT>$c-&gt;send_status_line( $code )<DD>
+
+
+<A NAME="ixAAV"></A>
+<DT>$c-&gt;send_status_line( $code, $mess )<DD>
+
+
+<A NAME="ixAAW"></A>
+<DT>$c-&gt;send_status_line( $code, $mess, $proto )<DD>
+
+
+<A NAME="ixAAX"></A>
+
+Send the status line back to the client.  If <TT>$code</TT> is omitted 200 is
+assumed.  If <TT>$mess</TT> is omitted, then a message corresponding to <TT>$code</TT>
+is inserted.  If <TT>$proto</TT> is missing the content of the
+<TT>$HTTP::Daemon::PROTO</TT> variable is used.
+<DT>$c-&gt;send_crlf<DD>
+
+
+<A NAME="ixAAY"></A>
+Send the <FONT SIZE="-1">CRLF</FONT> sequence to the client.
+<DT>$c-&gt;send_basic_header<DD>
+
+
+<A NAME="ixAAZ"></A>
+
+<DT>$c-&gt;send_basic_header( $code )<DD>
+
+
+<A NAME="ixABA"></A>
+<DT>$c-&gt;send_basic_header( $code, $mess )<DD>
+
+
+<A NAME="ixABB"></A>
+<DT>$c-&gt;send_basic_header( $code, $mess, $proto )<DD>
+
+
+<A NAME="ixABC"></A>
+
+Send the status line and the ``Date:'' and ``Server:'' headers back to
+the client.  This header is assumed to be continued and does not end
+with an empty <FONT SIZE="-1">CRLF</FONT> line.
+
+
+<P>
+
+
+See the description of <I>send_status_line()</I> for the description of the
+accepted arguments.
+<DT>$c-&gt;send_header( $field, $value )<DD>
+
+
+<A NAME="ixABD"></A>
+
+<DT>$c-&gt;send_header( $field1, $value1, $field2, $value2, ... )<DD>
+
+
+<A NAME="ixABE"></A>
+
+Send one or more header lines.
+<DT>$c-&gt;send_response( $res )<DD>
+
+
+<A NAME="ixABF"></A>
+Write a <TT>&quot;HTTP::Response&quot;</TT> object to the
+client as a response.  We try hard to make sure that the response is
+self delimiting so that the connection can stay persistent for further
+request/response exchanges.
+
+
+<P>
+
+
+The content attribute of the <TT>&quot;HTTP::Response&quot;</TT> object can be a normal
+string or a subroutine reference.  If it is a subroutine, then
+whatever this callback routine returns is written back to the
+client as the response content.  The routine will be called until it
+return an undefined or empty value.  If the client is <FONT SIZE="-1">HTTP/1</FONT>.1 aware
+then we will use chunked transfer encoding for the response.
+<DT>$c-&gt;send_redirect( $loc )<DD>
+
+
+<A NAME="ixABG"></A>
+
+<DT>$c-&gt;send_redirect( $loc, $code )<DD>
+
+
+<A NAME="ixABH"></A>
+<DT>$c-&gt;send_redirect( $loc, $code, $entity_body )<DD>
+
+
+<A NAME="ixABI"></A>
+
+Send a redirect response back to the client.  The location ($loc) can
+be an absolute or relative <FONT SIZE="-1">URL</FONT>. The <TT>$code</TT> must be one the redirect
+status codes, and defaults to ``301 Moved Permanently''
+<DT>$c-&gt;send_error<DD>
+
+
+<A NAME="ixABJ"></A>
+
+<DT>$c-&gt;send_error( $code )<DD>
+
+
+<A NAME="ixABK"></A>
+<DT>$c-&gt;send_error( $code, $error_message )<DD>
+
+
+<A NAME="ixABL"></A>
+
+Send an error response back to the client.  If the <TT>$code</TT> is missing a
+``Bad Request'' error is reported.  The <TT>$error_message</TT> is a string that
+is incorporated in the body of the <FONT SIZE="-1">HTML</FONT> entity body.
+<DT>$c-&gt;send_file_response( $filename )<DD>
+
+
+<A NAME="ixABM"></A>
+Send back a response with the specified <TT>$filename</TT> as content.  If the
+file is a directory we try to generate an <FONT SIZE="-1">HTML</FONT> index of it.
+<DT>$c-&gt;send_file( $filename )<DD>
+
+
+<A NAME="ixABN"></A>
+
+<DT>$c-&gt;send_file( $fd )<DD>
+
+
+<A NAME="ixABO"></A>
+
+Copy the file to the client.  The file can be a string (which
+will be interpreted as a filename) or a reference to an <TT>&quot;IO::Handle&quot;</TT>
+or glob.
+<DT>$c-&gt;daemon<DD>
+
+
+<A NAME="ixABP"></A>
+Return a reference to the corresponding <TT>&quot;HTTP::Daemon&quot;</TT> object.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABQ"></A>
+<FONT SIZE="-1">RFC</FONT> 2616
+<P>
+
+IO::Socket::INET, IO::Socket
+<A NAME="lbAF">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABR"></A>
+Copyright 1996-2003, Gisle Aas
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">SEE ALSO</A><DD>
+<DT><A HREF="#lbAF">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:29 GMT, December 24, 2015
+</div></body>
+</HTML>

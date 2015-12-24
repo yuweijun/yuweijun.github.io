@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SVIPC</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SVIPC</H1>
+Section: Linux Programmer's Manual (7)<BR>Updated: 2009-01-26<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+svipc - System V interprocess communication mechanisms
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/ipc.h">sys/ipc.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/msg.h">sys/msg.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/sem.h">sys/sem.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/shm.h">sys/shm.h</A>&gt;</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+This manual page refers to the Linux implementation of the System V
+interprocess communication (IPC) mechanisms:
+message queues, semaphore sets, and shared memory segments.
+In the following, the word
+<I>resource</I>
+
+means an instantiation of one among such mechanisms.
+<A NAME="lbAE">&nbsp;</A>
+<H3>Resource Access Permissions</H3>
+
+For each resource, the system uses a common structure of type
+<I>struct ipc_perm</I>
+
+to store information needed in determining permissions to perform an
+IPC operation.
+The
+<I>ipc_perm</I>
+
+structure, defined by the
+<I>&lt;<A HREF="file:/usr/include/sys/ipc.h">sys/ipc.h</A>&gt;</I>
+
+system header file, includes the following members:
+
+<PRE>
+
+struct ipc_perm {
+    uid_t          cuid;   /* creator user ID */
+    gid_t          cgid;   /* creator group ID */
+    uid_t          uid;    /* owner user ID */
+    gid_t          gid;    /* owner group ID */
+    unsigned short mode;   /* r/w permissions */
+};
+</PRE>
+
+
+<P>
+
+The
+<I>mode</I>
+
+member of the
+<I>ipc_perm</I>
+
+structure defines, with its lower 9 bits, the access permissions to the
+resource for a process executing an IPC system call.
+The permissions are interpreted as follows:
+<P>
+<PRE>
+    0400    Read by user.
+    0200    Write by user.
+
+    0040    Read by group.
+    0020    Write by group.
+
+    0004    Read by others.
+    0002    Write by others.
+</PRE>
+
+<P>
+
+Bits 0100, 0010, and 0001 (the execute bits) are unused by the system.
+Furthermore,
+&quot;write&quot;
+effectively means
+&quot;alter&quot;
+for a semaphore set.
+<P>
+
+The same system header file also defines the following symbolic
+constants:
+<DL COMPACT>
+<DT><B>IPC_CREAT</B>
+
+<DD>
+Create entry if key doesn't exist.
+<DT><B>IPC_EXCL</B>
+
+<DD>
+Fail if key exists.
+<DT><B>IPC_NOWAIT</B>
+
+<DD>
+Error if request must wait.
+<DT><B>IPC_PRIVATE</B>
+
+<DD>
+Private key.
+<DT><B>IPC_RMID</B>
+
+<DD>
+Remove resource.
+<DT><B>IPC_SET</B>
+
+<DD>
+Set resource options.
+<DT><B>IPC_STAT</B>
+
+<DD>
+Get resource options.
+</DL>
+<P>
+
+Note that
+<B>IPC_PRIVATE</B>
+
+is a
+<I>key_t</I>
+
+type, while all the other symbolic constants are flag fields and can
+be OR'ed into an
+<I>int</I>
+
+type variable.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Message Queues</H3>
+
+A message queue is uniquely identified by a positive integer
+(its <I>msqid</I>)
+
+and has an associated data structure of type
+<I>struct msqid_ds</I>,
+
+defined in
+<I>&lt;<A HREF="file:/usr/include/sys/msg.h">sys/msg.h</A>&gt;</I>,
+
+containing the following members:
+
+<PRE>
+
+struct msqid_ds {
+    struct ipc_perm msg_perm;
+    msgqnum_t       msg_qnum;    /* no of messages on queue */
+    msglen_t        msg_qbytes;  /* bytes max on a queue */
+    pid_t           msg_lspid;   /* PID of last <A HREF="/man/index.html?2+msgsnd">msgsnd</A>(2) call */
+    pid_t           msg_lrpid;   /* PID of last <A HREF="/man/index.html?2+msgrcv">msgrcv</A>(2) call */
+    time_t          msg_stime;   /* last <A HREF="/man/index.html?2+msgsnd">msgsnd</A>(2) time */
+    time_t          msg_rtime;   /* last <A HREF="/man/index.html?2+msgrcv">msgrcv</A>(2) time */
+    time_t          msg_ctime;   /* last change time */
+};
+</PRE>
+
+
+<DL COMPACT>
+<DT><I>msg_perm</I>
+
+<DD>
+<I>ipc_perm</I>
+
+structure that specifies the access permissions on the message
+queue.
+<DT><I>msg_qnum</I>
+
+<DD>
+Number of messages currently on the message queue.
+<DT><I>msg_qbytes</I>
+
+<DD>
+Maximum number of bytes of message text allowed on the message
+queue.
+<DT><I>msg_lspid</I>
+
+<DD>
+ID of the process that performed the last
+<B><A HREF="/man/index.html?2+msgsnd">msgsnd</A></B>(2)
+
+system call.
+<DT><I>msg_lrpid</I>
+
+<DD>
+ID of the process that performed the last
+<B><A HREF="/man/index.html?2+msgrcv">msgrcv</A></B>(2)
+
+system call.
+<DT><I>msg_stime</I>
+
+<DD>
+Time of the last
+<B><A HREF="/man/index.html?2+msgsnd">msgsnd</A></B>(2)
+
+system call.
+<DT><I>msg_rtime</I>
+
+<DD>
+Time of the last
+<B><A HREF="/man/index.html?2+msgrcv">msgrcv</A></B>(2)
+
+system call.
+<DT><I>msg_ctime</I>
+
+<DD>
+Time of the last
+system call that changed a member of the
+<I>msqid_ds</I>
+
+structure.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Semaphore Sets</H3>
+
+A semaphore set is uniquely identified by a positive integer
+(its <I>semid</I>)
+
+and has an associated data structure of type
+<I>struct semid_ds</I>,
+
+defined in
+<I>&lt;<A HREF="file:/usr/include/sys/sem.h">sys/sem.h</A>&gt;</I>,
+
+containing the following members:
+
+<PRE>
+
+struct semid_ds {
+    struct ipc_perm sem_perm;
+    time_t          sem_otime;   /* last operation time */
+    time_t          sem_ctime;   /* last change time */
+    unsigned long   sem_nsems;   /* count of sems in set */
+};
+</PRE>
+
+
+<DL COMPACT>
+<DT><I>sem_perm</I>
+
+<DD>
+<I>ipc_perm</I>
+
+structure that specifies the access permissions on the semaphore
+set.
+<DT><I>sem_otime</I>
+
+<DD>
+Time of last
+<B><A HREF="/man/index.html?2+semop">semop</A></B>(2)
+
+system call.
+<DT><I>sem_ctime</I>
+
+<DD>
+Time of last
+<B><A HREF="/man/index.html?2+semctl">semctl</A></B>(2)
+
+system call that changed a member of the above structure or of one
+semaphore belonging to the set.
+<DT><I>sem_nsems</I>
+
+<DD>
+Number of semaphores in the set.
+Each semaphore of the set is referenced by a non-negative integer
+ranging from
+<B>0</B>
+
+to
+<I>sem_nsems-1</I>.
+
+</DL>
+<P>
+
+A semaphore is a data structure of type
+<I>struct sem</I>
+
+containing the following members:
+
+<PRE>
+
+struct sem {
+    int semval;  /* semaphore value */
+    int sempid;  /* PID for last operation */
+};
+</PRE>
+
+
+<DL COMPACT>
+<DT><I>semval</I>
+
+<DD>
+Semaphore value: a non-negative integer.
+<DT><I>sempid</I>
+
+<DD>
+ID of the last process that performed a semaphore operation
+on this semaphore.
+
+
+
+
+
+
+
+
+
+
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Shared Memory Segments</H3>
+
+A shared memory segment is uniquely identified by a positive integer
+(its <I>shmid</I>)
+
+and has an associated data structure of type
+<I>struct shmid_ds</I>,
+
+defined in
+<I>&lt;<A HREF="file:/usr/include/sys/shm.h">sys/shm.h</A>&gt;</I>,
+
+containing the following members:
+
+<PRE>
+
+struct shmid_ds {
+    struct ipc_perm shm_perm;
+    size_t          shm_segsz;   /* size of segment */
+    pid_t           shm_cpid;    /* PID of creator */
+    pid_t           shm_lpid;    /* PID, last operation */
+    shmatt_t        shm_nattch;  /* no. of current attaches */
+    time_t          shm_atime;   /* time of last attach */
+    time_t          shm_dtime;   /* time of last detach */
+    time_t          shm_ctime;   /* time of last change */
+};
+</PRE>
+
+
+<DL COMPACT>
+<DT><I>shm_perm</I>
+
+<DD>
+<I>ipc_perm</I>
+
+structure that specifies the access permissions on the shared memory
+segment.
+<DT><I>shm_segsz</I>
+
+<DD>
+Size in bytes of the shared memory segment.
+<DT><I>shm_cpid</I>
+
+<DD>
+ID of the process that created the shared memory segment.
+<DT><I>shm_lpid</I>
+
+<DD>
+ID of the last process that executed a
+<B><A HREF="/man/index.html?2+shmat">shmat</A></B>(2)
+
+or
+<B><A HREF="/man/index.html?2+shmdt">shmdt</A></B>(2)
+
+system call.
+<DT><I>shm_nattch</I>
+
+<DD>
+Number of current alive attaches for this shared memory segment.
+<DT><I>shm_atime</I>
+
+<DD>
+Time of the last
+<B><A HREF="/man/index.html?2+shmat">shmat</A></B>(2)
+
+system call.
+<DT><I>shm_dtime</I>
+
+<DD>
+Time of the last
+<B><A HREF="/man/index.html?2+shmdt">shmdt</A></B>(2)
+
+system call.
+<DT><I>shm_ctime</I>
+
+<DD>
+Time of the last
+<B><A HREF="/man/index.html?2+shmctl">shmctl</A></B>(2)
+
+system call that changed
+<I>shmid_ds</I>.
+
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+ipc">ipc</A></B>(2),
+
+<B><A HREF="/man/index.html?2+msgctl">msgctl</A></B>(2),
+
+<B><A HREF="/man/index.html?2+msgget">msgget</A></B>(2),
+
+<B><A HREF="/man/index.html?2+msgrcv">msgrcv</A></B>(2),
+
+<B><A HREF="/man/index.html?2+msgsnd">msgsnd</A></B>(2),
+
+<B><A HREF="/man/index.html?2+semctl">semctl</A></B>(2),
+
+<B><A HREF="/man/index.html?2+semget">semget</A></B>(2),
+
+<B><A HREF="/man/index.html?2+semop">semop</A></B>(2),
+
+<B><A HREF="/man/index.html?2+shmat">shmat</A></B>(2),
+
+<B><A HREF="/man/index.html?2+shmctl">shmctl</A></B>(2),
+
+<B><A HREF="/man/index.html?2+shmdt">shmdt</A></B>(2),
+
+<B><A HREF="/man/index.html?2+shmget">shmget</A></B>(2),
+
+<B><A HREF="/man/index.html?3+ftok">ftok</A></B>(3)
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Resource Access Permissions</A><DD>
+<DT><A HREF="#lbAF">Message Queues</A><DD>
+<DT><A HREF="#lbAG">Semaphore Sets</A><DD>
+<DT><A HREF="#lbAH">Shared Memory Segments</A><DD>
+</DL>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:16 GMT, December 24, 2015
+</div></body>
+</HTML>

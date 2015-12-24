@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of utf8</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>utf8</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+utf8 - Perl pragma to enable/disable UTF-8 (or UTF-EBCDIC) in source code
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use utf8;
+    no utf8;
+
+    # Convert a Perl scalar to/from UTF-8.
+    $num_octets = utf8::upgrade($string);
+    $success    = utf8::downgrade($string[, FAIL_OK]);
+
+    # Change the native bytes of a Perl scalar to/from UTF-8 bytes.
+    utf8::encode($string);
+    utf8::decode($string);
+
+    $flag = utf8::is_utf8(STRING); # since Perl 5.8.1
+    $flag = utf8::valid(STRING);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <TT>&quot;use utf8&quot;</TT> pragma tells the Perl parser to allow <FONT SIZE="-1">UTF-8</FONT> in the
+program text in the current lexical scope (allow UTF-EBCDIC on <FONT SIZE="-1">EBCDIC</FONT> based
+platforms).  The <TT>&quot;no utf8&quot;</TT> pragma tells Perl to switch back to treating
+the source text as literal bytes in the current lexical scope.
+<P>
+
+<B>Do not use this pragma for anything else than telling Perl that your
+script is written in </B><FONT SIZE="-1"><B>UTF-8</B></FONT><B>.</B> The utility functions described below are
+directly usable without <TT>&quot;use utf8;&quot;</TT>.
+<P>
+
+Because it is not possible to reliably tell <FONT SIZE="-1">UTF-8</FONT> from native 8 bit
+encodings, you need either a Byte Order Mark at the beginning of your
+source code, or <TT>&quot;use utf8;&quot;</TT>, to instruct perl.
+<P>
+
+When <FONT SIZE="-1">UTF-8</FONT> becomes the standard source format, this pragma will
+effectively become a no-op.  For convenience in what follows the term
+<I>UTF-X</I> is used to refer to <FONT SIZE="-1">UTF-8</FONT> on <FONT SIZE="-1">ASCII</FONT> and <FONT SIZE="-1">ISO</FONT> Latin based
+platforms and UTF-EBCDIC on <FONT SIZE="-1">EBCDIC</FONT> based platforms.
+<P>
+
+See also the effects of the <TT>&quot;-C&quot;</TT> switch and its cousin, the
+<TT>$ENV{PERL_UNICODE}</TT>, in perlrun.
+<P>
+
+Enabling the <TT>&quot;utf8&quot;</TT> pragma has the following effect:
+<DL COMPACT>
+<DT>*<DD>
+Bytes in the source text that have their high-bit set will be treated
+as being part of a literal UTF-X sequence.  This includes most
+literals such as identifier names, string constants, and constant
+regular expression patterns.
+
+
+<P>
+
+
+On <FONT SIZE="-1">EBCDIC</FONT> platforms characters in the Latin 1 character set are
+treated as being part of a literal UTF-EBCDIC character.
+</DL>
+<P>
+
+Note that if you have bytes with the eighth bit on in your script
+(for example embedded Latin-1 in your string literals), <TT>&quot;use utf8&quot;</TT>
+will be unhappy since the bytes are most probably not well-formed
+UTF-X.  If you want to have such bytes under <TT>&quot;use utf8&quot;</TT>, you can disable
+this pragma until the end the block (or file, if at top level) by
+<TT>&quot;no utf8;&quot;</TT>.
+<A NAME="lbAE">&nbsp;</A>
+<H3>Utility functions</H3>
+
+<A NAME="ixAAE"></A>
+The following functions are defined in the <TT>&quot;utf8::&quot;</TT> package by the
+Perl core.  You do not need to say <TT>&quot;use utf8&quot;</TT> to use these and in fact
+you should not say that  unless you really want to have <FONT SIZE="-1">UTF-8</FONT> source code.
+<DL COMPACT>
+<DT>*<DD>
+<TT>$num_octets</TT> = utf8::upgrade($string)
+
+
+<P>
+
+
+Converts in-place the internal octet sequence in the native encoding
+(Latin-1 or <FONT SIZE="-1">EBCDIC</FONT>) to the equivalent character sequence in <I>UTF-X</I>.
+<I></I>$string<I></I> already encoded as characters does no harm.  Returns the
+number of octets necessary to represent the string as <I>UTF-X</I>.  Can be
+used to make sure that the <FONT SIZE="-1">UTF-8</FONT> flag is on, so that <TT>&quot;\w&quot;</TT> or <TT>&quot;lc()&quot;</TT>
+work as Unicode on strings containing characters in the range 0x80-0xFF
+(on <FONT SIZE="-1">ASCII</FONT> and derivatives).
+
+
+<P>
+
+
+<B>Note that this function does not handle arbitrary encodings.</B>
+Therefore Encode is recommended for the general purposes; see also
+Encode.
+<DT>*<DD>
+<TT>$success</TT> = utf8::downgrade($string[, <FONT SIZE="-1">FAIL_OK</FONT>])
+
+
+<P>
+
+
+Converts in-place the internal octet sequence in <I>UTF-X</I> to the
+equivalent octet sequence in the native encoding (Latin-1 or <FONT SIZE="-1">EBCDIC</FONT>).
+<I></I>$string<I></I> already encoded as native 8 bit does no harm.  Can be used to
+make sure that the <FONT SIZE="-1">UTF-8</FONT> flag is off, e.g. when you want to make sure
+that the <I>substr()</I> or <I>length()</I> function works with the usually faster
+byte algorithm.
+
+
+<P>
+
+
+Fails if the original <I>UTF-X</I> sequence cannot be represented in the
+native 8 bit encoding. On failure dies or, if the value of <TT>&quot;FAIL_OK&quot;</TT> is
+true, returns false.
+
+
+<P>
+
+
+Returns true on success.
+
+
+<P>
+
+
+<B>Note that this function does not handle arbitrary encodings.</B>
+Therefore Encode is recommended for the general purposes; see also
+Encode.
+<DT>*<DD>
+utf8::encode($string)
+
+
+<P>
+
+
+Converts in-place the character sequence to the corresponding octet
+sequence in <I>UTF-X</I>.  The <FONT SIZE="-1">UTF8</FONT> flag is turned off, so that after this
+operation, the string is a byte string.  Returns nothing.
+
+
+<P>
+
+
+<B>Note that this function does not handle arbitrary encodings.</B>
+Therefore Encode is recommended for the general purposes; see also
+Encode.
+<DT>*<DD>
+<TT>$success</TT> = utf8::decode($string)
+
+
+<P>
+
+
+Attempts to convert in-place the octet sequence in <I>UTF-X</I> to the
+corresponding character sequence.  The <FONT SIZE="-1">UTF-8</FONT> flag is turned on only if
+the source string contains multiple-byte <I>UTF-X</I> characters.  If
+<I></I>$string<I></I> is invalid as <I>UTF-X</I>, returns false; otherwise returns
+true.
+
+
+<P>
+
+
+<B>Note that this function does not handle arbitrary encodings.</B>
+Therefore Encode is recommended for the general purposes; see also
+Encode.
+<DT>*<DD>
+<TT>$flag</TT> = utf8::is_utf8(<FONT SIZE="-1">STRING</FONT>)
+
+
+<P>
+
+
+(Since Perl 5.8.1)  Test whether <FONT SIZE="-1">STRING</FONT> is in <FONT SIZE="-1">UTF-8</FONT> internally.
+Functionally the same as <I>Encode::is_utf8()</I>.
+<DT>*<DD>
+<TT>$flag</TT> = utf8::valid(<FONT SIZE="-1">STRING</FONT>)
+
+
+<P>
+
+
+[<FONT SIZE="-1">INTERNAL</FONT>] Test whether <FONT SIZE="-1">STRING</FONT> is in a consistent state regarding
+<FONT SIZE="-1">UTF-8</FONT>.  Will return true is well-formed <FONT SIZE="-1">UTF-8</FONT> and has the <FONT SIZE="-1">UTF-8</FONT> flag
+on <B>or</B> if string is held as bytes (both these states are 'consistent').
+Main reason for this routine is to allow Perl's testsuite to check
+that operations have left strings in a consistent state.  You most
+probably want to use <I>utf8::is_utf8()</I> instead.
+</DL>
+<P>
+
+<TT>&quot;utf8::encode&quot;</TT> is like <TT>&quot;utf8::upgrade&quot;</TT>, but the <FONT SIZE="-1">UTF8</FONT> flag is
+cleared.  See perlunicode for more on the <FONT SIZE="-1">UTF8</FONT> flag and the C <FONT SIZE="-1">API</FONT>
+functions <TT>&quot;sv_utf8_upgrade&quot;</TT>, <TT>&quot;sv_utf8_downgrade&quot;</TT>, <TT>&quot;sv_utf8_encode&quot;</TT>,
+and <TT>&quot;sv_utf8_decode&quot;</TT>, which are wrapped by the Perl functions
+<TT>&quot;utf8::upgrade&quot;</TT>, <TT>&quot;utf8::downgrade&quot;</TT>, <TT>&quot;utf8::encode&quot;</TT> and
+<TT>&quot;utf8::decode&quot;</TT>.  Also, the functions utf8::is_utf8, utf8::valid,
+utf8::encode, utf8::decode, utf8::upgrade, and utf8::downgrade are
+actually internal, and thus always available, without a <TT>&quot;require utf8&quot;</TT>
+statement.
+<A NAME="lbAF">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAF"></A>
+One can have Unicode in identifier names, but not in package/class or
+subroutine names.  While some limited functionality towards this does
+exist as of Perl 5.8.0, that is more accidental than designed; use of
+Unicode for the said purposes is unsupported.
+<P>
+
+One reason of this unfinishedness is its (currently) inherent
+unportability: since both package names and subroutine names may need
+to be mapped to file and directory names, the Unicode capability of
+the filesystem becomes important--- and there unfortunately aren't
+portable answers.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAG"></A>
+perlunitut, perluniintro, perlrun, bytes, perlunicode
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Utility functions</A><DD>
+</DL>
+<DT><A HREF="#lbAF">BUGS</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:44 GMT, December 24, 2015
+</div></body>
+</HTML>

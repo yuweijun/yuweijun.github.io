@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERF\-SCRIPT\-PERL</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERF\-SCRIPT\-PERL</H1>
+Section: Misc. Reference Manual Pages (1)<BR>Updated: 10/16/2012<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perf-script-perl - Process trace data with a Perl script
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+<I>perf script</I> [-s [Perl]:script[.pl] ]
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+This perf script option is used to process perf script data using perfcqs built-in Perl interpreter. It reads and processes the input file and displays the results of the trace analysis implemented in the given Perl script, if any.
+<A NAME="lbAE">&nbsp;</A>
+<H2>STARTER SCRIPTS</H2>
+
+<P>
+You can avoid reading the rest of this document by running <I>perf script -g perl</I> in the same directory as an existing perf.data trace file. That will generate a starter script containing a handler for each of the event types in the trace file; it simply prints every available field for each event in the trace file.
+<P>
+You can also look at the existing scripts in ~/libexec/perf-core/scripts/perl for typical examples showing how to do basic things like aggregate event data, print results, etc. Also, the check-perf-script.pl script, while not interesting for its results, attempts to exercise all of the main scripting features.
+<A NAME="lbAF">&nbsp;</A>
+<H2>EVENT HANDLERS</H2>
+
+<P>
+When perf script is invoked using a trace script, a user-defined <I>handler function</I> is called for each event in the trace. If therecqs no handler function defined for a given event type, the event is ignored (or passed to a <I>trace_handled</I> function, see below) and the next event is processed.
+<P>
+Most of the eventcqs field values are passed as arguments to the handler function; some of the less common ones arencqt - those are available as calls back into the perf executable (see below).
+<P>
+As an example, the following perf record command can be used to record all sched_wakeup events in the system:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+# perf record -a -e sched:sched_wakeup
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+Traces meant to be processed using a script should be recorded with the above option: -a to enable system-wide collection.
+<P>
+The format file for the sched_wakep event defines the following fields (see /sys/kernel/debug/tracing/events/sched/sched_wakeup/format):
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+
+.ft C
+ format:
+        field:unsigned short common_type;
+        field:unsigned char common_flags;
+        field:unsigned char common_preempt_count;
+        field:int common_pid;
+        field:int common_lock_depth;
+
+        field:char comm[TASK_COMM_LEN];
+        field:pid_t pid;
+        field:int prio;
+        field:int success;
+        field:int target_cpu;
+.ft
+
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+The handler function for this event would be defined as:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+
+.ft C
+sub sched::sched_wakeup
+{
+   my ($event_name, $context, $common_cpu, $common_secs,
+       $common_nsecs, $common_pid, $common_comm,
+       $comm, $pid, $prio, $success, $target_cpu) = @_;
+}
+.ft
+
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+The handler function takes the form subsystem::event_name.
+<P>
+The $common_* arguments in the handlercqs argument list are the set of arguments passed to all event handlers; some of the fields correspond to the common_* fields in the format file, but some are synthesized, and some of the common_* fields arencqt common enough to to be passed to every event as arguments but are available as library functions.
+<P>
+Herecqs a brief description of each of the invariant event args:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+$event_name                the name of the event as text
+$context                   an opaque 'cookie' used in calls back into perf
+$common_cpu                the cpu the event occurred on
+$common_secs               the secs portion of the event timestamp
+$common_nsecs              the nsecs portion of the event timestamp
+$common_pid                the pid of the current task
+$common_comm               the name of the current process
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+All of the remaining fields in the eventcqs format file have counterparts as handler function arguments of the same name, as can be seen in the example above.
+<P>
+The above provides the basics needed to directly access every field of every event in a trace, which covers 90% of what you need to know to write a useful trace script. The sections below cover the rest.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SCRIPT LAYOUT</H2>
+
+<P>
+Every perf script Perl script should start by setting up a Perl module search path and 'usecqing a few support modules (see module descriptions below):
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+
+.ft C
+ use lib &quot;$ENV{'PERF_EXEC_PATH'}/scripts/perl/perf-script-Util/lib&quot;;
+ use lib &quot;./perf-script-Util/lib&quot;;
+ use Perf::Trace::Core;
+ use Perf::Trace::Context;
+ use Perf::Trace::Util;
+.ft
+
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+The rest of the script can contain handler functions and support functions in any order.
+<P>
+Aside from the event handler functions discussed above, every script can implement a set of optional functions:
+<P>
+<B>trace_begin</B>, if defined, is called before any event is processed and gives scripts a chance to do setup tasks:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+
+.ft C
+ sub trace_begin
+ {
+ }
+.ft
+
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+<B>trace_end</B>, if defined, is called after all events have been processed and gives scripts a chance to do end-of-script tasks, such as display results:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+
+.ft C
+sub trace_end
+{
+}
+.ft
+
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+<B>trace_unhandled</B>, if defined, is called after for any event that doesncqt have a handler explicitly defined for it. The standard set of common arguments are passed into it:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+
+.ft C
+sub trace_unhandled
+{
+    my ($event_name, $context, $common_cpu, $common_secs,
+        $common_nsecs, $common_pid, $common_comm) = @_;
+}
+.ft
+
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+The remaining sections provide descriptions of each of the available built-in perf script Perl modules and their associated functions.
+<A NAME="lbAH">&nbsp;</A>
+<H2>AVAILABLE MODULES AND FUNCTIONS</H2>
+
+<P>
+The following sections describe the functions and variables available via the various Perf::Trace::* Perl modules. To use the functions and variables from the given module, add the corresponding <I>use Perf::Trace::XXX</I> line to your perf script script.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Perf::Trace::Core Module</H3>
+
+<P>
+These functions provide some essential functions to user scripts.
+<P>
+The <B>flag_str</B> and <B>symbol_str</B> functions provide human-readable strings for flag and symbolic fields. These correspond to the strings and values parsed from the <I>print fmt</I> fields of the event format files:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+flag_str($event_name, $field_name, $field_value) - returns the string represention corresponding to $field_value for the flag field $field_name of event $event_name
+symbol_str($event_name, $field_name, $field_value) - returns the string represention corresponding to $field_value for the symbolic field $field_name of event $event_name
+</PRE>
+
+</DL>
+
+
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Perf::Trace::Context Module</H3>
+
+<P>
+Some of the <I>common</I> fields in the event format file arencqt all that common, but need to be made accessible to user scripts nonetheless.
+<P>
+Perf::Trace::Context defines a set of functions that can be used to access this data in the context of the current event. Each of these functions expects a $context variable, which is the same as the $context variable passed into every event handler as the second argument.
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+common_pc($context) - returns common_preempt count for the current event
+common_flags($context) - returns common_flags for the current event
+common_lock_depth($context) - returns common_lock_depth for the current event
+</PRE>
+
+</DL>
+
+
+
+
+<A NAME="lbAK">&nbsp;</A>
+<H3>Perf::Trace::Util Module</H3>
+
+<P>
+Various utility functions for use with perf script:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+nsecs($secs, $nsecs) - returns total nsecs given secs/nsecs pair
+nsecs_secs($nsecs) - returns whole secs portion given nsecs
+nsecs_nsecs($nsecs) - returns nsecs remainder given nsecs
+nsecs_str($nsecs) - returns printable string in the form secs.nsecs
+avg($total, $n) - returns average given a sum and a total number of values
+</PRE>
+
+</DL>
+
+
+
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+<B><A HREF="/man/index.html?1+perf-script">perf-script</A></B>(1)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">STARTER SCRIPTS</A><DD>
+<DT><A HREF="#lbAF">EVENT HANDLERS</A><DD>
+<DT><A HREF="#lbAG">SCRIPT LAYOUT</A><DD>
+<DT><A HREF="#lbAH">AVAILABLE MODULES AND FUNCTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAI">Perf::Trace::Core Module</A><DD>
+<DT><A HREF="#lbAJ">Perf::Trace::Context Module</A><DD>
+<DT><A HREF="#lbAK">Perf::Trace::Util Module</A><DD>
+</DL>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:07 GMT, December 24, 2015
+</div></body>
+</HTML>

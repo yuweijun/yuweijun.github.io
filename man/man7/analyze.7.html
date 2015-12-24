@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of ANALYZE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>ANALYZE</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ANALYZE - collect statistics about a database
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+ANALYZE [ VERBOSE ] [ <I>table</I> [ ( <I>column</I> [, ...] ) ] ]
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>ANALYZE</B> collects statistics about the contents
+of tables in the database, and stores the results in the <B>pg_statistic</B>
+system catalog. Subsequently, the query planner uses these
+statistics to help determine the most efficient execution plans for
+queries.
+<P>
+
+With no parameter, <B>ANALYZE</B> examines every table in the
+current database. With a parameter, <B>ANALYZE</B> examines
+only that table. It is further possible to give a list of column names,
+in which case only the statistics for those columns are collected.
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B>VERBOSE</B><DD>
+Enables display of progress messages.
+<DT><B></B><I>table</I><B></B><DD>
+The name (possibly schema-qualified) of a specific table to
+analyze. Defaults to all tables in the current database.
+<DT><B></B><I>column</I><B></B><DD>
+The name of a specific column to analyze. Defaults to all columns.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>OUTPUTS</H2>
+
+<P>
+
+When VERBOSE is specified, <B>ANALYZE</B> emits
+progress messages to indicate which table is currently being
+processed. Various statistics about the tables are printed as well.
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+In the default PostgreSQL configuration,
+in the documentation
+takes care of automatic analyzing of tables when they are first loaded
+with data, and as they change throughout regular operation.
+When autovacuum is disabled,
+it is a good idea to run <B>ANALYZE</B> periodically, or
+just after making major changes in the contents of a table. Accurate
+statistics will help the planner to choose the most appropriate query
+plan, and thereby improve the speed of query processing. A common
+strategy is to run VACUUM [<B><A HREF="/man/index.html?7+vacuum">vacuum</A></B>(7)]
+and <B>ANALYZE</B> once a day during a low-usage time of day.
+<P>
+
+<B>ANALYZE</B>
+requires only a read lock on the target table, so it can run in
+parallel with other activity on the table.
+<P>
+
+The statistics collected by <B>ANALYZE</B> usually
+include a list of some of the most common values in each column and
+a histogram showing the approximate data distribution in each
+column. One or both of these can be omitted if
+<B>ANALYZE</B> deems them uninteresting (for example,
+in a unique-key column, there are no common values) or if the
+column data type does not support the appropriate operators. There
+is more information about the statistics in in the documentation.
+<P>
+
+For large tables, <B>ANALYZE</B> takes a random sample
+of the table contents, rather than examining every row. This
+allows even very large tables to be analyzed in a small amount of
+time. Note, however, that the statistics are only approximate, and
+will change slightly each time <B>ANALYZE</B> is run,
+even if the actual table contents did not change. This might result
+in small changes in the planner's estimated costs shown by
+EXPLAIN [<B><A HREF="/man/index.html?7+explain">explain</A></B>(7)].
+In rare situations, this non-determinism will cause the planner's
+choices of query plans to change after <B>ANALYZE</B> is run.
+To avoid this, raise the amount of statistics collected by
+<B>ANALYZE</B>, as described below.
+<P>
+
+The extent of analysis can be controlled by adjusting the
+default_statistics_target configuration variable, or
+on a column-by-column basis by setting the per-column statistics
+target with <B>ALTER TABLE ... ALTER COLUMN ... SET
+STATISTICS</B> (see ALTER TABLE [<B><A HREF="/man/index.html?7+alter_table">alter_table</A></B>(7)]). The target value sets the
+maximum number of entries in the most-common-value list and the
+maximum number of bins in the histogram. The default target value
+is 100, but this can be adjusted up or down to trade off accuracy of
+planner estimates against the time taken for
+<B>ANALYZE</B> and the amount of space occupied in
+pg_statistic. In particular, setting the
+statistics target to zero disables collection of statistics for
+that column. It might be useful to do that for columns that are
+never used as part of the WHERE, GROUP BY,
+or ORDER BY clauses of queries, since the planner will
+have no use for statistics on such columns.
+<P>
+
+The largest statistics target among the columns being analyzed determines
+the number of table rows sampled to prepare the statistics. Increasing
+the target causes a proportional increase in the time and space needed
+to do <B>ANALYZE</B>.
+<A NAME="lbAH">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+There is no <B>ANALYZE</B> statement in the SQL standard.
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+VACUUM [<B><A HREF="/man/index.html?7+vacuum">vacuum</A></B>(7)], vacuumdb [<B><A HREF="http://localhost/cgi-bin/man/man2html?1+vacuumdb">vacuumdb</A></B>(1)], in the documentation, in the documentation
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">OUTPUTS</A><DD>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">COMPATIBILITY</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:14 GMT, December 24, 2015
+</div></body>
+</HTML>

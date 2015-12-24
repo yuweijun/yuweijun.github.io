@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Sys::Virt</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Sys::Virt</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Sys::Virt - Represent and manage a libvirt hypervisor connection
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  my $vmm = Sys::Virt-&gt;new(address =&gt; $addr);
+
+  my @domains = $vmm-&gt;list_domains();
+
+  foreach my $dom (@domains) {
+    print &quot;Domain &quot;, $dom-&gt;get_id, &quot; &quot;, $dom-&gt;get_name, &quot;\n&quot;;
+  }
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The Sys::Virt module provides a Perl <FONT SIZE="-1">XS</FONT> binding to the libvirt
+virtual machine management APIs. This allows machines running
+within arbitrary virtualization containers to be managed with
+a consistent <FONT SIZE="-1">API</FONT>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>ERROR HANDLING</H2>
+
+<A NAME="ixAAE"></A>
+Any operations in the Sys::Virt <FONT SIZE="-1">API</FONT> which have failure scenarios
+will result in an instance of the Sys::Virt::Error module being
+thrown. To catch these errors, simply wrap the method in an eval
+block:
+<P>
+
+
+
+<PRE>
+  eval { my $vmm = Sys::Virt-&gt;new(address =&gt; $addr); };
+  if ($@) {
+    print STDERR &quot;Unable to open connection to $addr&quot; . $@-&gt;message . &quot;\n&quot;;
+  }
+
+</PRE>
+
+
+<P>
+
+For details of the information contained in the error objects,
+consult the Sys::Virt::Error manual page.
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAF"></A>
+<DL COMPACT>
+<DT>my $vmm = Sys::Virt-&gt;new(uri =&gt; $uri, readonly =&gt; $ro, flags =&gt; $flags);<DD>
+
+
+<A NAME="ixAAG"></A>
+Attach to the virtual machine monitor with the address of <TT>&quot;address&quot;</TT>. The
+uri parameter may be omitted, in which case the default connection made
+will be to the local Xen hypervisor. Some example URIs include:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><A HREF="xen:///">xen:///</A><DD>
+<A NAME="ixAAH"></A>
+Xen on the local machine
+<DT><A HREF="test:///default">test:///default</A><DD>
+<A NAME="ixAAI"></A>
+Dummy ``in memory'' driver for test suites
+<DT><A HREF="qemu:///system">qemu:///system</A><DD>
+<A NAME="ixAAJ"></A>
+System-wide driver for <FONT SIZE="-1">QEMU</FONT> / <FONT SIZE="-1">KVM</FONT> virtualization
+<DT><A HREF="qemu:///session">qemu:///session</A><DD>
+<A NAME="ixAAK"></A>
+Per-user driver for <FONT SIZE="-1">QEMU</FONT> virtualization
+<DT>qemu+<A HREF="tls://somehost/system">tls://somehost/system</A><DD>
+<A NAME="ixAAL"></A>
+System-wide <FONT SIZE="-1">QEMU</FONT> driver on <TT>&quot;somehost&quot;</TT> using <FONT SIZE="-1">TLS</FONT> security
+<DT>xen+<A HREF="tcp://somehost/">tcp://somehost/</A><DD>
+<A NAME="ixAAM"></A>
+Xen driver on <TT>&quot;somehost&quot;</TT> using <FONT SIZE="-1">TCP</FONT> / <FONT SIZE="-1">SASL</FONT> security
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+For further details consult <TT>&quot;<A HREF="http://libvirt.org/uri.html">http://libvirt.org/uri.html</A>&quot;</TT>
+
+
+<P>
+
+
+If the optional <TT>&quot;readonly&quot;</TT> parameter is supplied, then an unprivileged
+connection to the <FONT SIZE="-1">VMM</FONT> will be attempted. If it is not supplied, then it
+defaults to making a fully privileged connection to the <FONT SIZE="-1">VMM</FONT>. If the
+calling application is not running as root, it may be necessary to
+provide authentication callbacks.
+
+
+<P>
+
+
+If the optional <TT>&quot;auth&quot;</TT> parameter is set to a non-zero value,
+authentication will be enabled during connection, using the
+default set of credential gathering callbacks. The default
+callbacks prompt for credentials on the console, so are not
+suitable for graphical applications. For such apps a custom
+implementation should be supplied. The <TT>&quot;credlist&quot;</TT> parameter
+should be an array reference listing the set of credential
+types that will be supported. The credential constants in
+this module can be used as values in this list. The <TT>&quot;callback&quot;</TT>
+parameter should be a subroutine reference containing the
+code necessary to gather the credentials. When invoked it
+will be supplied with a single parameter, a array reference
+of requested credentials. The elements of the array are
+hash references, with keys <TT>&quot;type&quot;</TT> giving the type of
+credential, <TT>&quot;prompt&quot;</TT> giving a user descriptive user
+prompt, <TT>&quot;challenge&quot;</TT> giving name of the credential
+required. The answer should be collected from the user, and
+returned by setting the <TT>&quot;result&quot;</TT> key. This key may already
+be set with a default result if applicable
+
+
+<P>
+
+
+As a simple example returning hardcoded credentials
+
+
+<P>
+
+
+
+
+<PRE>
+    my $address  = &quot;qemu+<A HREF="tcp://192.168.122.1/system">tcp://192.168.122.1/system</A>&quot;;
+    my $username = &quot;test&quot;;
+    my $password = &quot;123456&quot;;
+
+    my $con = Sys::Virt-&gt;new(address =&gt; $address,
+                             auth =&gt; 1,
+                             credlist =&gt; [
+                               Sys::Virt::CRED_AUTHNAME,
+                               Sys::Virt::CRED_PASSPHRASE,
+                             ],
+                             callback =&gt;
+         sub {
+               my $creds = shift;
+
+               foreach my $cred (@{$creds}) {
+                  if ($cred-&gt;{type} == Sys::Virt::CRED_AUTHNAME) {
+                      $cred-&gt;{result} = $username;
+                  }
+                  if ($cred-&gt;{type} == Sys::Virt::CRED_PASSPHRASE) {
+                      $cred-&gt;{result} = $password;
+                  }
+               }
+               return 0;
+         });
+
+</PRE>
+
+
+</DL>
+
+<DT>my $st = $vmm-&gt;new_stream($flags)<DD>
+
+
+<A NAME="ixAAN"></A>
+Create a new stream, with the given flags
+<DT>my $dom = $vmm-&gt;create_domain($xml, $flags);<DD>
+
+
+<A NAME="ixAAO"></A>
+Create a new domain based on the <FONT SIZE="-1">XML</FONT> description passed into the <TT>$xml</TT>
+parameter. The returned object is an instance of the Sys::Virt::Domain
+class. This method is not available with unprivileged connections to
+the <FONT SIZE="-1">VMM</FONT>. The <TT>$flags</TT> parameter accepts one of the <FONT SIZE="-1">DOMAIN</FONT> <FONT SIZE="-1">CREATION</FONT>
+constants documented in Sys::Virt::Domain, and defaults to 0 if omitted.
+<DT>my $dom = $vmm-&gt;define_domain($xml);<DD>
+
+
+<A NAME="ixAAP"></A>
+Defines, but does not start, a new domain based on the <FONT SIZE="-1">XML</FONT> description
+passed into the <TT>$xml</TT> parameter. The returned object is an instance
+of the Sys::Virt::Domain class. This method is not available with
+unprivileged connections to the <FONT SIZE="-1">VMM</FONT>. The defined domain can be later started
+by calling the <TT>&quot;create&quot;</TT> method on the returned <TT>&quot;Sys::Virt::Domain&quot;</TT>
+object.
+<DT>my $dom = $vmm-&gt;create_network($xml);<DD>
+
+
+<A NAME="ixAAQ"></A>
+Create a new network based on the <FONT SIZE="-1">XML</FONT> description passed into the <TT>$xml</TT>
+parameter. The returned object is an instance of the Sys::Virt::Network
+class. This method is not available with unprivileged connections to
+the <FONT SIZE="-1">VMM</FONT>.
+<DT>my $dom = $vmm-&gt;define_network($xml);<DD>
+
+
+<A NAME="ixAAR"></A>
+Defines, but does not start, a new network based on the <FONT SIZE="-1">XML</FONT> description
+passed into the <TT>$xml</TT> parameter. The returned object is an instance
+of the Sys::Virt::Network class. This method is not available with
+unprivileged connections to the <FONT SIZE="-1">VMM</FONT>. The defined network can be later started
+by calling the <TT>&quot;create&quot;</TT> method on the returned <TT>&quot;Sys::Virt::Network&quot;</TT>
+object.
+<DT>my $dom = $vmm-&gt;create_storage_pool($xml);<DD>
+
+
+<A NAME="ixAAS"></A>
+Create a new storage pool based on the <FONT SIZE="-1">XML</FONT> description passed into the <TT>$xml</TT>
+parameter. The returned object is an instance of the Sys::Virt::StoragePool
+class. This method is not available with unprivileged connections to
+the <FONT SIZE="-1">VMM</FONT>.
+<DT>my $dom = $vmm-&gt;define_storage_pool($xml);<DD>
+
+
+<A NAME="ixAAT"></A>
+Defines, but does not start, a new storage pol based on the <FONT SIZE="-1">XML</FONT> description
+passed into the <TT>$xml</TT> parameter. The returned object is an instance
+of the Sys::Virt::StoragePool class. This method is not available with
+unprivileged connections to the <FONT SIZE="-1">VMM</FONT>. The defined pool can be later started
+by calling the <TT>&quot;create&quot;</TT> method on the returned <TT>&quot;Sys::Virt::StoragePool&quot;</TT>
+object.
+<DT>my $dom = $vmm-&gt;create_interface($xml);<DD>
+
+
+<A NAME="ixAAU"></A>
+Create a new interface based on the <FONT SIZE="-1">XML</FONT> description passed into the <TT>$xml</TT>
+parameter. The returned object is an instance of the Sys::Virt::Interface
+class. This method is not available with unprivileged connections to
+the <FONT SIZE="-1">VMM</FONT>.
+<DT>my $dom = $vmm-&gt;define_interface($xml);<DD>
+
+
+<A NAME="ixAAV"></A>
+Defines, but does not start, a new interface based on the <FONT SIZE="-1">XML</FONT> description
+passed into the <TT>$xml</TT> parameter. The returned object is an instance
+of the Sys::Virt::Interface class. This method is not available with
+unprivileged connections to the <FONT SIZE="-1">VMM</FONT>. The defined interface can be later started
+by calling the <TT>&quot;create&quot;</TT> method on the returned <TT>&quot;Sys::Virt::Interface&quot;</TT>
+object.
+<DT>my $dom = $vmm-&gt;create_node_device($xml);<DD>
+
+
+<A NAME="ixAAW"></A>
+Create a new virtual node device based on the <FONT SIZE="-1">XML</FONT> description passed into the
+<TT>$xml</TT> parameter. The returned object is an instance of the Sys::Virt::NodeDevice
+class. This method is not available with unprivileged connections to
+the <FONT SIZE="-1">VMM</FONT>.
+<DT>my @doms = $vmm-&gt;<I>list_domains()</I><DD>
+
+
+<A NAME="ixAAX"></A>
+Return a list of all domains currently known to the <FONT SIZE="-1">VMM</FONT>. The elements
+in the returned list are instances of the Sys::Virt::Domain class.
+<DT>my $nids = $vmm-&gt;<I>num_of_domains()</I><DD>
+
+
+<A NAME="ixAAY"></A>
+Return the number of running domains known to the <FONT SIZE="-1">VMM</FONT>. This can be
+used as the <TT>&quot;maxids&quot;</TT> parameter to <TT>&quot;list_domain_ids&quot;</TT>.
+<DT>my @domIDs = $vmm-&gt;list_domain_ids($maxids)<DD>
+
+
+<A NAME="ixAAZ"></A>
+Return a list of all domain IDs currently known to the <FONT SIZE="-1">VMM</FONT>. The IDs can
+be used with the <TT>&quot;get_domain_by_id&quot;</TT> method.
+<DT>my @doms = $vmm-&gt;<I>list_defined_domains()</I><DD>
+
+
+<A NAME="ixABA"></A>
+Return a list of all domains defined, but not currently running, on the
+<FONT SIZE="-1">VMM</FONT>. The elements in the returned list are instances of the
+Sys::Virt::Domain class.
+<DT>my $nnames = $vmm-&gt;<I>num_of_defined_domains()</I><DD>
+
+
+<A NAME="ixABB"></A>
+Return the number of running domains known to the <FONT SIZE="-1">VMM</FONT>. This can be
+used as the <TT>&quot;maxnames&quot;</TT> parameter to <TT>&quot;list_defined_domain_names&quot;</TT>.
+<DT>my @names = $vmm-&gt;list_defined_domain_names($maxnames)<DD>
+
+
+<A NAME="ixABC"></A>
+Return a list of names of all domains defined, but not currently running, on
+the <FONT SIZE="-1">VMM</FONT>. The names can be used with the <TT>&quot;get_domain_by_name&quot;</TT> method.
+<DT>my @nets = $vmm-&gt;<I>list_networks()</I><DD>
+
+
+<A NAME="ixABD"></A>
+Return a list of all networks currently known to the <FONT SIZE="-1">VMM</FONT>. The elements
+in the returned list are instances of the Sys::Virt::Network class.
+<DT>my $nnames = $vmm-&gt;<I>num_of_networks()</I><DD>
+
+
+<A NAME="ixABE"></A>
+Return the number of running networks known to the <FONT SIZE="-1">VMM</FONT>. This can be
+used as the <TT>&quot;maxids&quot;</TT> parameter to <TT>&quot;list_network_ids&quot;</TT>.
+<DT>my @netNames = $vmm-&gt;list_network_names($maxnames)<DD>
+
+
+<A NAME="ixABF"></A>
+Return a list of all network names currently known to the <FONT SIZE="-1">VMM</FONT>. The names can
+be used with the <TT>&quot;get_network_by_name&quot;</TT> method.
+<DT>my @nets = $vmm-&gt;<I>list_defined_networks()</I><DD>
+
+
+<A NAME="ixABG"></A>
+Return a list of all networks defined, but not currently running, on the
+<FONT SIZE="-1">VMM</FONT>. The elements in the returned list are instances of the
+Sys::Virt::Network class.
+<DT>my $nnamess = $vmm-&gt;<I>num_of_defined_networks()</I><DD>
+
+
+<A NAME="ixABH"></A>
+Return the number of running networks known to the host. This can be
+used as the <TT>&quot;maxnames&quot;</TT> parameter to <TT>&quot;list_defined_network_names&quot;</TT>.
+<DT>my @names = $vmm-&gt;list_defined_network_names($maxnames)<DD>
+
+
+<A NAME="ixABI"></A>
+Return a list of names of all networks defined, but not currently running, on
+the host. The names can be used with the <TT>&quot;get_network_by_name&quot;</TT> method.
+<DT>my @pools = $vmm-&gt;<I>list_storage_pools()</I><DD>
+
+
+<A NAME="ixABJ"></A>
+Return a list of all storage pools currently known to the host. The elements
+in the returned list are instances of the Sys::Virt::StoragePool class.
+<DT>my $nnames = $vmm-&gt;<I>num_of_storage_pools()</I><DD>
+
+
+<A NAME="ixABK"></A>
+Return the number of running storage pools known to the <FONT SIZE="-1">VMM</FONT>. This can be
+used as the <TT>&quot;maxids&quot;</TT> parameter to <TT>&quot;list_storage_pool_names&quot;</TT>.
+<DT>my @poolNames = $vmm-&gt;list_storage_pool_names($maxnames)<DD>
+
+
+<A NAME="ixABL"></A>
+Return a list of all storage pool names currently known to the <FONT SIZE="-1">VMM</FONT>. The IDs can
+be used with the <TT>&quot;get_network_by_id&quot;</TT> method.
+<DT>my @pools = $vmm-&gt;<I>list_defined_storage_pools()</I><DD>
+
+
+<A NAME="ixABM"></A>
+Return a list of all storage pools defined, but not currently running, on the
+host. The elements in the returned list are instances of the
+Sys::Virt::StoragePool class.
+<DT>my $nnames = $vmm-&gt;<I>num_of_defined_storage_pools()</I><DD>
+
+
+<A NAME="ixABN"></A>
+Return the number of running networks known to the host. This can be
+used as the <TT>&quot;maxnames&quot;</TT> parameter to <TT>&quot;list_defined_storage_pool_names&quot;</TT>.
+<DT>my @names = $vmm-&gt;list_defined_storage_pool_names($maxnames)<DD>
+
+
+<A NAME="ixABO"></A>
+Return a list of names of all storage pools defined, but not currently running, on
+the host. The names can be used with the <TT>&quot;get_storage_pool_by_name&quot;</TT> method.
+<DT>my @devs = $vmm-&gt;list_node_devices($capability)<DD>
+
+
+<A NAME="ixABP"></A>
+Return a list of all devices currently known to the host <FONT SIZE="-1">OS</FONT>. The elements
+in the returned list are instances of the Sys::Virt::NodeDevice class.
+The optional <TT>&quot;capability&quot;</TT> parameter allows the list to be restricted to
+only devices with a particular capability type.
+<DT>my $nnames = $vmm-&gt;num_of_node_devices($capability[, $flags])<DD>
+
+
+<A NAME="ixABQ"></A>
+Return the number of host devices known to the <FONT SIZE="-1">VMM</FONT>. This can be
+used as the <TT>&quot;maxids&quot;</TT> parameter to <TT>&quot;list_node_device_names&quot;</TT>.
+The <TT>&quot;capability&quot;</TT> parameter allows the list to be restricted to
+only devices with a particular capability type, and should be left
+as <TT>&quot;undef&quot;</TT> if the full list is required. The optional &lt;flags&gt;
+parameter is currently unused and defaults to 0 if omitted.
+<DT>my @netNames = $vmm-&gt;list_node_device_names($capability, $maxnames[, $flags])<DD>
+
+
+<A NAME="ixABR"></A>
+Return a list of all host device names currently known to the <FONT SIZE="-1">VMM</FONT>. The names can
+be used with the <TT>&quot;get_node_device_by_name&quot;</TT> method.
+The <TT>&quot;capability&quot;</TT> parameter allows the list to be restricted to
+only devices with a particular capability type, and should be left
+as <TT>&quot;undef&quot;</TT> if the full list is required. The optional &lt;flags&gt;
+parameter is currently unused and defaults to 0 if omitted.
+<DT>my @ifaces = $vmm-&gt;<I>list_interfaces()</I><DD>
+
+
+<A NAME="ixABS"></A>
+Return a list of all network interfaces currently known to the <FONT SIZE="-1">VMM</FONT>. The elements
+in the returned list are instances of the Sys::Virt::Interface class.
+<DT>my $nnames = $vmm-&gt;<I>num_of_interfaces()</I><DD>
+
+
+<A NAME="ixABT"></A>
+Return the number of running interfaces known to the <FONT SIZE="-1">VMM</FONT>. This can be
+used as the <TT>&quot;maxnames&quot;</TT> parameter to <TT>&quot;list_interface_names&quot;</TT>.
+<DT>my @names = $vmm-&gt;list_interface_names($maxnames)<DD>
+
+
+<A NAME="ixABU"></A>
+Return a list of all interface names currently known to the <FONT SIZE="-1">VMM</FONT>. The names can
+be used with the <TT>&quot;get_interface_by_name&quot;</TT> method.
+<DT>my @ifaces = $vmm-&gt;<I>list_defined_interfaces()</I><DD>
+
+
+<A NAME="ixABV"></A>
+Return a list of all network interfaces currently known to the <FONT SIZE="-1">VMM</FONT>. The elements
+in the returned list are instances of the Sys::Virt::Interface class.
+<DT>my $nnames = $vmm-&gt;<I>num_of_defined_interfaces()</I><DD>
+
+
+<A NAME="ixABW"></A>
+Return the number of inactive interfaces known to the <FONT SIZE="-1">VMM</FONT>. This can be
+used as the <TT>&quot;maxnames&quot;</TT> parameter to <TT>&quot;list_defined_interface_names&quot;</TT>.
+<DT>my @names = $vmm-&gt;list_defined_interface_names($maxnames)<DD>
+
+
+<A NAME="ixABX"></A>
+Return a list of inactive interface names currently known to the <FONT SIZE="-1">VMM</FONT>. The names can
+be used with the <TT>&quot;get_interface_by_name&quot;</TT> method.
+<DT>my @ifaces = $vmm-&gt;<I>list_secrets()</I><DD>
+
+
+<A NAME="ixABY"></A>
+Return a list of all secrets currently known to the <FONT SIZE="-1">VMM</FONT>. The elements
+in the returned list are instances of the Sys::Virt::Secret class.
+<DT>my $nuuids = $vmm-&gt;<I>num_of_secrets()</I><DD>
+
+
+<A NAME="ixABZ"></A>
+Return the number of secrets known to the <FONT SIZE="-1">VMM</FONT>. This can be
+used as the <TT>&quot;maxuuids&quot;</TT> parameter to <TT>&quot;list_secrets&quot;</TT>.
+<DT>my @uuids = $vmm-&gt;list_secret_uuids($maxuuids)<DD>
+
+
+<A NAME="ixACA"></A>
+Return a list of all secret uuids currently known to the <FONT SIZE="-1">VMM</FONT>. The uuids can
+be used with the <TT>&quot;get_secret_by_uuid&quot;</TT> method.
+<DT>my @nets = $vmm-&gt;<I>list_nwfilters()</I><DD>
+
+
+<A NAME="ixACB"></A>
+Return a list of all nwfilters currently known to the <FONT SIZE="-1">VMM</FONT>. The elements
+in the returned list are instances of the Sys::Virt::NWFilter class.
+<DT>my $nnames = $vmm-&gt;<I>num_of_nwfilters()</I><DD>
+
+
+<A NAME="ixACC"></A>
+Return the number of running nwfilters known to the <FONT SIZE="-1">VMM</FONT>. This can be
+used as the <TT>&quot;maxids&quot;</TT> parameter to <TT>&quot;list_nwfilter_names&quot;</TT>.
+<DT>my @filterNames = $vmm-&gt;list_nwfilter_names($maxnames)<DD>
+
+
+<A NAME="ixACD"></A>
+Return a list of all nwfilter names currently known to the <FONT SIZE="-1">VMM</FONT>. The names can
+be used with the <TT>&quot;get_nwfilter_by_name&quot;</TT> method.
+<DT>$vmm-&gt;define_save_image_xml($file, $dxml, $flags=0)<DD>
+
+
+<A NAME="ixACE"></A>
+Update the <FONT SIZE="-1">XML</FONT> associated with a virtual machine's save image. The <TT>$file</TT>
+parameter is the fully qualified path to the save image <FONT SIZE="-1">XML</FONT>, while <TT>$dxml</TT>
+is the new <FONT SIZE="-1">XML</FONT> document to write. The <TT>$flags</TT> parameter is currently
+unused and defaults to zero.
+<DT>$xml = $vmm-&gt;get_save_image_xml_description($file, $flags=1)<DD>
+
+
+<A NAME="ixACF"></A>
+Retrieve the current <FONT SIZE="-1">XML</FONT> configuration associated with the virtual
+machine's save image identified by <TT>$file</TT>. The <TT>$flags</TT> parameter is currently
+unused and defaults to zero.
+<DT>my $dom = $vmm-&gt;get_domain_by_name($name)<DD>
+
+
+<A NAME="ixACG"></A>
+Return the domain with a name of <TT>$name</TT>. The returned object is
+an instance of the Sys::Virt::Domain class.
+<DT>my $dom = $vmm-&gt;get_domain_by_id($id)<DD>
+
+
+<A NAME="ixACH"></A>
+Return the domain with a local id of <TT>$id</TT>. The returned object is
+an instance of the Sys::Virt::Domain class.
+<DT>my $dom = $vmm-&gt;get_domain_by_uuid($uuid)<DD>
+
+
+<A NAME="ixACI"></A>
+Return the domain with a globally unique id of <TT>$uuid</TT>. The returned object is
+an instance of the Sys::Virt::Domain class.
+<DT>my $net = $vmm-&gt;get_network_by_name($name)<DD>
+
+
+<A NAME="ixACJ"></A>
+Return the network with a name of <TT>$name</TT>. The returned object is
+an instance of the Sys::Virt::Network class.
+<DT>my $net = $vmm-&gt;get_network_by_uuid($uuid)<DD>
+
+
+<A NAME="ixACK"></A>
+Return the network with a globally unique id of <TT>$uuid</TT>. The returned object is
+an instance of the Sys::Virt::Network class.
+<DT>my $pool = $vmm-&gt;get_storage_pool_by_name($name)<DD>
+
+
+<A NAME="ixACL"></A>
+Return the storage pool with a name of <TT>$name</TT>. The returned object is
+an instance of the Sys::Virt::StoragePool class.
+<DT>my $pool = $vmm-&gt;get_storage_pool_by_uuid($uuid)<DD>
+
+
+<A NAME="ixACM"></A>
+Return the storage pool with a globally unique id of <TT>$uuid</TT>. The returned object is
+an instance of the Sys::Virt::StoragePool class.
+<DT>my $vol = $vmm-&gt;get_storage_volume_by_path($path)<DD>
+
+
+<A NAME="ixACN"></A>
+Return the storage volume with a location of <TT>$path</TT>. The returned object is
+an instance of the Sys::Virt::StorageVol class.
+<DT>my $vol = $vmm-&gt;get_storage_volume_by_key($key)<DD>
+
+
+<A NAME="ixACO"></A>
+Return the storage volume with a globally unique id of <TT>$key</TT>. The returned object is
+an instance of the Sys::Virt::StorageVol class.
+<DT>my $dev = $vmm-&gt;get_node_device_by_name($name)<DD>
+
+
+<A NAME="ixACP"></A>
+Return the node device with a name of <TT>$name</TT>. The returned object is
+an instance of the Sys::Virt::NodeDevice class.
+<DT>my $iface = $vmm-&gt;get_interface_by_name($name)<DD>
+
+
+<A NAME="ixACQ"></A>
+Return the interface with a name of <TT>$name</TT>. The returned object is
+an instance of the Sys::Virt::Interface class.
+<DT>my $iface = $vmm-&gt;get_interface_by_mac($mac)<DD>
+
+
+<A NAME="ixACR"></A>
+Return the interface with a <FONT SIZE="-1">MAC</FONT> address of <TT>$mac</TT>. The returned object is
+an instance of the Sys::Virt::Interface class.
+<DT>my $sec = $vmm-&gt;get_secret_by_uuid($uuid)<DD>
+
+
+<A NAME="ixACS"></A>
+Return the secret with a globally unique id of <TT>$uuid</TT>. The returned object is
+an instance of the Sys::Virt::Secret class.
+<DT>my $sec = $vmm-&gt;get_secret_by_usage($usageType, $usageID)<DD>
+
+
+<A NAME="ixACT"></A>
+Return the secret with a usage type of <TT>$usageType</TT>, identified
+by <TT>$usageID</TT>. The returned object is an instance of the
+Sys::Virt::Secret class.
+<DT>my $dom = $vmm-&gt;get_nwfilter_by_name($name)<DD>
+
+
+<A NAME="ixACU"></A>
+Return the domain with a name of <TT>$name</TT>. The returned object is
+an instance of the Sys::Virt::NWFilter class.
+<DT>my $dom = $vmm-&gt;get_nwfilter_by_uuid($uuid)<DD>
+
+
+<A NAME="ixACV"></A>
+Return the nwfilter with a globally unique id of <TT>$uuid</TT>. The returned object is
+an instance of the Sys::Virt::NWFilter class.
+<DT>my $xml = $vmm-&gt;find_storage_pool_sources($type, $srcspec[, $flags])<DD>
+
+
+<A NAME="ixACW"></A>
+Probe for available storage pool sources for the pool of type <TT>$type</TT>.
+The <TT>$srcspec</TT> parameter can be <TT>&quot;undef&quot;</TT>, or a parameter to refine the
+discovery process, for example a server hostname for <FONT SIZE="-1">NFS</FONT> discovery. The
+<TT>$flags</TT> parameter is optional, and if omitted defaults to zero. The
+returned scalar is an <FONT SIZE="-1">XML</FONT> document describing the discovered storage
+pool sources.
+<DT>$vmm-&gt;interface_change_begin($flags)<DD>
+
+
+<A NAME="ixACX"></A>
+Begin a transaction for changing the configuration of one or more
+network interfaces
+<DT>$vmm-&gt;interface_change_commit($flags)<DD>
+
+
+<A NAME="ixACY"></A>
+Complete a transaction for changing the configuration of one or more
+network interfaces
+<DT>$vmm-&gt;interface_change_rollback($flags)<DD>
+
+
+<A NAME="ixACZ"></A>
+Abort a transaction for changing the configuration of one or more
+network interfaces
+<DT>$vmm-&gt;restore_domain($savefile)<DD>
+
+
+<A NAME="ixADA"></A>
+Recreate a domain from the saved state file given in the <TT>$savefile</TT> parameter.
+<DT>$vmm-&gt;get_max_vcpus($domtype)<DD>
+
+
+<A NAME="ixADB"></A>
+Return the maximum number of vcpus that can be configured for a domain
+of type <TT>$domtype</TT>
+<DT>my $hostname = $vmm-&gt;<I>get_hostname()</I><DD>
+
+
+<A NAME="ixADC"></A>
+Return the name of the host with which this connection is associated.
+<DT>my $uri = $vmm-&gt;<I>get_uri()</I><DD>
+
+
+<A NAME="ixADD"></A>
+Return the <FONT SIZE="-1">URI</FONT> associated with the open connection. This may be different
+from the <FONT SIZE="-1">URI</FONT> used when initially connecting to libvirt, when 'auto-probing'
+or drivers occurrs.
+<DT>my $xml = $vmm-&gt;<I>get_sysinfo()</I><DD>
+
+
+<A NAME="ixADE"></A>
+Return an <FONT SIZE="-1">XML</FONT> documenting representing the host system information,
+typically obtained from <FONT SIZE="-1">SMBIOS</FONT> tables.
+<DT>my $type = $vmm-&gt;<I>get_type()</I><DD>
+
+
+<A NAME="ixADF"></A>
+Return the type of virtualization backend accessed by this <FONT SIZE="-1">VMM</FONT> object. Currently
+the only supported type is <TT>&quot;Xen&quot;</TT>.
+<DT>my $xml = $vmm-&gt;domain_xml_from_native($format, $config);<DD>
+
+
+<A NAME="ixADG"></A>
+Convert the native hypervisor configuration <TT>$config</TT> which is in format
+&lt;$format&gt; into libvirrt domain <FONT SIZE="-1">XML</FONT>. Valid values of <TT>$format</TT> vary between
+hypervisor drivers.
+<DT>my $config = $vmm-&gt;domain_xml_to_native($format, $xml)<DD>
+
+
+<A NAME="ixADH"></A>
+Convert the libvirt domain <FONT SIZE="-1">XML</FONT> configuration <TT>$xml</TT> to a native hypervisor
+configuration in format <TT>$format</TT>
+<DT>my $ver = $vmm-&gt;<I>get_version()</I><DD>
+
+
+<A NAME="ixADI"></A>
+Return the complete version number as a string encoded in the
+formula <TT>&quot;(major * 1000000) + (minor * 1000) + micro&quot;</TT>.
+<DT>my $ver = $vmm-&gt;get_major_version<DD>
+
+
+<A NAME="ixADJ"></A>
+Return the major version number of the libvirt library.
+<DT>my $ver = $vmm-&gt;get_minor_version<DD>
+
+
+<A NAME="ixADK"></A>
+Return the minor version number of the libvirt library.
+<DT>my $ver = $vmm-&gt;get_micro_version<DD>
+
+
+<A NAME="ixADL"></A>
+Return the micro version number of the libvirt library.
+<DT>my $ver = $vmm-&gt;get_library_version<DD>
+
+
+<A NAME="ixADM"></A>
+Return the version number of the <FONT SIZE="-1">API</FONT> associated with
+the active connection. This differs from <TT>&quot;get_version&quot;</TT>
+in that if the connection is to a remote libvirtd
+daemon, it will return the <FONT SIZE="-1">API</FONT> version of the remote
+libvirt, rather than the local client.
+<DT>$conn-&gt;<I>is_secure()</I><DD>
+
+
+<A NAME="ixADN"></A>
+Returns a true value if the current connection is secure against
+network interception. This implies either use of <FONT SIZE="-1">UNIX</FONT> sockets,
+or encryption with a <FONT SIZE="-1">TCP</FONT> stream.
+<DT>$conn-&gt;<I>is_encrypted()</I><DD>
+
+
+<A NAME="ixADO"></A>
+Returns a true value if the current connection data stream is
+encrypted.
+<DT>$conn-&gt;<I>is_alive()</I><DD>
+
+
+<A NAME="ixADP"></A>
+Returns a true value if the connection is alive, as determined
+by keep-alive packets or other recent <FONT SIZE="-1">RPC</FONT> traffic.
+<DT>$conn-&gt;set_keep_alive($interval, $count)<DD>
+
+
+<A NAME="ixADQ"></A>
+Change the operation of the keep alive protocol to send <TT>$count</TT>
+packets spaced <TT>$interval</TT> seconds apart before considering the
+connection dead.
+<DT>my $info = $con-&gt;<I>get_node_info()</I><DD>
+
+
+<A NAME="ixADR"></A>
+Returns a hash reference summarising the capabilities of the host
+node. The elements of the hash are as follows:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>memory<DD>
+<A NAME="ixADS"></A>
+The amount of physical memory in the host
+<DT>model<DD>
+<A NAME="ixADT"></A>
+The model of the <FONT SIZE="-1">CPU</FONT>, eg x86_64
+<DT>cpus<DD>
+<A NAME="ixADU"></A>
+The total number of logical CPUs
+<DT>mhz<DD>
+<A NAME="ixADV"></A>
+The peak <FONT SIZE="-1">MHZ</FONT> of the <FONT SIZE="-1">CPU</FONT>
+<DT>nodes<DD>
+<A NAME="ixADW"></A>
+The number of <FONT SIZE="-1">NUMA</FONT> cells
+<DT>sockets<DD>
+<A NAME="ixADX"></A>
+The number of <FONT SIZE="-1">CPU</FONT> sockets
+<DT>cores<DD>
+<A NAME="ixADY"></A>
+The number of cores per socket
+<DT>threads<DD>
+<A NAME="ixADZ"></A>
+The number of threads per core
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>my $info = $con-&gt;get_node_cpu_stats($cpuNum=-1, $flags=0)<DD>
+
+
+<A NAME="ixAEA"></A>
+Returns a hash reference providing information about the host
+<FONT SIZE="-1">CPU</FONT> statistics. If &lt;$cpuNum&gt; is omitted, it defaults to <TT>&quot;Sys::Virt::NODE_CPU_STATS_ALL_CPUS&quot;</TT>
+which causes it to return cummulative information for all
+CPUs in the host. If <TT>$cpuNum</TT> is zero or larger, it returns
+information just for the specified number. The <TT>$flags</TT>
+parameter is currently unused and defaults to zero. The
+fields in the returned hash reference are
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>kernel<DD>
+<A NAME="ixAEB"></A>
+The time spent in kernelspace
+<DT>user<DD>
+<A NAME="ixAEC"></A>
+The time spent in userspace
+<DT>idle<DD>
+<A NAME="ixAED"></A>
+The idle time
+<DT>iowait<DD>
+<A NAME="ixAEE"></A>
+The I/O wait time
+<DT>utilization<DD>
+<A NAME="ixAEF"></A>
+The overall percentage utilization.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>my $info = $con-&gt;get_node_memory_stats($cellNum=-1, $flags=0)<DD>
+
+
+<A NAME="ixAEG"></A>
+Returns a hash reference providing information about the host
+memory statistics. If &lt;$cellNum&gt; is omitted, it defaults to <TT>&quot;Sys::Virt::NODE_MEMORY_STATS_ALL_CELLS&quot;</TT>
+which causes it to return cummulative information for all
+<FONT SIZE="-1">NUMA</FONT> cells in the host. If <TT>$cellNum</TT> is zero or larger, it
+returns information just for the specified number. The <TT>$flags</TT>
+parameter is currently unused and defaults to zero. The
+fields in the returned hash reference are
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>total<DD>
+<A NAME="ixAEH"></A>
+The total memory
+<DT>free<DD>
+<A NAME="ixAEI"></A>
+The free memory
+<DT>buffers<DD>
+<A NAME="ixAEJ"></A>
+The memory consumed by buffers
+<DT>cache<DD>
+<A NAME="ixAEK"></A>
+The memory consumed for cache
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>$conn-&gt;node_suspend_for_duration($target, $duration, $flags=0)<DD>
+
+
+<A NAME="ixAEL"></A>
+Suspend the the host, using mode <TT>$target</TT> which is one of the <FONT SIZE="-1">NODE</FONT>
+<FONT SIZE="-1">SUSPEND</FONT> constants listed later. The <TT>$duration</TT> parameter controls
+how long the node is suspended for before waking up.
+<DT>$conn-&gt;domain_event_register($callback)<DD>
+
+
+<A NAME="ixAEM"></A>
+Register a callback to received notificaitons of domain state change
+events. Only a single callback can be registered with each connection
+instance. The callback will be invoked with four parameters, an
+instance of <TT>&quot;Sys::Virt&quot;</TT> for the connection, an instance of <TT>&quot;Sys::Virt::Domain&quot;</TT>
+for the domain changing state, and a <TT>&quot;event&quot;</TT> and <TT>&quot;detail&quot;</TT> arguments,
+corresponding to the event constants defined in the <TT>&quot;Sys::Virt::Domain&quot;</TT>
+module. Before discarding the connection object, the callback must be
+deregistered, otherwise the connection object memory will never be
+released in garbage collection.
+<DT>$conn-&gt;<I>domain_event_deregister()</I><DD>
+
+
+<A NAME="ixAEN"></A>
+Unregister a callback, allowing the connection object to be garbage
+collected.
+<DT>$callback = $conn-&gt;domain_event_register_any($dom, $eventID, $callback)<DD>
+
+
+<A NAME="ixAEO"></A>
+Register a callback to received notifications of domain events.
+The <TT>$dom</TT> parameter can be <TT>&quot;undef&quot;</TT> to request events on all
+known domains, or a specific <TT>&quot;Sys::Virt::Domain&quot;</TT> object to
+filter events. The <TT>$eventID</TT> parameter is one of the <FONT SIZE="-1">EVENT</FONT> <FONT SIZE="-1">ID</FONT>
+constants described later in this document. The <TT>$callback</TT> is
+a subroutine reference that will receive the events.
+
+
+<P>
+
+
+All callbacks receive a <TT>&quot;Sys::Virt&quot;</TT> connection as the first parameter
+and a <TT>&quot;Sys::Virt::Domain&quot;</TT> object indiciating the domain on which the
+event occurred as the second parameter. Subsequent parameters vary
+according to the event type
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><FONT SIZE="-1">EVENT_ID_LIFECYCLE</FONT><DD>
+<A NAME="ixAEP"></A>
+Extra <TT>&quot;event&quot;</TT> and <TT>&quot;detail&quot;</TT> parameters defining the lifecycle
+transition that occurred.
+<DT><FONT SIZE="-1">EVENT_ID_REBOOT</FONT><DD>
+<A NAME="ixAEQ"></A>
+No extra parameters
+<DT><FONT SIZE="-1">EVENT_ID_RTC_CHANGE</FONT><DD>
+<A NAME="ixAER"></A>
+The <TT>&quot;utcoffset&quot;</TT> gives the offset from <FONT SIZE="-1">UTC</FONT> in seconds
+<DT><FONT SIZE="-1">EVENT_ID_WATCHDOG</FONT><DD>
+<A NAME="ixAES"></A>
+The <TT>&quot;action&quot;</TT> defines the action that is taken as a result
+of the watchdog triggering. One of the <FONT SIZE="-1">WATCHDOG</FONT> constants
+described later
+<DT><FONT SIZE="-1">EVENT_ID_IO_ERROR</FONT><DD>
+<A NAME="ixAET"></A>
+The <TT>&quot;srcPath&quot;</TT> is the file on the host which had the error.
+The <TT>&quot;devAlias&quot;</TT> is the unique device alias from the guest
+configuration associated with <TT>&quot;srcPath&quot;</TT>. The <TT>&quot;action&quot;</TT> is
+the action taken as a result of the error, one of the
+<FONT SIZE="-1">IO</FONT> <FONT SIZE="-1">ERROR</FONT> constants described later
+<DT><FONT SIZE="-1">EVENT_ID_GRAPHICS</FONT><DD>
+<A NAME="ixAEU"></A>
+The <TT>&quot;phase&quot;</TT> is the stage of the connection, one of the <FONT SIZE="-1">GRAPHICS</FONT>
+<FONT SIZE="-1">PHASE</FONT> constants described later. The <TT>&quot;local&quot;</TT> and <TT>&quot;remote&quot;</TT>
+parameters follow with the details of the local and remote
+network addresses. The <TT>&quot;authScheme&quot;</TT> describes how the user
+was authenticated (if at all). Finally <TT>&quot;identities&quot;</TT> is an
+array ref containing authenticated identities for the user,
+if any.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+The return value is a unique callback <FONT SIZE="-1">ID</FONT> that must be used when
+unregistering the event.
+</DL>
+
+<DT>$conn-&gt;domain_event_deregister_any($callbackID)<DD>
+
+
+<A NAME="ixAEV"></A>
+Unregister a callback, associated with the <TT>$callbackID</TT> previously
+obtained from <TT>&quot;domain_event_register_any&quot;</TT>.
+<DT>my $xml = $con-&gt;baseline_cpu(\@xml, $flags=0)<DD>
+
+
+<A NAME="ixAEW"></A>
+Given an array ref whose elements are <FONT SIZE="-1">XML</FONT> documents describing host CPUs,
+compute the baseline <FONT SIZE="-1">CPU</FONT> model that is operable across all hosts. The
+<FONT SIZE="-1">XML</FONT> for the baseline <FONT SIZE="-1">CPU</FONT> model is returned. The optional <TT>$flags</TT>
+parameter is currently unused and defaults to 0.
+<DT>my $info = $con-&gt;<I>get_node_security_model()</I><DD>
+
+
+<A NAME="ixAEX"></A>
+Returns a hash reference summarising the security model of the
+host node. There are two keys in the hash, <TT>&quot;model&quot;</TT> specifying
+the name of the security model (eg 'selinux') and <TT>&quot;doi&quot;</TT>
+specifying the 'domain of interpretation' for security labels.
+<DT>my $xml = $con-&gt;<I>get_capabilities()</I>;<DD>
+
+
+<A NAME="ixAEY"></A>
+Returns an <FONT SIZE="-1">XML</FONT> document describing the hypervisor capabilities
+<DT>my $result = $con-&gt;compare_cpu($xml, $flags=0);<DD>
+
+
+<A NAME="ixAEZ"></A>
+Checks whether the <FONT SIZE="-1">CPU</FONT> definition in <TT>$xml</TT> is compatible with the
+current hypervisor connection. This can be used to determine whether
+it is safe to migrate a guest to this host. The returned result is
+one of the constants listed later
+<DT>$mem = $con-&gt;<I>get_node_free_memory()</I>;<DD>
+
+
+<A NAME="ixAFA"></A>
+Returns the current free memory on the host
+<DT>@mem = $con-&gt;get_node_cells_free_memory($start, $end);<DD>
+
+
+<A NAME="ixAFB"></A>
+Returns the free memory on each <FONT SIZE="-1">NUMA</FONT> cell between <TT>$start</TT> and <TT>$end</TT>.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONSTANTS</H2>
+
+<A NAME="ixAFC"></A>
+The following sets of constants are useful when dealing with APIs
+in this package
+<A NAME="lbAH">&nbsp;</A>
+<H3><FONT SIZE="-1">CONNECTION</FONT></H3>
+
+<A NAME="ixAFD"></A>
+When opening a connection the following constants can be used:
+<DL COMPACT>
+<DT>Sys::Virt::CONNECT_RO<DD>
+<A NAME="ixAFE"></A>
+Request a read-only connection
+<DT>Sys::Virt::CONNECT_NO_ALIASES<DD>
+<A NAME="ixAFF"></A>
+Prevent the resolution of <FONT SIZE="-1">URI</FONT> aliases
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3><FONT SIZE="-1">CREDENTIAL</FONT> <FONT SIZE="-1">TYPES</FONT></H3>
+
+<A NAME="ixAFG"></A>
+When providing authentication callbacks, the following constants
+indicate the type of credential being requested
+<DL COMPACT>
+<DT>Sys::Virt::CRED_AUTHNAME<DD>
+<A NAME="ixAFH"></A>
+Identity to act as
+<DT>Sys::Virt::CRED_USERNAME<DD>
+<A NAME="ixAFI"></A>
+Identity to authorize as
+<DT>Sys::Virt::CRED_CNONCE<DD>
+<A NAME="ixAFJ"></A>
+Client supplies a nonce
+<DT>Sys::Virt::CRED_REALM<DD>
+<A NAME="ixAFK"></A>
+Authentication realm
+<DT>Sys::Virt::CRED_ECHOPROMPT<DD>
+<A NAME="ixAFL"></A>
+Challenge response non-secret
+<DT>Sys::Virt::CRED_NOECHOPROMPT<DD>
+<A NAME="ixAFM"></A>
+Challenge response secret
+<DT>Sys::Virt::CRED_PASSPHRASE<DD>
+<A NAME="ixAFN"></A>
+Passphrase secret
+<DT>Sys::Virt::CRED_LANGUAGE<DD>
+<A NAME="ixAFO"></A>
+<FONT SIZE="-1">RFC</FONT> 1766 language code
+<DT>Sys::Virt::CRED_EXTERNAL<DD>
+<A NAME="ixAFP"></A>
+Externally provided credential
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3><FONT SIZE="-1">CPU</FONT> <FONT SIZE="-1">COMPARISON</FONT> <FONT SIZE="-1">CONSTANTS</FONT></H3>
+
+<A NAME="ixAFQ"></A>
+<DL COMPACT>
+<DT>Sys::Virt::CPU_COMPARE_INCOMPATIBLE<DD>
+<A NAME="ixAFR"></A>
+This host is missing one or more <FONT SIZE="-1">CPU</FONT> features in the <FONT SIZE="-1">CPU</FONT>
+description
+<DT>Sys::Virt::CPU_COMPARE_IDENTICAL<DD>
+<A NAME="ixAFS"></A>
+The host has an identical <FONT SIZE="-1">CPU</FONT> description
+<DT>Sys::Virt::CPU_COMPARE_SUPERSET<DD>
+<A NAME="ixAFT"></A>
+The host offers a superset of the <FONT SIZE="-1">CPU</FONT> descriptoon
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H3><FONT SIZE="-1">NODE</FONT> <FONT SIZE="-1">SUSPEND</FONT> <FONT SIZE="-1">CONSTANTS</FONT></H3>
+
+<A NAME="ixAFU"></A>
+<DL COMPACT>
+<DT>Sys::Virt::NODE_SUSPEND_TARGET_MEM<DD>
+<A NAME="ixAFV"></A>
+Suspends to memory (equivalent of S3 on x86 architectures)
+<DT>Sys::Virt::NODE_SUSPEND_TARGET_DISK<DD>
+<A NAME="ixAFW"></A>
+Suspends to disk (equivalent of S5 on x86 architectures)
+<DT>Sys::Virt::NODE_SUSPEND_TARGET_HYBRID<DD>
+<A NAME="ixAFX"></A>
+Suspends to memory and disk (equivalent of S3+S5 on x86 architectures)
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3><FONT SIZE="-1">NODE</FONT> <FONT SIZE="-1">VCPU</FONT> <FONT SIZE="-1">CONSTANTS</FONT></H3>
+
+<A NAME="ixAFY"></A>
+<DL COMPACT>
+<DT>Sys::Virt::NODE_CPU_STATS_ALL_CPUS<DD>
+<A NAME="ixAFZ"></A>
+Request statistics for all CPUs
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H3><FONT SIZE="-1">NODE</FONT> <FONT SIZE="-1">MEMORY</FONT> <FONT SIZE="-1">CONSTANTS</FONT></H3>
+
+<A NAME="ixAGA"></A>
+<DL COMPACT>
+<DT>Sys::Virt::NODE_MEMORY_STATS_ALL_CELLS<DD>
+<A NAME="ixAGB"></A>
+Request statistics for all memory cells
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAGC"></A>
+Hopefully none, but the <FONT SIZE="-1">XS</FONT> code needs to be audited to ensure it
+is not leaking memory.
+<A NAME="lbAO">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<A NAME="ixAGD"></A>
+Daniel P. Berrange &lt;<A HREF="mailto:berrange@redhat.com">berrange@redhat.com</A>&gt;
+<A NAME="lbAP">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAGE"></A>
+Copyright (C) 2006-2009 Red Hat
+Copyright (C) 2006-2009 Daniel P. Berrange
+<A NAME="lbAQ">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixAGF"></A>
+This program is free software; you can redistribute it and/or modify
+it under the terms of either the <FONT SIZE="-1">GNU</FONT> General Public License as published
+by the Free Software Foundation (either version 2 of the License, or at
+your option any later version), or, the Artistic License, as specified
+in the Perl <FONT SIZE="-1">README</FONT> file.
+<A NAME="lbAR">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAGG"></A>
+Sys::Virt::Domain, Sys::Virt::Network, Sys::Virt::StoragePool,
+Sys::Virt::StorageVol, Sys::Virt::Error, <TT>&quot;<A HREF="http://libvirt.org">http://libvirt.org</A>&quot;</TT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">ERROR HANDLING</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DT><A HREF="#lbAG">CONSTANTS</A><DD>
+<DL>
+<DT><A HREF="#lbAH"><FONT SIZE="-1">CONNECTION</FONT></A><DD>
+<DT><A HREF="#lbAI"><FONT SIZE="-1">CREDENTIAL</FONT> <FONT SIZE="-1">TYPES</FONT></A><DD>
+<DT><A HREF="#lbAJ"><FONT SIZE="-1">CPU</FONT> <FONT SIZE="-1">COMPARISON</FONT> <FONT SIZE="-1">CONSTANTS</FONT></A><DD>
+<DT><A HREF="#lbAK"><FONT SIZE="-1">NODE</FONT> <FONT SIZE="-1">SUSPEND</FONT> <FONT SIZE="-1">CONSTANTS</FONT></A><DD>
+<DT><A HREF="#lbAL"><FONT SIZE="-1">NODE</FONT> <FONT SIZE="-1">VCPU</FONT> <FONT SIZE="-1">CONSTANTS</FONT></A><DD>
+<DT><A HREF="#lbAM"><FONT SIZE="-1">NODE</FONT> <FONT SIZE="-1">MEMORY</FONT> <FONT SIZE="-1">CONSTANTS</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAN">BUGS</A><DD>
+<DT><A HREF="#lbAO">AUTHORS</A><DD>
+<DT><A HREF="#lbAP">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAQ">LICENSE</A><DD>
+<DT><A HREF="#lbAR">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:43 GMT, December 24, 2015
+</div></body>
+</HTML>

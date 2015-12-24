@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of TIME</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>TIME</H1>
+Section: Linux Programmer's Manual (7)<BR>Updated: 2009-02-10<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+time - overview of time and timers
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="lbAD">&nbsp;</A>
+<H3>Real time and process time</H3>
+
+<I>Real time</I>
+
+is defined as time measured from some fixed point,
+either from a standard point in the past
+(see the description of the Epoch and calendar time below),
+or from some point (e.g., the start) in the life of a process
+(<I>elapsed time</I>).
+
+<P>
+<I>Process time</I>
+
+is defined as the amount of CPU time used by a process.
+This is sometimes divided into
+<I>user</I>
+
+and
+<I>system</I>
+
+components.
+User CPU time is the time spent executing code in user mode.
+System CPU time is the time spent by the kernel executing
+in system mode on behalf of the process (e.g., executing system calls).
+The
+<B><A HREF="/man/index.html?1+time">time</A></B>(1)
+
+command can be used to determine the amount of CPU time consumed
+during the execution of a program.
+A program can determine the amount of CPU time it has consumed using
+<B><A HREF="/man/index.html?2+times">times</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getrusage">getrusage</A></B>(2),
+
+or
+<B><A HREF="/man/index.html?3+clock">clock</A></B>(3).
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>The Hardware Clock</H3>
+
+Most computers have a (battery-powered) hardware clock which the kernel
+reads at boot time in order to initialize the software clock.
+For further details, see
+<B><A HREF="/man/index.html?4+rtc">rtc</A></B>(4)
+
+and
+<B><A HREF="/man/index.html?8+hwclock">hwclock</A></B>(8).
+
+<A NAME="lbAF">&nbsp;</A>
+<H3>The Software Clock, HZ, and Jiffies</H3>
+
+The accuracy of various system calls that set timeouts,
+(e.g.,
+<B><A HREF="/man/index.html?2+select">select</A></B>(2),
+
+<B><A HREF="/man/index.html?2+sigtimedwait">sigtimedwait</A></B>(2))
+
+
+
+and measure CPU time (e.g.,
+<B><A HREF="/man/index.html?2+getrusage">getrusage</A></B>(2))
+
+is limited by the resolution of the
+<I>software clock</I>,
+
+a clock maintained by the kernel which measures time in
+<I>jiffies</I>.
+
+The size of a jiffy is determined by the value of the kernel constant
+<I>HZ</I>.
+
+<P>
+The value of
+<I>HZ</I>
+
+varies across kernel versions and hardware platforms.
+On i386 the situation is as follows:
+on kernels up to and including 2.4.x, HZ was 100,
+giving a jiffy value of 0.01 seconds;
+starting with 2.6.0, HZ was raised to 1000, giving a jiffy of
+0.001 seconds.
+Since kernel 2.6.13, the HZ value is a kernel
+configuration parameter and can be 100, 250 (the default) or 1000,
+yielding a jiffies value of, respectively, 0.01, 0.004, or 0.001 seconds.
+Since kernel 2.6.20, a further frequency is available:
+300, a number that divides evenly for the common video
+frame rates (PAL, 25 HZ; NTSC, 30 HZ).
+<P>
+The
+<B><A HREF="/man/index.html?2+times">times</A></B>(2)
+
+system call is a special case.
+It reports times with a granularity defined by the kernel constant
+<I>USER_HZ</I>.
+
+Userspace applications can determine the value of this constant using
+<I>sysconf(_SC_CLK_TCK)</I>.
+
+
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>High-Resolution Timers</H3>
+
+Before Linux 2.6.21, the accuracy of timer and sleep system calls
+(see below) was also limited by the size of the jiffy.
+<P>
+Since Linux 2.6.21, Linux supports high-resolution timers (HRTs),
+optionally configurable via
+<B>CONFIG_HIGH_RES_TIMERS</B>.
+
+On a system that supports HRTs, the accuracy of sleep and timer
+system calls is no longer constrained by the jiffy,
+but instead can be as accurate as the hardware allows
+(microsecond accuracy is typical of modern hardware).
+You can determine whether high-resolution timers are supported by
+checking the resolution returned by a call to
+<B><A HREF="/man/index.html?2+clock_getres">clock_getres</A></B>(2)
+
+or looking at the &quot;resolution&quot; entries in
+<I>/proc/timer_list</I>.
+
+<P>
+HRTs are not supported on all hardware architectures.
+(Support is provided on x86, arm, and powerpc, among others.)
+<A NAME="lbAH">&nbsp;</A>
+<H3>The Epoch</H3>
+
+Unix systems represent time in seconds since the
+<I>Epoch</I>,
+
+which is defined as 0:00:00 UTC on the morning of 1 January 1970.
+<P>
+A program can determine the
+<I>calendar time</I>
+
+using
+<B><A HREF="/man/index.html?2+gettimeofday">gettimeofday</A></B>(2),
+
+which returns time (in seconds and microseconds) that have
+elapsed since the Epoch;
+<B><A HREF="/man/index.html?2+time">time</A></B>(2)
+
+provides similar information, but only with accuracy to the
+nearest second.
+The system time can be changed using
+<B><A HREF="/man/index.html?2+settimeofday">settimeofday</A></B>(2).
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Broken-down time</H3>
+
+Certain library functions use a structure of
+type
+<I>tm</I>
+
+to represent
+<I>broken-down time</I>,
+
+which stores time value separated out into distinct components
+(year, month, day, hour, minute, second, etc.).
+This structure is described in
+<B><A HREF="/man/index.html?3+ctime">ctime</A></B>(3),
+
+which also describes functions that convert between calendar time and
+broken-down time.
+Functions for converting between broken-down time and printable
+string representations of the time are described in
+<B><A HREF="/man/index.html?3+ctime">ctime</A></B>(3),
+
+<B><A HREF="/man/index.html?3+strftime">strftime</A></B>(3),
+
+and
+<B><A HREF="/man/index.html?3+strptime">strptime</A></B>(3).
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Sleeping and Setting Timers</H3>
+
+Various system calls and functions allow a program to sleep
+(suspend execution) for a specified period of time; see
+<B><A HREF="/man/index.html?2+nanosleep">nanosleep</A></B>(2),
+
+<B><A HREF="/man/index.html?2+clock_nanosleep">clock_nanosleep</A></B>(2),
+
+and
+<B><A HREF="/man/index.html?3+sleep">sleep</A></B>(3).
+
+<P>
+Various system calls allow a process to set a timer that expires
+at some point in the future, and optionally at repeated intervals;
+see
+<B><A HREF="/man/index.html?2+alarm">alarm</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getitimer">getitimer</A></B>(2),
+
+<B><A HREF="/man/index.html?2+timerfd_create">timerfd_create</A></B>(2),
+
+and
+<B><A HREF="/man/index.html?2+timer_create">timer_create</A></B>(2).
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?1+date">date</A></B>(1),
+
+<B><A HREF="/man/index.html?1+time">time</A></B>(1),
+
+<B><A HREF="/man/index.html?2+adjtimex">adjtimex</A></B>(2),
+
+<B><A HREF="/man/index.html?2+alarm">alarm</A></B>(2),
+
+<B><A HREF="/man/index.html?2+clock_gettime">clock_gettime</A></B>(2),
+
+<B><A HREF="/man/index.html?2+clock_nanosleep">clock_nanosleep</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getitimer">getitimer</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getrlimit">getrlimit</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getrusage">getrusage</A></B>(2),
+
+<B><A HREF="/man/index.html?2+gettimeofday">gettimeofday</A></B>(2),
+
+<B><A HREF="/man/index.html?2+nanosleep">nanosleep</A></B>(2),
+
+<B><A HREF="/man/index.html?2+stat">stat</A></B>(2),
+
+<B><A HREF="/man/index.html?2+time">time</A></B>(2),
+
+<B><A HREF="/man/index.html?2+timer_create">timer_create</A></B>(2),
+
+<B><A HREF="/man/index.html?2+timerfd_create">timerfd_create</A></B>(2),
+
+<B><A HREF="/man/index.html?2+times">times</A></B>(2),
+
+<B><A HREF="/man/index.html?2+utime">utime</A></B>(2),
+
+<B><A HREF="/man/index.html?3+adjtime">adjtime</A></B>(3),
+
+<B><A HREF="/man/index.html?3+clock">clock</A></B>(3),
+
+<B><A HREF="/man/index.html?3+clock_getcpuclockid">clock_getcpuclockid</A></B>(3),
+
+<B><A HREF="/man/index.html?3+ctime">ctime</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_getcpuclockid">pthread_getcpuclockid</A></B>(3),
+
+<B><A HREF="/man/index.html?3+sleep">sleep</A></B>(3),
+
+<B><A HREF="/man/index.html?3+strftime">strftime</A></B>(3),
+
+<B><A HREF="/man/index.html?3+strptime">strptime</A></B>(3),
+
+<B><A HREF="/man/index.html?3+timeradd">timeradd</A></B>(3),
+
+<B><A HREF="/man/index.html?3+usleep">usleep</A></B>(3),
+
+<B><A HREF="/man/index.html?4+rtc">rtc</A></B>(4),
+
+<B><A HREF="/man/index.html?8+hwclock">hwclock</A></B>(8)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAD">Real time and process time</A><DD>
+<DT><A HREF="#lbAE">The Hardware Clock</A><DD>
+<DT><A HREF="#lbAF">The Software Clock, HZ, and Jiffies</A><DD>
+<DT><A HREF="#lbAG">High-Resolution Timers</A><DD>
+<DT><A HREF="#lbAH">The Epoch</A><DD>
+<DT><A HREF="#lbAI">Broken-down time</A><DD>
+<DT><A HREF="#lbAJ">Sleeping and Setting Timers</A><DD>
+</DL>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:16 GMT, December 24, 2015
+</div></body>
+</HTML>

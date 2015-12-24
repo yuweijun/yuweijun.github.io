@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PTHREADS</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PTHREADS</H1>
+Section: Linux Programmer's Manual (7)<BR>Updated: 2008-11-18<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+pthreads - POSIX threads
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+POSIX.1 specifies a set of interfaces (functions, header files) for
+threaded programming commonly known as POSIX threads, or Pthreads.
+A single process can contain multiple threads,
+all of which are executing the same program.
+These threads share the same global memory (data and heap segments),
+but each thread has its own stack (automatic variables).
+<P>
+POSIX.1 also requires that threads share a range of other attributes
+(i.e., these attributes are process-wide rather than per-thread):
+<DL COMPACT>
+<DT>-<DD>
+process ID
+<DT>-<DD>
+parent process ID
+<DT>-<DD>
+process group ID and session ID
+<DT>-<DD>
+controlling terminal
+<DT>-<DD>
+user and group IDs
+<DT>-<DD>
+open file descriptors
+<DT>-<DD>
+record locks (see
+<B><A HREF="/man/index.html?2+fcntl">fcntl</A></B>(2))
+
+<DT>-<DD>
+signal dispositions
+<DT>-<DD>
+file mode creation mask
+(<B><A HREF="/man/index.html?2+umask">umask</A></B>(2))
+
+<DT>-<DD>
+current directory
+(<B><A HREF="/man/index.html?2+chdir">chdir</A></B>(2))
+
+and
+root directory
+(<B><A HREF="/man/index.html?2+chroot">chroot</A></B>(2))
+
+<DT>-<DD>
+interval timers
+(<B><A HREF="/man/index.html?2+setitimer">setitimer</A></B>(2))
+
+and POSIX timers
+(<B><A HREF="/man/index.html?2+timer_create">timer_create</A></B>(2))
+
+<DT>-<DD>
+nice value
+(<B><A HREF="/man/index.html?2+setpriority">setpriority</A></B>(2))
+
+<DT>-<DD>
+resource limits
+(<B><A HREF="/man/index.html?2+setrlimit">setrlimit</A></B>(2))
+
+<DT>-<DD>
+measurements of the consumption of CPU time
+(<B><A HREF="/man/index.html?2+times">times</A></B>(2))
+
+and resources
+(<B><A HREF="/man/index.html?2+getrusage">getrusage</A></B>(2))
+
+</DL>
+<P>
+
+As well as the stack, POSIX.1 specifies that various other
+attributes are distinct for each thread, including:
+<DL COMPACT>
+<DT>-<DD>
+thread ID (the
+<I>pthread_t</I>
+
+data type)
+<DT>-<DD>
+signal mask
+(<B><A HREF="/man/index.html?3+pthread_sigmask">pthread_sigmask</A></B>(3))
+
+<DT>-<DD>
+the
+<I>errno</I>
+
+variable
+<DT>-<DD>
+alternate signal stack
+(<B><A HREF="/man/index.html?2+sigaltstack">sigaltstack</A></B>(2))
+
+<DT>-<DD>
+real-time scheduling policy and priority
+(<B><A HREF="/man/index.html?2+sched_setscheduler">sched_setscheduler</A></B>(2)
+
+and
+<B><A HREF="/man/index.html?2+sched_setparam">sched_setparam</A></B>(2))
+
+</DL>
+<P>
+
+The following Linux-specific features are also per-thread:
+<DL COMPACT>
+<DT>-<DD>
+capabilities (see
+<B><A HREF="/man/index.html?7+capabilities">capabilities</A></B>(7))
+
+<DT>-<DD>
+CPU affinity
+(<B><A HREF="/man/index.html?2+sched_setaffinity">sched_setaffinity</A></B>(2))
+
+</DL>
+<A NAME="lbAD">&nbsp;</A>
+<H3>Pthreads function return values</H3>
+
+Most pthreads functions return 0 on success, and an error number of failure.
+Note that the pthreads functions do not set
+<I>errno</I>.
+
+For each of the pthreads functions that can return an error,
+POSIX.1-2001 specifies that the function can never fail with the error
+<B>EINTR</B>.
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>Thread IDs</H3>
+
+Each of the threads in a process has a unique thread identifier
+(stored in the type
+<I>pthread_t</I>).
+
+This identifier is returned to the caller of
+<B><A HREF="/man/index.html?3+pthread_create">pthread_create</A></B>(3),
+
+and a thread can obtain its own thread identifier using
+<B><A HREF="/man/index.html?3+pthread_self">pthread_self</A></B>(3).
+
+Thread IDs are only guaranteed to be unique within a process.
+A thread ID may be reused after a terminated thread has been joined,
+or a detached thread has terminated.
+In all pthreads functions that accept a thread ID as an argument,
+that ID by definition refers to a thread in
+the same process as the caller.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Thread-safe functions</H3>
+
+A thread-safe function is one that can be safely
+(i.e., it will deliver the same results regardless of whether it is)
+called from multiple threads at the same time.
+<P>
+POSIX.1-2001 and POSIX.1-2008 require that all functions specified
+in the standard shall be thread-safe,
+except for the following functions:
+
+<PRE>
+
+asctime()
+basename()
+catgets()
+crypt()
+ctermid() if passed a non-NULL argument
+ctime()
+dbm_clearerr()
+dbm_close()
+dbm_delete()
+dbm_error()
+dbm_fetch()
+dbm_firstkey()
+dbm_nextkey()
+dbm_open()
+dbm_store()
+dirname()
+dlerror()
+drand48()
+ecvt() [POSIX.1-2001 only (function removed in POSIX.1-2008)]
+encrypt()
+endgrent()
+endpwent()
+endutxent()
+fcvt() [POSIX.1-2001 only (function removed in POSIX.1-2008)]
+ftw()
+gcvt() [POSIX.1-2001 only (function removed in POSIX.1-2008)]
+getc_unlocked()
+getchar_unlocked()
+getdate()
+getenv()
+getgrent()
+getgrgid()
+getgrnam()
+gethostbyaddr() [POSIX.1-2001 only (function removed in POSIX.1-2008)]
+gethostbyname() [POSIX.1-2001 only (function removed in POSIX.1-2008)]
+gethostent()
+getlogin()
+getnetbyaddr()
+getnetbyname()
+getnetent()
+getopt()
+getprotobyname()
+getprotobynumber()
+getprotoent()
+getpwent()
+getpwnam()
+getpwuid()
+getservbyname()
+getservbyport()
+getservent()
+getutxent()
+getutxid()
+getutxline()
+gmtime()
+hcreate()
+hdestroy()
+hsearch()
+inet_ntoa()
+l64a()
+lgamma()
+lgammaf()
+lgammal()
+localeconv()
+localtime()
+lrand48()
+mrand48()
+nftw()
+nl_langinfo()
+ptsname()
+putc_unlocked()
+putchar_unlocked()
+putenv()
+pututxline()
+rand()
+readdir()
+setenv()
+setgrent()
+setkey()
+setpwent()
+setutxent()
+strerror()
+strsignal() [Added in POSIX.1-2008]
+strtok()
+system() [Added in POSIX.1-2008]
+tmpnam() if passed a non-NULL argument
+ttyname()
+unsetenv()
+wcrtomb() if its final argument is NULL
+wcsrtombs() if its final argument is NULL
+wcstombs()
+wctomb()
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>Cancellation Points</H3>
+
+POSIX.1 specifies that certain functions must,
+and certain other functions may, be cancellation points.
+If a thread is cancelable, its cancelability type is deferred,
+and a cancellation request is pending for the thread,
+then the thread is canceled when it calls a function
+that is a cancellation point.
+<P>
+The following functions are required to be cancellation points by
+POSIX.1-2001 and/or POSIX.1-2008:
+<P>
+
+
+
+<PRE>
+accept()
+aio_suspend()
+clock_nanosleep()
+close()
+connect()
+creat()
+fcntl() F_SETLKW
+fdatasync()
+fsync()
+getmsg()
+getpmsg()
+lockf() F_LOCK
+mq_receive()
+mq_send()
+mq_timedreceive()
+mq_timedsend()
+msgrcv()
+msgsnd()
+msync()
+nanosleep()
+open()
+openat() [Added in POSIX.1-2008]
+pause()
+poll()
+pread()
+pselect()
+pthread_cond_timedwait()
+pthread_cond_wait()
+pthread_join()
+pthread_testcancel()
+putmsg()
+putpmsg()
+pwrite()
+read()
+readv()
+recv()
+recvfrom()
+recvmsg()
+select()
+sem_timedwait()
+sem_wait()
+send()
+sendmsg()
+sendto()
+sigpause() [POSIX.1-2001 only (moves to &quot;may&quot; list in POSIX.1-2008)]
+sigsuspend()
+sigtimedwait()
+sigwait()
+sigwaitinfo()
+sleep()
+system()
+tcdrain()
+usleep() [POSIX.1-2001 only (function removed in POSIX.1-2008)]
+wait()
+waitid()
+waitpid()
+write()
+writev()
+</PRE>
+
+
+<P>
+The following functions may be cancellation points according to
+POSIX.1-2001 and/or POSIX.1-2008:
+<P>
+
+<PRE>
+access()
+asctime()
+asctime_r()
+catclose()
+catgets()
+catopen()
+chmod() [Added in POSIX.1-2008]
+chown() [Added in POSIX.1-2008]
+closedir()
+closelog()
+ctermid()
+ctime()
+ctime_r()
+dbm_close()
+dbm_delete()
+dbm_fetch()
+dbm_nextkey()
+dbm_open()
+dbm_store()
+dlclose()
+dlopen()
+dprintf() [Added in POSIX.1-2008]
+endgrent()
+endhostent()
+endnetent()
+endprotoent()
+endpwent()
+endservent()
+endutxent()
+faccessat() [Added in POSIX.1-2008]
+fchmod() [Added in POSIX.1-2008]
+fchmodat() [Added in POSIX.1-2008]
+fchown() [Added in POSIX.1-2008]
+fchownat() [Added in POSIX.1-2008]
+fclose()
+fcntl() (for any value of cmd argument)
+fflush()
+fgetc()
+fgetpos()
+fgets()
+fgetwc()
+fgetws()
+fmtmsg()
+fopen()
+fpathconf()
+fprintf()
+fputc()
+fputs()
+fputwc()
+fputws()
+fread()
+freopen()
+fscanf()
+fseek()
+fseeko()
+fsetpos()
+fstat()
+fstatat() [Added in POSIX.1-2008]
+ftell()
+ftello()
+ftw()
+futimens() [Added in POSIX.1-2008]
+fwprintf()
+fwrite()
+fwscanf()
+getaddrinfo()
+getc()
+getc_unlocked()
+getchar()
+getchar_unlocked()
+getcwd()
+getdate()
+getdelim() [Added in POSIX.1-2008]
+getgrent()
+getgrgid()
+getgrgid_r()
+getgrnam()
+getgrnam_r()
+gethostbyaddr() [SUSv3 only (function removed in POSIX.1-2008)]
+gethostbyname() [SUSv3 only (function removed in POSIX.1-2008)]
+gethostent()
+gethostid()
+gethostname()
+getline() [Added in POSIX.1-2008]
+getlogin()
+getlogin_r()
+getnameinfo()
+getnetbyaddr()
+getnetbyname()
+getnetent()
+getopt() (if opterr is non-zero)
+getprotobyname()
+getprotobynumber()
+getprotoent()
+getpwent()
+getpwnam()
+getpwnam_r()
+getpwuid()
+getpwuid_r()
+gets()
+getservbyname()
+getservbyport()
+getservent()
+getutxent()
+getutxid()
+getutxline()
+getwc()
+getwchar()
+getwd() [SUSv3 only (function removed in POSIX.1-2008)]
+glob()
+iconv_close()
+iconv_open()
+ioctl()
+link()
+linkat() [Added in POSIX.1-2008]
+lio_listio() [Added in POSIX.1-2008]
+localtime()
+localtime_r()
+lockf() [Added in POSIX.1-2008]
+lseek()
+lstat()
+mkdir() [Added in POSIX.1-2008]
+mkdirat() [Added in POSIX.1-2008]
+mkdtemp() [Added in POSIX.1-2008]
+mkfifo() [Added in POSIX.1-2008]
+mkfifoat() [Added in POSIX.1-2008]
+mknod() [Added in POSIX.1-2008]
+mknodat() [Added in POSIX.1-2008]
+mkstemp()
+mktime()
+nftw()
+opendir()
+openlog()
+pathconf()
+pclose()
+perror()
+popen()
+posix_fadvise()
+posix_fallocate()
+posix_madvise()
+posix_openpt()
+posix_spawn()
+posix_spawnp()
+posix_trace_clear()
+posix_trace_close()
+posix_trace_create()
+posix_trace_create_withlog()
+posix_trace_eventtypelist_getnext_id()
+posix_trace_eventtypelist_rewind()
+posix_trace_flush()
+posix_trace_get_attr()
+posix_trace_get_filter()
+posix_trace_get_status()
+posix_trace_getnext_event()
+posix_trace_open()
+posix_trace_rewind()
+posix_trace_set_filter()
+posix_trace_shutdown()
+posix_trace_timedgetnext_event()
+posix_typed_mem_open()
+printf()
+psiginfo() [Added in POSIX.1-2008]
+psignal() [Added in POSIX.1-2008]
+pthread_rwlock_rdlock()
+pthread_rwlock_timedrdlock()
+pthread_rwlock_timedwrlock()
+pthread_rwlock_wrlock()
+putc()
+putc_unlocked()
+putchar()
+putchar_unlocked()
+puts()
+pututxline()
+putwc()
+putwchar()
+readdir()
+readdir_r()
+readlink() [Added in POSIX.1-2008]
+readlinkat() [Added in POSIX.1-2008]
+remove()
+rename()
+renameat() [Added in POSIX.1-2008]
+rewind()
+rewinddir()
+scandir() [Added in POSIX.1-2008]
+scanf()
+seekdir()
+semop()
+setgrent()
+sethostent()
+setnetent()
+setprotoent()
+setpwent()
+setservent()
+setutxent()
+sigpause() [Added in POSIX.1-2008]
+stat()
+strerror()
+strerror_r()
+strftime()
+symlink()
+symlinkat() [Added in POSIX.1-2008]
+sync()
+syslog()
+tmpfile()
+tmpnam()
+ttyname()
+ttyname_r()
+tzset()
+ungetc()
+ungetwc()
+unlink()
+unlinkat() [Added in POSIX.1-2008]
+utime() [Added in POSIX.1-2008]
+utimensat() [Added in POSIX.1-2008]
+utimes() [Added in POSIX.1-2008]
+vdprintf() [Added in POSIX.1-2008]
+vfprintf()
+vfwprintf()
+vprintf()
+vwprintf()
+wcsftime()
+wordexp()
+wprintf()
+wscanf()
+</PRE>
+
+
+<P>
+An implementation may also mark other functions
+not specified in the standard as cancellation points.
+In particular, an implementation is likely to mark
+any non-standard function that may block as a cancellation point.
+(This includes most functions that can touch files.)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>Compiling on Linux</H3>
+
+On Linux, programs that use the Pthreads API should be compiled using
+<I>cc -pthread</I>.
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Linux Implementations of POSIX Threads</H3>
+
+Over time, two threading implementations have been provided by
+the GNU C library on Linux:
+<DL COMPACT>
+<DT><B>LinuxThreads</B>
+
+<DD>
+This is the original Pthreads implementation.
+Since glibc 2.4, this implementation is no longer supported.
+<DT><B>NPTL</B> (Native POSIX Threads Library)
+
+<DD>
+This is the modern Pthreads implementation.
+By comparison with LinuxThreads, NPTL provides closer conformance to
+the requirements of the POSIX.1 specification and better performance
+when creating large numbers of threads.
+NPTL is available since glibc 2.3.2,
+and requires features that are present in the Linux 2.6 kernel.
+</DL>
+<P>
+
+Both of these are so-called 1:1 implementations, meaning that each
+thread maps to a kernel scheduling entity.
+Both threading implementations employ the Linux
+<B><A HREF="/man/index.html?2+clone">clone</A></B>(2)
+
+system call.
+In NPTL, thread synchronization primitives (mutexes,
+thread joining, etc.) are implemented using the Linux
+<B><A HREF="/man/index.html?2+futex">futex</A></B>(2)
+
+system call.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>LinuxThreads</H3>
+
+The notable features of this implementation are the following:
+<DL COMPACT>
+<DT>-<DD>
+In addition to the main (initial) thread,
+and the threads that the program creates using
+<B><A HREF="/man/index.html?3+pthread_create">pthread_create</A></B>(3),
+
+the implementation creates a &quot;manager&quot; thread.
+This thread handles thread creation and termination.
+(Problems can result if this thread is inadvertently killed.)
+<DT>-<DD>
+Signals are used internally by the implementation.
+On Linux 2.2 and later, the first three real-time signals are used
+(see also
+<B><A HREF="/man/index.html?7+signal">signal</A></B>(7)).
+
+On older Linux kernels,
+<B>SIGUSR1</B>
+
+and
+<B>SIGUSR2</B>
+
+are used.
+Applications must avoid the use of whichever set of signals is
+employed by the implementation.
+<DT>-<DD>
+Threads do not share process IDs.
+(In effect, LinuxThreads threads are implemented as processes which share
+more information than usual, but which do not share a common process ID.)
+LinuxThreads threads (including the manager thread)
+are visible as separate processes using
+<B><A HREF="/man/index.html?1+ps">ps</A></B>(1).
+
+</DL>
+<P>
+
+The LinuxThreads implementation deviates from the POSIX.1
+specification in a number of ways, including the following:
+<DL COMPACT>
+<DT>-<DD>
+Calls to
+<B><A HREF="/man/index.html?2+getpid">getpid</A></B>(2)
+
+return a different value in each thread.
+<DT>-<DD>
+Calls to
+<B><A HREF="/man/index.html?2+getppid">getppid</A></B>(2)
+
+in threads other than the main thread return the process ID of the
+manager thread; instead
+<B><A HREF="/man/index.html?2+getppid">getppid</A></B>(2)
+
+in these threads should return the same value as
+<B><A HREF="/man/index.html?2+getppid">getppid</A></B>(2)
+
+in the main thread.
+<DT>-<DD>
+When one thread creates a new child process using
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2),
+
+any thread should be able to
+<B><A HREF="/man/index.html?2+wait">wait</A></B>(2)
+
+on the child.
+However, the implementation only allows the thread that
+created the child to
+<B><A HREF="/man/index.html?2+wait">wait</A></B>(2)
+
+on it.
+<DT>-<DD>
+When a thread calls
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2),
+
+all other threads are terminated (as required by POSIX.1).
+However, the resulting process has the same PID as the thread that called
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2):
+
+it should have the same PID as the main thread.
+<DT>-<DD>
+Threads do not share user and group IDs.
+This can cause complications with set-user-ID programs and
+can cause failures in Pthreads functions if an application
+changes its credentials using
+<B><A HREF="/man/index.html?2+seteuid">seteuid</A></B>(2)
+
+or similar.
+<DT>-<DD>
+Threads do not share a common session ID and process group ID.
+<DT>-<DD>
+Threads do not share record locks created using
+<B><A HREF="/man/index.html?2+fcntl">fcntl</A></B>(2).
+
+<DT>-<DD>
+The information returned by
+<B><A HREF="/man/index.html?2+times">times</A></B>(2)
+
+and
+<B><A HREF="/man/index.html?2+getrusage">getrusage</A></B>(2)
+
+is per-thread rather than process-wide.
+<DT>-<DD>
+Threads do not share semaphore undo values (see
+<B><A HREF="/man/index.html?2+semop">semop</A></B>(2)).
+
+<DT>-<DD>
+Threads do not share interval timers.
+<DT>-<DD>
+Threads do not share a common nice value.
+<DT>-<DD>
+POSIX.1 distinguishes the notions of signals that are directed
+to the process as a whole and signals that are directed to individual
+threads.
+According to POSIX.1, a process-directed signal (sent using
+<B><A HREF="/man/index.html?2+kill">kill</A></B>(2),
+
+for example) should be handled by a single,
+arbitrarily selected thread within the process.
+LinuxThreads does not support the notion of process-directed signals:
+signals may only be sent to specific threads.
+<DT>-<DD>
+Threads have distinct alternate signal stack settings.
+However, a new thread's alternate signal stack settings
+are copied from the thread that created it, so that
+the threads initially share an alternate signal stack.
+(A new thread should start with no alternate signal stack defined.
+If two threads handle signals on their shared alternate signal
+stack at the same time, unpredictable program failures are
+likely to occur.)
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H3>NPTL</H3>
+
+With NPTL, all of the threads in a process are placed
+in the same thread group;
+all members of a thread groups share the same PID.
+NPTL does not employ a manager thread.
+NPTL makes internal use of the first two real-time signals
+(see also
+<B><A HREF="/man/index.html?7+signal">signal</A></B>(7));
+
+these signals cannot be used in applications.
+<P>
+NPTL still has at least one non-conformance with POSIX.1:
+<DL COMPACT>
+<DT>-<DD>
+Threads do not share a common nice value.
+
+
+
+
+
+</DL>
+<P>
+
+Some NPTL non-conformances only occur with older kernels:
+<DL COMPACT>
+<DT>-<DD>
+The information returned by
+<B><A HREF="/man/index.html?2+times">times</A></B>(2)
+
+and
+<B><A HREF="/man/index.html?2+getrusage">getrusage</A></B>(2)
+
+is per-thread rather than process-wide (fixed in kernel 2.6.9).
+<DT>-<DD>
+Threads do not share resource limits (fixed in kernel 2.6.10).
+<DT>-<DD>
+Threads do not share interval timers (fixed in kernel 2.6.12).
+<DT>-<DD>
+Only the main thread is permitted to start a new session using
+<B><A HREF="/man/index.html?2+setsid">setsid</A></B>(2)
+
+(fixed in kernel 2.6.16).
+<DT>-<DD>
+Only the main thread is permitted to make the process into a
+process group leader using
+<B><A HREF="/man/index.html?2+setpgid">setpgid</A></B>(2)
+
+(fixed in kernel 2.6.16).
+<DT>-<DD>
+Threads have distinct alternate signal stack settings.
+However, a new thread's alternate signal stack settings
+are copied from the thread that created it, so that
+the threads initially share an alternate signal stack
+(fixed in kernel 2.6.16).
+</DL>
+<P>
+
+Note the following further points about the NPTL implementation:
+<DL COMPACT>
+<DT>-<DD>
+If the stack size soft resource limit (see the description of
+<B>RLIMIT_STACK</B>
+
+in
+<B><A HREF="/man/index.html?2+setrlimit">setrlimit</A></B>(2))
+
+is set to a value other than
+<I>unlimited</I>,
+
+then this value defines the default stack size for new threads.
+To be effective, this limit must be set before the program
+is executed, perhaps using the
+<I>ulimit -s</I>
+
+shell built-in command
+(<I>limit stacksize</I>
+
+in the C shell).
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>Determining the Threading Implementation</H3>
+
+Since glibc 2.3.2, the
+<B><A HREF="/man/index.html?1+getconf">getconf</A></B>(1)
+
+command can be used to determine
+the system's threading implementation, for example:
+<PRE>
+
+bash$ getconf GNU_LIBPTHREAD_VERSION
+NPTL 2.3.4
+</PRE>
+
+<P>
+
+With older glibc versions, a command such as the following should
+be sufficient to determine the default threading implementation:
+<PRE>
+
+bash$ $( ldd /bin/ls | grep libc.so | awk aq{print $3}aq ) | \
+                egrep -i aqthreads|nptlaq
+        Native POSIX Threads Library by Ulrich Drepper et al
+</PRE>
+
+<A NAME="lbAM">&nbsp;</A>
+<H3>Selecting the Threading Implementation: LD_ASSUME_KERNEL</H3>
+
+On systems with a glibc that supports both LinuxThreads and NPTL
+(i.e., glibc 2.3.<I>x</I>), the
+<B>LD_ASSUME_KERNEL</B>
+
+environment variable can be used to override
+the dynamic linker's default choice of threading implementation.
+This variable tells the dynamic linker to assume that it is
+running on top of a particular kernel version.
+By specifying a kernel version that does not
+provide the support required by NPTL, we can force the use
+of LinuxThreads.
+(The most likely reason for doing this is to run a
+(broken) application that depends on some non-conformant behavior
+in LinuxThreads.)
+For example:
+<PRE>
+
+bash$ $( LD_ASSUME_KERNEL=2.2.5 ldd /bin/ls | grep libc.so | \
+                awk aq{print $3}aq ) | egrep -i aqthreads|ntplaq
+        linuxthreads-0.10 by Xavier Leroy
+</PRE>
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+clone">clone</A></B>(2),
+
+<B><A HREF="/man/index.html?2+futex">futex</A></B>(2),
+
+<B><A HREF="/man/index.html?2+gettid">gettid</A></B>(2),
+
+<B><A HREF="/man/index.html?5+proc">proc</A></B>(5),
+
+<B><A HREF="/man/index.html?7+futex">futex</A></B>(7),
+
+<B><A HREF="/man/index.html?7+signal">signal</A></B>(7),
+
+<BR>
+
+and various Pthreads manual pages, for example:
+<B><A HREF="/man/index.html?3+pthread_attr_init">pthread_attr_init</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_atfork">pthread_atfork</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_cancel">pthread_cancel</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_cleanup_push">pthread_cleanup_push</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_cond_signal">pthread_cond_signal</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_cond_wait">pthread_cond_wait</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_create">pthread_create</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_detach">pthread_detach</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_equal">pthread_equal</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_exit">pthread_exit</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_key_create">pthread_key_create</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_kill">pthread_kill</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_mutex_lock">pthread_mutex_lock</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_mutex_unlock">pthread_mutex_unlock</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_once">pthread_once</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_setcancelstate">pthread_setcancelstate</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_setcanceltype">pthread_setcanceltype</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_setspecific">pthread_setspecific</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_sigmask">pthread_sigmask</A></B>(3),
+
+and
+<B><A HREF="/man/index.html?3+pthread_testcancel">pthread_testcancel</A></B>(3)
+
+<A NAME="lbAO">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAD">Pthreads function return values</A><DD>
+<DT><A HREF="#lbAE">Thread IDs</A><DD>
+<DT><A HREF="#lbAF">Thread-safe functions</A><DD>
+<DT><A HREF="#lbAG">Cancellation Points</A><DD>
+<DT><A HREF="#lbAH">Compiling on Linux</A><DD>
+<DT><A HREF="#lbAI">Linux Implementations of POSIX Threads</A><DD>
+<DT><A HREF="#lbAJ">LinuxThreads</A><DD>
+<DT><A HREF="#lbAK">NPTL</A><DD>
+<DT><A HREF="#lbAL">Determining the Threading Implementation</A><DD>
+<DT><A HREF="#lbAM">Selecting the Threading Implementation: LD_ASSUME_KERNEL</A><DD>
+</DL>
+<DT><A HREF="#lbAN">SEE ALSO</A><DD>
+<DT><A HREF="#lbAO">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:16 GMT, December 24, 2015
+</div></body>
+</HTML>

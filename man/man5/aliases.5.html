@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of ALIASES</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>ALIASES</H1>
+Section: File Formats (5)<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+aliases
+-
+Postfix local alias database format
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+
+<PRE>
+</PRE>
+
+<B>newaliases</B>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+The <B><A HREF="/man/index.html?5+aliases">aliases</A></B>(5) table provides a system-wide mechanism to
+redirect mail for local recipients. The redirections are
+processed by the Postfix <B><A HREF="/man/index.html?8+local">local</A></B>(8) delivery agent.
+<P>
+Normally, the <B><A HREF="/man/index.html?5+aliases">aliases</A></B>(5) table is specified as a text file
+that serves as input to the <B><A HREF="/man/index.html?1+postalias">postalias</A></B>(1) command. The
+result, an indexed file in <B>dbm</B> or <B>db</B> format, is
+used for fast lookup by the mail system. Execute the command
+<B>newaliases</B> in order to rebuild the indexed file after
+changing the Postfix alias database.
+<P>
+The input and output file formats are expected to be compatible
+with Sendmail version 8, and are expected to be suitable for the
+use as NIS maps.
+<P>
+Users can control delivery of their own mail by setting
+up <B>.forward</B> files in their home directory.
+Lines in per-user <B>.forward</B> files have the same syntax
+as the right-hand side of <B><A HREF="/man/index.html?5+aliases">aliases</A></B>(5) entries.
+<P>
+The format of the alias database input file is as follows:
+<DL COMPACT>
+<DT>*<DD>
+An alias definition has the form
+<P>
+<PRE>
+     <I>name</I>: <I>value1</I>, <I>value2</I>, <I>...</I>
+</PRE>
+
+<DT>*<DD>
+Empty lines and whitespace-only lines are ignored, as
+are lines whose first non-whitespace character is a `#'.
+<DT>*<DD>
+A logical line starts with non-whitespace text. A line that
+starts with whitespace continues a logical line.
+</DL>
+<P>
+
+The <I>name</I> is a local address (no domain part).
+Use double quotes when the name contains any special characters
+such as whitespace, `#', `:', or `@'. The <I>name</I> is folded to
+lowercase, in order to make database lookups case insensitive.
+<P>
+
+In addition, when an alias exists for <B>owner-</B><I>name</I>, delivery
+diagnostics are directed to that address, instead of to the originator
+of the message.
+This is typically used to direct delivery errors to the maintainer of
+a mailing list, who is in a better position to deal with mailing
+list delivery problems than the originator of the undelivered mail.
+<P>
+
+The <I>value</I> contains one or more of the following:
+<DL COMPACT>
+<DT><I>address</I><DD>
+Mail is forwarded to <I>address</I>, which is compatible
+with the RFC 822 standard.
+<DT><I>/file/name</I><DD>
+Mail is appended to <I>/file/name</I>. See <B><A HREF="/man/index.html?8+local">local</A></B>(8)
+for details of delivery to file.
+Delivery is not limited to regular files.  For example, to dispose
+of unwanted mail, deflect it to <B>/dev/null</B>.
+<DT>|<I>command</I><DD>
+Mail is piped into <I>command</I>. Commands that contain special
+characters, such as whitespace, should be enclosed between double
+quotes. See <B><A HREF="/man/index.html?8+local">local</A></B>(8) for details of delivery to command.
+<P>
+When the command fails, a limited amount of command output is
+mailed back to the sender.  The file <B>/usr/include/sysexits.h</B>
+defines the expected exit status codes. For example, use
+<B>&quot;|exit 67&quot;</B> to simulate a &quot;user unknown&quot; error, and
+<B>&quot;|exit 0&quot;</B> to implement an expensive black hole.
+<DT><B>:include:</B><I>/file/name</I><DD>
+Mail is sent to the destinations listed in the named file.
+Lines in <B>:include:</B> files have the same syntax
+as the right-hand side of alias entries.
+<P>
+A destination can be any destination that is described in this
+manual page. However, delivery to &quot;|<I>command</I>&quot; and
+<I>/file/name</I> is disallowed by default. To enable, edit the
+<B>allow_mail_to_commands</B> and <B>allow_mail_to_files</B>
+configuration parameters.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>ADDRESS EXTENSION</H2>
+
+
+<PRE>
+</PRE>
+
+When alias database search fails, and the recipient localpart
+contains the optional recipient delimiter (e.g., <I>user+foo</I>),
+the search is repeated for the unextended address (e.g., <I>user</I>).
+<P>
+The <B>propagate_unmatched_extensions</B> parameter controls
+whether an unmatched address extension (<I>+foo</I>) is
+propagated to the result of table lookup.
+<A NAME="lbAF">&nbsp;</A>
+<H2>CASE FOLDING</H2>
+
+
+<PRE>
+</PRE>
+
+The <A HREF="/man/index.html?8+local">local</A>(8) delivery agent always folds the search string
+to lowercase before database lookup.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SECURITY</H2>
+
+
+<PRE>
+</PRE>
+
+The <B><A HREF="/man/index.html?8+local">local</A></B>(8) delivery agent disallows regular expression
+substitution of $1 etc. in <B>alias_maps</B>, because that
+would open a security hole.
+<P>
+The <B><A HREF="/man/index.html?8+local">local</A></B>(8) delivery agent will silently ignore
+requests to use the <B><A HREF="/man/index.html?8+proxymap">proxymap</A></B>(8) server within
+<B>alias_maps</B>. Instead it will open the table directly.
+Before Postfix version 2.2, the <B><A HREF="/man/index.html?8+local">local</A></B>(8) delivery
+agent will terminate with a fatal error.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFIGURATION PARAMETERS</H2>
+
+
+<PRE>
+</PRE>
+
+The following <B>main.cf</B> parameters are especially relevant.
+The text below provides only a parameter summary. See
+<B><A HREF="/man/index.html?5+postconf">postconf</A></B>(5) for more details including examples.
+<DL COMPACT>
+<DT><B>alias_database</B><DD>
+List of alias databases that are updated by the
+<B><A HREF="/man/index.html?1+newaliases">newaliases</A></B>(1) command.
+<DT><B>alias_maps</B><DD>
+List of alias databases queried by the <B><A HREF="/man/index.html?8+local">local</A></B>(8) delivery agent.
+<DT><B>allow_mail_to_commands</B><DD>
+Restrict the usage of mail delivery to external command.
+<DT><B>allow_mail_to_files</B><DD>
+Restrict the usage of mail delivery to external file.
+<DT><B>expand_owner_alias</B><DD>
+When delivering to an alias that has an <B>owner-</B> companion alias,
+set the envelope sender address to the right-hand side of the
+owner alias, instead using of the left-hand side address.
+<DT><B>propagate_unmatched_extensions</B><DD>
+A list of address rewriting or forwarding mechanisms that
+propagate an address extension from the original address
+to the result. Specify zero or more of <B>canonical</B>,
+<B>virtual</B>, <B>alias</B>, <B>forward</B>, <B>include</B>,
+or <B>generic</B>.
+<DT><B>owner_request_special</B><DD>
+Give special treatment to <B>owner-</B><I>listname</I> and
+<I>listname</I><B>-request</B>
+addresses.
+<DT><B>recipient_delimiter</B><DD>
+Delimiter that separates recipients from address extensions.
+</DL>
+<P>
+
+Available in Postfix version 2.3 and later:
+<DL COMPACT>
+<DT><B>frozen_delivered_to</B><DD>
+Update the <A HREF="/man/index.html?8+local">local</A>(8) delivery agent's Delivered-To: address
+(see prepend_delivered_header) only once, at the start of
+a delivery; do not update the Delivered-To: address while
+expanding aliases or .forward files.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>STANDARDS</H2>
+
+
+<PRE>
+RFC 822 (ARPA Internet Text Messages)
+</PRE><A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/man/index.html?8+local">local</A>(8), local delivery agent
+<A HREF="/man/index.html?1+newaliases">newaliases</A>(1), create/update alias database
+<A HREF="/man/index.html?1+postalias">postalias</A>(1), create/update alias database
+<A HREF="/man/index.html?5+postconf">postconf</A>(5), configuration parameters
+</PRE><A NAME="lbAK">&nbsp;</A>
+<H2>README FILES</H2>
+
+
+<PRE>
+</PRE>
+
+Use &quot;<B>postconf readme_directory</B>&quot; or
+&quot;<B>postconf html_directory</B>&quot; to locate this information.
+
+<PRE>
+DATABASE_README, Postfix lookup table overview
+</PRE><A NAME="lbAL">&nbsp;</A>
+<H2>LICENSE</H2>
+
+
+<PRE>
+</PRE>
+
+The Secure Mailer license must be distributed with this software.
+<A NAME="lbAM">&nbsp;</A>
+<H2>AUTHOR(S)</H2>
+
+
+<PRE>
+Wietse Venema
+IBM T.J. Watson Research
+P.O. Box 704
+Yorktown Heights, NY 10598, USA
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">ADDRESS EXTENSION</A><DD>
+<DT><A HREF="#lbAF">CASE FOLDING</A><DD>
+<DT><A HREF="#lbAG">SECURITY</A><DD>
+<DT><A HREF="#lbAH">CONFIGURATION PARAMETERS</A><DD>
+<DT><A HREF="#lbAI">STANDARDS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">README FILES</A><DD>
+<DT><A HREF="#lbAL">LICENSE</A><DD>
+<DT><A HREF="#lbAM">AUTHOR(S)</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:59 GMT, December 24, 2015
+</div></body>
+</HTML>

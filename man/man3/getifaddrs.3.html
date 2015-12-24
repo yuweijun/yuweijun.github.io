@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of GETIFADDRS</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>GETIFADDRS</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2009-01-23<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+getifaddrs, freeifaddrs - get interface addresses
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/ifaddrs.h">ifaddrs.h</A>&gt;</B>
+
+<B>int getifaddrs(struct ifaddrs **</B><I>ifap</I><B>);</B>
+
+<B>void freeifaddrs(struct ifaddrs *</B><I>ifa</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>getifaddrs</B>()
+
+function creates a linked list of structures describing
+the network interfaces of the local system,
+and stores the address of the first item of the list in
+<I>*ifap</I>.
+
+The list consists of
+<I>ifaddrs</I>
+
+structures, defined as follows:
+<P>
+
+<PRE>
+struct ifaddrs {
+    struct ifaddrs  *ifa_next;    /* Next item in list */
+    char            *ifa_name;    /* Name of interface */
+    unsigned int     ifa_flags;   /* Flags from SIOCGIFFLAGS */
+    struct sockaddr *ifa_addr;    /* Address of interface */
+    struct sockaddr *ifa_netmask; /* Netmask of interface */
+    union {
+        struct sockaddr *ifu_broadaddr;
+                         /* Broadcast address of interface */
+        struct sockaddr *ifu_dstaddr;
+                         /* Point-to-point destination address */
+    } ifa_ifu;
+#define              ifa_broadaddr ifa_ifu.ifu_broadaddr
+#define              ifa_dstaddr   ifa_ifu.ifu_dstaddr
+    void            *ifa_data;    /* Address-specific data */
+};
+</PRE>
+
+
+<P>
+
+The
+<I>ifa_next</I>
+
+field contains a pointer to the next structure on the list,
+or NULL if this is the last item of the list.
+<P>
+
+The
+<I>ifa_name</I>
+
+points to the null-terminated interface name.
+
+
+
+<P>
+
+The
+<I>ifa_flags</I>
+
+field contains the interface flags, as returned by the
+<B>SIOCGIFFLAGS</B>
+
+<B><A HREF="/man/index.html?2+ioctl">ioctl</A></B>(2)
+
+operation (see
+<B><A HREF="/man/index.html?7+netdevice">netdevice</A></B>(7)
+
+for a list of these flags).
+<P>
+
+The
+<I>ifa_addr</I>
+
+field points to a structure containing the interface address.
+(The
+<I>sa_family</I>
+
+sub-field should be consulted to determine the format of the
+address structure.)
+<P>
+
+The
+<I>ifa_netmask</I>
+
+field points to a structure containing the netmask associated with
+<I>ifa_addr</I>,
+
+if applicable for the address family.
+<P>
+
+Depending on whether the bit
+<B>IFF_BROADCAST</B>
+
+or
+<B>IFF_POINTOPOINT</B>
+
+is set in
+<I>ifa_flags</I>
+
+(only one can be set at a time),
+either
+<I>ifa_broadaddr</I>
+
+will contain the broadcast address associated with
+<I>ifa_addr</I>
+
+(if applicable for the address family) or
+<I>ifa_dstaddr</I>
+
+will contain the destination address of the point-to-point interface.
+<P>
+
+The
+<I>ifa_data</I>
+
+field points to a buffer containing address-family-specific data;
+this field may be NULL if there is no such data for this interface.
+<P>
+
+The data returned by
+<B>getifaddrs</B>()
+
+is dynamically allocated and should be freed using
+<B>freeifaddrs</B>()
+
+when no longer needed.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+On success,
+<B>getifaddrs</B>()
+
+returns zero;
+on error, -1 is returned, and
+<I>errno</I>
+
+is set appropriately.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<B>getifaddrs</B>()
+
+may fail and set
+<I>errno</I>
+
+for any of the errors specified for
+<B><A HREF="/man/index.html?2+socket">socket</A></B>(2),
+
+<B><A HREF="/man/index.html?2+bind">bind</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getsockname">getsockname</A></B>(2),
+
+<B><A HREF="/man/index.html?2+recvmsg">recvmsg</A></B>(2),
+
+<B><A HREF="/man/index.html?2+sendto">sendto</A></B>(2),
+
+<B><A HREF="/man/index.html?3+malloc">malloc</A></B>(3),
+
+or
+<B><A HREF="/man/index.html?3+realloc">realloc</A></B>(3).
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+The
+<B>getifaddrs</B>()
+
+function first appeared in glibc 2.3, but before glibc 2.3.3,
+the implementation only supported IPv4 addresses;
+IPv6 support was added in glibc 2.3.3.
+Support of address families other than IPv4 is only available
+on kernels that support netlink.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+Not in POSIX.1-2001.
+This function first appeared in BSDi and is
+present on the BSD systems, but with slightly different
+semantics documented---returning one entry per interface,
+not per address.
+This means
+<I>ifa_addr</I>
+
+and other fields can actually be NULL if the interface has no address,
+and no link-level address is returned if the interface has an IP address
+assigned.
+Also, the way of choosing either
+<I>ifa_broadaddr</I>
+
+or
+<I>ifa_dstaddr</I>
+
+differs on various systems.
+
+
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+The addresses returned on Linux will usually be the IPv4 and IPv6 addresses
+assigned to the interface, but also one
+<B>AF_PACKET</B>
+
+address per interface containing lower-level details about the interface
+and its physical layer.
+In this case, the
+<I>ifa_data</I>
+
+field may contain a pointer to a
+<I>struct net_device_stats</I>,
+
+defined in
+<I>&lt;<A HREF="file:/usr/include/linux/netdevice.h">linux/netdevice.h</A>&gt;</I>,
+
+which contains various interface attributes and statistics.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+The program below demonstrates the use of
+<B>getifaddrs</B>(),
+
+<B>freeifaddrs</B>(),
+
+and
+<B><A HREF="/man/index.html?3+getnameinfo">getnameinfo</A></B>(3).
+
+Here is what we see when running this program on one system:
+
+<PRE>
+
+$ <B>./a.out</B>
+lo      address family: 17 (AF_PACKET)
+eth0    address family: 17 (AF_PACKET)
+lo      address family: 2 (AF_INET)
+        address: &lt;127.0.0.1&gt;
+eth0    address family: 2 (AF_INET)
+        address: &lt;10.1.1.4&gt;
+lo      address family: 10 (AF_INET6)
+        address: &lt;::1&gt;
+eth0    address family: 10 (AF_INET6)
+        address: &lt;fe80::2d0:59ff:feda:eb51%eth0&gt;
+</PRE>
+
+
+<A NAME="lbAK">&nbsp;</A>
+<H3>Program source</H3>
+
+
+<PRE>
+#include &lt;<A HREF="file:/usr/include/arpa/inet.h">arpa/inet.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/sys/socket.h">sys/socket.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/netdb.h">netdb.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/ifaddrs.h">ifaddrs.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;
+
+int
+main(int argc, char *argv[])
+{
+    struct ifaddrs *ifaddr, *ifa;
+    int family, s;
+    char host[NI_MAXHOST];
+
+    if (getifaddrs(&amp;ifaddr) == -1) {
+        perror(&quot;getifaddrs&quot;);
+        exit(EXIT_FAILURE);
+    }
+
+    /* Walk through linked list, maintaining head pointer so we
+       can free list later */
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa-&gt;ifa_next) {
+        if (ifa-&gt;ifa_addr == NULL)
+            continue;
+
+        family = ifa-&gt;ifa_addr-&gt;sa_family;
+
+        /* Display interface name and family (including symbolic
+           form of the latter for the common families) */
+
+        printf(&quot;%s	  address family: %d%s\n&quot;,
+                ifa-&gt;ifa_name, family,
+                (family == AF_PACKET) ? &quot; (AF_PACKET)&quot; :
+                (family == AF_INET) ?   &quot; (AF_INET)&quot; :
+                (family == AF_INET6) ?  &quot; (AF_INET6)&quot; : &quot;&quot;);
+
+        /* For an AF_INET* interface address, display the address */
+
+        if (family == AF_INET || family == AF_INET6) {
+            s = getnameinfo(ifa-&gt;ifa_addr,
+                    (family == AF_INET) ? sizeof(struct sockaddr_in) :
+                                          sizeof(struct sockaddr_in6),
+                    host, NI_MAXHOST, NULL, 0, NI_NUMERICHOST);
+            if (s != 0) {
+                printf(&quot;getnameinfo() failed: %s\n&quot;, gai_strerror(s));
+                exit(EXIT_FAILURE);
+            }
+            printf(&quot;\taddress: &lt;%s&gt;\n&quot;, host);
+        }
+    }
+
+    freeifaddrs(ifaddr);
+    exit(EXIT_SUCCESS);
+}
+</PRE>
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+bind">bind</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getsockname">getsockname</A></B>(2),
+
+<B><A HREF="/man/index.html?2+socket">socket</A></B>(2),
+
+<B><A HREF="/man/index.html?7+packet">packet</A></B>(7),
+
+<B><A HREF="/man/index.html?8+ifconfig">ifconfig</A></B>(8)
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">VERSIONS</A><DD>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DT><A HREF="#lbAJ">EXAMPLE</A><DD>
+<DL>
+<DT><A HREF="#lbAK">Program source</A><DD>
+</DL>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+<DT><A HREF="#lbAM">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:28 GMT, December 24, 2015
+</div></body>
+</HTML>

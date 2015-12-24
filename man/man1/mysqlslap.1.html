@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of \FBMYSQLSLAP\FR</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>\FBMYSQLSLAP\FR</H1>
+Section: MySQL Database System (1)<BR>Updated: 12/16/2011<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+mysqlslap - load emulation client
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<DL COMPACT>
+<DT>
+<B>mysqlslap [</B><B></B><I>options</I><B>]</B>
+</DL>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>mysqlslap</B>
+<DD>is a diagnostic program designed to emulate client load for a MySQL server and to report the timing of each stage. It works as if multiple clients are accessing the server.
+<B>mysqlslap</B>
+is available as of MySQL 5.1.4.
+<P>
+
+Invoke
+<B>mysqlslap</B>
+like this:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+shell&gt; <B>mysqlslap [</B><B></B><I>options</I><B>]</B>
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+
+Some options such as
+<B>--create</B>
+or
+<B>--query</B>
+enable you to specify a string containing an SQL statement or a file containing statements. If you specify a file, by default it must contain one statement per line. (That is, the implicit statement delimiter is the newline character.) Use the
+<B>--delimiter</B>
+option to specify a different delimiter, which enables you to specify statements that span multiple lines or place multiple statements on a single line. You cannot include comments in a file;
+<B>mysqlslap</B>
+does not understand them.
+<P>
+
+<B>mysqlslap</B>
+runs in three stages:
+<P>
+<DL COMPACT><DT><DD>
+ 1.
+
+
+Create schema, table, and optionally any stored programs or data you want to using for the test. This stage uses a single client connection.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+ 2.
+
+
+Run the load test. This stage can use many client connections.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+ 3.
+
+
+Clean up (disconnect, drop table if specified). This stage uses a single client connection.
+</DL>
+
+<P>
+
+Examples:
+<P>
+
+Supply your own create and query SQL statements, with 50 clients querying and 200 selects for each:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+mysqlslap --delimiter=&quot;;&quot; \
+  --create=&quot;CREATE TABLE a (b int);INSERT INTO a VALUES (23)&quot; \
+  --query=&quot;SELECT * FROM a&quot; --concurrency=50 --iterations=200
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+
+Let
+<B>mysqlslap</B>
+build the query SQL statement with a table of two
+INT
+columns and three
+VARCHAR
+columns. Use five clients querying 20 times each. Do not create the table or insert the data (that is, use the previous test's schema and data):
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+mysqlslap --concurrency=5 --iterations=20 \
+  --number-int-cols=2 --number-char-cols=3 \
+  --auto-generate-sql
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+
+Tell the program to load the create, insert, and query SQL statements from the specified files, where the
+create.sql
+file has multiple table creation statements delimited by
+';'
+and multiple insert statements delimited by
+';'. The
+<B>--query</B>
+file will have multiple queries delimited by
+';'. Run all the load statements, then run all the queries in the query file with five clients (five times each):
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+mysqlslap --concurrency=5 \
+  --iterations=5 --query=query.sql --create=create.sql \
+  --delimiter=&quot;;&quot;
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+
+<B>mysqlslap</B>
+supports the following options, which can be specified on the command line or in the
+[mysqlslap]
+and
+[client]
+groups of an option file.
+<B>mysqlslap</B>
+also supports the options for processing option files described at
+Section&nbsp;4.2.3.3.1, lqCommand-Line Options that Affect Option-File Handlingrq.
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--help</B>,
+<B>-?</B>
+<P>
+Display a help message and exit.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--auto-generate-sql</B>,
+<B>-a</B>
+<P>
+Generate SQL statements automatically when they are not supplied in files or using command options.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--auto-generate-sql-add-autoincrement</B>
+<P>
+Add an
+AUTO_INCREMENT
+column to automatically generated tables. This option was added in MySQL 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--auto-generate-sql-execute-number=</B><B></B><I>N</I>
+<P>
+Specify how many queries to generate automatically. This option was added in MySQL 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--auto-generate-sql-guid-primary</B>
+<P>
+Add a GUID-based primary key to automatically generated tables. This option was added in MySQL 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--auto-generate-sql-load-type=</B><B></B><I>type</I>
+<P>
+Specify the test load type. The permissible values are
+read
+(scan tables),
+write
+(insert into tables),
+key
+(read primary keys),
+update
+(update primary keys), or
+mixed
+(half inserts, half scanning selects). The default is
+mixed. This option was added in MySQL 5.1.16.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--auto-generate-sql-secondary-indexes=</B><B></B><I>N</I>
+<P>
+Specify how many secondary indexes to add to automatically generated tables. By default, none are added. This option was added in MySQL 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--auto-generate-sql-unique-query-number=</B><B></B><I>N</I>
+<P>
+How many different queries to generate for automatic tests. For example, if you run a
+key
+test that performs 1000 selects, you can use this option with a value of 1000 to run 1000 unique queries, or with a value of 50 to perform 50 different selects. The default is 10. This option was added in MySQL 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--auto-generate-sql-unique-write-number=</B><B></B><I>N</I>
+<P>
+How many different queries to generate for
+<B>--auto-generate-sql-write-number</B>. The default is 10. This option was added in MySQL 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--auto-generate-sql-write-number=</B><B></B><I>N</I>
+<P>
+How many row inserts to perform on each thread. The default is 100. This option was added in MySQL 5.1.16.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--commit=</B><B></B><I>N</I>
+<P>
+How many statements to execute before committing. The default is 0 (no commits are done). This option was added in MySQL 5.1.21.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--compress</B>,
+<B>-C</B>
+<P>
+Compress all information sent between the client and the server if both support compression.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--concurrency=</B><B></B><I>N</I>,
+<B>-c </B><B></B><I>N</I>
+<P>
+The number of clients to simulate when issuing the
+SELECT
+statement.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--create=</B><B></B><I>value</I>
+<P>
+The file or string containing the statement to use for creating the table.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--create-and-drop-schema=</B><B></B><I>value</I>
+<P>
+The schema in which to run the tests.
+<B>mysqlslap</B>
+drops the schema at the end of the test run. This option was added in MySQL 5.1.57.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--create-schema=</B><B></B><I>value</I>
+<P>
+The schema in which to run the tests. This option was added in MySQL 5.1.5.
+<P>
+
+
+
+<DL COMPACT><DT><DD>
+
+
+
+<BR>
+
+<FONT SIZE="+1">
+<B>Note</B>
+</FONT>
+<BR>
+
+If the
+<B>--auto-generate-sql</B>
+option is also given,
+<B>mysqlslap</B>
+drops the schema at the end of the test run. To avoid this, use the
+<B>--create-and-drop-schema</B>
+option instead.
+<P>
+</DL>
+
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--csv[=</B><B></B><I>file_name</I><B>]</B>
+<P>
+Generate output in comma-separated values format. The output goes to the named file, or to the standard output if no file is given. This option was added in MySQL 5.1.5.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--debug[=</B><B></B><I>debug_options</I><B>]</B>,
+<B>-# [</B><B></B><I>debug_options</I><B>]</B>
+<P>
+Write a debugging log. A typical
+<I>debug_options</I>
+string is
+'d:t:o,<I>file_name</I>'. The default is
+'d:t:o,/tmp/mysqlslap.trace'.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--debug-check</B>
+<P>
+Print some debugging information when the program exits. This option was added in MySQL 5.1.21.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--debug-info</B>,
+<B>-T</B>
+<P>
+Print debugging information and memory and CPU usage statistics when the program exits. This option was added in MySQL 5.1.21.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--delimiter=</B><B></B><I>str</I>,
+<B>-F </B><B></B><I>str</I>
+<P>
+The delimiter to use in SQL statements supplied in files or using command options.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--detach=</B><B></B><I>N</I>
+<P>
+Detach (close and reopen) each connection after each
+<I>N</I>
+statements. The default is 0 (connections are not detached). This option was added in MySQL 5.1.21.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--engine=</B><B></B><I>engine_name</I>,
+<B>-e </B><B></B><I>engine_name</I>
+<P>
+The storage engine to use for creating tables.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--host=</B><B></B><I>host_name</I>,
+<B>-h </B><B></B><I>host_name</I>
+<P>
+Connect to the MySQL server on the given host.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--iterations=</B><B></B><I>N</I>,
+<B>-i </B><B></B><I>N</I>
+<P>
+The number of times to run the tests.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--lock-directory=</B><B></B><I>path</I>
+<P>
+The directory to use for storing locks. This option was added in MySQL 5.1.5 and removed in 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--number-char-cols=</B><B></B><I>N</I>,
+<B>-x </B><B></B><I>N</I>
+<P>
+The number of
+VARCHAR
+columns to use if
+<B>--auto-generate-sql</B>
+is specified.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--number-int-cols=</B><B></B><I>N</I>,
+<B>-y </B><B></B><I>N</I>
+<P>
+The number of
+INT
+columns to use if
+<B>--auto-generate-sql</B>
+is specified.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--number-of-queries=</B><B></B><I>N</I>
+<P>
+Limit each client to approximately this many queries. Query counting takes into account the statement delimiter. For example, if you invoke
+<B>mysqlslap</B>
+as follows, the
+;
+delimiter is recognized so that each instance of the query string counts as two queries. As a result, 5 rows (not 10) are inserted.
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+shell&gt; <B>mysqlslap --delimiter=&quot;;&quot; --number-of-queries=10</B>
+         <B>--query=&quot;use test;insert into t values(null)&quot;</B>
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+This option was added in MySQL 5.1.5.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--only-print</B>
+<P>
+Do not connect to databases.
+<B>mysqlslap</B>
+only prints what it would have done. This option was added in MySQL 5.1.5.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--password[=</B><B></B><I>password</I><B>]</B>,
+<B>-p[</B><B></B><I>password</I><B>]</B>
+<P>
+The password to use when connecting to the server. If you use the short option form (<B>-p</B>), you
+<I>cannot</I>
+have a space between the option and the password. If you omit the
+<I>password</I>
+value following the
+<B>--password</B>
+or
+<B>-p</B>
+option on the command line,
+<B>mysqlslap</B>
+prompts for one.
+<P>
+Specifying a password on the command line should be considered insecure. See
+Section&nbsp;5.3.2.2, lqEnd-User Guidelines for Password Securityrq. You can use an option file to avoid giving the password on the command line.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--pipe</B>,
+<B>-W</B>
+<P>
+On Windows, connect to the server using a named pipe. This option applies only if the server supports named-pipe connections.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--port=</B><B></B><I>port_num</I>,
+<B>-P </B><B></B><I>port_num</I>
+<P>
+The TCP/IP port number to use for the connection.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--post-query=</B><B></B><I>value</I>
+<P>
+The file or string containing the statement to execute after the tests have completed. This execution is not counted for timing purposes. This option was added in MySQL 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--shared-memory-base-name=</B><B></B><I>name</I>
+<P>
+On Windows, the shared-memory name to use, for connections made using shared memory to a local server. This option applies only if the server supports shared-memory connections.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--post-system=</B><B></B><I>str</I>
+<P>
+The string to execute using
+system()
+after the tests have completed. This execution is not counted for timing purposes. This option was added in MySQL 5.1.21.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--pre-query=</B><B></B><I>value</I>
+<P>
+The file or string containing the statement to execute before running the tests. This execution is not counted for timing purposes. This option was added in MySQL 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--pre-system=</B><B></B><I>str</I>
+<P>
+The string to execute using
+system()
+before running the tests. This execution is not counted for timing purposes. This option was added in MySQL 5.1.21.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--preserve-schema</B>
+<P>
+Preserve the schema from the
+<B>mysqlslap</B>
+run. The
+<B>--auto-generate-sql</B>
+and
+<B>--create</B>
+options disable this option. This option was added in MySQL 5.1.5 and removed in MySQL 5.1.23.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--protocol={TCP|SOCKET|PIPE|MEMORY}</B>
+<P>
+The connection protocol to use for connecting to the server. It is useful when the other connection parameters normally would cause a protocol to be used other than the one you want. For details on the permissible values, see
+Section&nbsp;4.2.2, lqConnecting to the MySQL Serverrq.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--query=</B><B></B><I>value</I>,
+<B>-q </B><B></B><I>value</I>
+<P>
+The file or string containing the
+SELECT
+statement to use for retrieving data.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--silent</B>,
+<B>-s</B>
+<P>
+Silent mode. No output.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--slave</B>
+<P>
+Follow master locks for other
+<B>mysqlslap</B>
+clients. Use this option if you are trying to synchronize around one master server with
+<B>--lock-directory</B>
+plus NFS. This option was added in MySQL 5.1.5 and removed in 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--socket=</B><B></B><I>path</I>,
+<B>-S </B><B></B><I>path</I>
+<P>
+For connections to
+localhost, the Unix socket file to use, or, on Windows, the name of the named pipe to use.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--ssl*</B>
+<P>
+Options that begin with
+<B>--ssl</B>
+specify whether to connect to the server using SSL and indicate where to find SSL keys and certificates. See
+Section&nbsp;5.5.6.3, lqSSL Command Optionsrq.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--use-threads</B>
+<P>
+On Unix, the default is to use
+fork()
+calls and this option causes
+<B>pthread</B>
+calls to be used instead. (On Windows, the default is to use
+pthread
+calls and the option has no effect.) This option was added in MySQL 5.1.6 and removed in 5.1.18.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--user=</B><B></B><I>user_name</I>,
+<B>-u </B><B></B><I>user_name</I>
+<P>
+The MySQL user name to use when connecting to the server.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--verbose</B>,
+<B>-v</B>
+<P>
+Verbose mode. Print more information about what the program does. This option can be used multiple times to increase the amount of information.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+
+
+<B>--version</B>,
+<B>-V</B>
+<P>
+Display version information and exit.
+</DL>
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<BR>
+
+<P>
+
+Copyright &#169; 1997, 2011, Oracle and/or its affiliates. All rights reserved.
+<P>
+
+This documentation is free software; you can redistribute it and/or modify it only under the terms of the GNU General Public License as published by the Free Software Foundation; version 2 of the License.
+<P>
+
+This documentation is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+<P>
+
+You should have received a copy of the GNU General Public License along with the program; if not, write to the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA or see <A HREF="http://www.gnu.org/licenses/.">http://www.gnu.org/licenses/.</A>
+<P>
+<A NAME="lbAF">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+For more information, please refer to the MySQL Reference Manual,
+which may already be installed locally and which is also available
+online at <A HREF="http://dev.mysql.com/doc/.">http://dev.mysql.com/doc/.</A>
+<A NAME="lbAG">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Oracle Corporation (<A HREF="http://dev.mysql.com/).">http://dev.mysql.com/).</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAF">SEE ALSO</A><DD>
+<DT><A HREF="#lbAG">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:06 GMT, December 24, 2015
+</div></body>
+</HTML>

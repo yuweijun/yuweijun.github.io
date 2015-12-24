@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Net::NNTP</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Net::NNTP</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Net::NNTP - NNTP Client class
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Net::NNTP;
+
+    $nntp = Net::NNTP-&gt;new(&quot;some.host.name&quot;);
+    $nntp-&gt;quit;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<TT>&quot;Net::NNTP&quot;</TT> is a class implementing a simple <FONT SIZE="-1">NNTP</FONT> client in Perl as described
+in <FONT SIZE="-1">RFC977</FONT>. <TT>&quot;Net::NNTP&quot;</TT> inherits its communication methods from <TT>&quot;Net::Cmd&quot;</TT>
+<A NAME="lbAE">&nbsp;</A>
+<H2>CONSTRUCTOR</H2>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT>new ( [ <FONT SIZE="-1">HOST</FONT> ] [, <FONT SIZE="-1">OPTIONS</FONT> ])<DD>
+<A NAME="ixAAF"></A>
+This is the constructor for a new Net::NNTP object. <TT>&quot;HOST&quot;</TT> is the
+name of the remote host to which a <FONT SIZE="-1">NNTP</FONT> connection is required. If not
+given then it may be passed as the <TT>&quot;Host&quot;</TT> option described below. If no host is passed
+then two environment variables are checked, first <TT>&quot;NNTPSERVER&quot;</TT> then
+<TT>&quot;NEWSHOST&quot;</TT>, then <TT>&quot;Net::Config&quot;</TT> is checked, and if a host is not found
+then <TT>&quot;news&quot;</TT> is used.
+
+
+<P>
+
+
+<TT>&quot;OPTIONS&quot;</TT> are passed in a hash like fashion, using key and value pairs.
+Possible options are:
+
+
+<P>
+
+
+<B>Host</B> - <FONT SIZE="-1">NNTP</FONT> host to connect to. It may be a single scalar, as defined for
+the <TT>&quot;PeerAddr&quot;</TT> option in IO::Socket::INET, or a reference to
+an array with hosts to try in turn. The ``host'' method will return the value
+which was used to connect to the host.
+
+
+<P>
+
+
+<B>Timeout</B> - Maximum time, in seconds, to wait for a response from the
+<FONT SIZE="-1">NNTP</FONT> server, a value of zero will cause all <FONT SIZE="-1">IO</FONT> operations to block.
+(default: 120)
+
+
+<P>
+
+
+<B>Debug</B> - Enable the printing of debugging information to <FONT SIZE="-1">STDERR</FONT>
+
+
+<P>
+
+
+<B>Reader</B> - If the remote server is <FONT SIZE="-1">INN</FONT> then initially the connection
+will be to nnrpd, by default <TT>&quot;Net::NNTP&quot;</TT> will issue a <TT>&quot;MODE READER&quot;</TT> command
+so that the remote server becomes innd. If the <TT>&quot;Reader&quot;</TT> option is given
+with a value of zero, then this command will not be sent and the
+connection will be left talking to nnrpd.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAG"></A>
+Unless otherwise stated all methods return either a <I>true</I> or <I>false</I>
+value, with <I>true</I> meaning that the operation was a success. When a method
+states that it returns a value, failure will be returned as <I>undef</I> or an
+empty list.
+<DL COMPACT>
+<DT>article ( [ MSGID|MSGNUM ], [<FONT SIZE="-1">FH</FONT>] )<DD>
+<A NAME="ixAAH"></A>
+Retrieve the header, a blank line, then the body (text) of the
+specified article.
+
+
+<P>
+
+
+If <TT>&quot;FH&quot;</TT> is specified then it is expected to be a valid filehandle
+and the result will be printed to it, on success a true value will be
+returned. If <TT>&quot;FH&quot;</TT> is not specified then the return value, on success,
+will be a reference to an array containing the article requested, each
+entry in the array will contain one line of the article.
+
+
+<P>
+
+
+If no arguments are passed then the current article in the currently
+selected newsgroup is fetched.
+
+
+<P>
+
+
+<TT>&quot;MSGNUM&quot;</TT> is a numeric id of an article in the current newsgroup, and
+will change the current article pointer.  <TT>&quot;MSGID&quot;</TT> is the message id of
+an article as shown in that article's header.  It is anticipated that the
+client will obtain the <TT>&quot;MSGID&quot;</TT> from a list provided by the <TT>&quot;newnews&quot;</TT>
+command, from references contained within another article, or from the
+message-id provided in the response to some other commands.
+
+
+<P>
+
+
+If there is an error then <TT>&quot;undef&quot;</TT> will be returned.
+<DT>body ( [ MSGID|MSGNUM ], [<FONT SIZE="-1">FH</FONT>] )<DD>
+<A NAME="ixAAI"></A>
+Like <TT>&quot;article&quot;</TT> but only fetches the body of the article.
+<DT>head ( [ MSGID|MSGNUM ], [<FONT SIZE="-1">FH</FONT>] )<DD>
+<A NAME="ixAAJ"></A>
+Like <TT>&quot;article&quot;</TT> but only fetches the headers for the article.
+<DT>articlefh ( [ MSGID|MSGNUM ] )<DD>
+<A NAME="ixAAK"></A>
+
+<DT>bodyfh ( [ MSGID|MSGNUM ] )<DD>
+<A NAME="ixAAL"></A>
+<DT>headfh ( [ MSGID|MSGNUM ] )<DD>
+<A NAME="ixAAM"></A>
+
+These are similar to <I>article()</I>, <I>body()</I> and <I>head()</I>, but rather than
+returning the requested data directly, they return a tied filehandle
+from which to read the article.
+<DT>nntpstat ( [ MSGID|MSGNUM ] )<DD>
+<A NAME="ixAAN"></A>
+The <TT>&quot;nntpstat&quot;</TT> command is similar to the <TT>&quot;article&quot;</TT> command except that no
+text is returned.  When selecting by message number within a group,
+the <TT>&quot;nntpstat&quot;</TT> command serves to set the ``current article pointer'' without
+sending text.
+
+
+<P>
+
+
+Using the <TT>&quot;nntpstat&quot;</TT> command to
+select by message-id is valid but of questionable value, since a
+selection by message-id does <B>not</B> alter the ``current article pointer''.
+
+
+<P>
+
+
+Returns the message-id of the ``current article''.
+<DT>group ( [ <FONT SIZE="-1">GROUP</FONT> ] )<DD>
+<A NAME="ixAAO"></A>
+Set and/or get the current group. If <TT>&quot;GROUP&quot;</TT> is not given then information
+is returned on the current group.
+
+
+<P>
+
+
+In a scalar context it returns the group name.
+
+
+<P>
+
+
+In an array context the return value is a list containing, the number
+of articles in the group, the number of the first article, the number
+of the last article and the group name.
+<DT>ihave ( <FONT SIZE="-1">MSGID</FONT> [, <FONT SIZE="-1">MESSAGE</FONT> ])<DD>
+<A NAME="ixAAP"></A>
+The <TT>&quot;ihave&quot;</TT> command informs the server that the client has an article
+whose id is <TT>&quot;MSGID&quot;</TT>.  If the server desires a copy of that
+article, and <TT>&quot;MESSAGE&quot;</TT> has been given the it will be sent.
+
+
+<P>
+
+
+Returns <I>true</I> if the server desires the article and <TT>&quot;MESSAGE&quot;</TT> was
+successfully sent,if specified.
+
+
+<P>
+
+
+If <TT>&quot;MESSAGE&quot;</TT> is not specified then the message must be sent using the
+<TT>&quot;datasend&quot;</TT> and <TT>&quot;dataend&quot;</TT> methods from Net::Cmd
+
+
+<P>
+
+
+<TT>&quot;MESSAGE&quot;</TT> can be either an array of lines or a reference to an array.
+<DT>last ()<DD>
+<A NAME="ixAAQ"></A>
+Set the ``current article pointer'' to the previous article in the current
+newsgroup.
+
+
+<P>
+
+
+Returns the message-id of the article.
+<DT>date ()<DD>
+<A NAME="ixAAR"></A>
+Returns the date on the remote server. This date will be in a <FONT SIZE="-1">UNIX</FONT> time
+format (seconds since 1970)
+<DT>postok ()<DD>
+<A NAME="ixAAS"></A>
+<TT>&quot;postok&quot;</TT> will return <I>true</I> if the servers initial response indicated
+that it will allow posting.
+<DT>authinfo ( <FONT SIZE="-1">USER</FONT>, <FONT SIZE="-1">PASS</FONT> )<DD>
+<A NAME="ixAAT"></A>
+Authenticates to the server (using <FONT SIZE="-1">AUTHINFO</FONT> <FONT SIZE="-1">USER</FONT> / <FONT SIZE="-1">AUTHINFO</FONT> <FONT SIZE="-1">PASS</FONT>)
+using the supplied username and password.  Please note that the
+password is sent in clear text to the server.  This command should not
+be used with valuable passwords unless the connection to the server is
+somehow protected.
+<DT>list ()<DD>
+<A NAME="ixAAU"></A>
+Obtain information about all the active newsgroups. The results is a reference
+to a hash where the key is a group name and each value is a reference to an
+array. The elements in this array are:- the last article number in the group,
+the first article number in the group and any information flags about the group.
+<DT>newgroups ( <FONT SIZE="-1">SINCE</FONT> [, <FONT SIZE="-1">DISTRIBUTIONS</FONT> ])<DD>
+<A NAME="ixAAV"></A>
+<TT>&quot;SINCE&quot;</TT> is a time value and <TT>&quot;DISTRIBUTIONS&quot;</TT> is either a distribution
+pattern or a reference to a list of distribution patterns.
+The result is the same as <TT>&quot;list&quot;</TT>, but the
+groups return will be limited to those created after <TT>&quot;SINCE&quot;</TT> and, if
+specified, in one of the distribution areas in <TT>&quot;DISTRIBUTIONS&quot;</TT>.
+<DT>newnews ( <FONT SIZE="-1">SINCE</FONT> [, <FONT SIZE="-1">GROUPS</FONT> [, <FONT SIZE="-1">DISTRIBUTIONS</FONT> ]])<DD>
+<A NAME="ixAAW"></A>
+<TT>&quot;SINCE&quot;</TT> is a time value. <TT>&quot;GROUPS&quot;</TT> is either a group pattern or a reference
+to a list of group patterns. <TT>&quot;DISTRIBUTIONS&quot;</TT> is either a distribution
+pattern or a reference to a list of distribution patterns.
+
+
+<P>
+
+
+Returns a reference to a list which contains the message-ids of all news posted
+after <TT>&quot;SINCE&quot;</TT>, that are in a groups which matched <TT>&quot;GROUPS&quot;</TT> and a
+distribution which matches <TT>&quot;DISTRIBUTIONS&quot;</TT>.
+<DT>next ()<DD>
+<A NAME="ixAAX"></A>
+Set the ``current article pointer'' to the next article in the current
+newsgroup.
+
+
+<P>
+
+
+Returns the message-id of the article.
+<DT>post ( [ <FONT SIZE="-1">MESSAGE</FONT> ] )<DD>
+<A NAME="ixAAY"></A>
+Post a new article to the news server. If <TT>&quot;MESSAGE&quot;</TT> is specified and posting
+is allowed then the message will be sent.
+
+
+<P>
+
+
+If <TT>&quot;MESSAGE&quot;</TT> is not specified then the message must be sent using the
+<TT>&quot;datasend&quot;</TT> and <TT>&quot;dataend&quot;</TT> methods from Net::Cmd
+
+
+<P>
+
+
+<TT>&quot;MESSAGE&quot;</TT> can be either an array of lines or a reference to an array.
+
+
+<P>
+
+
+The message, either sent via <TT>&quot;datasend&quot;</TT> or as the <TT>&quot;MESSAGE&quot;</TT>
+parameter, must be in the format as described by <FONT SIZE="-1">RFC822</FONT> and must
+contain From:, Newsgroups: and Subject: headers.
+<DT>postfh ()<DD>
+<A NAME="ixAAZ"></A>
+Post a new article to the news server using a tied filehandle.  If
+posting is allowed, this method will return a tied filehandle that you
+can <I>print()</I> the contents of the article to be posted.  You must
+explicitly <I>close()</I> the filehandle when you are finished posting the
+article, and the return value from the <I>close()</I> call will indicate
+whether the message was successfully posted.
+<DT>slave ()<DD>
+<A NAME="ixABA"></A>
+Tell the remote server that I am not a user client, but probably another
+news server.
+<DT>quit ()<DD>
+<A NAME="ixABB"></A>
+Quit the remote server and close the socket connection.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Extension methods</H3>
+
+<A NAME="ixABC"></A>
+These methods use commands that are not part of the <FONT SIZE="-1">RFC977</FONT> documentation. Some
+servers may not support all of them.
+<DL COMPACT>
+<DT>newsgroups ( [ <FONT SIZE="-1">PATTERN</FONT> ] )<DD>
+<A NAME="ixABD"></A>
+Returns a reference to a hash where the keys are all the group names which
+match <TT>&quot;PATTERN&quot;</TT>, or all of the groups if no pattern is specified, and
+each value contains the description text for the group.
+<DT>distributions ()<DD>
+<A NAME="ixABE"></A>
+Returns a reference to a hash where the keys are all the possible
+distribution names and the values are the distribution descriptions.
+<DT>subscriptions ()<DD>
+<A NAME="ixABF"></A>
+Returns a reference to a list which contains a list of groups which
+are recommended for a new user to subscribe to.
+<DT>overview_fmt ()<DD>
+<A NAME="ixABG"></A>
+Returns a reference to an array which contain the names of the fields returned
+by <TT>&quot;xover&quot;</TT>.
+<DT>active_times ()<DD>
+<A NAME="ixABH"></A>
+Returns a reference to a hash where the keys are the group names and each
+value is a reference to an array containing the time the groups was created
+and an identifier, possibly an Email address, of the creator.
+<DT>active ( [ <FONT SIZE="-1">PATTERN</FONT> ] )<DD>
+<A NAME="ixABI"></A>
+Similar to <TT>&quot;list&quot;</TT> but only active groups that match the pattern are returned.
+<TT>&quot;PATTERN&quot;</TT> can be a group pattern.
+<DT>xgtitle ( <FONT SIZE="-1">PATTERN</FONT> )<DD>
+<A NAME="ixABJ"></A>
+Returns a reference to a hash where the keys are all the group names which
+match <TT>&quot;PATTERN&quot;</TT> and each value is the description text for the group.
+<DT>xhdr ( <FONT SIZE="-1">HEADER</FONT>, MESSAGE-SPEC )<DD>
+<A NAME="ixABK"></A>
+Obtain the header field <TT>&quot;HEADER&quot;</TT> for all the messages specified.
+
+
+<P>
+
+
+The return value will be a reference
+to a hash where the keys are the message numbers and each value contains
+the text of the requested header for that message.
+<DT>xover ( MESSAGE-SPEC )<DD>
+<A NAME="ixABL"></A>
+The return value will be a reference
+to a hash where the keys are the message numbers and each value contains
+a reference to an array which contains the overview fields for that
+message.
+
+
+<P>
+
+
+The names of the fields can be obtained by calling <TT>&quot;overview_fmt&quot;</TT>.
+<DT>xpath ( MESSAGE-ID )<DD>
+<A NAME="ixABM"></A>
+Returns the path name to the file on the server which contains the specified
+message.
+<DT>xpat ( <FONT SIZE="-1">HEADER</FONT>, <FONT SIZE="-1">PATTERN</FONT>, MESSAGE-SPEC)<DD>
+<A NAME="ixABN"></A>
+The result is the same as <TT>&quot;xhdr&quot;</TT> except the is will be restricted to
+headers where the text of the header matches <TT>&quot;PATTERN&quot;</TT>
+<DT>xrover<DD>
+<A NAME="ixABO"></A>
+The <FONT SIZE="-1">XROVER</FONT> command returns reference information for the article(s)
+specified.
+
+
+<P>
+
+
+Returns a reference to a <FONT SIZE="-1">HASH</FONT> where the keys are the message numbers and the
+values are the References: lines from the articles
+<DT>listgroup ( [ <FONT SIZE="-1">GROUP</FONT> ] )<DD>
+<A NAME="ixABP"></A>
+Returns a reference to a list of all the active messages in <TT>&quot;GROUP&quot;</TT>, or
+the current group if <TT>&quot;GROUP&quot;</TT> is not specified.
+<DT>reader<DD>
+<A NAME="ixABQ"></A>
+Tell the server that you are a reader and not another server.
+
+
+<P>
+
+
+This is required by some servers. For example if you are connecting to
+an <FONT SIZE="-1">INN</FONT> server and you have transfer permission your connection will
+be connected to the transfer daemon, not the <FONT SIZE="-1">NNTP</FONT> daemon. Issuing
+this command will cause the transfer daemon to hand over control
+to the <FONT SIZE="-1">NNTP</FONT> daemon.
+
+
+<P>
+
+
+Some servers do not understand this command, but issuing it and ignoring
+the response is harmless.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>UNSUPPORTED</H2>
+
+<A NAME="ixABR"></A>
+The following <FONT SIZE="-1">NNTP</FONT> command are unsupported by the package, and there are
+no plans to do so.
+<P>
+
+
+
+<PRE>
+    AUTHINFO GENERIC
+    XTHREAD
+    XSEARCH
+    XINDEX
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>DEFINITIONS</H2>
+
+<A NAME="ixABS"></A>
+<DL COMPACT>
+<DT>MESSAGE-SPEC<DD>
+<A NAME="ixABT"></A>
+<TT>&quot;MESSAGE-SPEC&quot;</TT> is either a single message-id, a single message number, or
+a reference to a list of two message numbers.
+
+
+<P>
+
+
+If <TT>&quot;MESSAGE-SPEC&quot;</TT> is a reference to a list of two message numbers and the
+second number in a range is less than or equal to the first then the range
+represents all messages in the group after the first message number.
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>NOTE</B></FONT><B></B> For compatibility reasons only with earlier versions of Net::NNTP
+a message spec can be passed as a list of two numbers, this is deprecated
+and a reference to the list should now be passed
+<DT><FONT SIZE="-1">PATTERN</FONT><DD>
+<A NAME="ixABU"></A>
+The <TT>&quot;NNTP&quot;</TT> protocol uses the <TT>&quot;WILDMAT&quot;</TT> format for patterns.
+The <FONT SIZE="-1">WILDMAT</FONT> format was first developed by Rich Salz based on
+the format used in the <FONT SIZE="-1">UNIX</FONT> ``find'' command to articulate
+file names. It was developed to provide a uniform mechanism
+for matching patterns in the same manner that the <FONT SIZE="-1">UNIX</FONT> shell
+matches filenames.
+
+
+<P>
+
+
+Patterns are implicitly anchored at the
+beginning and end of each string when testing for a match.
+
+
+<P>
+
+
+There are five pattern matching operations other than a strict
+one-to-one match between the pattern and the source to be
+checked for a match.
+
+
+<P>
+
+
+The first is an asterisk <TT>&quot;*&quot;</TT> to match any sequence of zero or more
+characters.
+
+
+<P>
+
+
+The second is a question mark <TT>&quot;?&quot;</TT> to match any single character. The
+third specifies a specific set of characters.
+
+
+<P>
+
+
+The set is specified as a list of characters, or as a range of characters
+where the beginning and end of the range are separated by a minus (or dash)
+character, or as any combination of lists and ranges. The dash can
+also be included in the set as a character it if is the beginning
+or end of the set. This set is enclosed in square brackets. The
+close square bracket <TT>&quot;]&quot;</TT> may be used in a set if it is the first
+character in the set.
+
+
+<P>
+
+
+The fourth operation is the same as the
+logical not of the third operation and is specified the same
+way as the third with the addition of a caret character <TT>&quot;^&quot;</TT> at
+the beginning of the test string just inside the open square
+bracket.
+
+
+<P>
+
+
+The final operation uses the backslash character to
+invalidate the special meaning of an open square bracket <TT>&quot;[&quot;</TT>,
+the asterisk, backslash or the question mark. Two backslashes in
+sequence will result in the evaluation of the backslash as a
+character with no special meaning.
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>Examples<DD>
+<A NAME="ixABV"></A>
+
+<DT>[^]-]<DD>
+
+
+<A NAME="ixABW"></A>
+
+matches any single character other than a close square
+bracket or a minus sign/dash.
+<DT>*bdc<DD>
+
+
+<A NAME="ixABX"></A>
+matches any string that ends with the string ``bdc''
+including the string ``bdc'' (without quotes).
+<DT>[0-9a-zA-Z]<DD>
+
+
+<A NAME="ixABY"></A>
+matches any single printable alphanumeric <FONT SIZE="-1">ASCII</FONT> character.
+<DT>a??d<DD>
+
+
+<A NAME="ixABZ"></A>
+matches any four character string which begins
+with a and ends with d.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixACA"></A>
+Net::Cmd
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixACB"></A>
+Graham Barr &lt;<A HREF="mailto:gbarr@pobox.com">gbarr@pobox.com</A>&gt;
+<A NAME="lbAL">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixACC"></A>
+Copyright (c) 1995-1997 Graham Barr. All rights reserved.
+This program is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">CONSTRUCTOR</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">Extension methods</A><DD>
+</DL>
+<DT><A HREF="#lbAH">UNSUPPORTED</A><DD>
+<DT><A HREF="#lbAI">DEFINITIONS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">AUTHOR</A><DD>
+<DT><A HREF="#lbAL">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:35 GMT, December 24, 2015
+</div></body>
+</HTML>

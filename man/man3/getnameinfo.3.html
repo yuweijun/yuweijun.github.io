@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of GETNAMEINFO</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>GETNAMEINFO</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2009-02-23<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+getnameinfo - address-to-name translation in protocol-independent manner
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/socket.h">sys/socket.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/netdb.h">netdb.h</A>&gt;</B>
+
+<B>int getnameinfo(const struct sockaddr *</B><I>sa</I><B>, socklen_t </B><I>salen</I><B>,</B>
+<B>                char *</B><I>host</I><B>, size_t </B><I>hostlen</I><B>,</B>
+<B>                char *</B><I>serv</I><B>, size_t </B><I>servlen</I><B>, int </B><I>flags</I><B>);</B>
+</PRE>
+
+<P>
+
+Feature Test Macro Requirements for glibc (see
+<B><A HREF="/man/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)):
+
+
+
+<P>
+<B>getnameinfo</B>():
+
+_POSIX_C_SOURCE&nbsp;&gt;=&nbsp;1 || _XOPEN_SOURCE || _POSIX_SOURCE
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>getnameinfo</B>()
+
+function is the inverse of
+<B><A HREF="/man/index.html?3+getaddrinfo">getaddrinfo</A></B>(3):
+
+it converts a socket address to a corresponding host and service,
+in a protocol-independent manner.
+It combines the functionality of
+<B><A HREF="/man/index.html?3+gethostbyaddr">gethostbyaddr</A></B>(3)
+
+and
+<B><A HREF="/man/index.html?3+getservbyport">getservbyport</A></B>(3),
+
+but unlike those functions,
+<B><A HREF="/man/index.html?3+getaddrinfo">getaddrinfo</A></B>(3)
+
+is reentrant and allows programs to eliminate
+IPv4-versus-IPv6 dependencies.
+<P>
+The
+<I>sa</I>
+
+argument is a pointer to a generic socket address structure
+(of type
+<I>sockaddr_in</I>
+
+or
+<I>sockaddr_in6</I>)
+
+of size
+<I>salen</I>
+
+that holds the input IP address and port number.
+The arguments
+<I>host</I>
+
+and
+<I>serv</I>
+
+are pointers to caller-allocated buffers (of size
+<I>hostlen</I>
+
+and
+<I>servlen</I>
+
+respectively) into which
+<B>getnameinfo</B>()
+
+places null-terminated strings containing the host and
+service names respectively.
+<P>
+The caller can specify that no hostname (or no service name)
+is required by providing a NULL
+<I>host</I>
+
+(or
+<I>serv</I>)
+
+argument or a zero
+<I>hostlen</I>
+
+(or
+<I>servlen</I>)
+
+argument.
+However, at least one of hostname or service name
+must be requested.
+<P>
+The
+<I>flags</I>
+
+argument modifies the behavior of
+<B>getnameinfo</B>()
+
+as follows:
+<DL COMPACT>
+<DT><B>NI_NAMEREQD</B>
+
+<DD>
+If set, then an error is returned if the hostname cannot be determined.
+<DT><B>NI_DGRAM</B>
+
+<DD>
+If set, then the service is datagram (UDP) based rather than
+stream (TCP) based.
+This is required for the few ports (512-514)
+that have different services for UDP and TCP.
+<DT><B>NI_NOFQDN</B>
+
+<DD>
+If set, return only the hostname part of the fully qualified domain name
+for local hosts.
+<DT><B>NI_NUMERICHOST</B>
+
+<DD>
+If set, then the numeric form of the hostname is returned.
+
+
+
+
+(When not set, this will still happen in case the node's name
+cannot be determined.)
+
+<DT><B>NI_NUMERICSERV</B>
+
+<DD>
+If set, then the numeric form of the service address is returned.
+(When not set, this will still happen in case the service's name
+cannot be determined.)
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Extensions to getaddrinfo() for Internationalized Domain Names</H3>
+
+<P>
+
+Starting with glibc 2.3.4,
+<B>getnameinfo</B>()
+
+has been extended to selectively allow
+hostnames to be transparently converted to and from the
+Internationalized Domain Name (IDN) format (see RFC 3490,
+<I>Internationalizing Domain Names in Applications (IDNA)</I>).
+
+Three new flags are defined:
+<DL COMPACT>
+<DT><B>NI_IDN</B>
+
+<DD>
+If this flag is used, then the name found in the lookup process is
+converted from IDN format to the locale's encoding if necessary.
+ASCII-only names are not affected by the conversion, which
+makes this flag usable in existing programs and environments.
+<DT><B>NI_IDN_ALLOW_UNASSIGNED</B>, <B>NI_IDN_USE_STD3_ASCII_RULES</B>
+
+<DD>
+Setting these flags will enable the
+IDNA_ALLOW_UNASSIGNED (allow unassigned Unicode code points) and
+IDNA_USE_STD3_ASCII_RULES (check output to make sure it is a STD3
+conforming hostname)
+flags respectively to be used in the IDNA handling.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+
+
+
+
+
+
+
+
+
+
+
+On success 0 is returned, and node and service names, if requested,
+are filled with null-terminated strings, possibly truncated to fit
+the specified buffer lengths.
+On error one of the following non-zero error codes is returned:
+<DL COMPACT>
+<DT><B>EAI_AGAIN</B>
+
+<DD>
+The name could not be resolved at this time.
+Try again later.
+<DT><B>EAI_BADFLAGS</B>
+
+<DD>
+The
+<I>flags</I>
+
+argument has an invalid value.
+<DT><B>EAI_FAIL</B>
+
+<DD>
+A non-recoverable error occurred.
+<DT><B>EAI_FAMILY</B>
+
+<DD>
+The address family was not recognized,
+or the address length was invalid for the specified family.
+<DT><B>EAI_MEMORY</B>
+
+<DD>
+Out of memory.
+<DT><B>EAI_NONAME</B>
+
+<DD>
+The name does not resolve for the supplied arguments.
+<B>NI_NAMEREQD</B>
+
+is set and the host's name cannot be located,
+or neither hostname nor service name were requested.
+<DT><B>EAI_OVERFLOW</B>
+
+<DD>
+The buffer pointed to by
+<I>host</I>
+
+or
+<I>serv</I>
+
+was too small.
+<DT><B>EAI_SYSTEM</B>
+
+<DD>
+A system error occurred.
+The error code can be found in
+<I>errno</I>.
+
+</DL>
+<P>
+
+The
+<B><A HREF="/man/index.html?3+gai_strerror">gai_strerror</A></B>(3)
+
+function translates these error codes to a human readable string,
+suitable for error reporting.
+<A NAME="lbAG">&nbsp;</A>
+<H2>FILES</H2>
+
+/etc/hosts
+<BR>
+
+/etc/nsswitch.conf
+<BR>
+
+/etc/resolv.conf
+<A NAME="lbAH">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+<B>getnameinfo</B>()
+
+is provided in glibc since version 2.1.
+<A NAME="lbAI">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+RFC&nbsp;2553, POSIX.1-2001.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>NOTES</H2>
+
+In order to assist the programmer in choosing reasonable sizes
+for the supplied buffers,
+<I>&lt;<A HREF="file:/usr/include/netdb.h">netdb.h</A>&gt;</I>
+
+defines the constants
+
+<PRE>
+
+#define NI_MAXHOST      1025
+#define NI_MAXSERV      32
+</PRE>
+
+
+<P>
+
+The former is the constant
+<B>MAXDNAME</B>
+
+in recent versions of BIND's
+<I>&lt;<A HREF="file:/usr/include/arpa/nameser.h">arpa/nameser.h</A>&gt;</I>
+
+header file.
+The latter is a guess based on the services listed
+in the current Assigned Numbers RFC.
+<A NAME="lbAK">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+The following code tries to get the numeric hostname and service name,
+for a given socket address.
+Note that there is no hardcoded reference to
+a particular address family.
+<P>
+
+<PRE>
+struct sockaddr *sa;    /* input */
+socklen_t len;         /* input */
+char hbuf[NI_MAXHOST], sbuf[NI_MAXSERV];
+
+if (getnameinfo(sa, len, hbuf, sizeof(hbuf), sbuf,
+            sizeof(sbuf), NI_NUMERICHOST | NI_NUMERICSERV) == 0)
+    printf(&quot;host=%s, serv=%s\n&quot;, hbuf, sbuf);
+</PRE>
+
+
+<P>
+The following version checks if the socket address has a
+reverse address mapping.
+<P>
+
+<PRE>
+struct sockaddr *sa;    /* input */
+socklen_t len;         /* input */
+char hbuf[NI_MAXHOST];
+
+if (getnameinfo(sa, len, hbuf, sizeof(hbuf),
+            NULL, 0, NI_NAMEREQD))
+    printf(&quot;could not resolve hostname&quot;);
+else
+    printf(&quot;host=%s\n&quot;, hbuf);
+</PRE>
+
+
+<P>
+
+An example program using
+<B>getnameinfo</B>()
+
+can be found in
+<B><A HREF="/man/index.html?3+getaddrinfo">getaddrinfo</A></B>(3).
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+accept">accept</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getpeername">getpeername</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getsockname">getsockname</A></B>(2),
+
+<B><A HREF="/man/index.html?2+recvfrom">recvfrom</A></B>(2),
+
+<B><A HREF="/man/index.html?2+socket">socket</A></B>(2),
+
+<B><A HREF="/man/index.html?3+getaddrinfo">getaddrinfo</A></B>(3),
+
+<B><A HREF="/man/index.html?3+gethostbyaddr">gethostbyaddr</A></B>(3),
+
+<B><A HREF="/man/index.html?3+getservbyname">getservbyname</A></B>(3),
+
+<B><A HREF="/man/index.html?3+getservbyport">getservbyport</A></B>(3),
+
+<B><A HREF="/man/index.html?3+inet_ntop">inet_ntop</A></B>(3),
+
+<B><A HREF="/man/index.html?5+hosts">hosts</A></B>(5),
+
+<B><A HREF="/man/index.html?5+services">services</A></B>(5),
+
+<B><A HREF="/man/index.html?7+hostname">hostname</A></B>(7),
+
+<B><A HREF="/man/index.html?8+named">named</A></B>(8)
+
+<P>
+
+R. Gilligan, S. Thomson, J. Bound and W. Stevens,
+<I>Basic Socket Interface Extensions for IPv6</I>,
+
+RFC&nbsp;2553, March 1999.
+<P>
+
+Tatsuya Jinmei and Atsushi Onoe,
+<I>An Extension of Format for IPv6 Scoped Addresses</I>,
+
+internet draft, work in progress.
+<A HREF="ftp://ftp.ietf.org/internet-drafts/draft-ietf-ipngwg-scopedaddr-format-02.txt">ftp://ftp.ietf.org/internet-drafts/draft-ietf-ipngwg-scopedaddr-format-02.txt</A>
+<P>
+
+Craig Metz,
+<I>Protocol Independence Using the Sockets API</I>,
+
+Proceedings of the freenix track:
+2000 USENIX annual technical conference, June 2000.
+<A HREF="http://www.usenix.org/publications/library/proceedings/usenix2000/freenix/metzprotocol.html">http://www.usenix.org/publications/library/proceedings/usenix2000/freenix/metzprotocol.html</A>
+<A NAME="lbAM">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Extensions to getaddrinfo() for Internationalized Domain Names</A><DD>
+</DL>
+<DT><A HREF="#lbAF">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAG">FILES</A><DD>
+<DT><A HREF="#lbAH">VERSIONS</A><DD>
+<DT><A HREF="#lbAI">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAJ">NOTES</A><DD>
+<DT><A HREF="#lbAK">EXAMPLE</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+<DT><A HREF="#lbAM">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:28 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of String</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>String</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2005-12-05<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+IO::String - Emulate file interface for in-core strings
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ use IO::String;
+ $io = IO::String-&gt;new;
+ $io = IO::String-&gt;new($var);
+ tie *IO, 'IO::String';
+
+ # read data
+ &lt;$io&gt;;
+ $io-&gt;getline;
+ read($io, $buf, 100);
+
+ # write data
+ print $io &quot;string\n&quot;;
+ $io-&gt;print(@data);
+ syswrite($io, $buf, 100);
+
+ select $io;
+ printf &quot;Some text %s\n&quot;, $str;
+
+ # seek
+ $pos = $io-&gt;getpos;
+ $io-&gt;setpos(0);        # rewind
+ $io-&gt;seek(-30, -1);
+ seek($io, 0, 0);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <TT>&quot;IO::String&quot;</TT> module provides the <TT>&quot;IO::File&quot;</TT> interface for in-core
+strings.  An <TT>&quot;IO::String&quot;</TT> object can be attached to a string, and
+makes it possible to use the normal file operations for reading or
+writing data, as well as for seeking to various locations of the string.
+This is useful when you want to use a library module that only
+provides an interface to file handles on data that you have in a string
+variable.
+<P>
+
+Note that perl-5.8 and better has built-in support for ``in memory''
+files, which are set up by passing a reference instead of a filename
+to the <I>open()</I> call. The reason for using this module is that it
+makes the code backwards compatible with older versions of Perl.
+<P>
+
+The <TT>&quot;IO::String&quot;</TT> module provides an interface compatible with
+<TT>&quot;IO::File&quot;</TT> as distributed with <I></I><FONT SIZE="-1"><I>IO-1</I></FONT><I>.20</I>, but the following methods
+are not available: new_from_fd, fdopen, format_write,
+format_page_number, format_lines_per_page, format_lines_left,
+format_name, format_top_name.
+<P>
+
+The following methods are specific to the <TT>&quot;IO::String&quot;</TT> class:
+<DL COMPACT>
+<DT>$io = IO::String-&gt;new<DD>
+
+
+<A NAME="ixAAE"></A>
+
+<DT>$io = IO::String-&gt;new( $string )<DD>
+
+
+<A NAME="ixAAF"></A>
+
+The constructor returns a newly-created <TT>&quot;IO::String&quot;</TT> object.  It
+takes an optional argument, which is the string to read from or write
+into.  If no <TT>$string</TT> argument is given, then an internal buffer
+(initially empty) is allocated.
+
+
+<P>
+
+
+The <TT>&quot;IO::String&quot;</TT> object returned is tied to itself.  This means
+that you can use most Perl I/O built-ins on it too: readline, &lt;&gt;, getc,
+print, printf, syswrite, sysread, close.
+<DT>$io-&gt;open<DD>
+
+
+<A NAME="ixAAG"></A>
+
+<DT>$io-&gt;open( $string )<DD>
+
+
+<A NAME="ixAAH"></A>
+
+Attaches an existing IO::String object to some other <TT>$string</TT>, or
+allocates a new internal buffer (if no argument is given).  The
+position is reset to 0.
+<DT>$io-&gt;string_ref<DD>
+
+
+<A NAME="ixAAI"></A>
+Returns a reference to the string that is attached to
+the <TT>&quot;IO::String&quot;</TT> object.  Most useful when you let the <TT>&quot;IO::String&quot;</TT>
+create an internal buffer to write into.
+<DT>$io-&gt;pad<DD>
+
+
+<A NAME="ixAAJ"></A>
+
+<DT>$io-&gt;pad( $char )<DD>
+
+
+<A NAME="ixAAK"></A>
+
+Specifies the padding to use if
+the string is extended by either the <I>seek()</I> or <I>truncate()</I> methods.  It
+is a single character and defaults to ``\0''.
+<DT>$io-&gt;pos<DD>
+
+
+<A NAME="ixAAL"></A>
+
+<DT>$io-&gt;pos( $newpos )<DD>
+
+
+<A NAME="ixAAM"></A>
+
+Yet another interface for reading and setting the current read/write
+position within the string (the normal getpos/setpos/tell/seek
+methods are also available).  The <I>pos()</I> method always returns the
+old position, and if you pass it an argument it sets the new
+position.
+
+
+<P>
+
+
+There is (deliberately) a difference between the <I>setpos()</I> and <I>seek()</I>
+methods in that <I>seek()</I> extends the string (with the specified
+padding) if you go to a location past the end, whereas <I>setpos()</I>
+just snaps back to the end.  If <I>truncate()</I> is used to extend the string,
+then it works as <I>seek()</I>.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAN"></A>
+In Perl versions &lt; 5.6, the <FONT SIZE="-1">TIEHANDLE</FONT> interface was incomplete.
+If you use such a Perl, then <I>seek()</I>, <I>tell()</I>, <I>eof()</I>, <I>fileno()</I>, <I>binmode()</I> will
+not do anything on an <TT>&quot;IO::String&quot;</TT> handle.  See perltie for
+details.
+<A NAME="lbAF">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAO"></A>
+IO::File, IO::Stringy, ``open'' in perlfunc
+<A NAME="lbAG">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAP"></A>
+Copyright 1998-2005 Gisle Aas.
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">BUGS</A><DD>
+<DT><A HREF="#lbAF">SEE ALSO</A><DD>
+<DT><A HREF="#lbAG">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:30 GMT, December 24, 2015
+</div></body>
+</HTML>

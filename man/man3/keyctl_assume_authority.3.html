@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of KEYCTL_INSTANTIATE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>KEYCTL_INSTANTIATE</H1>
+Section: Linux Key Management Calls (3)<BR>Updated: 4 May 2006<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+keyctl_assume_authority - Assume the authority to instantiate a key
+keyctl_instantiate - Instantiate a key
+keyctl_negate - Negatively instantiate a key
+
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/keyutils.h">keyutils.h</A>&gt;</B>
+
+<B>long keyctl_assume_authority(key_serial_t </B><I>key</I><B>);</B>
+
+<B>long keyctl_instantiate(key_serial_t </B><I>key</I><B>, const char *</B><I>payload</I><B>,</B>
+<B>size_t </B><I>plen</I><B>, key_serial_t </B><I>keyring</I><B>);</B>
+
+<B>long keyctl_negate(key_serial_t </B><I>key</I><B>, unsigned </B><I>timeout</I><B>,</B>
+<B>key_serial_t </B><I>keyring</I><B>);</B>
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>keyctl_assume_authority</B>()
+
+assumes the authority for the calling thread to deal with and instantiate the
+specified uninstantiated
+<I>key</I>.
+
+
+The calling thread must have the appopriate authorisation key resident in one
+of its keyrings for this to succeed, and that authority must not have been
+revoked.
+
+The authorising key is allocated by request_key() when it needs to invoke
+userspace to generate a key for the requesting process.  This is then attached
+to one of the keyrings of the userspace process to which the task of
+instantiating the key is given:
+<DL COMPACT>
+<DT><DD>
+requester -&gt; request_key() -&gt; instantiator
+
+Calling this function modifies the way
+<B>request_key</B>()
+
+works when called thereafter by the calling (instantiator) thread; once the
+authority is assumed, the keyrings of the initial process are added to the
+search path, using the initial process's UID, GID, groups and security
+context.
+
+If a thread has multiple instantiations to deal with, it may call this
+function to change the authorisation key currently in effect.  Supplying a
+<B>zero</B>
+
+<I>key</I>
+
+de-assumes the currently assumed authority.
+
+<B>NOTE!</B>
+
+This is a per-thread setting and not a per-process setting so that a
+multithreaded process can be used to instantiate several keys at once.
+
+<B>keyctl_instantiate</B>()
+
+instantiates the payload of an uninstantiated key from the data specified.
+<I>payload</I>
+
+and
+<I>plen</I>
+
+specify the data for the new payload.
+<I>payload</I>
+
+may be NULL and
+<I>plen</I>
+
+may be zero if the key type permits that.  The key type may reject the data if
+it's in the wrong format or in some other way invalid.
+
+<B>keyctl_negate</B>()
+
+marks a key as negatively instantiated and sets the expiration timer on it.
+<I>timeout</I>
+
+specifies the lifetime of the key in seconds.
+
+Only a key for which authority has been assumed may be instantiated or
+negatively instantiated, and once instantiated, the authorisation key will be
+revoked and the requesting process will be able to resume.
+
+The destination
+<I>keyring</I>,
+
+if given, is assumed to belong to the initial requester, and not the
+instantiating process.  Therefore, the special keyring IDs refer to the
+requesting process's keyrings, not the caller's, and the requester's UID,
+etc. will be used to access them.
+
+The destination keyring can be
+<B>zero</B>
+
+if no extra link is desired.
+
+The requester, not the caller, must have
+<B>write</B>
+
+permission on the destination for a link to be made there.
+
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success
+<B>keyctl_instantiate</B>()
+
+returns
+<B>0</B>.
+
+On error, the value
+<B>-1</B>
+
+will be returned and errno will have been set to an appropriate error.
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>ENOKEY</B>
+
+<DD>
+The key or keyring specified is invalid.
+<DT><B>EKEYEXPIRED</B>
+
+<DD>
+The keyring specified has expired.
+<DT><B>EKEYREVOKED</B>
+
+<DD>
+The key or keyring specified had been revoked, or the authorisation has been
+revoked.
+<DT><B>EINVAL</B>
+
+<DD>
+The payload data was invalid.
+<DT><B>ENOMEM</B>
+
+<DD>
+Insufficient memory to store the new payload or to expand the destination
+keyring.
+<DT><B>EDQUOT</B>
+
+<DD>
+The key quota for the key's user would be exceeded by increasing the size of
+the key to accommodate the new payload or the key quota for the keyring's user
+would be exceeded by expanding the destination keyring.
+<DT><B>EACCES</B>
+
+<DD>
+The key exists, but is not
+<B>writable</B>
+
+by the requester.
+
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>LINKING</H2>
+
+This is a library function that can be found in
+<I>libkeyutils</I>.
+
+When linking,
+<B>-lkeyutils</B>
+
+should be specified to the linker.
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?1+keyctl">keyctl</A></B>(1),
+
+<BR>
+
+<B><A HREF="/man/index.html?2+add_key">add_key</A></B>(2),
+
+<BR>
+
+<B><A HREF="/man/index.html?2+keyctl">keyctl</A></B>(2),
+
+<BR>
+
+<B><A HREF="/man/index.html?2+request_key">request_key</A></B>(2),
+
+<BR>
+
+<B><A HREF="/man/index.html?3+keyctl">keyctl</A></B>(3),
+
+<BR>
+
+<B><A HREF="/man/index.html?8+request-key">request-key</A></B>(8)
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">LINKING</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:30 GMT, December 24, 2015
+</div></body>
+</HTML>

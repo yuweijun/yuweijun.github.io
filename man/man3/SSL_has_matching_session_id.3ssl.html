@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SSL_CTX_set_generate_session_id</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SSL_CTX_set_generate_session_id</H1>
+Section: OpenSSL (3)<BR>Updated: 2001-02-23<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+SSL_CTX_set_generate_session_id, SSL_set_generate_session_id, SSL_has_matching_session_id - manipulate generation of SSL session IDs (server only)
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/ssl.h">openssl/ssl.h</A>&gt;
+
+ typedef int (*GEN_SESSION_CB)(const SSL *ssl, unsigned char *id,
+                               unsigned int *id_len);
+
+ int SSL_CTX_set_generate_session_id(SSL_CTX *ctx, GEN_SESSION_CB cb);
+ int SSL_set_generate_session_id(SSL *ssl, GEN_SESSION_CB, cb);
+ int SSL_has_matching_session_id(const SSL *ssl, const unsigned char *id,
+                                 unsigned int id_len);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<I>SSL_CTX_set_generate_session_id()</I> sets the callback function for generating
+new session ids for <FONT SIZE="-1">SSL/TLS</FONT> sessions for <B>ctx</B> to be <B>cb</B>.
+<P>
+
+<I>SSL_set_generate_session_id()</I> sets the callback function for generating
+new session ids for <FONT SIZE="-1">SSL/TLS</FONT> sessions for <B>ssl</B> to be <B>cb</B>.
+<P>
+
+<I>SSL_has_matching_session_id()</I> checks, whether a session with id <B>id</B>
+(of length <B>id_len</B>) is already contained in the internal session cache
+of the parent context of <B>ssl</B>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+When a new session is established between client and server, the server
+generates a session id. The session id is an arbitrary sequence of bytes.
+The length of the session id is 16 bytes for SSLv2 sessions and between
+1 and 32 bytes for SSLv3/TLSv1. The session id is not security critical
+but must be unique for the server. Additionally, the session id is
+transmitted in the clear when reusing the session so it must not contain
+sensitive information.
+<P>
+
+Without a callback being set, an OpenSSL server will generate a unique
+session id from pseudo random numbers of the maximum possible length.
+Using the callback function, the session id can be changed to contain
+additional information like e.g. a host id in order to improve load balancing
+or external caching techniques.
+<P>
+
+The callback function receives a pointer to the memory location to put
+<B>id</B> into and a pointer to the maximum allowed length <B>id_len</B>. The
+buffer at location <B>id</B> is only guaranteed to have the size <B>id_len</B>.
+The callback is only allowed to generate a shorter id and reduce <B>id_len</B>;
+the callback <B>must never</B> increase <B>id_len</B> or write to the location
+<B>id</B> exceeding the given limit.
+<P>
+
+If a SSLv2 session id is generated and <B>id_len</B> is reduced, it will be
+restored after the callback has finished and the session id will be padded
+with 0x00. It is not recommended to change the <B>id_len</B> for SSLv2 sessions.
+The callback can use the <I><A HREF="/man/index.html?3+SSL_get_version">SSL_get_version</A></I>(3) function
+to check, whether the session is of type SSLv2.
+<P>
+
+The location <B>id</B> is filled with 0x00 before the callback is called, so the
+callback may only fill part of the possible length and leave <B>id_len</B>
+untouched while maintaining reproducibility.
+<P>
+
+Since the sessions must be distinguished, session ids must be unique.
+Without the callback a random number is used, so that the probability
+of generating the same session id is extremely small (2^128 possible ids
+for an SSLv2 session, 2^256 for SSLv3/TLSv1). In order to assure the
+uniqueness of the generated session id, the callback must call
+<I>SSL_has_matching_session_id()</I> and generate another id if a conflict occurs.
+If an id conflict is not resolved, the handshake will fail.
+If the application codes e.g. a unique host id, a unique process number, and
+a unique sequence number into the session id, uniqueness could easily be
+achieved without randomness added (it should however be taken care that
+no confidential information is leaked this way). If the application can not
+guarantee uniqueness, it is recommended to use the maximum <B>id_len</B> and
+fill in the bytes not used to code special information with random data
+to avoid collisions.
+<P>
+
+<I>SSL_has_matching_session_id()</I> will only query the internal session cache,
+not the external one. Since the session id is generated before the
+handshake is completed, it is not immediately added to the cache. If
+another thread is using the same internal session cache, a race condition
+can occur in that another thread generates the same session id.
+Collisions can also occur when using an external session cache, since
+the external cache is not tested with <I>SSL_has_matching_session_id()</I>
+and the same race condition applies.
+<P>
+
+When calling <I>SSL_has_matching_session_id()</I> for an SSLv2 session with
+reduced <B>id_len</B>, the match operation will be performed using the
+fixed length required and with a 0x00 padded id.
+<P>
+
+The callback must return 0 if it cannot generate a session id for whatever
+reason and return 1 on success.
+<A NAME="lbAF">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAF"></A>
+The callback function listed will generate a session id with the
+server id given, and will fill the rest with pseudo random bytes:
+<P>
+
+
+
+<PRE>
+ const char session_id_prefix = &quot;www-18&quot;;
+
+ #define MAX_SESSION_ID_ATTEMPTS 10
+ static int generate_session_id(const SSL *ssl, unsigned char *id,
+                              unsigned int *id_len)
+      {
+      unsigned int count = 0;
+      const char *version;
+
+      version = SSL_get_version(ssl);
+      if (!strcmp(version, &quot;SSLv2&quot;))
+          /* we must not change id_len */;
+
+      do      {
+              RAND_pseudo_bytes(id, *id_len);
+              /* Prefix the session_id with the required prefix. NB: If our
+               * prefix is too long, clip it - but there will be worse effects
+               * anyway, eg. the server could only possibly create 1 session
+               * ID (ie. the prefix!) so all future session negotiations will
+               * fail due to conflicts. */
+              memcpy(id, session_id_prefix,
+                      (strlen(session_id_prefix) &lt; *id_len) ?
+                      strlen(session_id_prefix) : *id_len);
+              }
+      while(SSL_has_matching_session_id(ssl, id, *id_len) &amp;&amp;
+              (++count &lt; MAX_SESSION_ID_ATTEMPTS));
+      if(count &gt;= MAX_SESSION_ID_ATTEMPTS)
+              return 0;
+      return 1;
+      }
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<A NAME="ixAAG"></A>
+<I>SSL_CTX_set_generate_session_id()</I> and <I>SSL_set_generate_session_id()</I>
+always return 1.
+<P>
+
+<I>SSL_has_matching_session_id()</I> returns 1 if another session with the
+same id is already in the cache.
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAH"></A>
+<I><A HREF="/man/index.html?3+ssl">ssl</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+SSL_get_version">SSL_get_version</A></I>(3)
+<A NAME="lbAI">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<A NAME="ixAAI"></A>
+<I>SSL_CTX_set_generate_session_id()</I>, <I>SSL_set_generate_session_id()</I>
+and <I>SSL_has_matching_session_id()</I> have been introduced in
+OpenSSL 0.9.7.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">EXAMPLES</A><DD>
+<DT><A HREF="#lbAG">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">HISTORY</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:41 GMT, December 24, 2015
+</div></body>
+</HTML>

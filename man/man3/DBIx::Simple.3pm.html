@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DBIx::Simple</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DBIx::Simple</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-09-17<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+DBIx::Simple - Easy-to-use OO interface to DBI
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+<A NAME="lbAD">&nbsp;</A>
+<H3>DBIx::Simple</H3>
+
+<A NAME="ixAAD"></A>
+
+
+<PRE>
+    $db = DBIx::Simple-&gt;connect(...)  # or -&gt;new
+
+    $db-&gt;keep_statements = 16
+    $db-&gt;lc_columns = 1
+    $db-&gt;result_class = 'DBIx::Simple::Result';
+
+    $db-&gt;begin_work         $db-&gt;commit
+    $db-&gt;rollback           $db-&gt;disconnect
+    $db-&gt;func(...)          $db-&gt;last_insert_id
+
+    $result = $db-&gt;query(...)
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>DBIx::SImple + SQL::Interp</H3>
+
+<A NAME="ixAAE"></A>
+
+
+<PRE>
+    $result = $db-&gt;iquery(...)
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H3>DBIx::Simple + SQL::Abstract</H3>
+
+<A NAME="ixAAF"></A>
+
+
+<PRE>
+    $db-&gt;abstract = SQL::Abstract-&gt;new(...)
+
+    $result = $db-&gt;select(...)
+    $result = $db-&gt;insert(...)
+    $result = $db-&gt;update(...)
+    $result = $db-&gt;delete(...)
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>DBIx::Simple::Result</H3>
+
+<A NAME="ixAAG"></A>
+
+
+<PRE>
+    @columns = $result-&gt;columns
+
+    $result-&gt;into($foo, $bar, $baz)
+    $row = $result-&gt;fetch
+
+    @row = $result-&gt;list    @rows = $result-&gt;flat
+    $row = $result-&gt;array   @rows = $result-&gt;arrays
+    $row = $result-&gt;hash    @rows = $result-&gt;hashes
+
+    %map = $result-&gt;map_arrays(...)
+    %map = $result-&gt;map_hashes(...)
+    %map = $result-&gt;map
+
+    $rows = $result-&gt;rows
+
+    $dump = $result-&gt;text
+
+    $result-&gt;finish
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>DBIx::Simple::Result + DBIx::XHTML_Table</H3>
+
+<A NAME="ixAAH"></A>
+
+
+<PRE>
+    $html = $result-&gt;html(...)
+
+    $table_object = $result-&gt;xto(...)
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Examples</H3>
+
+<A NAME="ixAAI"></A>
+Please read DBIx::Simple::Examples for code examples.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAJ"></A>
+DBIx::Simple provides a simplified interface to <FONT SIZE="-1">DBI</FONT>, Perl's powerful database
+module.
+<P>
+
+This module is aimed at rapid development and easy maintenance. Query
+preparation and execution are combined in a single method, the result object
+(which is a wrapper around the statement handle) provides easy row-by-row and
+slurping methods.
+<P>
+
+The <TT>&quot;query&quot;</TT> method returns either a result object, or a dummy object. The
+dummy object returns undef (or an empty list) for all methods and when used in
+boolean context, is false. The dummy object lets you postpone (or skip) error
+checking, but it also makes immediate error checking simply <TT>&quot;$db-&gt;query(...) or die $db-&gt;error&quot;</TT>.
+<A NAME="lbAK">&nbsp;</A>
+<H3>DBIx::Simple methods</H3>
+
+<A NAME="ixAAK"></A>
+<DL COMPACT>
+<DT>DBIx::Simple-&gt;connect($dbh)<DD>
+
+
+<A NAME="ixAAL"></A>
+
+<DT>DBIx::Simple-&gt;connect($dsn, $user, $pass, \%options)<DD>
+
+
+<A NAME="ixAAM"></A>
+<DT>DBIx::Simple-&gt;new($dbh)<DD>
+
+
+<A NAME="ixAAN"></A>
+<DT>DBIx::Simple-&gt;new($dsn, $user, $pass, \%options)<DD>
+
+
+<A NAME="ixAAO"></A>
+
+The <TT>&quot;connect&quot;</TT> or <TT>&quot;new&quot;</TT> class method takes either an existing <FONT SIZE="-1">DBI</FONT> object
+($dbh), or a list of arguments to pass to <TT>&quot;DBI-&gt;connect&quot;</TT>. See <FONT SIZE="-1">DBI</FONT> for a
+detailed description.
+
+
+<P>
+
+
+You cannot use this method to clone a DBIx::Simple object: the <TT>$dbh</TT> passed
+should be a DBI::db object, not a DBIx::Simple object.
+
+
+<P>
+
+
+This method is the constructor and returns a DBIx::Simple object on success. On
+failure, it returns undef.
+<DT>lc_columns = $bool<DD>
+
+
+<A NAME="ixAAP"></A>
+When true at time of query execution, makes <TT>&quot;columns&quot;</TT>, <TT>&quot;hash&quot;</TT>, <TT>&quot;hashes&quot;</TT>, and
+<TT>&quot;map_hashes&quot;</TT> use lower cased column names. <TT>&quot;lc_columns&quot;</TT> is true by default.
+<DT>keep_statements = $integer<DD>
+
+
+<A NAME="ixAAQ"></A>
+Sets the number of statement objects that DBIx::Simple can keep for reuse. This
+can dramatically speed up repeated queries (like when used in a loop).
+<TT>&quot;keep_statements&quot;</TT> is 16 by default.
+
+
+<P>
+
+
+A query is only reused if it equals a previously used one literally. This means
+that to benefit from this caching mechanism, you must use placeholders and
+never interpolate variables yourself.
+
+
+<P>
+
+
+
+
+<PRE>
+    # Wrong:
+    $db-&gt;query(&quot;INSERT INTO foo VALUES ('$foo', '$bar', '$baz')&quot;);
+    $db-&gt;query(&quot;SELECT FROM foo WHERE foo = '$foo' OR bar = '$bar'&quot;);
+
+    # Right:
+    $db-&gt;query('INSERT INTO foo VALUES (??)', $foo, $bar, $baz);
+    $db-&gt;query('SELECT FROM foo WHERE foo = ? OR bar = ?', $foo, $baz);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Of course, automatic value escaping is a much better reason for using
+placeholders.
+<DT>result_class = $string<DD>
+
+
+<A NAME="ixAAR"></A>
+Class to use for result objects. Defaults to DBIx::Simple::Result. A
+constructor is not used.
+<DT>error<DD>
+
+
+<A NAME="ixAAS"></A>
+Returns the error string of the last <FONT SIZE="-1">DBI</FONT> method. See the discussion of &quot;<TT>&quot;err&quot;</TT>``
+and ''<TT>&quot;errstr&quot;</TT>&quot; in <FONT SIZE="-1">DBI</FONT>.
+<DT>query($query, @values)<DD>
+
+
+<A NAME="ixAAT"></A>
+The <TT>&quot;query&quot;</TT> method prepares and executes the query and returns a result object.
+
+
+<P>
+
+
+If the string <TT>&quot;(??)&quot;</TT> is present in the query, it is replaced with a list of as
+many question marks as <TT>@values</TT>.
+
+
+<P>
+
+
+The database drivers substitute placeholders (question marks that do not appear
+in quoted literals) in the query with the given <TT>@values</TT>, after them escaping
+them. You should always use placeholders, and never use raw user input in
+database queries.
+
+
+<P>
+
+
+On success, returns a DBIx::Simple::Result object.
+
+
+<P>
+
+
+On failure, returns a DBIx::Simple::Dummy object.
+<DT>iquery<DD>
+
+
+<A NAME="ixAAU"></A>
+Uses SQL::Interp to interpolate values into a query, and uses the resulting
+generated query and bind arguments with <TT>&quot;query&quot;</TT>.
+
+
+<P>
+
+
+See SQL::Interp's documentation for usage information.
+
+
+<P>
+
+
+<I>Requires that Mark Stosberg's SQL::Interp module be installed. It is
+available from </I><FONT SIZE="-1"><I>CPAN</I></FONT><I>. SQL::Interp is a fork from David Manura's
+SQL::Interpolate.</I>
+<DT>select, insert, update, delete<DD>
+
+
+<A NAME="ixAAV"></A>
+Calls the respective method on <TT>&quot;abstract&quot;</TT>, and uses the resulting generated
+query and bind arguments with <TT>&quot;query&quot;</TT>.
+
+
+<P>
+
+
+See SQL::Abstract's documentation for usage information. You can override the
+object by assigning to the <TT>&quot;abstract&quot;</TT> property.
+
+
+<P>
+
+
+Obviously, calling <TT>&quot;query&quot;</TT> directly is faster for the computer and using these
+abstracting methods is faster for the programmer.
+<DT>abstract = SQL::Abstract-&gt;new(...)<DD>
+
+
+<A NAME="ixAAW"></A>
+Sets the object to use with the <TT>&quot;select&quot;</TT>, <TT>&quot;insert&quot;</TT>, <TT>&quot;update&quot;</TT> and <TT>&quot;delete&quot;</TT>
+methods. On first access, will create one with SQL::Abstract's default options.
+
+
+<P>
+
+
+<I>Requires that Nathan Wiger's SQL::Abstract module be installed. It is
+available from </I><FONT SIZE="-1"><I>CPAN</I></FONT><I>.</I>
+
+
+<P>
+
+
+In theory, you can assign any object to this property, as long as that object
+has these four methods, and they return a list suitable for use with the
+<TT>&quot;query&quot;</TT> method.
+<DT>begin_work, begin, commit, rollback<DD>
+
+
+<A NAME="ixAAX"></A>
+These transaction related methods call the <FONT SIZE="-1">DBI</FONT> respective methods and
+Do What You Mean. See <FONT SIZE="-1">DBI</FONT> for details.
+
+
+<P>
+
+
+<TT>&quot;begin&quot;</TT> is an alias for <TT>&quot;begin_work&quot;</TT>.
+<DT>func(...)<DD>
+
+
+<A NAME="ixAAY"></A>
+This calls the <TT>&quot;func&quot;</TT> method of <FONT SIZE="-1">DBI</FONT>. See <FONT SIZE="-1">DBI</FONT> for details.
+<DT>last_insert_id(...)<DD>
+
+
+<A NAME="ixAAZ"></A>
+This calls the <TT>&quot;last_insert_id&quot;</TT> method of <FONT SIZE="-1">DBI</FONT>. See <FONT SIZE="-1">DBI</FONT> for details. Note
+that this feature requires <FONT SIZE="-1">DBI</FONT> 1.38 or newer.
+<DT>dbh<DD>
+
+
+<A NAME="ixABA"></A>
+Exposes the internal database handle. Use this only if you know what you are
+doing. Keeping a reference or doing queries can interfere with DBIx::Simple's
+garbage collection and error reporting.
+<DT>disconnect<DD>
+
+
+<A NAME="ixABB"></A>
+Destroys (finishes) active statements and disconnects. Whenever the database
+object is destroyed, this happens automatically if DBIx::Simple handled the
+connection (i.e. you didn't use an existing <FONT SIZE="-1">DBI</FONT> handle). After disconnecting,
+you can no longer use the database object or any of its result objects.
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>DBIx::Simple::Dummy</H3>
+
+<A NAME="ixABC"></A>
+The <TT>&quot;query&quot;</TT> method of DBIx::Simple returns a dummy object on failure. Its
+methods all return an empty list or undef, depending on context. When used in
+boolean context, a dummy object evaluates to false.
+<A NAME="lbAM">&nbsp;</A>
+<H3>DBIx::Simple::Result methods</H3>
+
+<A NAME="ixABD"></A>
+<DL COMPACT>
+<DT>columns<DD>
+
+
+<A NAME="ixABE"></A>
+Returns a list of column names. In scalar context, returns an array reference.
+
+
+<P>
+
+
+Column names are lower cased if <TT>&quot;lc_columns&quot;</TT> was true when the query was
+executed.
+<DT>bind(LIST)<DD>
+
+
+<A NAME="ixABF"></A>
+Binds the given <FONT SIZE="-1">LIST</FONT> to the columns. The elements of <FONT SIZE="-1">LIST</FONT> must be writable
+LVALUEs. In other words, use this method as:
+
+
+<P>
+
+
+
+
+<PRE>
+    $result-&gt;bind(my ($foo, $bar));
+    $result-&gt;fetch;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Or, combined:
+
+
+<P>
+
+
+
+
+<PRE>
+    $result-&gt;into(my ($foo, $bar));
+
+</PRE>
+
+
+
+
+<P>
+
+
+Unlike with <FONT SIZE="-1">DBI</FONT>'s <TT>&quot;bind_columns&quot;</TT>, the <TT>&quot;\&quot;</TT> operator is not needed.
+
+
+<P>
+
+
+Bound variables are very efficient. Binding a tied variable doesn't work.
+<DT>fetch<DD>
+
+
+<A NAME="ixABG"></A>
+Fetches a single row and returns a reference to the array that holds the
+values. This is the same array every time.
+
+
+<P>
+
+
+Subsequent fetches (using any method) may change the values in the variables
+passed and the returned reference's array.
+<DT>into(LIST)<DD>
+
+
+<A NAME="ixABH"></A>
+Combines <TT>&quot;bind&quot;</TT> with <TT>&quot;fetch&quot;</TT>. Returns what <TT>&quot;fetch&quot;</TT> returns.
+<DT>list<DD>
+
+
+<A NAME="ixABI"></A>
+Fetches a single row and returns a list of values. In scalar context,
+returns only the last value.
+<DT>array<DD>
+
+
+<A NAME="ixABJ"></A>
+Fetches a single row and returns an array reference.
+<DT>hash<DD>
+
+
+<A NAME="ixABK"></A>
+Fetches a single row and returns a hash reference.
+
+
+<P>
+
+
+Keys are lower cased if <TT>&quot;lc_columns&quot;</TT> was true when the query was executed.
+<DT>flat<DD>
+
+
+<A NAME="ixABL"></A>
+Fetches all remaining rows and returns a flattened list.
+
+
+<P>
+
+
+In scalar context, returns an array reference.
+<DT>arrays<DD>
+
+
+<A NAME="ixABM"></A>
+Fetches all remaining rows and returns a list of array references.
+
+
+<P>
+
+
+In scalar context, returns an array reference.
+<DT>hashes<DD>
+
+
+<A NAME="ixABN"></A>
+Fetches all remaining rows and returns a list of hash references.
+
+
+<P>
+
+
+In scalar context, returns an array reference.
+
+
+<P>
+
+
+Keys are lower cased if <TT>&quot;lc_columns&quot;</TT> was true when the query was executed.
+<DT>map_arrays($column_number)<DD>
+
+
+<A NAME="ixABO"></A>
+Constructs a hash of array references keyed by the values in the chosen column.
+
+
+<P>
+
+
+In scalar context, returns a hash reference.
+
+
+<P>
+
+
+In list context, returns interleaved keys and values.
+<DT>map_hashes($column_name)<DD>
+
+
+<A NAME="ixABP"></A>
+Constructs a hash of hash references keyed by the values in the chosen column.
+
+
+<P>
+
+
+In scalar context, returns a hash reference.
+
+
+<P>
+
+
+In list context, returns interleaved keys and values.
+<DT>map<DD>
+
+
+<A NAME="ixABQ"></A>
+Constructs a simple hash, using the two columns as key/value pairs. Should
+only be used with queries that return two columns.
+
+
+<P>
+
+
+In scalar context, returns a hash reference.
+
+
+<P>
+
+
+In list context, returns interleaved keys and values.
+<DT>rows<DD>
+
+
+<A NAME="ixABR"></A>
+Returns the number of rows affected by the last row affecting command, or -1 if
+the number of rows is not known or not available.
+
+
+<P>
+
+
+For <FONT SIZE="-1">SELECT</FONT> statements, it is generally not possible to know how many rows are
+returned. MySQL does provide this information. See <FONT SIZE="-1">DBI</FONT> for a detailed
+explanation.
+<DT>xto(%attr)<DD>
+
+
+<A NAME="ixABS"></A>
+Returns a DBIx::XHTML_Table object, passing the constructor a reference to
+<TT>%attr</TT>.
+
+
+<P>
+
+
+<I>Requires that Jeffrey Hayes Anderson's DBIx::XHTML_Table module be installed.
+It is available from </I><FONT SIZE="-1"><I>CPAN</I></FONT><I>.</I>
+
+
+<P>
+
+
+In general, using the <TT>&quot;html&quot;</TT> method (described below) is much easier. <TT>&quot;xto&quot;</TT>
+is available in case you need more flexibility.
+
+
+<P>
+
+
+This method ignores the <TT>&quot;lc_columns&quot;</TT> property.
+<DT>html(%attr)<DD>
+
+
+<A NAME="ixABT"></A>
+Returns an (X)HTML formatted table, using the DBIx::XHTML_Table module. Passes
+a reference to <TT>%attr</TT> to both the constructor and the <TT>&quot;output&quot;</TT> method.
+
+
+<P>
+
+
+<I>Requires that Jeffrey Hayes Anderson's DBIx::XHTML_Table module be installed.
+It is available from </I><FONT SIZE="-1"><I>CPAN</I></FONT><I>.</I>
+
+
+<P>
+
+
+This method is a shortcut method. That means that
+
+
+<P>
+
+
+
+
+<PRE>
+    $result-&gt;html
+
+    $result-&gt;html(
+        tr =&gt; { bgcolor =&gt; [ 'silver', 'white' ] },
+        no_ucfirst =&gt; 1
+    )
+
+</PRE>
+
+
+
+
+<P>
+
+
+do the same as:
+
+
+<P>
+
+
+
+
+<PRE>
+    $result-&gt;xto-&gt;output
+
+    $result-&gt;xto(
+        tr =&gt; { bgcolor =&gt; [ 'silver', 'white' ] }
+    )-&gt;output(
+        no_ucfirst =&gt; 1
+    );
+
+</PRE>
+
+
+<DT>text($type)<DD>
+
+
+<A NAME="ixABU"></A>
+Returns a string with a simple text representation of the data. <TT>$type</TT>
+can be any of: <TT>&quot;neat&quot;</TT>, <TT>&quot;table&quot;</TT>, <TT>&quot;box&quot;</TT>. It defaults to <TT>&quot;table&quot;</TT> if
+Text::Table is installed, to <TT>&quot;neat&quot;</TT> if it is.
+
+
+<P>
+
+
+<I></I>&quot;table&quot;<I> and </I>&quot;box&quot;<I> require that Anno Siegel's Text::Table module be
+installed. It is available from </I><FONT SIZE="-1"><I>CPAN</I></FONT><I>.</I>
+<DT>attr(...)<DD>
+
+
+<A NAME="ixABV"></A>
+Returns a copy of an sth attribute (property). See ``Statement Handle
+Attributes'' in <FONT SIZE="-1">DBI</FONT> for details.
+<DT>func(...)<DD>
+
+
+<A NAME="ixABW"></A>
+This calls the <TT>&quot;func&quot;</TT> method of <FONT SIZE="-1">DBI</FONT>. See <FONT SIZE="-1">DBI</FONT> for details.
+<DT>finish<DD>
+
+
+<A NAME="ixABX"></A>
+Finishes the statement. After finishing a statement, it can no longer be used.
+When the result object is destroyed, its statement handle is automatically
+finished and destroyed. There should be no reason to call this method
+explicitly; just let the result object go out of scope.
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H2>MISCELLANEOUS</H2>
+
+<A NAME="ixABY"></A>
+The mapping methods do not check whether the keys are unique. Rows that are
+fetched later overwrite earlier ones.
+<P>
+
+PrintError is disabled by default. If you enable it, beware that it will report
+line numbers in DBIx/Simple.pm.
+<A NAME="lbAO">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixABZ"></A>
+There is no license. This software was released into the public domain. Do with
+it what you want, but on your own risk. The author disclaims any
+responsibility.
+<A NAME="lbAP">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixACA"></A>
+Juerd Waalboer &lt;<A HREF="mailto:juerd@cpan.org">juerd@cpan.org</A>&gt; &lt;<A HREF="http://juerd.nl/">http://juerd.nl/</A>&gt;
+<A NAME="lbAQ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixACB"></A>
+perl, perlref
+<P>
+
+<FONT SIZE="-1">DBI</FONT>, DBIx::Simple::Examples, SQL::Abstract, DBIx::XHTML_Table
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DL>
+<DT><A HREF="#lbAD">DBIx::Simple</A><DD>
+<DT><A HREF="#lbAE">DBIx::SImple + SQL::Interp</A><DD>
+<DT><A HREF="#lbAF">DBIx::Simple + SQL::Abstract</A><DD>
+<DT><A HREF="#lbAG">DBIx::Simple::Result</A><DD>
+<DT><A HREF="#lbAH">DBIx::Simple::Result + DBIx::XHTML_Table</A><DD>
+<DT><A HREF="#lbAI">Examples</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAK">DBIx::Simple methods</A><DD>
+<DT><A HREF="#lbAL">DBIx::Simple::Dummy</A><DD>
+<DT><A HREF="#lbAM">DBIx::Simple::Result methods</A><DD>
+</DL>
+<DT><A HREF="#lbAN">MISCELLANEOUS</A><DD>
+<DT><A HREF="#lbAO">LICENSE</A><DD>
+<DT><A HREF="#lbAP">AUTHOR</A><DD>
+<DT><A HREF="#lbAQ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:22 GMT, December 24, 2015
+</div></body>
+</HTML>

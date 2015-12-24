@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of WDAEMON</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>WDAEMON</H1>
+Section: [FIXME: manual] (1)<BR>Updated: 12/07/2011<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+wdaemon - Wacom tablet hotplugging emulator
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+wdaemon [options]
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+wdaemon is an application to abstract Wacom tablet hotplugging. wdaemon creates virtual input devices using the uinput kernel module and makes them available while at run time keeps looking for specified devices to be plugged in.
+<P>
+Instead of looking for the actual device, the X server is configured to look for the emulated device. wdaemon will provide the an identical device description, allowing the server to initialize properly. Once the physical device is plugged in, wdaemon will forward all events through the emulated device and thus to the X server.
+<P>
+For easier recognition, the device name is prefixed with the string &quot;wdaemon&quot;. This can be disabled at configure time.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+
+-h
+<DL COMPACT><DT><DD>
+Print a help message
+</DL>
+
+<P>
+
+-p
+<DL COMPACT><DT><DD>
+Path to the device file to monitor, load to or extract
+</DL>
+
+<P>
+
+-t
+<DL COMPACT><DT><DD>
+Device type, use -w to get a list
+</DL>
+
+<P>
+
+-c file
+<DL COMPACT><DT><DD>
+Use &lt;file&gt; as configuration file.
+</DL>
+
+<P>
+
+-d N
+<DL COMPACT><DT><DD>
+Enable debug messages up to level N
+</DL>
+
+<P>
+
+-o file
+<DL COMPACT><DT><DD>
+Redirect debug messages to file
+</DL>
+
+<P>
+
+-f
+<DL COMPACT><DT><DD>
+Fork on start and enter in daemon mode
+</DL>
+
+<P>
+
+-w
+<DL COMPACT><DT><DD>
+Get a list of supported devices and their numbers
+</DL>
+
+<P>
+
+-a
+<DL COMPACT><DT><DD>
+Autoconfigure, generate a configuration file based on currently plugged in tablets
+</DL>
+
+<P>
+
+-l file
+<DL COMPACT><DT><DD>
+Load a device description from file
+</DL>
+
+<P>
+
+-x file
+<DL COMPACT><DT><DD>
+Extract a device description into file
+</DL>
+
+<P>
+
+-s
+<DL COMPACT><DT><DD>
+Use syslog for debug messages (conflicts with -o)
+</DL>
+
+<P>
+
+-v
+<DL COMPACT><DT><DD>
+Print version number
+</DL>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONFIGURATION</H2>
+
+<P>
+wdaemon requires configuration in the <A HREF="/man/index.html?7+udev">udev</A>(7) system setup, the <A HREF="http://localhost/cgi-bin/man/man2html?5+xorg.conf">xorg.conf</A>(5) configuration files and finally wdaemon itself.
+<A NAME="lbAG">&nbsp;</A>
+<H3>UDEV CONFIGURATION</H3>
+
+<P>
+wdaemon requires a tablet to have a predictable unique device file. This is usually accomplished through udev rules. For example, on modern systems, a tablet may appear as
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+/dev/input/by-id/usb-Tablet_PTZ-630-event-mouse
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+which will point to the event device of a Intuos3 6x8. The wdaemon package provides udev rules to create symlinks to known tablet models in the form of
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+/dev/input/wacomX,
+/dev/input/wacom-tablets/wacom-&lt;model&gt;-tabletX and
+/dev/input/wacom-tablets/wacom-&lt;model&gt;-tablet-&lt;phys path&gt;
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+The last link provides unique type per USB port. Once a tablet reliably appears at a given device path, wdaemon may be configured to use it.
+<P>
+The second step consists in creating a persistent name for uinput devices created by wdaemon, so you can configure your xorg.conf right. An example udev rule to do this:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+KERNEL=&quot;event*&quot;, PROGRAM=&quot;/lib/udev/wdaemon_is_uinput.sh&quot;, \
+        RESULT=&quot;056a-0000&quot;, \
+        SYMLINK=&quot;input/uinput-devices/uinput-wacom-penpartner-tablet%e&quot;
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+This will create a symbolic link for penpartner tablets. Notice it needs wdaemon_is_uinput.sh script (included in this package). Also included in this package, 11-uinput-wacom.rules has these rules done for most tablets. With the rule in place, a wdaemon-created device will have predictable device files. This makes xorg.conf configuration simpler.
+<A NAME="lbAH">&nbsp;</A>
+<H3>XORG.CONF CONFIGURATION</H3>
+
+<P>
+The X server should be configured to use the devices by wdaemon instead of the actual physical devices. An <A HREF="/man/index.html?5+xorg.conf">xorg.conf</A>(5) section may look like this:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+Section &quot;InputDevice&quot;
+        Identifier &quot;cursor&quot;
+        Driver &quot;wacom&quot;
+        Option &quot;Type&quot; &quot;cursor&quot;
+        Option &quot;Device&quot; &quot;/dev/input/uinput-devices/uinput-wacom-intuos3-6x8-tablet&quot;
+        Option &quot;Mode&quot; &quot;relative&quot;
+        Option &quot;Tilt&quot; &quot;on&quot;
+        Option &quot;Threshold&quot; &quot;20&quot;
+        Option &quot;Suppress&quot; &quot;6&quot;
+        Option &quot;USB&quot;    &quot;On&quot;
+EndSection
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+Note that if the X server is configured to hotplug devices, it must ignore physical devices in use by wdaemon. Example <A HREF="/man/index.html?5+xorg.conf.d">xorg.conf.d</A>(5) and fdi files are provided with this package.
+<A NAME="lbAI">&nbsp;</A>
+<H3>WDAEMON CONFIGURATION</H3>
+
+<P>
+Now wdaemon must be configured to monitor the physical tablet and create matching uinput device. A /etc/wdaemon.conf for two devices may look like this:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+device = 36,/dev/input/wacom-tablets/intuos3-6x8-tablet
+device = 6,/dev/input/wacom-tablets/graphire4-4x5-tablet
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+Notice the spaces. The wdaemon parser is very rudimentary at this point and can get easily confused. The device types 36 and 6 can be determined by running
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+wdaemon -w
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+When wdaemon is started, it will create devices of the types specified in the wdaemon.conf configuration file and monitor the device path. Whenever the physical tablet appears, wdaemon will forward events from the device to the uinput device.
+<P>
+If the device type is unknown to wdaemon, see SAVING AND LOADING DEVICES below.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>AUTO-CONFIGURATION</H3>
+
+<P>
+The -a option was added in 0.14 to generate a wdaemon.conf based on the currently plugged-in tablets. First, plug in all tablets that should be emulated by wdaemon in the future. Then run
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+wdaemon -a
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+This command prints a configuration file that can then be used for wdaemon.
+<P>
+Auto-configuration only works with device types known to wdaemon.
+<A NAME="lbAK">&nbsp;</A>
+<H3>SAVING AND LOADING DEVICES</H3>
+
+<P>
+wdaemon has the device descriptions for a number of devices built-in. For devices that are unknown to wdaemon the device description must be gathered from the physical device and loaded on startup.
+<P>
+A device description may be extracted with the -x option:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+wdaemon -p /dev/input/by-id/usb-Tablet_PTZ-630-event-mouse -x Intuos3_6x8.desc
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+The resulting device file is a description of the device currently available as /dev/input/event12. The description may be loaded again with the -l option:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+wdaemon -p /dev/input/by-id/usb-Tablet_PTZ-630-event-mouse -l Intuos3_6x8.desc
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+wdaemon will initialize a device based on the description file and forward events from the specified device path.
+<A NAME="lbAL">&nbsp;</A>
+<H2>CONFIGURATION FILE FORMAT</H2>
+
+<P>
+The configuration format supports the following keywords:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+debug = &lt;debuglevel&gt;
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+Where debuglevel is an integer equal or larger than 0.
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+device = &lt;type&gt;,&lt;path&gt;
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+Where type is an integer representing the device type and path the path to the device to monitor.
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+description = &lt;desc&gt;,&lt;path&gt;
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+Where desc is the path to a device file description and path the path to the device to monitor.
+<P>
+wdaemoncqs parser is simple and the spaces in the configuration file must be exactly as above. That is, no space at the beginning of the line, a space before and after the = sign and no spaces elsewhere.
+<A NAME="lbAM">&nbsp;</A>
+<H2>ENVIRONMENT VARIABLES</H2>
+
+<P>
+
+UINPUT_DEVICE
+<DL COMPACT><DT><DD>
+Specifies the path to the uinput kernel device.
+</DL>
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>VERSION</H2>
+
+<P>
+0.17
+<A NAME="lbAO">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<P>
+This man page was written by Peter Hutterer &lt;m[blue]<B><A HREF="mailto:peter.hutterer@redhat.com">peter.hutterer@redhat.com</A></B>m[]<FONT SIZE="-2">[1]</FONT>&gt; based on the README provided by wdaemon.
+<A NAME="lbAP">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+<A HREF="/man/index.html?5+xorg.conf">xorg.conf</A>(5), <A HREF="http://localhost/cgi-bin/man/man2html?4+wacom">wacom</A>(4)
+<A NAME="lbAQ">&nbsp;</A>
+<H2>NOTES</H2>
+
+<DL COMPACT>
+<DT> 1.<DD>
+<A HREF="mailto:peter.hutterer@redhat.com">peter.hutterer@redhat.com</A>
+<DL COMPACT><DT><DD>
+mailto:<A HREF="mailto:peter.hutterer@redhat.com">peter.hutterer@redhat.com</A>
+</DL>
+
+<P>
+</DL>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">CONFIGURATION</A><DD>
+<DL>
+<DT><A HREF="#lbAG">UDEV CONFIGURATION</A><DD>
+<DT><A HREF="#lbAH">XORG.CONF CONFIGURATION</A><DD>
+<DT><A HREF="#lbAI">WDAEMON CONFIGURATION</A><DD>
+<DT><A HREF="#lbAJ">AUTO-CONFIGURATION</A><DD>
+<DT><A HREF="#lbAK">SAVING AND LOADING DEVICES</A><DD>
+</DL>
+<DT><A HREF="#lbAL">CONFIGURATION FILE FORMAT</A><DD>
+<DT><A HREF="#lbAM">ENVIRONMENT VARIABLES</A><DD>
+<DT><A HREF="#lbAN">VERSION</A><DD>
+<DT><A HREF="#lbAO">AUTHORS</A><DD>
+<DT><A HREF="#lbAP">SEE ALSO</A><DD>
+<DT><A HREF="#lbAQ">NOTES</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:12 GMT, December 24, 2015
+</div></body>
+</HTML>

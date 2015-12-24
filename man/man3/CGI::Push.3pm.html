@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CGI::Push</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CGI::Push</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+CGI::Push - Simple Interface to Server Push
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use CGI::Push qw(:standard);
+
+    do_push(-next_page=&gt;\&amp;next_page,
+            -last_page=&gt;\&amp;last_page,
+            -delay=&gt;0.5);
+
+    sub next_page {
+        my($q,$counter) = @_;
+        return undef if $counter &gt;= 10;
+        return start_html('Test'),
+               h1('Visible'),&quot;\n&quot;,
+               &quot;This page has been called &quot;, strong($counter),&quot; times&quot;,
+               end_html();
+    }
+
+    sub last_page {
+        my($q,$counter) = @_;
+        return start_html('Done'),
+               h1('Finished'),
+               strong($counter - 1),' iterations.',
+               end_html;
+    }
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+CGI::Push is a subclass of the <FONT SIZE="-1">CGI</FONT> object created by <FONT SIZE="-1">CGI</FONT>.pm.  It is
+specialized for server push operations, which allow you to create
+animated pages whose content changes at regular intervals.
+<P>
+
+You provide CGI::Push with a pointer to a subroutine that will draw
+one page.  Every time your subroutine is called, it generates a new
+page.  The contents of the page will be transmitted to the browser
+in such a way that it will replace what was there beforehand.  The
+technique will work with <FONT SIZE="-1">HTML</FONT> pages as well as with graphics files, 
+allowing you to create animated GIFs.
+<P>
+
+Only Netscape Navigator supports server push.  Internet Explorer
+browsers do not.
+<A NAME="lbAE">&nbsp;</A>
+<H2>USING CGI::Push</H2>
+
+<A NAME="ixAAE"></A>
+CGI::Push adds one new method to the standard <FONT SIZE="-1">CGI</FONT> suite, <I>do_push()</I>.
+When you call this method, you pass it a reference to a subroutine
+that is responsible for drawing each new page, an interval delay, and
+an optional subroutine for drawing the last page.  Other optional
+parameters include most of those recognized by the <FONT SIZE="-1">CGI</FONT> <I>header()</I>
+method.
+<P>
+
+You may call <I>do_push()</I> in the object oriented manner or not, as you
+prefer:
+<P>
+
+
+
+<PRE>
+    use CGI::Push;
+    $q = new CGI::Push;
+    $q-&gt;do_push(-next_page=&gt;\&amp;draw_a_page);
+
+        -or-
+
+    use CGI::Push qw(:standard);
+    do_push(-next_page=&gt;\&amp;draw_a_page);
+
+</PRE>
+
+
+<P>
+
+Parameters are as follows:
+<DL COMPACT>
+<DT>-next_page<DD>
+<A NAME="ixAAF"></A>
+
+
+<PRE>
+    do_push(-next_page=&gt;\&amp;my_draw_routine);
+
+</PRE>
+
+
+
+
+<P>
+
+
+This required parameter points to a reference to a subroutine responsible for
+drawing each new page.  The subroutine should expect two parameters
+consisting of the <FONT SIZE="-1">CGI</FONT> object and a counter indicating the number
+of times the subroutine has been called.  It should return the
+contents of the page as an <B>array</B> of one or more items to print.  
+It can return a false value (or an empty array) in order to abort the
+redrawing loop and print out the final page (if any)
+
+
+<P>
+
+
+
+
+<PRE>
+    sub my_draw_routine {
+        my($q,$counter) = @_;
+        return undef if $counter &gt; 100;
+        return start_html('testing'),
+               h1('testing'),
+               &quot;This page called $counter times&quot;;
+    }
+
+</PRE>
+
+
+
+
+<P>
+
+
+You are of course free to refer to create and use global variables
+within your draw routine in order to achieve special effects.
+<DT>-last_page<DD>
+<A NAME="ixAAG"></A>
+This optional parameter points to a reference to the subroutine
+responsible for drawing the last page of the series.  It is called
+after the -next_page routine returns a false value.  The subroutine
+itself should have exactly the same calling conventions as the
+-next_page routine.
+<DT>-type<DD>
+<A NAME="ixAAH"></A>
+This optional parameter indicates the content type of each page.  It
+defaults to ``text/html''.  Normally the module assumes that each page
+is of a homogeneous <FONT SIZE="-1">MIME</FONT> type.  However if you provide either of the
+magic values ``heterogeneous'' or ``dynamic'' (the latter provided for the
+convenience of those who hate long parameter names), you can specify
+the <FONT SIZE="-1">MIME</FONT> type --- and other header fields --- on a per-page basis.  See 
+``heterogeneous pages'' for more details.
+<DT>-delay<DD>
+<A NAME="ixAAI"></A>
+This indicates the delay, in seconds, between frames.  Smaller delays
+refresh the page faster.  Fractional values are allowed.
+
+
+<P>
+
+
+<B>If not specified, -delay will default to 1 second</B>
+<DT>-cookie, -target, -expires, -nph<DD>
+<A NAME="ixAAJ"></A>
+These have the same meaning as the like-named parameters in
+<I>CGI::header()</I>.
+
+
+<P>
+
+
+If not specified, -nph will default to 1 (as needed for many servers, see below).
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Heterogeneous Pages</H3>
+
+<A NAME="ixAAK"></A>
+Ordinarily all pages displayed by CGI::Push share a common <FONT SIZE="-1">MIME</FONT> type.
+However by providing a value of ``heterogeneous'' or ``dynamic'' in the
+<I>do_push()</I> -type parameter, you can specify the <FONT SIZE="-1">MIME</FONT> type of each page
+on a case-by-case basis.
+<P>
+
+If you use this option, you will be responsible for producing the
+<FONT SIZE="-1">HTTP</FONT> header for each page.  Simply modify your draw routine to
+look like this:
+<P>
+
+
+
+<PRE>
+    sub my_draw_routine {
+        my($q,$counter) = @_;
+        return header('text/html'),   # note we're producing the header here
+               start_html('testing'),
+               h1('testing'),
+               &quot;This page called $counter times&quot;;
+    }
+
+</PRE>
+
+
+<P>
+
+You can add any header fields that you like, but some (cookies and
+status fields included) may not be interpreted by the browser.  One
+interesting effect is to display a series of pages, then, after the
+last page, to redirect the browser to a new <FONT SIZE="-1">URL</FONT>.  Because <I>redirect()</I> 
+does b&lt;not&gt; work, the easiest way is with a -refresh header field,
+as shown below:
+<P>
+
+
+
+<PRE>
+    sub my_draw_routine {
+        my($q,$counter) = @_;
+        return undef if $counter &gt; 10;
+        return header('text/html'),   # note we're producing the header here
+               start_html('testing'),
+               h1('testing'),
+               &quot;This page called $counter times&quot;;
+    }
+
+    sub my_last_page {
+        return header(-refresh=&gt;'5; URL=<A HREF="http://somewhere.else/finished.html',">http://somewhere.else/finished.html',</A>
+                      -type=&gt;'text/html'),
+               start_html('Moved'),
+               h1('This is the last page'),
+               'Goodbye!'
+               hr,
+               end_html; 
+    }
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>Changing the Page Delay on the Fly</H3>
+
+<A NAME="ixAAL"></A>
+If you would like to control the delay between pages on a page-by-page
+basis, call <I>push_delay()</I> from within your draw routine.  <I>push_delay()</I>
+takes a single numeric argument representing the number of seconds you
+wish to delay after the current page is displayed and before
+displaying the next one.  The delay may be fractional.  Without
+parameters, <I>push_delay()</I> just returns the current delay.
+<A NAME="lbAH">&nbsp;</A>
+<H2>INSTALLING CGI::Push SCRIPTS</H2>
+
+<A NAME="ixAAM"></A>
+Server push scripts must be installed as no-parsed-header (<FONT SIZE="-1">NPH</FONT>)
+scripts in order to work correctly on many servers.  On Unix systems,
+this is most often accomplished by prefixing the script's name with ``nph-''.  
+Recognition of <FONT SIZE="-1">NPH</FONT> scripts happens automatically with WebSTAR and 
+Microsoft <FONT SIZE="-1">IIS</FONT>.  Users of other servers should see their documentation
+for help.
+<P>
+
+Apache web server from version 1.3b2 on does not need server
+push scripts installed as <FONT SIZE="-1">NPH</FONT> scripts: the -nph parameter to <I>do_push()</I>
+may be set to a false value to disable the extra headers needed by an
+<FONT SIZE="-1">NPH</FONT> script.
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR INFORMATION</H2>
+
+<A NAME="ixAAN"></A>
+Copyright 1995-1998, Lincoln D. Stein.  All rights reserved.
+<P>
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+<P>
+
+Address bug reports and comments to: <A HREF="mailto:lstein@cshl.org">lstein@cshl.org</A>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAO"></A>
+This section intentionally left blank.
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAP"></A>
+CGI::Carp, <FONT SIZE="-1">CGI</FONT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">USING CGI::Push</A><DD>
+<DL>
+<DT><A HREF="#lbAF">Heterogeneous Pages</A><DD>
+<DT><A HREF="#lbAG">Changing the Page Delay on the Fly</A><DD>
+</DL>
+<DT><A HREF="#lbAH">INSTALLING CGI::Push SCRIPTS</A><DD>
+<DT><A HREF="#lbAI">AUTHOR INFORMATION</A><DD>
+<DT><A HREF="#lbAJ">BUGS</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:15 GMT, December 24, 2015
+</div></body>
+</HTML>

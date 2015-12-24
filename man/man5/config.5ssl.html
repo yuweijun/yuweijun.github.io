@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CONFIG</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CONFIG</H1>
+Section: OpenSSL (5)<BR>Updated: 2004-11-25<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+config - OpenSSL CONF library configuration files
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+The OpenSSL <FONT SIZE="-1">CONF</FONT> library can be used to read configuration files.
+It is used for the OpenSSL master configuration file <B>openssl.cnf</B>
+and in a few other places like <B></B><FONT SIZE="-1"><B>SPKAC</B></FONT><B></B> files and certificate extension
+files for the <B>x509</B> utility. OpenSSL applications can also use the
+<FONT SIZE="-1">CONF</FONT> library for their own purposes.
+<P>
+
+A configuration file is divided into a number of sections. Each section
+starts with a line <B>[ section_name ]</B> and ends when a new section is
+started or end of file is reached. A section name can consist of
+alphanumeric characters and underscores.
+<P>
+
+The first section of a configuration file is special and is referred
+to as the <B>default</B> section this is usually unnamed and is from the
+start of file until the first named section. When a name is being looked up
+it is first looked up in a named section (if any) and then the
+default section.
+<P>
+
+The environment is mapped onto a section called <B></B><FONT SIZE="-1"><B>ENV</B></FONT><B></B>.
+<P>
+
+Comments can be included by preceding them with the <B>#</B> character
+<P>
+
+Each section in a configuration file consists of a number of name and
+value pairs of the form <B>name=value</B>
+<P>
+
+The <B>name</B> string can contain any alphanumeric characters as well as
+a few punctuation symbols such as <B>.</B> <B>,</B> <B>;</B> and <B>_</B>.
+<P>
+
+The <B>value</B> string consists of the string following the <B>=</B> character
+until end of line with any leading and trailing white space removed.
+<P>
+
+The value string undergoes variable expansion. This can be done by
+including the form <B></B>$var<B></B> or <B>${var}</B>: this will substitute the value
+of the named variable in the current section. It is also possible to
+substitute a value from another section using the syntax <B></B>$section::name<B></B>
+or <B>${section::name}</B>. By using the form <B></B>$ENV::name<B></B> environment
+variables can be substituted. It is also possible to assign values to
+environment variables by using the name <B>ENV::name</B>, this will work
+if the program looks up environment variables using the <B></B><FONT SIZE="-1"><B>CONF</B></FONT><B></B> library
+instead of calling <B></B>getenv()<B></B> directly.
+<P>
+
+It is possible to escape certain characters by using any kind of quote
+or the <B>\</B> character. By making the last character of a line a <B>\</B>
+a <B>value</B> string can be spread across multiple lines. In addition
+the sequences <B>\n</B>, <B>\r</B>, <B>\b</B> and <B>\t</B> are recognized.
+<A NAME="lbAD">&nbsp;</A>
+<H2>OPENSSL LIBRARY CONFIGURATION</H2>
+
+<A NAME="ixAAD"></A>
+In OpenSSL 0.9.7 and later applications can automatically configure certain
+aspects of OpenSSL using the master OpenSSL configuration file, or optionally
+an alternative configuration file. The <B>openssl</B> utility includes this
+functionality: any sub command uses the master OpenSSL configuration file
+unless an option is used in the sub command to use an alternative configuration
+file.
+<P>
+
+To enable library configuration the default section needs to contain an 
+appropriate line which points to the main configuration section. The default
+name is <B>openssl_conf</B> which is used by the <B>openssl</B> utility. Other
+applications may use an alternative name such as <B>myapplicaton_conf</B>.
+<P>
+
+The configuration section should consist of a set of name value pairs which
+contain specific module configuration information. The <B>name</B> represents
+the name of the <I>configuration module</I> the meaning of the <B>value</B> is 
+module specific: it may, for example, represent a further configuration
+section containing configuration module specific information. E.g.
+<P>
+
+
+
+<PRE>
+ openssl_conf = openssl_init
+
+ [openssl_init]
+
+ oid_section = new_oids
+ engines = engine_section
+
+ [new_oids]
+
+ ... new oids here ...
+
+ [engine_section]
+
+ ... engine stuff here ...
+
+</PRE>
+
+
+<P>
+
+Currently there are two configuration modules. One for <FONT SIZE="-1">ASN1</FONT> objects another
+for <FONT SIZE="-1">ENGINE</FONT> configuration.
+<A NAME="lbAE">&nbsp;</A>
+<H3><FONT SIZE="-1">ASN1</FONT> <FONT SIZE="-1">OBJECT</FONT> <FONT SIZE="-1">CONFIGURATION</FONT> <FONT SIZE="-1">MODULE</FONT></H3>
+
+<A NAME="ixAAE"></A>
+This module has the name <B>oid_section</B>. The value of this variable points
+to a section containing name value pairs of OIDs: the name is the <FONT SIZE="-1">OID</FONT> short
+and long name, the value is the numerical form of the <FONT SIZE="-1">OID</FONT>. Although some of
+the <B>openssl</B> utility sub commands already have their own <FONT SIZE="-1">ASN1</FONT> <FONT SIZE="-1">OBJECT</FONT> section
+functionality not all do. By using the <FONT SIZE="-1">ASN1</FONT> <FONT SIZE="-1">OBJECT</FONT> configuration module
+<B>all</B> the <B>openssl</B> utility sub commands can see the new objects as well
+as any compliant applications. For example:
+<P>
+
+
+
+<PRE>
+ [new_oids]
+ 
+ some_new_oid = 1.2.3.4
+ some_other_oid = 1.2.3.5
+
+</PRE>
+
+
+<P>
+
+In OpenSSL 0.9.8 it is also possible to set the value to the long name followed
+by a comma and the numerical <FONT SIZE="-1">OID</FONT> form. For example:
+<P>
+
+
+
+<PRE>
+ shortName = some object long name, 1.2.3.4
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H3><FONT SIZE="-1">ENGINE</FONT> <FONT SIZE="-1">CONFIGURATION</FONT> <FONT SIZE="-1">MODULE</FONT></H3>
+
+<A NAME="ixAAF"></A>
+This <FONT SIZE="-1">ENGINE</FONT> configuration module has the name <B>engines</B>. The value of this
+variable points to a section containing further <FONT SIZE="-1">ENGINE</FONT> configuration
+information.
+<P>
+
+The section pointed to by <B>engines</B> is a table of engine names (though see
+<B>engine_id</B> below) and further sections containing configuration informations
+specific to each <FONT SIZE="-1">ENGINE</FONT>.
+<P>
+
+Each <FONT SIZE="-1">ENGINE</FONT> specific section is used to set default algorithms, load
+dynamic, perform initialization and send ctrls. The actual operation performed
+depends on the <I>command</I> name which is the name of the name value pair. The
+currently supported commands are listed below.
+<P>
+
+For example:
+<P>
+
+
+
+<PRE>
+ [engine_section]
+
+ # Configure ENGINE named &quot;foo&quot;
+ foo = foo_section
+ # Configure ENGINE named &quot;bar&quot;
+ bar = bar_section
+
+ [foo_section]
+ ... foo ENGINE specific commands ...
+
+ [bar_section]
+ ... &quot;bar&quot; ENGINE specific commands ...
+
+</PRE>
+
+
+<P>
+
+The command <B>engine_id</B> is used to give the <FONT SIZE="-1">ENGINE</FONT> name. If used this 
+command must be first. For example:
+<P>
+
+
+
+<PRE>
+ [engine_section]
+ # This would normally handle an ENGINE named &quot;foo&quot;
+ foo = foo_section
+
+ [foo_section]
+ # Override default name and use &quot;myfoo&quot; instead.
+ engine_id = myfoo
+
+</PRE>
+
+
+<P>
+
+The command <B>dynamic_path</B> loads and adds an <FONT SIZE="-1">ENGINE</FONT> from the given path. It
+is equivalent to sending the ctrls <B></B><FONT SIZE="-1"><B>SO_PATH</B></FONT><B></B> with the path argument followed
+by <B></B><FONT SIZE="-1"><B>LIST_ADD</B></FONT><B></B> with value 2 and <B></B><FONT SIZE="-1"><B>LOAD</B></FONT><B></B> to the dynamic <FONT SIZE="-1">ENGINE</FONT>. If this is
+not the required behaviour then alternative ctrls can be sent directly
+to the dynamic <FONT SIZE="-1">ENGINE</FONT> using ctrl commands.
+<P>
+
+The command <B>init</B> determines whether to initialize the <FONT SIZE="-1">ENGINE</FONT>. If the value
+is <B>0</B> the <FONT SIZE="-1">ENGINE</FONT> will not be initialized, if <B>1</B> and attempt it made to
+initialized the <FONT SIZE="-1">ENGINE</FONT> immediately. If the <B>init</B> command is not present
+then an attempt will be made to initialize the <FONT SIZE="-1">ENGINE</FONT> after all commands in
+its section have been processed.
+<P>
+
+The command <B>default_algorithms</B> sets the default algorithms an <FONT SIZE="-1">ENGINE</FONT> will
+supply using the functions <B></B>ENGINE_set_default_string()<B></B>
+<P>
+
+If the name matches none of the above command names it is assumed to be a
+ctrl command which is sent to the <FONT SIZE="-1">ENGINE</FONT>. The value of the command is the 
+argument to the ctrl command. If the value is the string <B></B><FONT SIZE="-1"><B>EMPTY</B></FONT><B></B> then no
+value is sent to the command.
+<P>
+
+For example:
+<P>
+
+
+
+<PRE>
+ [engine_section]
+
+ # Configure ENGINE named &quot;foo&quot;
+ foo = foo_section
+
+ [foo_section]
+ # Load engine from DSO
+ dynamic_path = /some/path/fooengine.so
+ # A foo specific ctrl.
+ some_ctrl = some_value
+ # Another ctrl that doesn't take a value.
+ other_ctrl = EMPTY
+ # Supply all default algorithms
+ default_algorithms = ALL
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAG"></A>
+If a configuration file attempts to expand a variable that doesn't exist
+then an error is flagged and the file will not load. This can happen
+if an attempt is made to expand an environment variable that doesn't
+exist. For example in a previous version of OpenSSL the default OpenSSL
+master configuration file used the value of <B></B><FONT SIZE="-1"><B>HOME</B></FONT><B></B> which may not be
+defined on non Unix systems and would cause an error.
+<P>
+
+This can be worked around by including a <B>default</B> section to provide
+a default value: then if the environment lookup fails the default value
+will be used instead. For this to work properly the default value must
+be defined earlier in the configuration file than the expansion. See
+the <B></B><FONT SIZE="-1"><B>EXAMPLES</B></FONT><B></B> section for an example of how to do this.
+<P>
+
+If the same variable exists in the same section then all but the last
+value will be silently ignored. In certain circumstances such as with
+DNs the same field may occur multiple times. This is usually worked
+around by ignoring any characters before an initial <B>.</B> e.g.
+<P>
+
+
+
+<PRE>
+ 1.OU=&quot;My first OU&quot;
+ 2.OU=&quot;My Second OU&quot;
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAH"></A>
+Here is a sample configuration file using some of the features
+mentioned above.
+<P>
+
+
+
+<PRE>
+ # This is the default section.
+ 
+ HOME=/temp
+ RANDFILE= ${ENV::HOME}/.rnd
+ configdir=$ENV::HOME/config
+
+ [ section_one ]
+
+ # We are now in section one.
+
+ # Quotes permit leading and trailing whitespace
+ any = &quot; any variable name &quot;
+
+ other = A string that can \
+ cover several lines \
+ by including \\ characters
+
+ message = Hello World\n
+
+ [ section_two ]
+
+ greeting = $section_one::message
+
+</PRE>
+
+
+<P>
+
+This next example shows how to expand environment variables safely.
+<P>
+
+Suppose you want a variable called <B>tmpfile</B> to refer to a
+temporary filename. The directory it is placed in can determined by
+the the <B></B><FONT SIZE="-1"><B>TEMP</B></FONT><B></B> or <B></B><FONT SIZE="-1"><B>TMP</B></FONT><B></B> environment variables but they may not be
+set to any value at all. If you just include the environment variable
+names and the variable doesn't exist then this will cause an error when
+an attempt is made to load the configuration file. By making use of the
+default section both values can be looked up with <B></B><FONT SIZE="-1"><B>TEMP</B></FONT><B></B> taking 
+priority and <B>/tmp</B> used if neither is defined:
+<P>
+
+
+
+<PRE>
+ TMP=/tmp
+ # The above value is used if TMP isn't in the environment
+ TEMP=$ENV::TMP
+ # The above value is used if TEMP isn't in the environment
+ tmpfile=${ENV::TEMP}/tmp.filename
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAI"></A>
+Currently there is no way to include characters using the octal <B>\nnn</B>
+form. Strings are all null terminated so nulls cannot form part of
+the value.
+<P>
+
+The escaping isn't quite right: if you want to use sequences like <B>\n</B>
+you can't use any quote escaping on the same line.
+<P>
+
+Files are loaded in a single pass. This means that an variable expansion
+will only work if the variables referenced are defined earlier in the
+file.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAJ"></A>
+<I><A HREF="/man/index.html?1+x509">x509</A></I>(1), <I><A HREF="http://localhost/cgi-bin/man/man2html?1+req">req</A></I>(1), <I><A HREF="http://localhost/cgi-bin/man/man2html?1+ca">ca</A></I>(1)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">OPENSSL LIBRARY CONFIGURATION</A><DD>
+<DL>
+<DT><A HREF="#lbAE"><FONT SIZE="-1">ASN1</FONT> <FONT SIZE="-1">OBJECT</FONT> <FONT SIZE="-1">CONFIGURATION</FONT> <FONT SIZE="-1">MODULE</FONT></A><DD>
+<DT><A HREF="#lbAF"><FONT SIZE="-1">ENGINE</FONT> <FONT SIZE="-1">CONFIGURATION</FONT> <FONT SIZE="-1">MODULE</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">EXAMPLES</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:59 GMT, December 24, 2015
+</div></body>
+</HTML>

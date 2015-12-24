@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Pod::Simple::PullParser</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Pod::Simple::PullParser</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Pod::Simple::PullParser -- a pull-parser interface to parsing Pod
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ my $parser = SomePodProcessor-&gt;new;
+ $parser-&gt;set_source( &quot;whatever.pod&quot; );
+ $parser-&gt;run;
+
+</PRE>
+
+
+<P>
+
+Or:
+<P>
+
+
+
+<PRE>
+ my $parser = SomePodProcessor-&gt;new;
+ $parser-&gt;set_source( $some_filehandle_object );
+ $parser-&gt;run;
+
+</PRE>
+
+
+<P>
+
+Or:
+<P>
+
+
+
+<PRE>
+ my $parser = SomePodProcessor-&gt;new;
+ $parser-&gt;set_source( \$document_source );
+ $parser-&gt;run;
+
+</PRE>
+
+
+<P>
+
+Or:
+<P>
+
+
+
+<PRE>
+ my $parser = SomePodProcessor-&gt;new;
+ $parser-&gt;set_source( \@document_lines );
+ $parser-&gt;run;
+
+</PRE>
+
+
+<P>
+
+And elsewhere:
+<P>
+
+
+
+<PRE>
+ require 5;
+ package SomePodProcessor;
+ use strict;
+ use base qw(Pod::Simple::PullParser);
+ 
+ sub run {
+   my $self = shift;
+  Token:
+   while(my $token = $self-&gt;get_token) {
+     ...process each token...
+   }
+ }
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This class is for using Pod::Simple to build a Pod processor --- but
+one that uses an interface based on a stream of token objects,
+instead of based on events.
+<P>
+
+This is a subclass of Pod::Simple and inherits all its methods.
+<P>
+
+A subclass of Pod::Simple::PullParser should define a <TT>&quot;run&quot;</TT> method
+that calls <TT>&quot;$token = $parser-&gt;get_token&quot;</TT> to pull tokens.
+<P>
+
+See the source for Pod::Simple::RTF for an example of a formatter
+that uses Pod::Simple::PullParser.
+<A NAME="lbAE">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT>my $token = $parser-&gt;get_token<DD>
+
+
+<A NAME="ixAAF"></A>
+This returns the next token object (which will be of a subclass of
+Pod::Simple::PullParserToken), or undef if the parser-stream has hit
+the end of the document.
+<DT>$parser-&gt;unget_token( $token )<DD>
+
+
+<A NAME="ixAAG"></A>
+
+<DT>$parser-&gt;unget_token( $token1, $token2, ... )<DD>
+
+
+<A NAME="ixAAH"></A>
+
+This restores the token object(s) to the front of the parser stream.
+</DL>
+<P>
+
+The source has to be set before you can parse anything.  The lowest-level
+way is to call <TT>&quot;set_source&quot;</TT>:
+<DL COMPACT>
+<DT>$parser-&gt;set_source( $filename )<DD>
+
+
+<A NAME="ixAAI"></A>
+
+<DT>$parser-&gt;set_source( $filehandle_object )<DD>
+
+
+<A NAME="ixAAJ"></A>
+<DT>$parser-&gt;set_source( \$document_source )<DD>
+
+
+<A NAME="ixAAK"></A>
+<DT>$parser-&gt;set_source( \@document_lines )<DD>
+
+
+<A NAME="ixAAL"></A>
+
+</DL>
+<P>
+
+Or you can call these methods, which Pod::Simple::PullParser has defined
+to work just like Pod::Simple's same-named methods:
+<DL COMPACT>
+<DT>$parser-&gt;parse_file(...)<DD>
+
+
+<A NAME="ixAAM"></A>
+
+<DT>$parser-&gt;parse_string_document(...)<DD>
+
+
+<A NAME="ixAAN"></A>
+<DT>$parser-&gt;filter(...)<DD>
+
+
+<A NAME="ixAAO"></A>
+<DT>$parser-&gt;parse_from_file(...)<DD>
+
+
+<A NAME="ixAAP"></A>
+
+</DL>
+<P>
+
+For those to work, the Pod-processing subclass of
+Pod::Simple::PullParser has to have defined a <TT>$parser</TT>-&gt;run method ---
+so it is advised that all Pod::Simple::PullParser subclasses do so.
+See the Synopsis above, or the source for Pod::Simple::RTF.
+<P>
+
+Authors of formatter subclasses might find these methods useful to
+call on a parser object that you haven't started pulling tokens
+from yet:
+<DL COMPACT>
+<DT>my $title_string = $parser-&gt;get_title<DD>
+
+
+<A NAME="ixAAQ"></A>
+This tries to get the title string out of <TT>$parser</TT>, by getting some tokens,
+and scanning them for the title, and then ungetting them so that you can
+process the token-stream from the beginning.
+
+
+<P>
+
+
+For example, suppose you have a document that starts out:
+
+
+<P>
+
+
+
+
+<PRE>
+  =head1 NAME
+  
+  Hoo::Boy::Wowza -- Stuff B&lt;wow&gt; yeah!
+
+</PRE>
+
+
+
+
+<P>
+
+
+<TT>$parser</TT>-&gt;get_title on that document will return ``Hoo::Boy::Wowza ---
+Stuff wow yeah!''. If the document starts with:
+
+
+<P>
+
+
+
+
+<PRE>
+  =head1 Name
+  
+  Hoo::Boy::W00t -- Stuff B&lt;w00t&gt; yeah!
+
+</PRE>
+
+
+
+
+<P>
+
+
+Then you'll need to pass the <TT>&quot;nocase&quot;</TT> option in order to recognize ``Name'':
+
+
+<P>
+
+
+
+
+<PRE>
+  $parser-&gt;get_title(nocase =&gt; 1);
+
+</PRE>
+
+
+
+
+<P>
+
+
+In cases where get_title can't find the title, it will return empty-string
+(&quot;&quot;).
+<DT>my $title_string = $parser-&gt;get_short_title<DD>
+
+
+<A NAME="ixAAR"></A>
+This is just like get_title, except that it returns just the modulename, if
+the title seems to be of the form ``SomeModuleName --- description''.
+
+
+<P>
+
+
+For example, suppose you have a document that starts out:
+
+
+<P>
+
+
+
+
+<PRE>
+  =head1 NAME
+  
+  Hoo::Boy::Wowza -- Stuff B&lt;wow&gt; yeah!
+
+</PRE>
+
+
+
+
+<P>
+
+
+then <TT>$parser</TT>-&gt;get_short_title on that document will return
+``Hoo::Boy::Wowza''.
+
+
+<P>
+
+
+But if the document starts out:
+
+
+<P>
+
+
+
+
+<PRE>
+  =head1 NAME
+  
+  Hooboy, stuff B&lt;wow&gt; yeah!
+
+</PRE>
+
+
+
+
+<P>
+
+
+then <TT>$parser</TT>-&gt;get_short_title on that document will return ``Hooboy,
+stuff wow yeah!''. If the document starts with:
+
+
+<P>
+
+
+
+
+<PRE>
+  =head1 Name
+  
+  Hoo::Boy::W00t -- Stuff B&lt;w00t&gt; yeah!
+
+</PRE>
+
+
+
+
+<P>
+
+
+Then you'll need to pass the <TT>&quot;nocase&quot;</TT> option in order to recognize ``Name'':
+
+
+<P>
+
+
+
+
+<PRE>
+  $parser-&gt;get_short_title(nocase =&gt; 1);
+
+</PRE>
+
+
+
+
+<P>
+
+
+If the title can't be found, then get_short_title returns empty-string
+(&quot;&quot;).
+<DT>$author_name   = $parser-&gt;get_author<DD>
+
+
+<A NAME="ixAAS"></A>
+This works like get_title except that it returns the contents of the
+``=head1 AUTHOR\n\nParagraph...\n'' section, assuming that that section
+isn't terribly long. To recognize a ``=head1 Author\n\nParagraph\n''
+section, pass the <TT>&quot;nocase&quot;</TT> otpion:
+
+
+<P>
+
+
+
+
+<PRE>
+  $parser-&gt;get_author(nocase =&gt; 1);
+
+</PRE>
+
+
+
+
+<P>
+
+
+(This method tolerates ``<FONT SIZE="-1">AUTHORS</FONT>'' instead of ``<FONT SIZE="-1">AUTHOR</FONT>'' too.)
+<DT>$description_name = $parser-&gt;get_description<DD>
+
+
+<A NAME="ixAAT"></A>
+This works like get_title except that it returns the contents of the
+``=head1 DESCRIPTION\n\nParagraph...\n'' section, assuming that that section
+isn't terribly long. To recognize a ``=head1 Description\n\nParagraph\n''
+section, pass the <TT>&quot;nocase&quot;</TT> otpion:
+
+
+<P>
+
+
+
+
+<PRE>
+  $parser-&gt;get_description(nocase =&gt; 1);
+
+</PRE>
+
+
+<DT>$version_block = $parser-&gt;get_version<DD>
+
+
+<A NAME="ixAAU"></A>
+This works like get_title except that it returns the contents of
+the ``=head1 VERSION\n\n[<FONT SIZE="-1">BIG</FONT> <FONT SIZE="-1">BLOCK</FONT>]\n'' block.  Note that this does <FONT SIZE="-1">NOT</FONT>
+return the module's <TT>$VERSION</TT>!! To recognize a
+``=head1 Version\n\n[<FONT SIZE="-1">BIG</FONT> <FONT SIZE="-1">BLOCK</FONT>]\n'' section, pass the <TT>&quot;nocase&quot;</TT> otpion:
+
+
+<P>
+
+
+
+
+<PRE>
+  $parser-&gt;get_version(nocase =&gt; 1);
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTE</H2>
+
+<A NAME="ixAAV"></A>
+You don't actually <I>have</I> to define a <TT>&quot;run&quot;</TT> method.  If you're
+writing a Pod-formatter class, you should define a <TT>&quot;run&quot;</TT> just so
+that users can call <TT>&quot;parse_file&quot;</TT> etc, but you don't <I>have</I> to.
+<P>
+
+And if you're not writing a formatter class, but are instead just
+writing a program that does something simple with a Pod::PullParser
+object (and not an object of a subclass), then there's no reason to
+bother subclassing to add a <TT>&quot;run&quot;</TT> method.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAW"></A>
+Pod::Simple
+<P>
+
+Pod::Simple::PullParserToken --- and its subclasses
+Pod::Simple::PullParserStartToken,
+Pod::Simple::PullParserTextToken, and
+Pod::Simple::PullParserEndToken.
+<P>
+
+HTML::TokeParser, which inspired this.
+<A NAME="lbAH">&nbsp;</A>
+<H2>SUPPORT</H2>
+
+<A NAME="ixAAX"></A>
+Questions or discussion about <FONT SIZE="-1">POD</FONT> and Pod::Simple should be sent to the
+<A HREF="mailto:pod-people@perl.org">pod-people@perl.org</A> mail list. Send an empty email to
+<A HREF="mailto:pod-people-subscribe@perl.org">pod-people-subscribe@perl.org</A> to subscribe.
+<P>
+
+This module is managed in an open GitHub repository,
+&lt;<A HREF="http://github.com/theory/pod-simple/">http://github.com/theory/pod-simple/</A>&gt;. Feel free to fork and contribute, or
+to clone &lt;<A HREF="git://github.com/theory/pod-simple.git">git://github.com/theory/pod-simple.git</A>&gt; and send patches!
+<P>
+
+Patches against Pod::Simple are welcome. Please send bug reports to
+&lt;<A HREF="mailto:bug-pod-simple@rt.cpan.org">bug-pod-simple@rt.cpan.org</A>&gt;.
+<A NAME="lbAI">&nbsp;</A>
+<H2>COPYRIGHT AND DISCLAIMERS</H2>
+
+<A NAME="ixAAY"></A>
+Copyright (c) 2002 Sean M. Burke.
+<P>
+
+This library is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+<P>
+
+This program is distributed in the hope that it will be useful, but
+without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAZ"></A>
+Pod::Simple was created by Sean M. Burke &lt;<A HREF="mailto:sburke@cpan.org">sburke@cpan.org</A>&gt;.
+But don't bother him, he's retired.
+<P>
+
+Pod::Simple is maintained by:
+<DL COMPACT>
+<DT>*<DD>
+Allison Randal <TT>&quot;<A HREF="mailto:allison@perl.org">allison@perl.org</A>&quot;</TT>
+<DT>*<DD>
+Hans Dieter Pearcey <TT>&quot;<A HREF="mailto:hdp@cpan.org">hdp@cpan.org</A>&quot;</TT>
+<DT>*<DD>
+David E. Wheeler <TT>&quot;<A HREF="mailto:dwheeler@cpan.org">dwheeler@cpan.org</A>&quot;</TT>
+<P>
+</DL>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">METHODS</A><DD>
+<DT><A HREF="#lbAF">NOTE</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">SUPPORT</A><DD>
+<DT><A HREF="#lbAI">COPYRIGHT AND DISCLAIMERS</A><DD>
+<DT><A HREF="#lbAJ">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:36 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Log::Message</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Log::Message</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-25<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Log::Message - A generic message storing mechanism;
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Log::Message private =&gt; 0, config =&gt; '/our/cf_file';
+
+    my $log = Log::Message-&gt;new(    private =&gt; 1,
+                                    level   =&gt; 'log',
+                                    config  =&gt; '/my/cf_file',
+                               );
+
+    $log-&gt;store('this is my first message');
+
+    $log-&gt;store(    message =&gt; 'message #2',
+                    tag     =&gt; 'MY_TAG',
+                    level   =&gt; 'carp',
+                    extra   =&gt; ['this is an argument to the handler'],
+               );
+
+    my @last_five_items = $log-&gt;<A HREF="/man/index.html?5+retrieve">retrieve</A>(5);
+
+    my @items = $log-&gt;retrieve( tag     =&gt; qr/my_tag/i,
+                                message =&gt; qr/\d/,
+                                remove  =&gt; 1,
+                              );
+
+    my @items = $log-&gt;final( level =&gt; qr/carp/, amount =&gt; 2 );
+
+    my $first_error = $log-&gt;first()
+
+    # croak with the last error on the stack
+    $log-&gt;final-&gt;croak;
+
+    # empty the stack
+    $log-&gt;flush();
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Log::Message is a generic message storage mechanism.
+It allows you to store messages on a stack --- either shared or private
+--- and assign meta-data to it.
+Some meta-data will automatically be added for you, like a timestamp
+and a stack trace, but some can be filled in by the user, like a tag
+by which to identify it or group it, and a level at which to handle
+the message (for example, log it, or die with it)
+<P>
+
+Log::Message also provides a powerful way of searching through items
+by regexes on messages, tags and level.
+<A NAME="lbAE">&nbsp;</A>
+<H2>Hierarchy</H2>
+
+<A NAME="ixAAE"></A>
+There are 4 modules of interest when dealing with the Log::Message::*
+modules:
+<DL COMPACT>
+<DT>Log::Message<DD>
+<A NAME="ixAAF"></A>
+Log::Message provides a few methods to manipulate the stack it keeps.
+It has the option of keeping either a private or a public stack.
+More on this below.
+<DT>Log::Message::Item<DD>
+<A NAME="ixAAG"></A>
+These are individual message items, which are objects that contain
+the user message as well as the meta-data described above.
+See the Log::Message::Item manpage to see how to extract this 
+meta-data and how to work with the Item objects.
+You should never need to create your own Item objects, but knowing
+about their methods and accessors is important if you want to write
+your own handlers. (See below)
+<DT>Log::Message::Handlers<DD>
+<A NAME="ixAAH"></A>
+These are a collection of handlers that will be called for a level
+that is used on a Log::Message::Item object.
+For example, if a message is logged with the 'carp' level, the 'carp'
+handler from Log::Message::Handlers will be called.
+See the Log::Message::Handlers manpage for more explanation about how
+handlers work, which one are available and how to create your own.
+<DT>Log::Message::Config<DD>
+<A NAME="ixAAI"></A>
+Per Log::Message object, there is a configuration required that will
+fill in defaults if the user did not specify arguments to override
+them (like for example what tag will be set if none was provided),
+Log::Message::Config handles the creation of these configurations.
+
+
+<P>
+
+
+Configuration can be specified in 4 ways:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+As a configuration file when you <TT>&quot;use Log::Message&quot;</TT>
+<DT>*<DD>
+As arguments when you <TT>&quot;use Log::Message&quot;</TT>
+<DT>*<DD>
+As a configuration file when you create a new Log::Message object.
+(The config will then only apply to that object if you marked it as
+private)
+<DT>*<DD>
+As arguments when you create a new Log::Message object.
+
+
+<P>
+
+
+You should never need to use the Log::Message::Config module yourself,
+as this is transparently done by Log::Message, but its manpage does
+provide an explanation of how you can create a config file.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>Options</H2>
+
+<A NAME="ixAAJ"></A>
+When using Log::Message, or creating a new Log::Message object, you can
+supply various options to alter its behaviour.
+Of course, there are sensible defaults should you choose to omit these
+options.
+<P>
+
+Below an explanation of all the options and how they work.
+<DL COMPACT>
+<DT>config<DD>
+<A NAME="ixAAK"></A>
+The path to a configuration file to be read.
+See the manpage of Log::Message::Config for the required format
+
+
+<P>
+
+
+These options will be overridden by any explicit arguments passed.
+<DT>private<DD>
+<A NAME="ixAAL"></A>
+Whether to create, by default, private or shared objects.
+If you choose to create shared objects, all Log::Message objects will
+use the same stack.
+
+
+<P>
+
+
+This means that even though every module may make its own <TT>$log</TT> object
+they will still be sharing the same error stack on which they are
+putting errors and from which they are retrieving.
+
+
+<P>
+
+
+This can be useful in big projects.
+
+
+<P>
+
+
+If you choose to create a private object, then the stack will of
+course be private to this object, but it will still fall back to the
+shared config should no private config or overriding arguments be
+provided.
+<DT>verbose<DD>
+<A NAME="ixAAM"></A>
+Log::Message makes use of another module to validate its arguments,
+which is called Params::Check, which is a lightweight, yet 
+powerful input checker and parser. (See the Params::Check 
+manpage for details).
+
+
+<P>
+
+
+The verbose setting will control whether this module will
+generate warnings if something improper is passed as input, or merely
+silently returns undef, at which point Log::Message will generate a
+warning.
+
+
+<P>
+
+
+It's best to just leave this at its default value, which is '1'
+<DT>tag<DD>
+<A NAME="ixAAN"></A>
+The tag to add to messages if none was provided. If neither your
+config, nor any specific arguments supply a tag, then Log::Message will
+set it to '<FONT SIZE="-1">NONE</FONT>'
+
+
+<P>
+
+
+Tags are useful for searching on or grouping by. For example, you
+could tag all the messages you want to go to the user as '<FONT SIZE="-1">USER</FONT> <FONT SIZE="-1">ERROR</FONT>'
+and all those that are only debug information with '<FONT SIZE="-1">DEBUG</FONT>'.
+
+
+<P>
+
+
+At the end of your program, you could then print all the ones tagged
+'<FONT SIZE="-1">USER</FONT> <FONT SIZE="-1">ERROR</FONT>' to <FONT SIZE="-1">STDOUT</FONT>, and those marked '<FONT SIZE="-1">DEBUG</FONT>' to a log file.
+<DT>level<DD>
+<A NAME="ixAAO"></A>
+<TT>&quot;level&quot;</TT> describes what action to take when a message is logged. Just
+like <TT>&quot;tag&quot;</TT>, Log::Message will provide a default (which is 'log') if
+neither your config file, nor any explicit arguments are given to
+override it.
+
+
+<P>
+
+
+See the Log::Message::Handlers manpage to see what handlers are
+available by default and what they do, as well as to how to add your
+own handlers.
+<DT>remove<DD>
+<A NAME="ixAAP"></A>
+This indicates whether or not to automatically remove the messages
+from the stack when you've retrieved them.
+The default setting provided by Log::Message is '0': do not remove.
+<DT>chrono<DD>
+<A NAME="ixAAQ"></A>
+This indicates whether messages should always be fetched in
+chronological order or not.
+This simply means that you can choose whether, when retrieving items,
+the item most recently added should be returned first, or the one that
+had been added most long ago.
+
+
+<P>
+
+
+The default is to return the newest ones first
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>Methods</H2>
+
+<A NAME="ixAAR"></A>
+<A NAME="lbAH">&nbsp;</A>
+<H3>new</H3>
+
+<A NAME="ixAAS"></A>
+This creates a new Log::Message object; The parameters it takes are
+described in the <TT>&quot;Options&quot;</TT> section below and let it just be repeated
+that you can use these options like this:
+<P>
+
+
+
+<PRE>
+    my $log = Log::Message-&gt;new( %options );
+
+</PRE>
+
+
+<P>
+
+as well as during <TT>&quot;use&quot;</TT> time, like this:
+<P>
+
+
+
+<PRE>
+    use Log::Message option1 =&gt; value, option2 =&gt; value
+
+</PRE>
+
+
+<P>
+
+There are but 3 rules to keep in mind:
+<DL COMPACT>
+<DT>*<DD>
+Provided arguments take precedence over a configuration file.
+<DT>*<DD>
+Arguments to new take precedence over options provided at <TT>&quot;use&quot;</TT> time
+<DT>*<DD>
+An object marked private will always have an empty stack to begin with
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3>store</H3>
+
+<A NAME="ixAAT"></A>
+This will create a new Item object and store it on the stack.
+<P>
+
+Possible arguments you can give to it are:
+<DL COMPACT>
+<DT>message<DD>
+<A NAME="ixAAU"></A>
+This is the only argument that is required. If no other arguments
+are given, you may even leave off the <TT>&quot;message&quot;</TT> key. The argument
+will then automatically be assumed to be the message.
+<DT>tag<DD>
+<A NAME="ixAAV"></A>
+The tag to add to this message. If not provided, Log::Message will look
+in your configuration for one.
+<DT>level<DD>
+<A NAME="ixAAW"></A>
+The level at which this message should be handled. If not provided,
+Log::Message will look in your configuration for one.
+<DT>extra<DD>
+<A NAME="ixAAX"></A>
+This is an array ref with arguments passed to the handler for this
+message, when it is called from <I>store()</I>;
+
+
+<P>
+
+
+The handler will receive them as a normal list
+</DL>
+<P>
+
+<I>store()</I> will return true upon success and undef upon failure, as well
+as issue a warning as to why it failed.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>retrieve</H3>
+
+<A NAME="ixAAY"></A>
+This will retrieve all message items matching the criteria specified
+from the stack.
+<P>
+
+Here are the criteria you can discriminate on:
+<DL COMPACT>
+<DT>tag<DD>
+<A NAME="ixAAZ"></A>
+A regex to which the tag must adhere. For example <TT>&quot;qr/\w/&quot;</TT>.
+<DT>level<DD>
+<A NAME="ixABA"></A>
+A regex to which the level must adhere.
+<DT>message<DD>
+<A NAME="ixABB"></A>
+A regex to which the message must adhere.
+<DT>amount<DD>
+<A NAME="ixABC"></A>
+Maximum amount of errors to return
+<DT>chrono<DD>
+<A NAME="ixABD"></A>
+Return in chronological order, or not?
+<DT>remove<DD>
+<A NAME="ixABE"></A>
+Remove items from the stack upon retrieval?
+</DL>
+<P>
+
+In scalar context it will return the first item matching your criteria
+and in list context, it will return all of them.
+<P>
+
+If an error occurs while retrieving, a warning will be issued and
+undef will be returned.
+<A NAME="lbAK">&nbsp;</A>
+<H3>first</H3>
+
+<A NAME="ixABF"></A>
+This is a shortcut for retrieving the first item(s) stored on the
+stack. It will default to only retrieving one if called with no
+arguments, and will always return results in chronological order.
+<P>
+
+If you only supply one argument, it is assumed to be the amount you
+wish returned.
+<P>
+
+Furthermore, it can take the same arguments as <TT>&quot;retrieve&quot;</TT> can.
+<A NAME="lbAL">&nbsp;</A>
+<H3>last</H3>
+
+<A NAME="ixABG"></A>
+This is a shortcut for retrieving the last item(s) stored on the
+stack. It will default to only retrieving one if called with no
+arguments, and will always return results in reverse chronological
+order.
+<P>
+
+If you only supply one argument, it is assumed to be the amount you
+wish returned.
+<P>
+
+Furthermore, it can take the same arguments as <TT>&quot;retrieve&quot;</TT> can.
+<A NAME="lbAM">&nbsp;</A>
+<H3>flush</H3>
+
+<A NAME="ixABH"></A>
+This removes all items from the stack and returns them to the caller
+<A NAME="lbAN">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABI"></A>
+Log::Message::Item, Log::Message::Handlers, Log::Message::Config
+<A NAME="lbAO">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABJ"></A>
+This module by
+Jos Boumans &lt;<A HREF="mailto:kane@cpan.org">kane@cpan.org</A>&gt;.
+<A NAME="lbAP">&nbsp;</A>
+<H2>Acknowledgements</H2>
+
+<A NAME="ixABK"></A>
+Thanks to Ann Barcomb for her suggestions.
+<A NAME="lbAQ">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABL"></A>
+This module is
+copyright (c) 2002 Jos Boumans &lt;<A HREF="mailto:kane@cpan.org">kane@cpan.org</A>&gt;.
+All rights reserved.
+<P>
+
+This library is free software;
+you may redistribute and/or modify it under the same
+terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">Hierarchy</A><DD>
+<DT><A HREF="#lbAF">Options</A><DD>
+<DT><A HREF="#lbAG">Methods</A><DD>
+<DL>
+<DT><A HREF="#lbAH">new</A><DD>
+<DT><A HREF="#lbAI">store</A><DD>
+<DT><A HREF="#lbAJ">retrieve</A><DD>
+<DT><A HREF="#lbAK">first</A><DD>
+<DT><A HREF="#lbAL">last</A><DD>
+<DT><A HREF="#lbAM">flush</A><DD>
+</DL>
+<DT><A HREF="#lbAN">SEE ALSO</A><DD>
+<DT><A HREF="#lbAO">AUTHOR</A><DD>
+<DT><A HREF="#lbAP">Acknowledgements</A><DD>
+<DT><A HREF="#lbAQ">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:33 GMT, December 24, 2015
+</div></body>
+</HTML>

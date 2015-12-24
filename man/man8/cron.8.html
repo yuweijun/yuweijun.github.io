@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CRON</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CRON</H1>
+Section: Cronie Users' Manual (8)<BR>Updated: December 2009<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+cron - daemon to execute scheduled commands
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>cron</B>
+
+[<B>-n</B> | <B>-p</B> | <B>-s</B> | <B>-m</B><I>&lt;mail</I><B>command&gt;</B><B></B>]
+
+<BR>
+
+<B>cron</B>
+
+<B>-x </B>
+
+[ext,sch,proc,pars,load,misc,test,bit]
+
+<BR>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<I>Cron</I>
+
+should be started from 
+<I>/etc/rc.d/init.d </I>
+
+or 
+<I>/etc/init.d</I>
+
+
+will return immediately, so you don't need to start it with '&amp;'. 
+<P>
+
+<I>Cron</I>
+
+searches 
+<I>/var/spool/cron </I>
+
+for crontab files which are named after accounts in
+<I>/etc/passwd;</I>
+
+The founded crontabs are loaded into memory.
+<I>Cron</I>
+
+also searches for 
+<I>/etc/anacrontab</I>
+
+and the files in the 
+<I>/etc/cron.d </I>
+
+directory, which are in a different format (see
+<B><A HREF="/man/index.html?5+crontab">crontab</A></B>(5)
+
+).
+<I>Cron</I>
+
+examines all stored crontabs, checking each command to see if it should be
+run in the current minute. When executing 
+commands, any output is mailed to the owner of the crontab (or to the user
+named in the MAILTO environment variable in the crontab, if such exists).
+Job output can also be sent to syslog by using the
+<B>-s</B>
+
+option.
+<P>
+
+There are two ways, how the changes are checked in crontables. The first
+is checking the modtime of file and the other is using inotify support.
+You can find out which of them are you using, if you check 
+<I>/var/log/cron</I>
+
+where is (or isn't) inotify mentioned after start of daemon. The inotify support
+is watching for changes in all crontables and touch the disk only in case
+that something was changed.
+<P>
+
+In other case
+<I>cron</I>
+
+checks each minute to see if its crontables modtime have changes and reload
+those which have changes. There is no need to restart cron after some of the
+crontable is modified. The modtime option is used also when inotify couldn't be initialized.
+<P>
+
+<I>Cron</I>
+
+is checking those files or directories:
+<I>/etc/anacrontab</I>
+
+system crontab is usually for running daily, weekly, monthly jobs.
+<B>.IR</B>/etc/cron.d/
+
+where are system cronjobs stored for different users.
+<B>.IR</B>/var/spool/cron
+
+that's mean spool directory for user crontables.
+<P>
+Note that the
+<B><A HREF="/man/index.html?1+crontab">crontab</A></B>(1)
+
+command updates the modtime of the spool directory whenever it changes a
+crontab.
+<P>
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>Daylight Saving Time and other time changes</H3>
+
+Local time changes of less than three hours, such as those caused
+by the start or end of Daylight Saving Time, are handled specially.
+This only applies to jobs that run at a specific time and jobs that
+are run with a granularity greater than one hour.  Jobs that run
+more frequently are scheduled normally.
+<P>
+
+If time has moved forward, those jobs that would have run in the
+interval that has been skipped will be run immediately.
+Conversely, if time has moved backward, care is taken to avoid running
+jobs twice.
+<P>
+
+Time changes of more than 3 hours are considered to be corrections to
+the clock or timezone, and the new time is used immediately.
+<P>
+
+It's possible to use different time zones for cron tables. More could
+be found in
+<I><A HREF="/man/index.html?5+crontab">crontab</A></I>(5).
+
+<A NAME="lbAF">&nbsp;</A>
+<H3>PAM Access Control</H3>
+
+On Red Hat systems, crond now supports access control with PAM - see 
+<I><A HREF="/man/index.html?8+pam">pam</A></I>(8).
+
+A PAM configuration file for crond is installed in /etc/pam.d/crond.
+crond loads the PAM environment from the pam_env module, but these
+can be overriden by settings in the appropriate crontab file.
+<A NAME="lbAG">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+As a special case, the string
+<I>off</I>
+
+will disable sending mail.
+<DL COMPACT>
+<DT><B>-s</B>
+
+<DD>
+This option will direct cron to send job output to the system log using
+<I><A HREF="/man/index.html?3+syslog">syslog</A></I>(3).
+
+This is useful if your system has no
+<B><A HREF="/man/index.html?8+sendmail">sendmail</A></B>(8),
+
+or if mail is disabled using
+<B>-m off.</B>
+
+<DT><B>-m</B>
+
+<DD>
+This option allows you to specify a shell command string to use for sending cron mail
+output instead of
+<B><A HREF="/man/index.html?8+sendmail">sendmail</A></B>(8).
+
+This command must accept a fully formatted mail message (with headers) on stdin and send it
+as a mail message to the recipients specified in the mail headers.
+<DT><B>-n</B>
+
+<DD>
+This option changes default behavior causing it to run crond in the foreground.  This can be
+useful when starting it out of init.
+<DT><B>-p</B>
+
+<DD>
+Cron permit any crontab, which user set.
+<DT><B>-x</B>
+
+<DD>
+With this option is possible to set debug flags.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SIGNALS</H2>
+
+On receipt of a <FONT SIZE="-2">SIGHUP</FONT>, the cron daemon will close and reopen its
+log file.  This is useful in scripts which rotate and age log files.  
+Naturally this is not relevant if cron was built to use
+<I><A HREF="/man/index.html?3+syslog">syslog</A></I>(3).
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>CAVEATS</H2>
+
+The
+<B>crontab</B>
+
+files have to be regular files or symlinks to regular files, they must not be executable
+or writable by anyone else than the owner.
+This requirement can be overridden by using the <B>-p</B> option on the crond command line.
+If inotify support is in use, changes in the symlinked crontabs are not automatically
+noticed by the cron daemon. The cron daemon must receive a SIGHUP to reload the crontabs.
+This is a limitation of inotify API.
+<P>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?1+crontab">crontab</A></B>(1),
+
+<B><A HREF="/man/index.html?5+crontab">crontab</A></B>(5),
+
+<B><A HREF="/man/index.html?7+inotify">inotify</A></B>(7),
+
+<B><A HREF="/man/index.html?8+pam">pam</A></B>(8)
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<PRE>
+Paul Vixie &lt;<A HREF="mailto:vixie@isc.org">vixie@isc.org</A>&gt;
+Marcela Mašláňová &lt;<A HREF="mailto:mmaslano@redhat.com">mmaslano@redhat.com</A>&gt;
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Daylight Saving Time and other time changes</A><DD>
+<DT><A HREF="#lbAF">PAM Access Control</A><DD>
+</DL>
+<DT><A HREF="#lbAG">OPTIONS</A><DD>
+<DT><A HREF="#lbAH">SIGNALS</A><DD>
+<DT><A HREF="#lbAI">CAVEATS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:25 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of MLOCK</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>MLOCK</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2008-09-25<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+mlock, munlock, mlockall, munlockall - lock and unlock memory
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/mman.h">sys/mman.h</A>&gt;</B>
+
+<B>int mlock(const void *</B><I>addr</I><B>, size_t </B><I>len</I><B>);</B>
+<B>int munlock(const void *</B><I>addr</I><B>, size_t </B><I>len</I><B>);</B>
+
+<B>int mlockall(int </B><I>flags</I><B>);</B>
+<B>int munlockall(void);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>mlock</B>()
+
+and
+<B>mlockall</B>()
+
+respectively lock part or all of the calling process's virtual address
+space into RAM, preventing that memory from being paged to the
+swap area.
+<B>munlock</B>()
+
+and
+<B>munlockall</B>()
+
+perform the converse operation,
+respectively unlocking part or all of the calling process's virtual
+address space, so that pages in the specified virtual address range may
+once more to be swapped out if required by the kernel memory manager.
+Memory locking and unlocking are performed in units of whole pages.
+<A NAME="lbAE">&nbsp;</A>
+<H3>mlock() and munlock()</H3>
+
+<B>mlock</B>()
+
+locks pages in the address range starting at
+<I>addr</I>
+
+and continuing for
+<I>len</I>
+
+bytes.
+All pages that contain a part of the specified address range are
+guaranteed to be resident in RAM when the call returns successfully;
+the pages are guaranteed to stay in RAM until later unlocked.
+<P>
+<B>munlock</B>()
+
+unlocks pages in the address range starting at
+<I>addr</I>
+
+and continuing for
+<I>len</I>
+
+bytes.
+After this call, all pages that contain a part of the specified
+memory range can be moved to external swap space again by the kernel.
+<A NAME="lbAF">&nbsp;</A>
+<H3>mlockall() and munlockall()</H3>
+
+<B>mlockall</B>()
+
+locks all pages mapped into the address space of the
+calling process.
+This includes the pages of the code, data and stack
+segment, as well as shared libraries, user space kernel data, shared
+memory, and memory-mapped files.
+All mapped pages are guaranteed
+to be resident in RAM when the call returns successfully;
+the pages are guaranteed to stay in RAM until later unlocked.
+<P>
+The
+<I>flags</I>
+
+argument is constructed as the bitwise OR of one or more of the
+following constants:
+<DL COMPACT>
+<DT><B>MCL_CURRENT</B>
+
+<DD>
+Lock all pages which are currently mapped into the address space of
+the process.
+<DT><B>MCL_FUTURE</B>
+
+<DD>
+Lock all pages which will become mapped into the address space of the
+process in the future.
+These could be for instance new pages required
+by a growing heap and stack as well as new memory mapped files or
+shared memory regions.
+</DL>
+<P>
+
+If
+<B>MCL_FUTURE</B>
+
+has been specified, then a later system call (e.g.,
+<B><A HREF="/man/index.html?2+mmap">mmap</A></B>(2),
+
+<B><A HREF="/man/index.html?2+sbrk">sbrk</A></B>(2),
+
+<B><A HREF="/man/index.html?3+malloc">malloc</A></B>(3)),
+
+may fail if it would cause the number of locked bytes to exceed
+the permitted maximum (see below).
+In the same circumstances, stack growth may likewise fail:
+the kernel will deny stack expansion and deliver a
+<B>SIGSEGV</B>
+
+signal to the process.
+<P>
+<B>munlockall</B>()
+
+unlocks all pages mapped into the address space of the
+calling process.
+<A NAME="lbAG">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success these system calls return 0.
+On error, -1 is returned,
+<I>errno</I>
+
+is set appropriately, and no changes are made to any locks in the
+address space of the process.
+<A NAME="lbAH">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>ENOMEM</B>
+
+<DD>
+(Linux 2.6.9 and later) the caller had a non-zero
+<B>RLIMIT_MEMLOCK</B>
+
+soft resource limit, but tried to lock more memory than the limit
+permitted.
+This limit is not enforced if the process is privileged
+(<B>CAP_IPC_LOCK</B>).
+
+<DT><B>ENOMEM</B>
+
+<DD>
+(Linux 2.4 and earlier) the calling process tried to lock more than
+half of RAM.
+
+
+
+
+
+
+
+
+<DT><B>EPERM</B>
+
+<DD>
+(Linux 2.6.9 and later) the caller was not privileged
+(<B>CAP_IPC_LOCK</B>)
+
+and its
+<B>RLIMIT_MEMLOCK</B>
+
+soft resource limit was 0.
+<DT><B>EPERM</B>
+
+<DD>
+(Linux 2.6.8 and earlier)
+The calling process has insufficient privilege to call
+<B>munlockall</B>().
+
+Under Linux the
+<B>CAP_IPC_LOCK</B>
+
+capability is required.
+
+</DL>
+<P>
+
+For
+<B>mlock</B>()
+
+and
+<B>munlock</B>():
+
+<DL COMPACT>
+<DT><B>EAGAIN</B>
+
+<DD>
+Some or all of the specified address range could not be locked.
+<DT><B>EINVAL</B>
+
+<DD>
+<I>len</I>
+
+was negative.
+<DT><B>EINVAL</B>
+
+<DD>
+(Not on Linux)
+<I>addr</I>
+
+was not a multiple of the page size.
+<DT><B>ENOMEM</B>
+
+<DD>
+Some of the specified address range does not correspond to mapped
+pages in the address space of the process.
+</DL>
+<P>
+
+For
+<B>mlockall</B>():
+
+<DL COMPACT>
+<DT><B>EINVAL</B>
+
+<DD>
+Unknown <I>flags</I> were specified.
+</DL>
+<P>
+
+For
+<B>munlockall</B>():
+
+<DL COMPACT>
+<DT><B>EPERM</B>
+
+<DD>
+(Linux 2.6.8 and earlier) The caller was not privileged
+(<B>CAP_IPC_LOCK</B>).
+
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+POSIX.1-2001, SVr4.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AVAILABILITY</H2>
+
+On POSIX systems on which
+<B>mlock</B>()
+
+and
+<B>munlock</B>()
+
+are available,
+<B>_POSIX_MEMLOCK_RANGE</B>
+
+is defined in <I>&lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;</I> and the number of bytes in a page
+can be determined from the constant
+<B>PAGESIZE</B>
+
+(if defined) in <I>&lt;<A HREF="file:/usr/include/limits.h">limits.h</A>&gt;</I> or by calling
+<I>sysconf(_SC_PAGESIZE)</I>.
+
+<P>
+On POSIX systems on which
+<B>mlockall</B>()
+
+and
+<B>munlockall</B>()
+
+are available,
+<B>_POSIX_MEMLOCK</B>
+
+is defined in <I>&lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;</I> to a value greater than 0.
+(See also
+<B><A HREF="/man/index.html?3+sysconf">sysconf</A></B>(3).)
+
+
+
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>NOTES</H2>
+
+Memory locking has two main applications: real-time algorithms and
+high-security data processing.
+Real-time applications require
+deterministic timing, and, like scheduling, paging is one major cause
+of unexpected program execution delays.
+Real-time applications will
+usually also switch to a real-time scheduler with
+<B><A HREF="/man/index.html?2+sched_setscheduler">sched_setscheduler</A></B>(2).
+
+Cryptographic security software often handles critical bytes like
+passwords or secret keys as data structures.
+As a result of paging,
+these secrets could be transferred onto a persistent swap store medium,
+where they might be accessible to the enemy long after the security
+software has erased the secrets in RAM and terminated.
+(But be aware that the suspend mode on laptops and some desktop
+computers will save a copy of the system's RAM to disk, regardless
+of memory locks.)
+<P>
+Real-time processes that are using
+<B>mlockall</B>()
+
+to prevent delays on page faults should reserve enough
+locked stack pages before entering the time-critical section,
+so that no page fault can be caused by function calls.
+This can be achieved by calling a function that allocates a
+sufficiently large automatic variable (an array) and writes to the
+memory occupied by this array in order to touch these stack pages.
+This way, enough pages will be mapped for the stack and can be
+locked into RAM.
+The dummy writes ensure that not even copy-on-write
+page faults can occur in the critical section.
+<P>
+Memory locks are not inherited by a child created via
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2)
+
+and are automatically removed (unlocked) during an
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2)
+
+or when the process terminates.
+<P>
+The memory lock on an address range is automatically removed
+if the address range is unmapped via
+<B><A HREF="/man/index.html?2+munmap">munmap</A></B>(2).
+
+<P>
+Memory locks do not stack, that is, pages which have been locked several times
+by calls to
+<B>mlock</B>()
+
+or
+<B>mlockall</B>()
+
+will be unlocked by a single call to
+<B>munlock</B>()
+
+for the corresponding range or by
+<B>munlockall</B>().
+
+Pages which are mapped to several locations or by several processes stay
+locked into RAM as long as they are locked at least at one location or by
+at least one process.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Linux Notes</H3>
+
+Under Linux,
+<B>mlock</B>()
+
+and
+<B>munlock</B>()
+
+automatically round
+<I>addr</I>
+
+down to the nearest page boundary.
+However, POSIX.1-2001 allows an implementation to require that
+<I>addr</I>
+
+is page aligned, so portable applications should ensure this.
+<A NAME="lbAM">&nbsp;</A>
+<H3>Limits and permissions</H3>
+
+In Linux 2.6.8 and earlier,
+a process must be privileged
+(<B>CAP_IPC_LOCK</B>)
+
+in order to lock memory and the
+<B>RLIMIT_MEMLOCK</B>
+
+soft resource limit defines a limit on how much memory the process may lock.
+<P>
+Since Linux 2.6.9, no limits are placed on the amount of memory
+that a privileged process can lock and the
+<B>RLIMIT_MEMLOCK</B>
+
+soft resource limit instead defines a limit on how much memory an
+unprivileged process may lock.
+<A NAME="lbAN">&nbsp;</A>
+<H2>BUGS</H2>
+
+In the 2.4 series Linux kernels up to and including 2.4.17,
+a bug caused the
+<B>mlockall</B>()
+
+<B>MCL_FUTURE</B>
+
+flag to be inherited across a
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2).
+
+This was rectified in kernel 2.4.18.
+<P>
+Since kernel 2.6.9, if a privileged process calls
+<I>mlockall(MCL_FUTURE)</I>
+
+and later drops privileges (loses the
+<B>CAP_IPC_LOCK</B>
+
+capability by, for example,
+setting its effective UID to a non-zero value),
+then subsequent memory allocations (e.g.,
+<B><A HREF="/man/index.html?2+mmap">mmap</A></B>(2),
+
+<B><A HREF="/man/index.html?2+brk">brk</A></B>(2))
+
+will fail if the
+<B>RLIMIT_MEMLOCK</B>
+
+resource limit is encountered.
+
+
+
+
+<A NAME="lbAO">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+mmap">mmap</A></B>(2),
+
+<B><A HREF="/man/index.html?2+setrlimit">setrlimit</A></B>(2),
+
+<B><A HREF="/man/index.html?2+shmctl">shmctl</A></B>(2),
+
+<B><A HREF="/man/index.html?3+sysconf">sysconf</A></B>(3),
+
+<B><A HREF="/man/index.html?7+capabilities">capabilities</A></B>(7)
+
+<A NAME="lbAP">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">mlock() and munlock()</A><DD>
+<DT><A HREF="#lbAF">mlockall() and munlockall()</A><DD>
+</DL>
+<DT><A HREF="#lbAG">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAH">ERRORS</A><DD>
+<DT><A HREF="#lbAI">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAJ">AVAILABILITY</A><DD>
+<DT><A HREF="#lbAK">NOTES</A><DD>
+<DL>
+<DT><A HREF="#lbAL">Linux Notes</A><DD>
+<DT><A HREF="#lbAM">Limits and permissions</A><DD>
+</DL>
+<DT><A HREF="#lbAN">BUGS</A><DD>
+<DT><A HREF="#lbAO">SEE ALSO</A><DD>
+<DT><A HREF="#lbAP">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:04 GMT, December 24, 2015
+</div></body>
+</HTML>

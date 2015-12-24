@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Scalar::Util</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Scalar::Util</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-07-03<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Scalar::Util - A selection of general-utility scalar subroutines
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Scalar::Util qw(blessed dualvar isweak readonly refaddr reftype tainted
+                        weaken isvstring looks_like_number set_prototype);
+                        # and other useful utils appearing below
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<TT>&quot;Scalar::Util&quot;</TT> contains a selection of subroutines that people have
+expressed would be nice to have in the perl core, but the usage would
+not really be high enough to warrant the use of a keyword, and the size
+so small such that being individual extensions would be wasteful.
+<P>
+
+By default <TT>&quot;Scalar::Util&quot;</TT> does not export any subroutines. The
+subroutines defined are
+<DL COMPACT>
+<DT>blessed <FONT SIZE="-1">EXPR</FONT><DD>
+<A NAME="ixAAE"></A>
+If <FONT SIZE="-1">EXPR</FONT> evaluates to a blessed reference the name of the package
+that it is blessed into is returned. Otherwise <TT>&quot;undef&quot;</TT> is returned.
+
+
+<P>
+
+
+
+
+<PRE>
+   $scalar = &quot;foo&quot;;
+   $class  = blessed $scalar;           # undef
+
+   $ref    = [];
+   $class  = blessed $ref;              # undef
+
+   $obj    = bless [], &quot;Foo&quot;;
+   $class  = blessed $obj;              # &quot;Foo&quot;
+
+</PRE>
+
+
+<DT>dualvar <FONT SIZE="-1">NUM</FONT>, <FONT SIZE="-1">STRING</FONT><DD>
+<A NAME="ixAAF"></A>
+Returns a scalar that has the value <FONT SIZE="-1">NUM</FONT> in a numeric context and the
+value <FONT SIZE="-1">STRING</FONT> in a string context.
+
+
+<P>
+
+
+
+
+<PRE>
+    $foo = dualvar 10, &quot;Hello&quot;;
+    $num = $foo + 2;                    # 12
+    $str = $foo . &quot; world&quot;;             # Hello world
+
+</PRE>
+
+
+<DT>isvstring <FONT SIZE="-1">EXPR</FONT><DD>
+<A NAME="ixAAG"></A>
+If <FONT SIZE="-1">EXPR</FONT> is a scalar which was coded as a vstring the result is true.
+
+
+<P>
+
+
+
+
+<PRE>
+    $vs   = v49.46.48;
+    $fmt  = isvstring($vs) ? &quot;%vd&quot; : &quot;%s&quot;; #true
+    printf($fmt,$vs);
+
+</PRE>
+
+
+<DT>isweak <FONT SIZE="-1">EXPR</FONT><DD>
+<A NAME="ixAAH"></A>
+If <FONT SIZE="-1">EXPR</FONT> is a scalar which is a weak reference the result is true.
+
+
+<P>
+
+
+
+
+<PRE>
+    $ref  = \$foo;
+    $weak = isweak($ref);               # false
+    weaken($ref);
+    $weak = isweak($ref);               # true
+
+</PRE>
+
+
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>NOTE</B></FONT><B></B>: Copying a weak reference creates a normal, strong, reference.
+
+
+<P>
+
+
+
+
+<PRE>
+    $copy = $ref;
+    $weak = isweak($copy);              # false
+
+</PRE>
+
+
+<DT>looks_like_number <FONT SIZE="-1">EXPR</FONT><DD>
+<A NAME="ixAAI"></A>
+Returns true if perl thinks <FONT SIZE="-1">EXPR</FONT> is a number. See
+``looks_like_number'' in perlapi.
+<DT>openhandle <FONT SIZE="-1">FH</FONT><DD>
+<A NAME="ixAAJ"></A>
+Returns <FONT SIZE="-1">FH</FONT> if <FONT SIZE="-1">FH</FONT> may be used as a filehandle and is open, or <FONT SIZE="-1">FH</FONT> is a tied
+handle. Otherwise <TT>&quot;undef&quot;</TT> is returned.
+
+
+<P>
+
+
+
+
+<PRE>
+    $fh = openhandle(*STDIN);           # \*STDIN
+    $fh = openhandle(\*STDIN);          # \*STDIN
+    $fh = openhandle(*NOTOPEN);         # undef
+    $fh = openhandle(&quot;scalar&quot;);         # undef
+
+</PRE>
+
+
+<DT>readonly <FONT SIZE="-1">SCALAR</FONT><DD>
+<A NAME="ixAAK"></A>
+Returns true if <FONT SIZE="-1">SCALAR</FONT> is readonly.
+
+
+<P>
+
+
+
+
+<PRE>
+    sub foo { readonly($_[0]) }
+
+    $readonly = foo($bar);              # false
+    $readonly = foo(0);                 # true
+
+</PRE>
+
+
+<DT>refaddr <FONT SIZE="-1">EXPR</FONT><DD>
+<A NAME="ixAAL"></A>
+If <FONT SIZE="-1">EXPR</FONT> evaluates to a reference the internal memory address of
+the referenced value is returned. Otherwise <TT>&quot;undef&quot;</TT> is returned.
+
+
+<P>
+
+
+
+
+<PRE>
+    $addr = refaddr &quot;string&quot;;           # undef
+    $addr = refaddr \$var;              # eg 12345678
+    $addr = refaddr [];                 # eg 23456784
+
+    $obj  = bless {}, &quot;Foo&quot;;
+    $addr = refaddr $obj;               # eg 88123488
+
+</PRE>
+
+
+<DT>reftype <FONT SIZE="-1">EXPR</FONT><DD>
+<A NAME="ixAAM"></A>
+If <FONT SIZE="-1">EXPR</FONT> evaluates to a reference the type of the variable referenced
+is returned. Otherwise <TT>&quot;undef&quot;</TT> is returned.
+
+
+<P>
+
+
+
+
+<PRE>
+    $type = reftype &quot;string&quot;;           # undef
+    $type = reftype \$var;              # SCALAR
+    $type = reftype [];                 # ARRAY
+
+    $obj  = bless {}, &quot;Foo&quot;;
+    $type = reftype $obj;               # HASH
+
+</PRE>
+
+
+<DT>set_prototype <FONT SIZE="-1">CODEREF</FONT>, <FONT SIZE="-1">PROTOTYPE</FONT><DD>
+<A NAME="ixAAN"></A>
+Sets the prototype of the given function, or deletes it if <FONT SIZE="-1">PROTOTYPE</FONT> is
+undef. Returns the <FONT SIZE="-1">CODEREF</FONT>.
+
+
+<P>
+
+
+
+
+<PRE>
+    set_prototype \&amp;foo, '$$';
+
+</PRE>
+
+
+<DT>tainted <FONT SIZE="-1">EXPR</FONT><DD>
+<A NAME="ixAAO"></A>
+Return true if the result of <FONT SIZE="-1">EXPR</FONT> is tainted
+
+
+<P>
+
+
+
+
+<PRE>
+    $taint = tainted(&quot;constant&quot;);       # false
+    $taint = tainted($ENV{PWD});        # true if running under -T
+
+</PRE>
+
+
+<DT>weaken <FONT SIZE="-1">REF</FONT><DD>
+<A NAME="ixAAP"></A>
+<FONT SIZE="-1">REF</FONT> will be turned into a weak reference. This means that it will not
+hold a reference count on the object it references. Also when the reference
+count on that object reaches zero, <FONT SIZE="-1">REF</FONT> will be set to undef.
+
+
+<P>
+
+
+This is useful for keeping copies of references , but you don't want to
+prevent the object being DESTROY-ed at its usual time.
+
+
+<P>
+
+
+
+
+<PRE>
+    {
+      my $var;
+      $ref = \$var;
+      weaken($ref);                     # Make $ref a weak reference
+    }
+    # $ref is now undef
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that if you take a copy of a scalar with a weakened reference,
+the copy will be a strong reference.
+
+
+<P>
+
+
+
+
+<PRE>
+    my $var;
+    my $foo = \$var;
+    weaken($foo);                       # Make $foo a weak reference
+    my $bar = $foo;                     # $bar is now a strong reference
+
+</PRE>
+
+
+
+
+<P>
+
+
+This may be less obvious in other situations, such as <TT>&quot;grep()&quot;</TT>, for instance
+when grepping through a list of weakened references to objects that may have
+been destroyed already:
+
+
+<P>
+
+
+
+
+<PRE>
+    @object = grep { defined } @object;
+
+</PRE>
+
+
+
+
+<P>
+
+
+This will indeed remove all references to destroyed objects, but the remaining
+references to objects will be strong, causing the remaining objects to never
+be destroyed because there is now always a strong reference to them in the
+<TT>@object</TT> array.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+<A NAME="ixAAQ"></A>
+Module use may give one of the following errors during import.
+<DL COMPACT>
+<DT>Weak references are not implemented in the version of perl<DD>
+<A NAME="ixAAR"></A>
+The version of perl that you are using does not implement weak references, to use
+<TT>&quot;isweak&quot;</TT> or <TT>&quot;weaken&quot;</TT> you will need to use a newer release of perl.
+<DT>Vstrings are not implemented in the version of perl<DD>
+<A NAME="ixAAS"></A>
+The version of perl that you are using does not implement Vstrings, to use
+<TT>&quot;isvstring&quot;</TT> you will need to use a newer release of perl.
+<DT>NAME is only available with the <FONT SIZE="-1">XS</FONT> version of Scalar::Util<DD>
+
+
+<A NAME="ixAAT"></A>
+<TT>&quot;Scalar::Util&quot;</TT> contains both perl and C implementations of many of its functions
+so that those without access to a C compiler may still use it. However some of the functions
+are only available when a C compiler was available to compile the <FONT SIZE="-1">XS</FONT> version of the extension.
+
+
+<P>
+
+
+At present that list is: weaken, isweak, dualvar, isvstring, set_prototype
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>KNOWN BUGS</H2>
+
+<A NAME="ixAAU"></A>
+There is a bug in perl5.6.0 with <FONT SIZE="-1">UV</FONT>'s that are &gt;= 1&lt;&lt;31. This will
+show up as tests 8 and 9 of dualvar.t failing
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAV"></A>
+List::Util
+<A NAME="lbAH">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAW"></A>
+Copyright (c) 1997-2007 Graham Barr &lt;<A HREF="mailto:gbarr@pobox.com">gbarr@pobox.com</A>&gt;. All rights reserved.
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+<P>
+
+Except weaken and isweak which are
+<P>
+
+Copyright (c) 1999 Tuomas J. Lukka &lt;<A HREF="mailto:lukka@iki.fi">lukka@iki.fi</A>&gt;. All rights reserved.
+This program is free software; you can redistribute it and/or modify it
+under the same terms as perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAF">KNOWN BUGS</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:39 GMT, December 24, 2015
+</div></body>
+</HTML>

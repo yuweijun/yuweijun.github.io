@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of UNIX</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>UNIX</H1>
+Section: Linux Programmer's Manual (7)<BR>Updated: 2008-12-01<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+unix, AF_UNIX, AF_LOCAL - Sockets for local
+interprocess communication
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>#include &lt;<A HREF="file:/usr/include/sys/socket.h">sys/socket.h</A>&gt;</B>
+
+<BR>
+
+<B>#include &lt;<A HREF="file:/usr/include/sys/un.h">sys/un.h</A>&gt;</B>
+
+<P>
+<I>unix_socket</I><B> = socket(AF_UNIX, type, 0);</B>
+
+<BR>
+
+<I>error</I><B> = socketpair(AF_UNIX, type, 0, int *</B><I>sv</I><B>);</B>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>AF_UNIX</B>
+
+(also known as
+<B>AF_LOCAL</B>)
+
+socket family is used to communicate between processes on the same machine
+efficiently.
+Traditionally, Unix sockets can be either unnamed,
+or bound to a file system pathname (marked as being of type socket).
+Linux also supports an abstract namespace which is independent of the
+file system.
+<P>
+Valid types are:
+<B>SOCK_STREAM</B>,
+
+for a stream-oriented socket and
+<B>SOCK_DGRAM</B>,
+
+for a datagram-oriented socket that preserves message boundaries
+(as on most Unix implementations, Unix domain datagram
+sockets are always reliable and don't reorder datagrams);
+and (since Linux 2.6.4)
+<B>SOCK_SEQPACKET</B>,
+
+for a connection-oriented socket that preserves message boundaries
+and delivers messages in the order that they were sent.
+<P>
+Unix sockets support passing file descriptors or process credentials
+to other processes using ancillary data.
+<A NAME="lbAE">&nbsp;</A>
+<H3>Address Format</H3>
+
+A Unix domain socket address is represented in the following structure:
+
+<PRE>
+
+#define UNIX_PATH_MAX    108
+
+struct sockaddr_un {
+    sa_family_t sun_family;               /* AF_UNIX */
+    char        sun_path[UNIX_PATH_MAX];  /* pathname */
+};
+</PRE>
+
+
+<P>
+
+<I>sun_family</I>
+
+always contains
+<B>AF_UNIX</B>.
+
+<P>
+Three types of address are distinguished in this structure:
+<DL COMPACT>
+<DT>*<DD>
+<I>pathname</I>:
+
+a Unix domain socket can be bound to a null-terminated file
+system pathname using
+<B><A HREF="/man/index.html?2+bind">bind</A></B>(2).
+
+When the address of the socket is returned by
+<B><A HREF="/man/index.html?2+getsockname">getsockname</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getpeername">getpeername</A></B>(2),
+
+and
+<B><A HREF="/man/index.html?2+accept">accept</A></B>(2),
+
+its length is
+<I>sizeof(sa_family_t) + strlen(sun_path) + 1</I>,
+
+and
+<I>sun_path</I>
+
+contains the null-terminated pathname.
+<DT>*<DD>
+<I>unnamed</I>:
+
+A stream socket that has not been bound to a pathname using
+<B><A HREF="/man/index.html?2+bind">bind</A></B>(2)
+
+has no name.
+Likewise, the two sockets created by
+<B><A HREF="/man/index.html?2+socketpair">socketpair</A></B>(2)
+
+are unnamed.
+When the address of an unnamed socket is returned by
+<B><A HREF="/man/index.html?2+getsockname">getsockname</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getpeername">getpeername</A></B>(2),
+
+and
+<B><A HREF="/man/index.html?2+accept">accept</A></B>(2),
+
+its length is
+<I>sizeof(sa_family_t)</I>,
+
+and
+<I>sun_path</I>
+
+should not be inspected.
+
+
+<DT>*<DD>
+<I>abstract</I>:
+
+an abstract socket address is distinguished by the fact that
+<I>sun_path[0]</I>
+
+is a null byte ('\0').
+All of the remaining bytes in
+<I>sun_path</I>
+
+define the &quot;name&quot; of the socket.
+(Null bytes in the name have no special significance.)
+The name has no connection with file system pathnames.
+The socket's address in this namespace is given by the rest of the
+bytes in
+<I>sun_path</I>.
+
+When the address of an abstract socket is returned by
+<B><A HREF="/man/index.html?2+getsockname">getsockname</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getpeername">getpeername</A></B>(2),
+
+and
+<B><A HREF="/man/index.html?2+accept">accept</A></B>(2),
+
+its length is
+<I>sizeof(struct sockaddr_un)</I>,
+
+and
+<I>sun_path</I>
+
+contains the abstract name.
+The abstract socket namespace is a non-portable Linux extension.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Socket Options</H3>
+
+For historical reasons these socket options are specified with a
+<B>SOL_SOCKET</B>
+
+type even though they are
+<B>AF_UNIX</B>
+
+specific.
+They can be set with
+<B><A HREF="/man/index.html?2+setsockopt">setsockopt</A></B>(2)
+
+and read with
+<B><A HREF="/man/index.html?2+getsockopt">getsockopt</A></B>(2)
+
+by specifying
+<B>SOL_SOCKET</B>
+
+as the socket family.
+<DL COMPACT>
+<DT><B>SO_PASSCRED</B>
+
+<DD>
+Enables the receiving of the credentials of the sending process
+ancillary message.
+When this option is set and the socket is not yet connected
+a unique name in the abstract namespace will be generated automatically.
+Expects an integer boolean flag.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Sockets API</H3>
+
+The following paragraphs describe domain-specific details and
+unsupported features of the sockets API for Unix domain sockets on Linux.
+<P>
+Unix domain sockets do not support the transmission of
+out-of-band data (the
+<B>MSG_OOB</B>
+
+flag for
+<B><A HREF="/man/index.html?2+send">send</A></B>(2)
+
+and
+<B><A HREF="/man/index.html?2+recv">recv</A></B>(2)).
+
+<P>
+The
+<B><A HREF="/man/index.html?2+send">send</A></B>(2)
+
+<B>MSG_MORE</B>
+
+flag is not supported by Unix domain sockets.
+<P>
+The use of
+<B>MSG_TRUNC</B>
+
+in the
+<I>flags</I>
+
+argument of
+<B><A HREF="/man/index.html?2+recv">recv</A></B>(2)
+
+is not supported by Unix domain sockets.
+<P>
+The
+<B>SO_SNDBUF</B>
+
+socket option does have an effect for Unix domain sockets, but the
+<B>SO_RCVBUF</B>
+
+option does not.
+For datagram sockets, the
+<B>SO_SNDBUF</B>
+
+value imposes an upper limit on the size of outgoing datagrams.
+This limit is calculated as the doubled (see
+<B><A HREF="/man/index.html?7+socket">socket</A></B>(7))
+
+option value less 32 bytes used for overhead.
+<A NAME="lbAH">&nbsp;</A>
+<H3>Ancillary Messages</H3>
+
+Ancillary data is sent and received using
+<B><A HREF="/man/index.html?2+sendmsg">sendmsg</A></B>(2)
+
+and
+<B><A HREF="/man/index.html?2+recvmsg">recvmsg</A></B>(2).
+
+For historical reasons the ancillary message types listed below
+are specified with a
+<B>SOL_SOCKET</B>
+
+type even though they are
+<B>AF_UNIX</B>
+
+specific.
+To send them set the
+<I>cmsg_level</I>
+
+field of the struct
+<I>cmsghdr</I>
+
+to
+<B>SOL_SOCKET</B>
+
+and the
+<I>cmsg_type</I>
+
+field to the type.
+For more information see
+<B><A HREF="/man/index.html?3+cmsg">cmsg</A></B>(3).
+
+<DL COMPACT>
+<DT><B>SCM_RIGHTS</B>
+
+<DD>
+Send or receive a set of open file descriptors from another process.
+The data portion contains an integer array of the file descriptors.
+The passed file descriptors behave as though they have been created with
+<B><A HREF="/man/index.html?2+dup">dup</A></B>(2).
+
+<DT><B>SCM_CREDENTIALS</B>
+
+<DD>
+Send or receive Unix credentials.
+This can be used for authentication.
+The credentials are passed as a
+<I>struct ucred</I>
+
+ancillary message.
+Thus structure is defined in
+<I>&lt;<A HREF="file:/usr/include/sys/socket.h">sys/socket.h</A>&gt;</I>
+
+as follows:
+<P>
+
+<PRE>
+struct ucred {
+    pid_t pid;    /* process ID of the sending process */
+    uid_t uid;    /* user ID of the sending process */
+    gid_t gid;    /* group ID of the sending process */
+};
+</PRE>
+
+
+<P>
+Since glibc 2.8, the
+<B>_GNU_SOURCE</B>
+
+feature test macro must be defined in order to obtain the definition
+of this structure.
+<P>
+The credentials which the sender specifies are checked by the kernel.
+A process with effective user ID 0 is allowed to specify values that do
+not match its own.
+The sender must specify its own process ID (unless it has the capability
+<B>CAP_SYS_ADMIN</B>),
+
+its user ID, effective user ID, or saved set-user-ID (unless it has
+<B>CAP_SETUID</B>),
+
+and its group ID, effective group ID, or saved set-group-ID
+(unless it has
+<B>CAP_SETGID</B>).
+
+To receive a
+<I>struct ucred</I>
+
+message the
+<B>SO_PASSCRED</B>
+
+option must be enabled on the socket.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EADDRINUSE</B>
+
+<DD>
+Selected local address is already taken or file system socket
+object already exists.
+<DT><B>ECONNREFUSED</B>
+
+<DD>
+<B><A HREF="/man/index.html?2+connect">connect</A></B>(2)
+
+called with a socket object that isn't listening.
+This can happen when
+the remote socket does not exist or the filename is not a socket.
+<DT><B>ECONNRESET</B>
+
+<DD>
+Remote socket was unexpectedly closed.
+<DT><B>EFAULT</B>
+
+<DD>
+User memory address was not valid.
+<DT><B>EINVAL</B>
+
+<DD>
+Invalid argument passed.
+A common cause is the missing setting of AF_UNIX
+in the
+<I>sun_type</I>
+
+field of passed addresses or the socket being in an
+invalid state for the applied operation.
+<DT><B>EISCONN</B>
+
+<DD>
+<B><A HREF="/man/index.html?2+connect">connect</A></B>(2)
+
+called on an already connected socket or a target address was
+specified on a connected socket.
+<DT><B>ENOMEM</B>
+
+<DD>
+Out of memory.
+<DT><B>ENOTCONN</B>
+
+<DD>
+Socket operation needs a target address, but the socket is not connected.
+<DT><B>EOPNOTSUPP</B>
+
+<DD>
+Stream operation called on non-stream oriented socket or tried to
+use the out-of-band data option.
+<DT><B>EPERM</B>
+
+<DD>
+The sender passed invalid credentials in the
+<I>struct ucred</I>.
+
+<DT><B>EPIPE</B>
+
+<DD>
+Remote socket was closed on a stream socket.
+If enabled, a
+<B>SIGPIPE</B>
+
+is sent as well.
+This can be avoided by passing the
+<B>MSG_NOSIGNAL</B>
+
+flag to
+<B><A HREF="/man/index.html?2+sendmsg">sendmsg</A></B>(2)
+
+or
+<B><A HREF="/man/index.html?2+recvmsg">recvmsg</A></B>(2).
+
+<DT><B>EPROTONOSUPPORT</B>
+
+<DD>
+Passed protocol is not AF_UNIX.
+<DT><B>EPROTOTYPE</B>
+
+<DD>
+Remote socket does not match the local socket type
+(<B>SOCK_DGRAM</B>
+
+vs.
+<B>SOCK_STREAM</B>)
+
+<DT><B>ESOCKTNOSUPPORT</B>
+
+<DD>
+Unknown socket type.
+</DL>
+<P>
+
+Other errors can be generated by the generic socket layer or
+by the file system while generating a file system socket object.
+See the appropriate manual pages for more information.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+<B>SCM_CREDENTIALS</B>
+
+and the abstract namespace were introduced with Linux 2.2 and should not
+be used in portable programs.
+(Some BSD-derived systems also support credential passing,
+but the implementation details differ.)
+<A NAME="lbAK">&nbsp;</A>
+<H2>NOTES</H2>
+
+In the Linux implementation, sockets which are visible in the
+file system honor the permissions of the directory they are in.
+Their owner, group and their permissions can be changed.
+Creation of a new socket will fail if the process does not have write and
+search (execute) permission on the directory the socket is created in.
+Connecting to the socket object requires read/write permission.
+This behavior differs from many BSD-derived systems which
+ignore permissions for Unix sockets.
+Portable programs should not rely on
+this feature for security.
+<P>
+Binding to a socket with a filename creates a socket
+in the file system that must be deleted by the caller when it is no
+longer needed (using
+<B><A HREF="/man/index.html?2+unlink">unlink</A></B>(2)).
+
+The usual Unix close-behind semantics apply; the socket can be unlinked
+at any time and will be finally removed from the file system when the last
+reference to it is closed.
+<P>
+To pass file descriptors or credentials over a
+<B>SOCK_STREAM</B>,
+
+you need
+to send or receive at least one byte of non-ancillary data in the same
+<B><A HREF="/man/index.html?2+sendmsg">sendmsg</A></B>(2)
+
+or
+<B><A HREF="/man/index.html?2+recvmsg">recvmsg</A></B>(2)
+
+call.
+<P>
+Unix domain stream sockets do not support the notion of out-of-band data.
+<A NAME="lbAL">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+See
+<B><A HREF="/man/index.html?2+bind">bind</A></B>(2).
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+recvmsg">recvmsg</A></B>(2),
+
+<B><A HREF="/man/index.html?2+sendmsg">sendmsg</A></B>(2),
+
+<B><A HREF="/man/index.html?2+socket">socket</A></B>(2),
+
+<B><A HREF="/man/index.html?2+socketpair">socketpair</A></B>(2),
+
+<B><A HREF="/man/index.html?3+cmsg">cmsg</A></B>(3),
+
+<B><A HREF="/man/index.html?7+capabilities">capabilities</A></B>(7),
+
+<B><A HREF="/man/index.html?7+credentials">credentials</A></B>(7),
+
+<B><A HREF="/man/index.html?7+socket">socket</A></B>(7)
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Address Format</A><DD>
+<DT><A HREF="#lbAF">Socket Options</A><DD>
+<DT><A HREF="#lbAG">Sockets API</A><DD>
+<DT><A HREF="#lbAH">Ancillary Messages</A><DD>
+</DL>
+<DT><A HREF="#lbAI">ERRORS</A><DD>
+<DT><A HREF="#lbAJ">VERSIONS</A><DD>
+<DT><A HREF="#lbAK">NOTES</A><DD>
+<DT><A HREF="#lbAL">EXAMPLE</A><DD>
+<DT><A HREF="#lbAM">SEE ALSO</A><DD>
+<DT><A HREF="#lbAN">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:16 GMT, December 24, 2015
+</div></body>
+</HTML>

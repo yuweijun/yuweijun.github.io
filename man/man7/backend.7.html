@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of backend</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>backend</H1>
+Section: Apple Inc. (7)<BR>Updated: CUPS<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<P>
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+backend - cups backend transmission interfaces
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>backend</B>
+
+<BR>
+
+<B>backend</B>
+
+job user title num-copies options [
+<I>filename</I>
+
+]
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+Backends are a special type of <I><A HREF="/man/index.html?7+filter">filter</A>(7)</I> which is used to
+send print data to and discover different devices on the system.
+<P>
+<P>
+
+Like filters, backends must be capable of reading from a filename
+on the command-line or from the standard input, copying the
+standard input to a temporary file as required by the physical
+interface.
+<P>
+<P>
+
+The command name (argv[0]) is set to the device URI of the destination printer.
+Starting with CUPS 1.1.22, any authentication information in argv[0] is removed,
+so backend developers are urged to use the DEVICE_URI environment variable
+whenever authentication information is required. The CUPS API includes a
+<I>cupsBackendDeviceURI</I> function for retrieving the correct device URI.
+<P>
+<P>
+
+Back-channel data from the device should be relayed to the job
+filters by writing to file descriptor 3. The CUPS API includes
+the <I>cupsBackChannelWrite</I> function for this purpose.
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>DEVICE DISCOVERY</H2>
+
+When run with no arguments, the backend should list the devices
+and schemes it supports or is advertising to stdout. The output
+consists of zero or more lines consisting of any of the following
+forms:
+<P>
+<PRE>
+    device-class scheme &quot;Unknown&quot; &quot;device-info&quot;
+    device-class device-uri &quot;device-make-and-model&quot; &quot;device-info&quot;
+    device-class device-uri &quot;device-make-and-model&quot; &quot;device-info&quot; &quot;device-id&quot;
+    device-class device-uri &quot;device-make-and-model&quot; &quot;device-info&quot; &quot;device-id&quot; &quot;device-location&quot;
+</PRE>
+
+<P>
+<P>
+
+The <I>device-class</I> field is one of the following values:
+<P>
+<DL COMPACT>
+<DT>direct<DD>
+<BR>
+
+The device-uri refers to a specific direct-access device with no
+options, such as a parallel, USB, or SCSI device.
+<P>
+<DT>file<DD>
+<BR>
+
+The device-uri refers to a file on disk.
+<P>
+<DT>network<DD>
+<BR>
+
+The device-uri refers to a networked device and conforms to the
+general form for network URIs.
+<P>
+<DT>serial<DD>
+<BR>
+
+The device-uri refers to a serial device with configurable baud
+rate and other options. If the device-uri contains a baud value,
+it represents the maximum baud rate supported by the device.
+<P>
+</DL>
+<P>
+
+The <I>scheme</I> field provides the URI scheme that is supported
+by the backend. Backends should use this form only when the
+backend supports any URI using that scheme. The <I>device-uri</I>
+field specifies the full URI to use when communicating with the
+device.
+<P>
+<P>
+
+The <I>device-make-and-model</I> field specifies the make and
+model of the device, e.g. &quot;Acme Foojet 2000&quot;. If the make and
+model is not known, you must report &quot;Unknown&quot;.
+<P>
+<P>
+
+The <I>device-info</I> field specifies additional information
+about the device. Typically this includes the make and model
+along with the port number or network address, e.g. &quot;Acme Foojet
+2000 USB #1&quot;.
+<P>
+<P>
+
+The optional <I>device-id</I> field specifies the IEEE-1284 device
+ID string for the device, which is used to select a matching
+driver.
+<P>
+<P>
+
+The optional <I>device-location</I> field specifies the physical location of
+the device, which is often used to pre-populate the printer-location attribute
+when adding a printer.
+<P>
+<A NAME="lbAF">&nbsp;</A>
+<H2>PERMISSIONS</H2>
+
+Backends without world execute permissions are run as the root
+user. Otherwise, the backend is run using the unprivileged user
+account, typically &quot;lp&quot;.
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXIT CODES</H2>
+
+The following exit codes are defined for backends; C API
+constants defined in the &lt;<A HREF="file:/usr/include/cups/backend.h">cups/backend.h</A>&gt; header file are defined
+in parenthesis:
+<P>
+<DL COMPACT>
+<DT>0 (CUPS_BACKEND_OK)<DD>
+<BR>
+
+The print file was successfully transmitted to the device or
+remote server.
+<P>
+<DT>1 (CUPS_BACKEND_FAILED)<DD>
+<BR>
+
+The print file was not successfully transmitted to the device or
+remote server. The scheduler will respond to this by canceling
+the job, retrying the job, or stopping the queue depending on the
+state of the error-policy attribute.
+<P>
+<DT>2 (CUPS_BACKEND_AUTH_REQUIRED)<DD>
+<BR>
+
+The print file was not successfully transmitted because valid
+authentication information is required. The scheduler will
+respond to this by holding the job and adding the
+authentication-required job-reasons keyword.
+<P>
+<DT>3 (CUPS_BACKEND_HOLD)<DD>
+<BR>
+
+The print file was not successfully transmitted because it cannot
+be printed at this time. The scheduler will respond to this by
+holding the job.
+<P>
+<DT>4 (CUPS_BACKEND_STOP)<DD>
+<BR>
+
+The print file was not successfully transmitted because it cannot
+be printed at this time. The scheduler will respond to this by
+stopping the queue.
+<P>
+<DT>5 (CUPS_BACKEND_CANCEL)<DD>
+<BR>
+
+The print file was not successfully transmitted because one or
+more attributes are not supported. The scheduler will respond to
+this by canceling the job.
+<P>
+</DL>
+<P>
+
+All other exit code values are reserved.
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<I><A HREF="/man/index.html?8+cupsd">cupsd</A>(8)</I>, <I><A HREF="http://localhost/cgi-bin/man/man2html?5+cupsd.conf">cupsd.conf</A>(5)</I>, <I><A HREF="http://localhost/cgi-bin/man/man2html?7+filter">filter</A>(7)</I>,
+<BR>
+
+<A HREF="http://localhost:631/help">http://localhost:631/help</A>
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+Copyright 2007-2009 by Apple Inc.
+
+
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">DEVICE DISCOVERY</A><DD>
+<DT><A HREF="#lbAF">PERMISSIONS</A><DD>
+<DT><A HREF="#lbAG">EXIT CODES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:14 GMT, December 24, 2015
+</div></body>
+</HTML>

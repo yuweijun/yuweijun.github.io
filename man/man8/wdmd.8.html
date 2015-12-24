@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of WDMD</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>WDMD</H1>
+Section: Maintenance Commands (8)<BR>Updated: 2011-08-01<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<P>
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+wdmd - watchdog multiplexing daemon
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>wdmd</B>
+
+[OPTIONS]
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+This daemon opens /dev/watchdog and allows multiple independent sources to
+detmermine whether each KEEPALIVE is done.  Every test interval (10
+seconds), the daemon tests each source.  If any test fails, the KEEPALIVE
+is not done.  In a standard configuration, the watchdog timer will reset
+the system if no KEEPALIVE is done for 60 seconds (&quot;fire timeout&quot;).  This
+means that if single test fails 5-6 times in row, the watchdog will fire
+and reset the system.  With multiple test sources, fewer separate failures
+back to back can also cause a reset, e.g.
+<P>
+T seconds, P pass, F fail
+<BR>
+
+T00: test1 P, test2 P, test3 P: KEEPALIVE done
+<BR>
+
+T10: test1 F, test2 F, test3 P: KEEPALIVE skipped
+<BR>
+
+T20: test1 F, test2 P, test3 P: KEEPALIVE skipped
+<BR>
+
+T30: test1 P, test2 F, test3 P: KEEPALIVE skipped
+<BR>
+
+T40: test1 P, test2 P, test3 F: KEEPALIVE skipped
+<BR>
+
+T50: test1 F, test2 F, test3 P: KEEPALIVE skipped
+<BR>
+
+T60: test1 P, test2 F, test3 P: KEEPALIVE skipped
+<BR>
+
+T60: watchdog fires, system resets
+<P>
+(Depending on timings, the system may be reset sometime shortly before
+T60, and the tests at T60 would not be run.)
+<P>
+A crucial aspect to the design and function of wdmd is that if any single
+source does not pass tests for the fire timeout, the watchdog is
+guaranteed to fire, regardless of whether other sources on the system have
+passed or failed.  A spurious reset due to the combined effects of
+multiple failing tests as shown above, is an accepted side effect.
+<P>
+wdmd will exit if a watchdog driver is not loaded.
+<P>
+wdmd cannot be used on the system with any other program that needs to
+open /dev/watchdog, e.g. <A HREF="/man/index.html?8+watchdog">watchdog</A>(8).
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Test Source: clients</H3>
+
+<P>
+Using libwdmd, programs connect to wdmd via a unix socket, and send
+regular messages to wdmd to update an expiry time for their connection.
+Every test interval, wdmd will check if the expiry time for a connection
+has been reached.  If so, the test for that client fails.
+<P>
+(Other test sources such as scripts executed each test interval may be
+added in the future.)
+<P>
+<A NAME="lbAF">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-D</B>
+
+<DD>
+Enable debugging to stderr and don't fork.
+<P>
+<DT><B>-H</B><I> num</I>
+
+<DD>
+Enable (1) or disable (0) high priority features such as realtime
+scheduling priority and mlockall.
+<BR>
+
+Default 1.
+<P>
+<P>
+</DL>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Test Source: clients</A><DD>
+</DL>
+<DT><A HREF="#lbAF">OPTIONS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:31 GMT, December 24, 2015
+</div></body>
+</HTML>

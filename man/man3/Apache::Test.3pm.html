@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Apache::Test</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Apache::Test</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-12-31<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Apache::Test - Test.pm wrapper with helpers for testing Apache
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Apache::Test;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<B>Apache::Test</B> is a wrapper around the standard <TT>&quot;Test.pm&quot;</TT> with
+helpers for testing an Apache server.
+<A NAME="lbAE">&nbsp;</A>
+<H2>FUNCTIONS</H2>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT>plan<DD>
+<A NAME="ixAAF"></A>
+This function is a wrapper around <TT>&quot;Test::plan&quot;</TT>:
+
+
+<P>
+
+
+
+
+<PRE>
+    plan tests =&gt; 3;
+
+</PRE>
+
+
+
+
+<P>
+
+
+just like using Test.pm, plan 3 tests.
+
+
+<P>
+
+
+If the first argument is an object, such as an <TT>&quot;Apache::RequestRec&quot;</TT>
+object, <TT>&quot;STDOUT&quot;</TT> will be tied to it. The <TT>&quot;Test.pm&quot;</TT> global state will
+also be refreshed by calling <TT>&quot;Apache::Test::test_pm_refresh&quot;</TT>. For
+example:
+
+
+<P>
+
+
+
+
+<PRE>
+    plan $r, tests =&gt; 7;
+
+</PRE>
+
+
+
+
+<P>
+
+
+ties <FONT SIZE="-1">STDOUT</FONT> to the request object <TT>$r</TT>.
+
+
+<P>
+
+
+If there is a last argument that doesn't belong to <TT>&quot;Test::plan&quot;</TT>
+(which expects a balanced hash), it's used to decide whether to
+continue with the test or to skip it all-together. This last argument
+can be:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+a <TT>&quot;SCALAR&quot;</TT>
+
+
+<P>
+
+
+the test is skipped if the scalar has a false value. For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 5, 0;
+
+</PRE>
+
+
+
+
+<P>
+
+
+But this won't hint the reason for skipping therefore it's better to
+use <I>need()</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 5,
+      need 'LWP',
+           { &quot;not Win32&quot; =&gt; sub { $^O eq 'MSWin32'} };
+
+</PRE>
+
+
+
+
+<P>
+
+
+see <TT>&quot;need()&quot;</TT> for more info.
+<DT>*<DD>
+an <TT>&quot;ARRAY&quot;</TT> reference
+
+
+<P>
+
+
+<I>need_module()</I> is called for each value in this array. The test is
+skipped if <I>need_module()</I> returns false (which happens when at least
+one C or Perl module from the list cannot be found).
+
+
+<P>
+
+
+Watch out for case insensitive file systems or duplicate modules
+with the same name.  I.E.  If you mean mod_env.c
+<BR>&nbsp;&nbsp;&nbsp;need_module('mod_env.c')
+Not
+<BR>&nbsp;&nbsp;&nbsp;need_module('env')
+<DT>*<DD>
+a <TT>&quot;CODE&quot;</TT> reference
+
+
+<P>
+
+
+the tests will be skipped if the function returns a false value. For
+example:
+
+
+<P>
+
+
+
+
+<PRE>
+    plan tests =&gt; 5, need_lwp;
+
+</PRE>
+
+
+
+
+<P>
+
+
+the test will be skipped if <FONT SIZE="-1">LWP</FONT> is not available
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+All other arguments are passed through to <I>Test::plan</I> as is.
+</DL>
+
+<DT>ok<DD>
+<A NAME="ixAAG"></A>
+Same as <I>Test::ok</I>, see <I>Test.pm</I> documentation.
+<DT>sok<DD>
+<A NAME="ixAAH"></A>
+Allows to skip a sub-test, controlled from the command line.  The
+argument to <I>sok()</I> is a <FONT SIZE="-1">CODE</FONT> reference or a <FONT SIZE="-1">BLOCK</FONT> whose return value
+will be passed to <I>ok()</I>. By default behaves like <I>ok()</I>. If all sub-tests
+of the same test are written using <I>sok()</I>, and a test is executed as:
+
+
+<P>
+
+
+
+
+<PRE>
+  % ./t/TEST -v skip_subtest 1 3
+
+</PRE>
+
+
+
+
+<P>
+
+
+only sub-tests 1 and 3 will be run, the rest will be skipped.
+<DT>skip<DD>
+<A NAME="ixAAI"></A>
+Same as <I>Test::skip</I>, see <I>Test.pm</I> documentation.
+<DT>test_pm_refresh<DD>
+<A NAME="ixAAJ"></A>
+Normally called by <I>Apache::Test::plan</I>, this function will refresh
+the global state maintained by <I>Test.pm</I>, allowing <TT>&quot;plan&quot;</TT> and
+friends to be called more than once per-process.  This function is not
+exported.
+</DL>
+<P>
+
+Functions that can be used as a last argument to the extended <I>plan()</I>.
+Note that for each <TT>&quot;need_*&quot;</TT> function there is a <TT>&quot;have_*&quot;</TT> equivalent
+that performs the exact same function except that it is designed to
+be used outside of <TT>&quot;plan()&quot;</TT>.  <TT>&quot;need_*&quot;</TT> functions have the side effect
+of generating skip messages, if the test is skipped.  <TT>&quot;have_*&quot;</TT> functions
+don't have this side effect.  In other words, use <TT>&quot;need_apache()&quot;</TT>
+with <TT>&quot;plan()&quot;</TT> to decide whether a test will run, but <TT>&quot;have_apache()&quot;</TT>
+within test logic to adjust expectations based on older or newer
+server versions.
+<DL COMPACT>
+<DT>need_http11<DD>
+<A NAME="ixAAK"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, need_http11;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Require <FONT SIZE="-1">HTTP/1</FONT>.1 support.
+<DT>need_ssl<DD>
+<A NAME="ixAAL"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, need_ssl;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Require <FONT SIZE="-1">SSL</FONT> support.
+
+
+<P>
+
+
+Not exported by default.
+<DT>need_lwp<DD>
+<A NAME="ixAAM"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, need_lwp;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Require <FONT SIZE="-1">LWP</FONT> support.
+<DT>need_cgi<DD>
+<A NAME="ixAAN"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, need_cgi;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Requires mod_cgi or mod_cgid to be installed.
+<DT>need_php<DD>
+<A NAME="ixAAO"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, need_php;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Requires a <FONT SIZE="-1">PHP</FONT> module to be installed (version 4 or 5).
+<DT>need_php4<DD>
+<A NAME="ixAAP"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, need_php4;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Requires a <FONT SIZE="-1">PHP</FONT> version 4 module to be installed.
+<DT>need_imagemap<DD>
+<A NAME="ixAAQ"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, need_imagemap;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Requires a mod_imagemap or mod_imap be installed
+<DT>need_apache<DD>
+<A NAME="ixAAR"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, need_apache 2;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Requires Apache 2nd generation httpd-2.x.xx
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 5, need_apache 1;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Requires Apache 1st generation (apache-1.3.xx)
+
+
+<P>
+
+
+See also <TT>&quot;need_min_apache_version()&quot;</TT>.
+<DT>need_min_apache_version<DD>
+<A NAME="ixAAS"></A>
+Used to require a minimum version of Apache.
+
+
+<P>
+
+
+For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 5, need_min_apache_version(&quot;2.0.40&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+requires Apache 2.0.40 or higher.
+<DT>need_apache_version<DD>
+<A NAME="ixAAT"></A>
+Used to require a specific version of Apache.
+
+
+<P>
+
+
+For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 5, need_apache_version(&quot;2.0.40&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+requires Apache 2.0.40.
+<DT>need_apache_mpm<DD>
+<A NAME="ixAAU"></A>
+Used to require a specific Apache Multi-Processing Module.
+
+
+<P>
+
+
+For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 5, need_apache_mpm('prefork');
+
+</PRE>
+
+
+
+
+<P>
+
+
+requires the prefork <FONT SIZE="-1">MPM</FONT>.
+<DT>need_perl<DD>
+<A NAME="ixAAV"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, need_perl 'iolayers';
+  plan tests =&gt; 5, need_perl 'ithreads';
+
+</PRE>
+
+
+
+
+<P>
+
+
+Requires a perl extension to be present, or perl compiled with certain
+capabilities.
+
+
+<P>
+
+
+The first example tests whether <TT>&quot;PerlIO&quot;</TT> is available, the second
+whether:
+
+
+<P>
+
+
+
+
+<PRE>
+  $Config{useithread} eq 'define';
+
+</PRE>
+
+
+<DT>need_min_perl_version<DD>
+<A NAME="ixAAW"></A>
+Used to require a minimum version of Perl.
+
+
+<P>
+
+
+For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 5, need_min_perl_version(&quot;5.008001&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+requires Perl 5.8.1 or higher.
+<DT>need_module<DD>
+<A NAME="ixAAX"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, need_module 'CGI';
+  plan tests =&gt; 5, need_module qw(CGI Find::File);
+  plan tests =&gt; 5, need_module ['CGI', 'Find::File', 'cgid'];
+
+</PRE>
+
+
+
+
+<P>
+
+
+Requires Apache C and Perl modules. The function accept a list of
+arguments or a reference to a list.
+
+
+<P>
+
+
+In case of C modules, depending on how the module name was passed it
+may pass through the following completions:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>1 need_module 'proxy_http.c'<DD>
+<A NAME="ixAAY"></A>
+If there is the <I>.c</I> extension, the module name will be looked up as
+is, i.e. <I>'proxy_http.c'</I>.
+<DT>2 need_module 'mod_cgi'<DD>
+<A NAME="ixAAZ"></A>
+The <I>.c</I> extension will be appended before the lookup, turning it into
+<I>'mod_cgi.c'</I>.
+<DT>3 need_module 'cgi'<DD>
+<A NAME="ixABA"></A>
+The <I>.c</I> extension and <I>mod_</I> prefix will be added before the
+lookup, turning it into <I>'mod_cgi.c'</I>.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>need_min_module_version<DD>
+<A NAME="ixABB"></A>
+Used to require a minimum version of a module
+
+
+<P>
+
+
+For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 5, need_min_module_version(CGI =&gt; 2.81);
+
+</PRE>
+
+
+
+
+<P>
+
+
+requires <TT>&quot;CGI.pm&quot;</TT> version 2.81 or higher.
+
+
+<P>
+
+
+Currently works only for perl modules.
+<DT>need<DD>
+<A NAME="ixABC"></A>
+
+
+<PRE>
+  plan tests =&gt; 5,
+      need 'LWP',
+           { &quot;perl &gt;= 5.8.0 and w/ithreads is required&quot; =&gt;
+             ($Config{useperlio} &amp;&amp; $] &gt;= 5.008) },
+           { &quot;not Win32&quot;                 =&gt; sub { $^O eq 'MSWin32' },
+             &quot;foo is disabled&quot;           =&gt; \&amp;is_foo_enabled,
+           },
+           'cgid';
+
+</PRE>
+
+
+
+
+<P>
+
+
+<I>need()</I> is more generic function which can impose multiple requirements
+at once. All requirements must be satisfied.
+
+
+<P>
+
+
+<I>need()</I>'s argument is a list of things to test. The list can include
+scalars, which are passed to <I>need_module()</I>, and hash references. If
+hash references are used, the keys, are strings, containing a reason
+for a failure to satisfy this particular entry, the values are the
+condition, which are satisfaction if they return true. If the value is
+0 or 1, it used to decide whether the requirements very satisfied, so
+you can mix special <TT>&quot;need_*()&quot;</TT> functions that return 0 or 1. For
+example:
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 1, need 'Compress::Zlib', 'deflate',
+      need_min_apache_version(&quot;2.0.49&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+If the scalar value is a string, different from 0 or 1, it's passed to
+<I>need_module()</I>.  If the value is a code reference, it gets executed
+at the time of check and its return value is used to check the
+condition. If the condition check fails, the provided (in a key)
+reason is used to tell user why the test was skipped.
+
+
+<P>
+
+
+In the presented example, we require the presence of the <TT>&quot;LWP&quot;</TT> Perl
+module, <TT>&quot;mod_cgid&quot;</TT>, that we run under perl &gt;= 5.7.3 on Win32.
+
+
+<P>
+
+
+It's possible to put more than one requirement into a single hash
+reference, but be careful that the keys will be different.
+
+
+<P>
+
+
+It's also important to mention to avoid using:
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 1, requirement1 &amp;&amp; requirement2;
+
+</PRE>
+
+
+
+
+<P>
+
+
+technique. While test-wise that technique is equivalent to:
+
+
+<P>
+
+
+
+
+<PRE>
+  plan tests =&gt; 1, need requirement1, requirement2;
+
+</PRE>
+
+
+
+
+<P>
+
+
+since the test will be skipped, unless all the rules are satisfied,
+it's not equivalent for the end users. The second technique, deploying
+<TT>&quot;need()&quot;</TT> and a list of requirements, always runs all the requirement
+checks and reports all the missing requirements. In the case of the
+first technique, if the first requirement fails, the second is not
+run, and the missing requirement is not reported. So let's say all the
+requirements are missing Apache modules, and a user wants to satisfy
+all of these and run the test suite again. If all the unsatisfied
+requirements are reported at once, she will need to rebuild Apache
+once. If only one requirement is reported at a time, she will have to
+rebuild Apache as many times as there are elements in the <TT>&quot;&amp;&amp;&quot;</TT>
+statement.
+
+
+<P>
+
+
+Also see <I>plan()</I>.
+<DT>under_construction<DD>
+<A NAME="ixABD"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, under_construction;
+
+</PRE>
+
+
+
+
+<P>
+
+
+skip all tests, noting that the tests are under construction
+<DT>skip_reason<DD>
+<A NAME="ixABE"></A>
+
+
+<PRE>
+  plan tests =&gt; 5, skip_reason('my custom reason');
+
+</PRE>
+
+
+
+
+<P>
+
+
+skip all tests.  the reason you specify will be given at runtime.
+if no reason is given a default reason will be used.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>Additional Configuration Variables</H2>
+
+<A NAME="ixABF"></A>
+<DL COMPACT>
+<DT>basic_config<DD>
+<A NAME="ixABG"></A>
+
+
+<PRE>
+  my $basic_cfg = Apache::Test::basic_config();
+  $basic_cfg-&gt;write_perlscript($file, $content);
+
+</PRE>
+
+
+
+
+<P>
+
+
+<TT>&quot;basic_config()&quot;</TT> is similar to <TT>&quot;config()&quot;</TT>, but doesn't contain any
+httpd-specific information and should be used for operations that
+don't require any httpd-specific knowledge.
+<DT>config<DD>
+<A NAME="ixABH"></A>
+
+
+<PRE>
+  my $cfg = Apache::Test::config();
+  my $server_rev = $cfg-&gt;{server}-&gt;{rev};
+  ...
+
+</PRE>
+
+
+
+
+<P>
+
+
+<TT>&quot;config()&quot;</TT> gives an access to the configuration object.
+<DT>vars<DD>
+<A NAME="ixABI"></A>
+
+
+<PRE>
+  my $serverroot = Apache::Test::vars-&gt;{serverroot};
+  my $serverroot = Apache::Test::vars('serverroot');
+  my($top_dir, $t_dir) = Apache::Test::vars(qw(top_dir t_dir));
+
+</PRE>
+
+
+
+
+<P>
+
+
+<TT>&quot;vars()&quot;</TT> gives an access to the configuration variables, otherwise
+accessible as:
+
+
+<P>
+
+
+
+
+<PRE>
+  $vars = Apache::Test::config()-&gt;{vars};
+
+</PRE>
+
+
+
+
+<P>
+
+
+If no arguments are passed, the reference to the variables hash is
+returned. If one or more arguments are passed the corresponding values
+are returned.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>Test::More Integration</H2>
+
+<A NAME="ixABJ"></A>
+There are a few caveats if you want to use <I>Apache::Test</I> with
+<I>Test::More</I> instead of the default <I>Test</I> backend.  The first is
+that <I>Test::More</I> requires you to use its own <TT>&quot;plan()&quot;</TT> function
+and not the one that ships with <I>Apache::Test</I>.  <I>Test::More</I> also
+defines <TT>&quot;ok()&quot;</TT> and <TT>&quot;skip()&quot;</TT> functions that are different, and
+simply <TT>&quot;use&quot;</TT>ing both modules in your test script will lead to redefined
+warnings for these subroutines.
+<P>
+
+To assist <I>Test::More</I> users we have created a special <I>Apache::Test</I>
+import tag, <TT>&quot;:withtestmore&quot;</TT>, which will export all of the standard
+<I>Apache::Test</I> symbols into your namespace except the ones that collide
+with <I>Test::More</I>.
+<P>
+
+
+
+<PRE>
+    use Apache::Test qw(:withtestmore);
+    use Test::More;
+
+    plan tests =&gt; 1;           # Test::More::plan()
+
+    ok ('yes', 'testing ok');  # Test::More::ok()
+
+</PRE>
+
+
+<P>
+
+Now, while this works fine for standard client-side tests
+(such as <TT>&quot;t/basic.t&quot;</TT>), the more advanced features of <I>Apache::Test</I>
+require using <I>Test::More</I> as the sole driver behind the scenes.
+<P>
+
+Should you choose to use <I>Test::More</I> as the backend for
+server-based tests (such as <TT>&quot;t/response/TestMe/basic.pm&quot;</TT>) you will
+need to use the <TT>&quot;-withtestmore&quot;</TT> action tag:
+<P>
+
+
+
+<PRE>
+    use Apache::Test qw(-withtestmore);
+
+    sub handler {
+
+        my $r = shift;
+
+        plan $r, tests =&gt; 1;           # Test::More::plan() with
+                                       # Apache::Test features
+
+        ok ('yes', 'testing ok');      # Test::More::ok()
+    }
+
+</PRE>
+
+
+<P>
+
+<TT>&quot;-withtestmore&quot;</TT> tells <I>Apache::Test</I> to use <I>Test::More</I>
+instead of <I>Test.pm</I> behind the scenes.  Note that you are not
+required to <TT>&quot;use Test::More&quot;</TT> yourself with the <TT>&quot;-withtestmore&quot;</TT>
+option and that the <TT>&quot;use Test::More tests =&gt; 1&quot;</TT> syntax
+may have unexpected results.
+<P>
+
+Note that <I>Test::More</I> version 0.49, available within the
+<I>Test::Simple</I> 0.49 distribution on <FONT SIZE="-1">CPAN</FONT>, or greater is required
+to use this feature.
+<P>
+
+Because <I>Apache:Test</I> was initially developed using <I>Test</I> as
+the framework driver, complete <I>Test::More</I> integration is
+considered experimental at this time - it is supported as best as
+possible but is not guaranteed to be as stable as the default <I>Test</I>
+interface at this time.
+<A NAME="lbAH">&nbsp;</A>
+<H2>Apache::TestToString Class</H2>
+
+<A NAME="ixABK"></A>
+The <I>Apache::TestToString</I> class is used to capture <I>Test.pm</I> output
+into a string.  Example:
+<P>
+
+
+
+<PRE>
+    Apache::TestToString-&gt;start;
+
+    plan tests =&gt; 4;
+
+    ok $data eq 'foo';
+
+    ...
+
+    # $tests will contain the Test.pm output: 1..4\nok 1\n...
+    my $tests = Apache::TestToString-&gt;finish;
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABL"></A>
+The Apache-Test tutorial:
+&lt;<A HREF="http://perl.apache.org/docs/general/testing/testing.html">http://perl.apache.org/docs/general/testing/testing.html</A>&gt;.
+<P>
+
+Apache::TestRequest subclasses LWP::UserAgent and
+exports a number of useful functions for sending request to the Apache test
+server. You can then test the results of those requests.
+<P>
+
+Use Apache::TestMM in your <I>Makefile.PL</I> to set up your
+distribution for testing.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABM"></A>
+Doug MacEachern with contributions from Geoffrey Young, Philippe
+M. Chiasson, Stas Bekman and others.
+<P>
+
+Questions can be asked at the test-dev &lt;at&gt; httpd.apache.org list
+For more information see: <A HREF="http://httpd.apache.org/test/.">http://httpd.apache.org/test/.</A>
+<A NAME="lbAK">&nbsp;</A>
+<H2>POD ERRORS</H2>
+
+<A NAME="ixABN"></A>
+Hey! <B>The above document had some coding errors, which are explained below:</B>
+<DL COMPACT>
+<DT>Around line 939:<DD>
+<A NAME="ixABO"></A>
+'=item' outside of any '=over'
+<DT>Around line 971:<DD>
+<A NAME="ixABP"></A>
+You forgot a '=back' before '=head1'
+<P>
+</DL>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">FUNCTIONS</A><DD>
+<DT><A HREF="#lbAF">Additional Configuration Variables</A><DD>
+<DT><A HREF="#lbAG">Test::More Integration</A><DD>
+<DT><A HREF="#lbAH">Apache::TestToString Class</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">AUTHOR</A><DD>
+<DT><A HREF="#lbAK">POD ERRORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

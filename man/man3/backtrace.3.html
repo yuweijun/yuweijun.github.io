@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of BACKTRACE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>BACKTRACE</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2008-06-14<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+backtrace, backtrace_symbols, backtrace_symbols_fd - support
+for application self-debugging
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>#include &lt;<A HREF="file:/usr/include/execinfo.h">execinfo.h</A>&gt;</B>
+
+<P>
+<B>int backtrace(void</B>
+
+<B>**</B><I>buffer</I><B>,</B>
+
+<B>int</B>
+
+<I>size</I><B>);</B>
+
+<P>
+<B>char **backtrace_symbols(void *const</B>
+
+<B>*</B><I>buffer</I><B>,</B>
+
+<B>int</B>
+
+<I>size</I><B>);</B>
+
+<P>
+<B>void backtrace_symbols_fd(void *const</B>
+
+<B>*</B><I>buffer</I><B>,</B>
+
+<B>int</B>
+
+<I>size</I><B>,</B>
+
+<B>int</B>
+
+<I>fd</I><B>);</B>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>backtrace</B>()
+
+returns a backtrace for the calling program,
+in the array pointed to by
+<I>buffer</I>.
+
+A backtrace is the series of currently active function calls for
+the program.
+Each item in the array pointed to by
+<I>buffer</I>
+
+is of type <I>void *</I>, and is the return address from
+the corresponding stack frame.
+The
+<I>size</I>
+
+argument specifies the maximum number of addresses
+that can be stored in
+<I>buffer</I>.
+
+If the backtrace is larger than
+<I>size</I>,
+
+then the addresses corresponding to the
+<I>size</I>
+
+most recent function calls are returned;
+to obtain the complete backtrace, make sure that
+<I>buffer</I>
+
+and
+<I>size</I>
+
+are large enough.
+<P>
+Given the set of addresses returned by
+<B>backtrace</B>()
+
+in
+<I>buffer</I>,
+
+<B>backtrace_symbols</B>()
+
+translates the addresses into an array of strings that describe
+the addresses symbolically.
+The
+<I>size</I>
+
+argument specifies the number of addresses in
+<I>buffer</I>.
+
+The symbolic representation of each address consists of the function name
+(if this can be determined), a hexadecimal offset into the function,
+and the actual return address (in hexadecimal).
+The address of the array of string pointers is returned
+as the function result of
+<B>backtrace_symbols</B>().
+
+This array is
+<B><A HREF="/man/index.html?3+malloc">malloc</A></B>(3)ed
+
+by
+<B>backtrace_symbols</B>(),
+
+and must be freed by the caller.
+(The strings pointed to by the array of pointers
+need not and should not be freed.)
+<P>
+<B>backtrace_symbols_fd</B>()
+
+takes the same
+<I>buffer</I>
+
+and
+<I>size</I>
+
+arguments as
+<B>backtrace_symbols</B>(),
+
+but instead of returning an array of strings to the caller,
+it writes the strings, one per line, to the file descriptor
+<I>fd</I>.
+
+<B>backtrace_symbols_fd</B>()
+
+does not call
+<B><A HREF="/man/index.html?3+malloc">malloc</A></B>(3),
+
+and so can be employed in situations where the latter function might fail.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+<B>backtrace</B>()
+
+returns the number of addresses returned in
+<I>buffer</I>,
+
+which is not greater than
+<I>size</I>.
+
+If the return value is less than
+<I>size</I>,
+
+then the full backtrace was stored; if it is equal to
+<I>size</I>,
+
+then it may have been truncated, in which case the addresses of the
+oldest stack frames are not returned.
+<P>
+On success,
+<B>backtrace_symbols</B>()
+
+returns a pointer to the array
+<B><A HREF="/man/index.html?3+malloc">malloc</A></B>(3)ed
+
+by the call;
+on error, NULL is returned.
+<A NAME="lbAF">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+<B>backtrace</B>(),
+
+<B>backtrace_symbols</B>(),
+
+and
+<B>backtrace_symbols_fd</B>()
+
+are provided in glibc since version 2.1.
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+These functions are GNU extensions.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+These functions make some assumptions about how a function's return
+address is stored on the stack.
+Note the following:
+<DL COMPACT>
+<DT>*<DD>
+Omission of the frame pointers (as
+implied by any of
+<B><A HREF="/man/index.html?1+gcc">gcc</A></B>(1)'s
+
+non-zero optimization levels) may cause these assumptions to be
+violated.
+<DT>*<DD>
+Inlined functions do not have stack frames.
+<DT>*<DD>
+Tail-call optimization causes one stack frame to replace another.
+</DL>
+<P>
+
+The symbol names may be unavailable without the use of special linker
+options.
+For systems using the GNU linker, it is necessary to use the
+<I>-rdynamic</I>
+
+linker option.
+Note that names of &quot;static&quot; functions are not exposed,
+and won't be available in the backtrace.
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+The program below demonstrates the use of
+<B>backtrace</B>()
+
+and
+<B>backtrace_symbols</B>().
+
+The following shell session shows what we might see when running the
+program:
+<PRE>
+
+$<B> cc -rdynamic prog.c -o prog</B>
+$<B> ./prog 3</B>
+backtrace() returned 8 addresses
+./prog(myfunc3+0x5c) [0x80487f0]
+./prog [0x8048871]
+./prog(myfunc+0x21) [0x8048894]
+./prog(myfunc+0x1a) [0x804888d]
+./prog(myfunc+0x1a) [0x804888d]
+./prog(main+0x65) [0x80488fb]
+/lib/libc.so.6(__libc_start_main+0xdc) [0xb7e38f9c]
+./prog [0x8048711]
+</PRE>
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Program source</H3>
+
+
+<PRE>
+#include &lt;<A HREF="file:/usr/include/execinfo.h">execinfo.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;
+
+void
+myfunc3(void)
+{
+    int j, nptrs;
+#define SIZE 100
+    void *buffer[100];
+    char **strings;
+
+    nptrs = backtrace(buffer, SIZE);
+    printf(&quot;backtrace() returned %d addresses\n&quot;, nptrs);
+
+    /* The call backtrace_symbols_fd(buffer, nptrs, STDOUT_FILENO)
+       would produce similar output to the following: */
+
+    strings = backtrace_symbols(buffer, nptrs);
+    if (strings == NULL) {
+        perror(&quot;backtrace_symbols&quot;);
+        exit(EXIT_FAILURE);
+    }
+
+    for (j = 0; j &lt; nptrs; j++)
+        printf(&quot;%s\n&quot;, strings[j]);
+
+    free(strings);
+}
+
+static void   /* &quot;static&quot; means donaqt export the symbol... */
+myfunc2(void)
+{
+    myfunc3();
+}
+
+void
+myfunc(int ncalls)
+{
+    if (ncalls &gt; 1)
+        myfunc(ncalls - 1);
+    else
+        myfunc2();
+}
+
+int
+main(int argc, char *argv[])
+{
+    if (argc != 2) {
+        fprintf(stderr, &quot;%s num-calls\n&quot;, argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    myfunc(atoi(argv[1]));
+    exit(EXIT_SUCCESS);
+}
+</PRE>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?1+gcc">gcc</A></B>(1),
+
+<B><A HREF="/man/index.html?1+ld">ld</A></B>(1),
+
+<B><A HREF="/man/index.html?3+dlopen">dlopen</A></B>(3),
+
+<B><A HREF="/man/index.html?3+malloc">malloc</A></B>(3)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">VERSIONS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">EXAMPLE</A><DD>
+<DL>
+<DT><A HREF="#lbAJ">Program source</A><DD>
+</DL>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:12 GMT, December 24, 2015
+</div></body>
+</HTML>

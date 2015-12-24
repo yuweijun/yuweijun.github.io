@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of FETCH</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>FETCH</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+FETCH - retrieve rows from a query using a cursor
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+FETCH [ <I>direction</I> { FROM | IN } ] <I>cursorname</I>
+
+where <I>direction</I> can be empty or one of:
+
+    NEXT
+    PRIOR
+    FIRST
+    LAST
+    ABSOLUTE <I>count</I>
+    RELATIVE <I>count</I>
+    <I>count</I>
+    ALL
+    FORWARD
+    FORWARD <I>count</I>
+    FORWARD ALL
+    BACKWARD
+    BACKWARD <I>count</I>
+    BACKWARD ALL
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>FETCH</B> retrieves rows using a previously-created cursor.
+<P>
+
+A cursor has an associated position, which is used by
+<B>FETCH</B>. The cursor position can be before the first row of the
+query result, on any particular row of the result, or after the last row
+of the result. When created, a cursor is positioned before the first row.
+After fetching some rows, the cursor is positioned on the row most recently
+retrieved. If <B>FETCH</B> runs off the end of the available rows
+then the cursor is left positioned after the last row, or before the first
+row if fetching backward. <B>FETCH ALL</B> or <B>FETCH BACKWARD
+ALL</B> will always leave the cursor positioned after the last row or before
+the first row.
+<P>
+
+The forms NEXT, PRIOR, FIRST,
+LAST, ABSOLUTE, RELATIVE fetch
+a single row after moving the cursor appropriately. If there is no
+such row, an empty result is returned, and the cursor is left
+positioned before the first row or after the last row as
+appropriate.
+<P>
+
+The forms using FORWARD and BACKWARD
+retrieve the indicated number of rows moving in the forward or
+backward direction, leaving the cursor positioned on the
+last-returned row (or after/before all rows, if the <I>count</I> exceeds the number of rows
+available).
+<P>
+
+RELATIVE 0, FORWARD 0, and
+BACKWARD 0 all request fetching the current row without
+moving the cursor, that is, re-fetching the most recently fetched
+row. This will succeed unless the cursor is positioned before the
+first row or after the last row; in which case, no row is returned.
+<P>
+<DL COMPACT><DT><DD>
+<B>Note:</B>
+
+This page describes usage of cursors at the SQL command level.
+If you are trying to use cursors inside a <B>PL/pgSQL</B>
+function, the rules are different ---
+see in the documentation.
+</DL>
+
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B></B><I>direction</I><B></B><DD>
+<I>direction</I> defines
+the fetch direction and number of rows to fetch. It can be one
+of the following:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>NEXT</B><DD>
+Fetch the next row. This is the default if <I>direction</I> is omitted.
+<DT><B>PRIOR</B><DD>
+Fetch the prior row.
+<DT><B>FIRST</B><DD>
+Fetch the first row of the query (same as ABSOLUTE 1).
+<DT><B>LAST</B><DD>
+Fetch the last row of the query (same as ABSOLUTE -1).
+<DT><B>ABSOLUTE </B><I>count</I><B></B><DD>
+Fetch the <I>count</I>'th row of the query,
+or the abs(<I>count</I>)'th row from
+the end if <I>count</I> is negative. Position
+before first row or after last row if <I>count</I> is out of range; in
+particular, ABSOLUTE 0 positions before
+the first row.
+<DT><B>RELATIVE </B><I>count</I><B></B><DD>
+Fetch the <I>count</I>'th succeeding row, or
+the abs(<I>count</I>)'th prior
+row if <I>count</I> is
+negative. RELATIVE 0 re-fetches the
+current row, if any.
+<DT><B></B><I>count</I><B></B><DD>
+Fetch the next <I>count</I> rows (same as
+FORWARD <I>count</I>).
+<DT><B>ALL</B><DD>
+Fetch all remaining rows (same as FORWARD ALL).
+<DT><B>FORWARD</B><DD>
+Fetch the next row (same as NEXT).
+<DT><B>FORWARD </B><I>count</I><B></B><DD>
+Fetch the next <I>count</I> rows.
+FORWARD 0 re-fetches the current row.
+<DT><B>FORWARD ALL</B><DD>
+Fetch all remaining rows.
+<DT><B>BACKWARD</B><DD>
+Fetch the prior row (same as PRIOR).
+<DT><B>BACKWARD </B><I>count</I><B></B><DD>
+Fetch the prior <I>count</I> rows (scanning
+backwards). BACKWARD 0 re-fetches the
+current row.
+<DT><B>BACKWARD ALL</B><DD>
+Fetch all prior rows (scanning backwards).
+</DL>
+</DL>
+
+</DL>
+<P>
+
+<DL COMPACT>
+<DT><B></B><I>count</I><B></B><DD>
+<I>count</I> is a
+possibly-signed integer constant, determining the location or
+number of rows to fetch. For FORWARD and
+BACKWARD cases, specifying a negative <I>count</I> is equivalent to changing
+the sense of FORWARD and BACKWARD.
+<DT><B></B><I>cursorname</I><B></B><DD>
+An open cursor's name.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>OUTPUTS</H2>
+
+<P>
+
+On successful completion, a <B>FETCH</B> command returns a command
+tag of the form
+<P>
+<PRE>
+FETCH <I>count</I>
+
+</PRE>
+
+The <I>count</I> is the number
+of rows fetched (possibly zero). Note that in
+<B>psql</B>, the command tag will not actually be
+displayed, since <B>psql</B> displays the fetched
+rows instead.
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+The cursor should be declared with the SCROLL
+option if one intends to use any variants of <B>FETCH</B>
+other than <B>FETCH NEXT</B> or <B>FETCH FORWARD</B> with
+a positive count. For simple queries
+PostgreSQL will allow backwards fetch
+from cursors not declared with SCROLL, but this
+behavior is best not relied on. If the cursor is declared with
+NO SCROLL, no backward fetches are allowed.
+<P>
+
+ABSOLUTE fetches are not any faster than
+navigating to the desired row with a relative move: the underlying
+implementation must traverse all the intermediate rows anyway.
+Negative absolute fetches are even worse: the query must be read to
+the end to find the last row, and then traversed backward from
+there. However, rewinding to the start of the query (as with
+FETCH ABSOLUTE 0) is fast.
+<P>
+
+DECLARE [<B><A HREF="/man/index.html?7+declare">declare</A></B>(7)]
+is used to define a cursor. Use
+MOVE [<B><A HREF="/man/index.html?7+move">move</A></B>(7)]
+to change cursor position without retrieving data.
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+The following example traverses a table using a cursor:
+<P>
+<PRE>
+BEGIN WORK;
+
+-- Set up a cursor:
+DECLARE liahona SCROLL CURSOR FOR SELECT * FROM films;
+
+-- Fetch the first 5 rows in the cursor liahona:
+FETCH FORWARD 5 FROM liahona;
+
+ code  |          title          | did | date_prod  |   kind   |  len
+-------+-------------------------+-----+------------+----------+-------
+ BL101 | The Third Man           | 101 | 1949-12-23 | Drama    | 01:44
+ BL102 | The African Queen       | 101 | 1951-08-11 | Romantic | 01:43
+ JL201 | Une Femme est une Femme | 102 | 1961-03-12 | Romantic | 01:25
+ P_301 | Vertigo                 | 103 | 1958-11-14 | Action   | 02:08
+ P_302 | Becket                  | 103 | 1964-02-03 | Drama    | 02:28
+
+-- Fetch the previous row:
+FETCH PRIOR FROM liahona;
+
+ code  |  title  | did | date_prod  |  kind  |  len
+-------+---------+-----+------------+--------+-------
+ P_301 | Vertigo | 103 | 1958-11-14 | Action | 02:08
+
+-- Close the cursor and end the transaction:
+CLOSE liahona;
+COMMIT WORK;
+
+</PRE>
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+The SQL standard defines <B>FETCH</B> for use in
+embedded SQL only. The variant of <B>FETCH</B>
+described here returns the data as if it were a
+<B>SELECT</B> result rather than placing it in host
+variables. Other than this point, <B>FETCH</B> is
+fully upward-compatible with the SQL standard.
+<P>
+
+The <B>FETCH</B> forms involving
+FORWARD and BACKWARD, as well
+as the forms FETCH <I>count</I> and FETCH
+ALL, in which FORWARD is implicit, are
+PostgreSQL extensions.
+<P>
+
+The SQL standard allows only FROM preceding the cursor
+name; the option to use IN is an extension.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+CLOSE [<B><A HREF="/man/index.html?7+close">close</A></B>(7)], DECLARE [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+declare">declare</A></B>(7)], MOVE [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+move">move</A></B>(7)]
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">OUTPUTS</A><DD>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">EXAMPLES</A><DD>
+<DT><A HREF="#lbAI">COMPATIBILITY</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:15 GMT, December 24, 2015
+</div></body>
+</HTML>

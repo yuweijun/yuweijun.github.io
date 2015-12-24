@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of REGEXP_TABLE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>REGEXP_TABLE</H1>
+Section: File Formats (5)<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+regexp_table
+-
+format of Postfix regular expression tables
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+
+<PRE>
+<B>postmap -q &quot;</B><I>string</I><B>&quot; regexp:/etc/postfix/</B><I>filename</I>
+
+<B>postmap -q - regexp:/etc/postfix/</B><I>filename</I> &lt;<I>inputfile</I>
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+The Postfix mail system uses optional tables for address
+rewriting, mail routing, or access control. These tables
+are usually in <B>dbm</B> or <B>db</B> format.
+<P>
+Alternatively, lookup tables can be specified in POSIX regular
+expression form. In this case, each input is compared against a
+list of patterns. When a match is found, the corresponding
+result is returned and the search is terminated.
+<P>
+To find out what types of lookup tables your Postfix system
+supports use the &quot;<B>postconf -m</B>&quot; command.
+<P>
+To test lookup tables, use the &quot;<B>postmap -q</B>&quot; command
+as described in the SYNOPSIS above.
+<A NAME="lbAE">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+
+<PRE>
+</PRE>
+
+With Postfix version 2.2 and earlier specify &quot;<B>postmap
+-fq</B>&quot; to query a table that contains case sensitive
+patterns. Patterns are case insensitive by default.
+<A NAME="lbAF">&nbsp;</A>
+<H2>TABLE FORMAT</H2>
+
+
+<PRE>
+</PRE>
+
+The general form of a Postfix regular expression table is:
+<DL COMPACT>
+<DT><B>/</B><I>pattern</I><B>/</B><I>flags result</I><DD>
+When <I>pattern</I> matches the input string,
+use the corresponding <I>result</I> value.
+<DT><B>!/</B><I>pattern</I><B>/</B><I>flags result</I><DD>
+When <I>pattern</I> does <B>not</B> match the input string,
+use the corresponding <I>result</I> value.
+<DT><B>if /</B><I>pattern</I><B>/</B><I>flags</I><DD>
+<DT><B>endif</B><DD>
+Match the input string against the patterns between <B>if</B>
+and <B>endif</B>, if and only if that same input string also
+matches <I>pattern</I>. The <B>if</B>..<B>endif</B> can nest.
+<P>
+Note: do not prepend whitespace to patterns inside
+<B>if</B>..<B>endif</B>.
+<P>
+This feature is available in Postfix 2.1 and later.
+<DT><B>if !/</B><I>pattern</I><B>/</B><I>flags</I><DD>
+<DT><B>endif</B><DD>
+Match the input string against the patterns between <B>if</B>
+and <B>endif</B>, if and only if that same input string does
+<B>not</B> match <I>pattern</I>. The <B>if</B>..<B>endif</B> can nest.
+<P>
+Note: do not prepend whitespace to patterns inside
+<B>if</B>..<B>endif</B>.
+<P>
+This feature is available in Postfix 2.1 and later.
+<DT>blank lines and comments<DD>
+Empty lines and whitespace-only lines are ignored, as
+are lines whose first non-whitespace character is a `#'.
+<DT>multi-line text<DD>
+A logical line starts with non-whitespace text. A line that
+starts with whitespace continues a logical line.
+</DL>
+<P>
+
+Each pattern is a POSIX regular expression enclosed by a pair of
+delimiters. The regular expression syntax is documented in
+<B><A HREF="/man/index.html?7+re_format">re_format</A></B>(7) with 4.4BSD, in <B><A HREF="http://localhost/cgi-bin/man/man2html?5+regex">regex</A></B>(5) with Solaris, and in
+<B><A HREF="/man/index.html?7+regex">regex</A></B>(7) with Linux. Other systems may use other document names.
+<P>
+The expression delimiter can be any character, except whitespace
+or characters that have special meaning (traditionally the forward
+slash is used). The regular expression can contain whitespace.
+<P>
+By default, matching is case-insensitive, and newlines are not
+treated as special characters. The behavior is controlled by flags,
+which are toggled by appending one or more of the following
+characters after the pattern:
+<DL COMPACT>
+<DT><B>i</B> (default: on)<DD>
+Toggles the case sensitivity flag. By default, matching is case
+insensitive.
+<DT><B>m</B> (default: off)<DD>
+Toggle the multi-line mode flag. When this flag is on, the <B>^</B>
+and <B>$</B> metacharacters match immediately after and immediately
+before a newline character, respectively, in addition to
+matching at the start and end of the input string.
+<DT><B>x</B> (default: on)<DD>
+Toggles the extended expression syntax flag. By default, support
+for extended expression syntax is enabled.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>TABLE SEARCH ORDER</H2>
+
+
+<PRE>
+</PRE>
+
+Patterns are applied in the order as specified in the table, until a
+pattern is found that matches the input string.
+<P>
+Each pattern is applied to the entire input string.
+Depending on the application, that string is an entire client
+hostname, an entire client IP address, or an entire mail address.
+Thus, no parent domain or parent network search is done, and
+<I><A HREF="mailto:user@domain">user@domain</A></I> mail addresses are not broken up into their
+<I>user</I> and <I>domain</I> constituent parts, nor is <I>user+foo</I>
+broken up into <I>user</I> and <I>foo</I>.
+<A NAME="lbAH">&nbsp;</A>
+<H2>TEXT SUBSTITUTION</H2>
+
+
+<PRE>
+</PRE>
+
+Substitution of substrings from the matched expression into the result
+string is possible using $1, $2, etc.;
+specify $$ to produce a $ character as output.
+The macros in the result string
+may need to be written as ${n} or $(n) if they aren't followed
+by whitespace.
+<P>
+Note: since negated patterns (those preceded by <B>!</B>) return a
+result when the expression does not match, substitutions are not
+available for negated patterns.
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLE SMTPD ACCESS MAP</H2>
+
+
+<PRE>
+# Disallow sender-specified routing. This is a must if you relay mail
+# for other domains.
+/[%!@].*[%!@]/       550 Sender-specified routing rejected
+
+# Postmaster is OK, that way they can talk to us about how to fix
+# their problem.
+/^postmaster@/       OK
+
+# Protect your outgoing majordomo exploders
+if !/^owner-/
+/^(.*)-outgoing@(.*)$/   550 Use ${1}@${2} instead
+endif
+</PRE><A NAME="lbAJ">&nbsp;</A>
+<H2>EXAMPLE HEADER FILTER MAP</H2>
+
+
+<PRE>
+# These were once common in junk mail.
+/^Subject: make money fast/     REJECT
+/^To: <A HREF="mailto:friend@public">friend@public</A>\.com/       REJECT
+</PRE><A NAME="lbAK">&nbsp;</A>
+<H2>EXAMPLE BODY FILTER MAP</H2>
+
+
+<PRE>
+# First skip over base 64 encoded text to save CPU cycles.
+~^[[:alnum:]+/]{60,}$~          OK
+
+# Put your own body patterns here.
+</PRE><A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/man/index.html?1+postmap">postmap</A>(1), Postfix lookup table manager
+<A HREF="/man/index.html?5+pcre_table">pcre_table</A>(5), format of PCRE tables
+<A HREF="/man/index.html?5+cidr_table">cidr_table</A>(5), format of CIDR tables
+</PRE><A NAME="lbAM">&nbsp;</A>
+<H2>README FILES</H2>
+
+
+<PRE>
+</PRE>
+
+Use &quot;<B>postconf readme_directory</B>&quot; or
+&quot;<B>postconf html_directory</B>&quot; to locate this information.
+
+<PRE>
+DATABASE_README, Postfix lookup table overview
+</PRE><A NAME="lbAN">&nbsp;</A>
+<H2>AUTHOR(S)</H2>
+
+
+<PRE>
+The regexp table lookup code was originally written by:
+LaMont Jones
+<A HREF="mailto:lamont@hp.com">lamont@hp.com</A>
+
+That code was based on the PCRE dictionary contributed by:
+Andrew McNamara
+<A HREF="mailto:andrewm@connect.com.au">andrewm@connect.com.au</A>
+connect.com.au Pty. Ltd.
+Level 3, 213 Miller St
+North Sydney, NSW, Australia
+
+Adopted and adapted by:
+Wietse Venema
+IBM T.J. Watson Research
+P.O. Box 704
+Yorktown Heights, NY 10598, USA
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">COMPATIBILITY</A><DD>
+<DT><A HREF="#lbAF">TABLE FORMAT</A><DD>
+<DT><A HREF="#lbAG">TABLE SEARCH ORDER</A><DD>
+<DT><A HREF="#lbAH">TEXT SUBSTITUTION</A><DD>
+<DT><A HREF="#lbAI">EXAMPLE SMTPD ACCESS MAP</A><DD>
+<DT><A HREF="#lbAJ">EXAMPLE HEADER FILTER MAP</A><DD>
+<DT><A HREF="#lbAK">EXAMPLE BODY FILTER MAP</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+<DT><A HREF="#lbAM">README FILES</A><DD>
+<DT><A HREF="#lbAN">AUTHOR(S)</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

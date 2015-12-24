@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of FMEMOPEN</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>FMEMOPEN</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2009-04-21<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+fmemopen, open_memstream, open_wmemstream -  open memory as stream
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#define _GNU_SOURCE</B>
+<B>#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;</B>
+
+<B>FILE *fmemopen(void *buf</B><I>, size_t size</I><B>, const char *</B><I>mode</I><B>);</B>
+
+<B>FILE *open_memstream(char **</B><I>ptr</I><B>, size_t *</B><I>sizeloc</I><B>);</B>
+
+<B>#define _GNU_SOURCE</B>
+<B>#include &lt;<A HREF="file:/usr/include/wchar.h">wchar.h</A>&gt;</B>
+
+<B>FILE *open_wmemstream(wchar_t **</B><I>ptr</I><B>, size_t *</B><I>sizeloc</I><B>);</B>
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>fmemopen</B>()
+
+function opens a stream that permits the access specified by
+<I>mode</I>.
+
+The stream allows I/O to be performed on the string or memory buffer
+pointed to by
+<I>buf</I>.
+
+This buffer must be at least
+<I>size</I>
+
+bytes long.
+<P>
+
+The argument
+<I>mode</I>
+
+is the same as for
+<B><A HREF="/man/index.html?3+fopen">fopen</A></B>(3).
+
+If
+<I>mode</I>
+
+specifies an append mode, then the initial file position is set to
+the location of the first null byte (aq\0aq) in the buffer;
+otherwise the initial file position is set to the start of the buffer.
+Since glibc 2.9,
+the letter 'b' may be specified as the second character in
+<I>mode</I>.
+
+This provides &quot;binary&quot; mode:
+writes don't implicitly add a terminating null byte, and
+<B><A HREF="/man/index.html?3+fseek">fseek</A></B>(3)
+
+<B>SEEK_END</B>
+
+is relative to the end of the buffer (i.e., the value specified by the
+<I>size</I>
+
+argument), rather than the current string length.
+<P>
+
+When a stream that has been opened for writing is flushed
+(<B><A HREF="/man/index.html?3+fflush">fflush</A></B>(3))
+
+or closed
+(<B><A HREF="/man/index.html?3+fclose">fclose</A></B>(3)),
+
+a null byte is written at the end of the buffer if there is space.
+The caller should ensure that an extra byte is available in the
+buffer
+(and that
+<I>size</I>
+
+counts that byte)
+to allow for this.
+<P>
+Attempts to write more than
+<I>size</I>
+
+bytes to the buffer result in an error.
+(By default, such errors will only be visible when the
+<I>stdio</I>
+
+buffer is flushed.
+Disabling buffering with
+<I>setbuf(fp,&nbsp;NULL)</I>
+
+may be useful to detect errors at the time of an output operation.
+Alternatively, the caller can explicitly set
+<I>buf</I>
+
+as the stdio stream buffer, at the same time informing stdio
+of the buffer's size, using
+<I>setbuffer(fp, buf, size)</I>.)
+
+
+
+
+<P>
+
+In a stream opened for reading,
+null bytes (aq\0aq) in the buffer do not cause read
+operations to return an end-of-file indication.
+A read from the buffer will only indicate end-of-file
+when the file pointer advances
+<I>size</I>
+
+bytes past the start of the buffer.
+<P>
+
+If
+<I>buf</I>
+
+is specified as NULL, then
+<B>fmemopen</B>()
+
+dynamically allocates a buffer
+<I>size</I>
+
+bytes long.
+This is useful for an application that wants to write data to
+a temporary buffer and then read it back again.
+The buffer is automatically freed when the stream is closed.
+Note that the caller has no way to obtain a pointer to the
+temporary buffer allocated by this call (but see
+<B>open_memstream</B>()
+
+below).
+<P>
+The
+<B>open_memstream</B>()
+
+function opens a stream for writing to a buffer.
+The buffer
+is dynamically allocated (as with
+<B><A HREF="/man/index.html?3+malloc">malloc</A></B>(3)),
+
+and automatically grows as required.
+After closing the stream, the caller should
+<B><A HREF="/man/index.html?3+free">free</A></B>(3)
+
+this buffer.
+<P>
+When the stream is closed
+(<B><A HREF="/man/index.html?3+fclose">fclose</A></B>(3))
+
+or flushed
+(<B><A HREF="/man/index.html?3+fflush">fflush</A></B>(3)),
+
+the locations pointed to by
+<I>ptr</I>
+
+and
+<I>sizeloc</I>
+
+are updated to contain, respectively, a pointer to the buffer and the
+current size of the buffer.
+These values remain valid only as long as the caller
+performs no further output on the stream.
+If further output is performed, then the stream
+must again be flushed before trying to access these variables.
+<P>
+A null byte is maintained at the end of the buffer.
+This byte is
+<I>not</I>
+
+included in the size value stored at
+<I>sizeloc</I>.
+
+<P>
+The stream's file position can be changed with
+<B><A HREF="/man/index.html?3+fseek">fseek</A></B>(3)
+
+or
+<B><A HREF="/man/index.html?3+fseeko">fseeko</A></B>(3).
+
+Moving the file position past the end
+of the data already written fills the intervening space with
+zeros.
+<P>
+The
+<B>open_wmemstream</B>()
+
+is similar to
+<B>open_memstream</B>(),
+
+but operates on wide characters instead of bytes.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+Upon successful completion
+<B>fmemopen</B>(),
+
+<B>open_memstream</B>()
+
+and
+<B>open_wmemstream</B>()
+
+return a
+<I>FILE</I>
+
+pointer.
+Otherwise, NULL is returned and
+<I>errno</I>
+
+is set to indicate the error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+<B>fmemopen</B>()
+
+and
+<B>open_memstream</B>()
+
+were already available in glibc 1.0.x.
+<B>open_wmemstream</B>()
+
+is available since glibc 2.4.
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+POSIX.1-2008.
+These functions are not specified in POSIX.1-2001,
+and are not widely available on other systems.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+There is no file descriptor associated with the file stream
+returned by these functions
+(i.e.,
+<B><A HREF="/man/index.html?3+fileno">fileno</A></B>(3)
+
+will return an error if called on the returned stream).
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+In glibc before version 2.7, seeking past the end of a stream created by
+<B>open_memstream</B>()
+
+does not enlarge the buffer; instead the
+<B>fseek</B>()
+
+call fails, returning -1.
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+The program below uses
+<B>fmemopen</B>()
+
+to open an input buffer, and
+<B>open_memstream</B>()
+
+to open a dynamically sized output buffer.
+The program scans its input string (taken from the program's
+first command-line argument) reading integers,
+and writes the squares of these integers to the output buffer.
+An example of the output produced by this program is the following:
+
+<PRE>
+
+$<B> ./a.out aq1 23 43aq</B>
+size=11; ptr=1 529 1849
+</PRE>
+
+
+<A NAME="lbAK">&nbsp;</A>
+<H3>Program source</H3>
+
+
+<PRE>
+#define _GNU_SOURCE
+#include &lt;<A HREF="file:/usr/include/assert.h">assert.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/string.h">string.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+
+#define handle_error(msg) \
+    do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
+int
+main(int argc, char *argv[])
+{
+    FILE *out, *in;
+    int v, s;
+    size_t size;
+    char *ptr;
+
+    assert(argc == 2);
+
+    in = fmemopen(argv[1], strlen(argv[1]), &quot;r&quot;);
+    if (in == NULL)
+        handle_error(&quot;fmemopen&quot;);
+
+    out = open_memstream(&amp;ptr, &amp;size);
+    if (out == NULL)
+        handle_error(&quot;fmemopen&quot;);
+
+    for (;;) {
+        s = fscanf(in, &quot;%d&quot;, &amp;v);
+        if (s &lt;= 0)
+            break;
+
+        s = fprintf(out, &quot;%d &quot;, v * v);
+        if (s == -1)
+            handle_error(&quot;fprintf&quot;);
+    }
+    fclose(in);
+    fclose(out);
+    printf(&quot;size=%ld; ptr=%s\n&quot;, (long) size, ptr);
+    free(ptr);
+    exit(EXIT_SUCCESS);
+}
+</PRE>
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?3+fopen">fopen</A></B>(3),
+
+<B><A HREF="/man/index.html?3+fopencookie">fopencookie</A></B>(3),
+
+<B><A HREF="/man/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">VERSIONS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">EXAMPLE</A><DD>
+<DL>
+<DT><A HREF="#lbAK">Program source</A><DD>
+</DL>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+<DT><A HREF="#lbAM">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:27 GMT, December 24, 2015
+</div></body>
+</HTML>

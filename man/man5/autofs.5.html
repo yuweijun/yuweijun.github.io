@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of AUTOFS</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>AUTOFS</H1>
+Section: File Formats (5)<BR>Updated: 6 Apr 1998<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+autofs - Format of the automounter maps
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The automounter maps are FILE, NIS, NISPLUS or LDAP maps referred to by
+the master map of the automounter (see
+<B><A HREF="/man/index.html?5+auto.master">auto.master</A></B>(5)).
+
+These maps describe how file systems below the mount point of the map
+(given in the master map) are to be mounted.  This page describes the
+<B>sun</B>
+
+map format; if another map format is specified (e.g. <B>hesiod</B>),
+this documentation does not apply.
+<P>
+Indirect maps can be changed on the fly and the automouter will recognize
+those changes on the next operation it performs on that map. Direct maps
+require a HUP signal be sent to the daemon to refresh their contents as does
+the master map.
+<A NAME="lbAD">&nbsp;</A>
+<H2>FORMAT</H2>
+
+This is a description of the text file format.  Other methods of specifying
+these files may exist.  All empty lines or lines beginning with # are
+ignored. The basic format of one line in such maps is:
+
+<B>key [</B><I>-options</I><B>] location</B>
+
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H3>key</H3>
+
+For indirect mounts this is the part of the path name between the mount point
+and the path into the filesystem when it is mounted. Usually you can think about the
+key as a sub-directory name below the autofs managed mount point.
+<P>
+For direct mounts this is the full path of each mount point. This map is always
+associated with the /- mount point in the master map. 
+<P>
+<A NAME="lbAF">&nbsp;</A>
+<H3>options</H3>
+
+Zero or more options may be given.  Options can also be given in the 
+<B>auto.master</B>
+
+file in which case both values are cumulative (this is a difference
+from SunOS).  The options are a list of comma separated options as
+customary for the
+<B><A HREF="/man/index.html?8+mount">mount</A></B>(8)
+
+command. There are two special options
+<I>-fstype=</I>
+
+used to specify a filesystem type if the filesystem is not of the default
+NFS type.  This option is processed by the automounter and not by the mount
+command.
+<I>-strict</I>
+
+is used to treat errors when mounting file systems as fatal. This is important when
+multiple file systems should be mounted (`multi-mounts'). If this option
+is given, no file system is mounted at all if at least one file system
+can't be mounted.
+<I>-use-weight-only</I>
+
+is used to make the weight the sole factor in selecting a server when multiple
+servers are present in a map entry.
+and
+<I>-no-use-weight-only</I>
+
+can be used to negate the option if it is present in the master map entry
+for the map but is not wanted for the given mount.
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H3>location</H3>
+
+The location specifies from where the file system is to be mounted.  In the
+most cases this will be an NFS volume and the usual notation
+<I>host:pathname</I>
+
+is used to indicate the remote filesystem and path to be mounted.  If
+the filesystem to be mounted begins with a / (such as local
+<I>/dev</I>
+
+entries or smbfs shares) a : needs to be prefixed (e.g. 
+<I>:/dev/sda1</I>).
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+Indirect map:
+<P>
+<DL COMPACT><DT><DD>
+
+
+<PRE>
+kernel    -ro,soft,intr       <A HREF="ftp://ftp.kernel.org">ftp.kernel.org</A>:/pub/linux
+boot      -fstype=ext2        :/dev/hda1
+windoze   -fstype=smbfs       ://windoze/c
+removable -fstype=ext2        :/dev/hdd
+cd        -fstype=iso9660,ro  :/dev/hdc
+floppy    -fstype=auto        :/dev/fd0
+server    -rw,hard,intr       / -ro myserver.me.org:/ \
+                              /usr myserver.me.org:/usr \
+                              /home myserver.me.org:/home
+</PRE>
+
+</DL>
+
+<P>
+In the first line we have a NFS remote mount of the kernel directory on
+<I><A HREF="ftp://ftp.kernel.org">ftp.kernel.org</A></I>.
+
+This is mounted read-only.  The second line mounts an ext2 volume from a
+local ide drive.  The third makes a share exported from a Windows
+machine available for automounting.  The rest should be fairly
+self-explanatory. The last entry (the last three lines) is an example
+of a multi-map (see below).
+<P>
+If you use the automounter for a filesystem without access permissions
+(like <B>vfat</B>), users usually can't write on such a filesystem
+because it is mounted as user <B>root</B>.
+You can solve this problem by passing the option <I>gid=&lt;gid&gt;</I>,
+e.g. <I>gid=floppy</I>. The filesystem is then mounted as group
+<B>floppy</B> instead of <B>root</B>. Then you can add the users
+to this group, and they can write to the filesystem. Here's an
+example entry for an autofs map:
+<P>
+<DL COMPACT><DT><DD>
+
+
+<PRE>
+floppy-vfat  -fstype=vfat,sync,gid=floppy,umask=002  :/dev/fd0
+</PRE>
+
+</DL>
+
+<P>
+Direct map:
+<P>
+<DL COMPACT><DT><DD>
+
+
+<PRE>
+/nfs/apps/mozilla             bogus:/usr/local/moxill
+/nfs/data/budgets             tiger:/usr/local/budgets
+/tst/sbin                     bogus:/usr/sbin
+</PRE>
+
+</DL>
+
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>FEATURES</H2>
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Map Key Substitution</H3>
+
+An &amp; character in the
+<B>location</B>
+
+is expanded to the value of the 
+<B>key</B>
+
+field that matched the line (which probably only makes sense together with
+a wildcard key).
+<A NAME="lbAK">&nbsp;</A>
+<H3>Wildcard Key</H3>
+
+A map key of * denotes a wild-card entry. This entry is consulted
+if the specified key does not exist in the map.  A typical wild-card
+entry looks like this:
+<P>
+<DL COMPACT><DT><DD>
+
+
+<PRE>
+*         server:/export/home/&amp;
+</PRE>
+
+</DL>
+
+<P>
+The special character '&amp;' will be replaced by the provided key.  So,
+in the example above, a lookup for the key 'foo' would yield a mount
+of server:/export/home/foo.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Variable Substitution</H3>
+
+The following special variables will be substituted in the key and location
+fields of an automounter map if prefixed with $ as customary from shell
+scripts (Curly braces can be used to separate the field name):
+<P>
+<DL COMPACT><DT><DD>
+
+
+<PRE>
+ARCH           Architecture (uname -m)
+CPU            Processor Type
+HOST           Hostname (uname -n)
+OSNAME         Operating System (uname -s)
+OSREL          Release of OS (uname -r)
+OSVERS         Version of OS (uname -v)
+</PRE>
+
+</DL>
+
+<P>
+autofs provides additional variables that are set based on the
+user requesting the mount:
+<P>
+<DL COMPACT><DT><DD>
+
+
+<PRE>
+USER           The user login name
+UID            The user login ID
+GROUP          The user group name
+GID            The user group ID
+HOME           The user home directory
+HOST           Hostname (uname -n)
+</PRE>
+
+</DL>
+
+<P>
+Additional entries can be defined with the -Dvariable=Value map-option to
+<B><A HREF="/man/index.html?8+automount">automount</A></B>(8).
+
+<A NAME="lbAM">&nbsp;</A>
+<H3>Executable Maps</H3>
+
+A map can be marked as executable. A
+<B>program</B>
+
+map will be called with the key as an argument.  It may
+return no lines of output if there's an error, or one or more lines
+containing a map entry (with \ quoting line breaks). The map entry
+corresponds to what would normally follow a map key.
+
+An executable map can return an error code to indicate the failure in addition
+to no output at all.  All output sent to stderr is logged into the system
+logs.
+<A NAME="lbAN">&nbsp;</A>
+<H3>Multiple Mounts</H3>
+
+A
+<B>multi-mount map</B>
+
+can be used to name multiple filesystems to mount.  It takes the form:
+<P>
+<DL COMPACT><DT><DD>
+
+
+<PRE>
+<B>key [</B><I>-options</I><B>] [mount-point [</B><I>-options</I><B>] location...]...</B>
+</PRE>
+
+</DL>
+
+<P>
+
+This may extend over multiple lines, quoting the line-breaks with `\'.
+If present, the per-mountpoint mount-options are appended to the
+default mount-options.
+<A NAME="lbAO">&nbsp;</A>
+<H3>Replicated Server</H3>
+
+<P>
+<DL COMPACT><DT><DD>
+
+
+<PRE>
+Multiple replicated hosts, same path:
+&lt;path&gt; host1,host2,hostn:/path/path
+
+Multiple hosts, some with same path, some with another
+&lt;path&gt; host1,host2:/blah host3:/some/other/path
+
+Multiple replicated hosts, different (potentially) paths:
+&lt;path&gt; host1:/path/pathA host2:/path/pathB
+
+Mutliple weighted, replicated hosts same path:
+&lt;path&gt; <A HREF="/man/index.html?5+host1">host1</A>(5),<A HREF="http://localhost/cgi-bin/man/man2html?6+host2">host2</A>(6),<A HREF="http://localhost/cgi-bin/man/man2html?1+host3">host3</A>(1):/path/path
+
+Multiple weighted, replicated hosts different (potentially) paths:
+&lt;path&gt; <A HREF="/man/index.html?3+host1">host1</A>(3):/path/pathA <A HREF="http://localhost/cgi-bin/man/man2html?5+host2">host2</A>(5):/path/pathB
+
+Anything else is questionable and unsupported, but these variations will also work:
+&lt;path&gt; <A HREF="/man/index.html?3+host1">host1</A>(3),host:/blah
+</PRE>
+
+</DL>
+
+<P>
+<A NAME="lbAP">&nbsp;</A>
+<H2>UNSUPPORTED</H2>
+
+This version of the automounter supports direct maps stored in FILE, NIS, NISPLUS
+and LDAP only.
+<A NAME="lbAQ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?8+automount">automount</A></B>(8),
+
+<B><A HREF="/man/index.html?5+auto.master">auto.master</A></B>(5),
+
+<B><A HREF="/man/index.html?8+autofs">autofs</A></B>(8),
+
+<B><A HREF="/man/index.html?8+mount">mount</A></B>(8).
+
+<B><A HREF="/man/index.html?5+autofs_ldap_auth.conf">autofs_ldap_auth.conf</A></B>(5)
+
+<A NAME="lbAR">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+This manual page was written by Christoph Lameter &lt;<A HREF="mailto:chris@waterf.org">chris@waterf.org</A>&gt;,
+for the Debian GNU/Linux system.  Edited by H. Peter Avian
+&lt;<A HREF="mailto:hpa@transmeta.com">hpa@transmeta.com</A>&gt;, Jeremy Fitzhardinge &lt;<A HREF="mailto:jeremy@goop.org">jeremy@goop.org</A>&gt; and
+Ian Kent &lt;<A HREF="mailto:raven@themaw.net">raven@themaw.net</A>&gt;.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">FORMAT</A><DD>
+<DL>
+<DT><A HREF="#lbAE">key</A><DD>
+<DT><A HREF="#lbAF">options</A><DD>
+<DT><A HREF="#lbAG">location</A><DD>
+</DL>
+<DT><A HREF="#lbAH">EXAMPLE</A><DD>
+<DT><A HREF="#lbAI">FEATURES</A><DD>
+<DL>
+<DT><A HREF="#lbAJ">Map Key Substitution</A><DD>
+<DT><A HREF="#lbAK">Wildcard Key</A><DD>
+<DT><A HREF="#lbAL">Variable Substitution</A><DD>
+<DT><A HREF="#lbAM">Executable Maps</A><DD>
+<DT><A HREF="#lbAN">Multiple Mounts</A><DD>
+<DT><A HREF="#lbAO">Replicated Server</A><DD>
+</DL>
+<DT><A HREF="#lbAP">UNSUPPORTED</A><DD>
+<DT><A HREF="#lbAQ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAR">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:59 GMT, December 24, 2015
+</div></body>
+</HTML>

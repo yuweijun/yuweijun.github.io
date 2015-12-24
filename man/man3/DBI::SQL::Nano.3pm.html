@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DBI::SQL::Nano</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DBI::SQL::Nano</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-07-16<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+DBI::SQL::Nano - a very tiny SQL engine
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ BEGIN { $ENV{DBI_SQL_NANO}=1 } # forces use of Nano rather than SQL::Statement
+ use DBI::SQL::Nano;
+ use Data::Dumper;
+ my $stmt = DBI::SQL::Nano::Statement-&gt;new(
+     &quot;SELECT bar,baz FROM foo WHERE qux = 1&quot;
+ ) or die &quot;Couldn't parse&quot;;
+ print Dumper $stmt;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+DBI::SQL::Nano is meant as a *very* minimal <FONT SIZE="-1">SQL</FONT> engine for use in situations where SQL::Statement is not available.  In most situations you are better off installing SQL::Statement although DBI::SQL::Nano may be faster for some very simple tasks.
+<P>
+
+DBI::SQL::Nano, like SQL::Statement is primarily intended to provide a <FONT SIZE="-1">SQL</FONT> engine for use with some pure perl DBDs including <FONT SIZE="-1">DBD::DBM</FONT>, <FONT SIZE="-1">DBD::CSV</FONT>, DBD::AnyData, and DBD::Excel.  It isn't of much use in and of itself.  You can dump out the structure of a parsed <FONT SIZE="-1">SQL</FONT> statement, but that's about it.
+<A NAME="lbAE">&nbsp;</A>
+<H2>USAGE</H2>
+
+<A NAME="ixAAE"></A>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Setting the <FONT SIZE="-1">DBI_SQL_NANO</FONT> flag</H3>
+
+<A NAME="ixAAF"></A>
+By default, when a <FONT SIZE="-1">DBD</FONT> uses DBI::SQL::Nano, the module will look to see if SQL::Statement is installed.  If it is, SQL::Statement objects are used.  If SQL::Statement is not available, DBI::SQL::Nano objects are used.
+<P>
+
+In some cases, you may wish to use DBI::SQL::Nano objects even if SQL::Statement is available.  To force usage of DBI::SQL::Nano objects regardless of the availability of SQL::Statement, set the environment variable <FONT SIZE="-1">DBI_SQL_NANO</FONT> to 1.
+<P>
+
+You can set the environment variable in your shell prior to running your script (with <FONT SIZE="-1">SET</FONT> or <FONT SIZE="-1">EXPORT</FONT> or whatever), or else you can set it in your script by putting this at the top of the script:
+<P>
+
+
+
+<PRE>
+ BEGIN { $ENV{DBI_SQL_NANO} = 1 }
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>Supported <FONT SIZE="-1">SQL</FONT> syntax</H3>
+
+<A NAME="ixAAG"></A>
+
+
+<PRE>
+ Here's a pseudo-BNF.  Square brackets [] indicate optional items;
+ Angle brackets &lt;&gt; indicate items defined elsewhere in the BNF.
+
+  statement ::=
+      DROP TABLE [IF EXISTS] &lt;table_name&gt;
+    | CREATE TABLE &lt;table_name&gt; &lt;col_def_list&gt;
+    | INSERT INTO &lt;table_name&gt; [&lt;insert_col_list&gt;] VALUES &lt;val_list&gt;
+    | DELETE FROM &lt;table_name&gt; [&lt;where_clause&gt;]
+    | UPDATE &lt;table_name&gt; SET &lt;set_clause&gt; &lt;where_clause&gt;
+    | SELECT &lt;select_col_list&gt; FROM &lt;table_name&gt; [&lt;where_clause&gt;]
+                                                 [&lt;order_clause&gt;]
+
+  the optional IF EXISTS clause ::=
+    * similar to MySQL - prevents errors when trying to drop
+      a table that doesn't exist
+
+  identifiers ::=
+    * table and column names should be valid SQL identifiers
+    * especially avoid using spaces and commas in identifiers
+    * note: there is no error checking for invalid names, some
+      will be accepted, others will cause parse failures
+
+  table_name ::=
+    * only one table (no multiple table operations)
+    * see identifier for valid table names
+
+  col_def_list ::=
+    * a parens delimited, comma-separated list of column names
+    * see identifier for valid column names
+    * column types and column constraints may be included but are ignored
+      e.g. these are all the same:
+        (id,phrase)
+        (id INT, phrase VARCHAR(40))
+        (id INT PRIMARY KEY, phrase VARCHAR(40) NOT NULL)
+    * you are *strongly* advised to put in column types even though
+      they are ignored ... it increases portability
+
+  insert_col_list ::=
+    * a parens delimited, comma-separated list of column names
+    * as in standard SQL, this is optional
+
+  select_col_list ::=
+    * a comma-separated list of column names
+    * or an asterisk denoting all columns
+
+  val_list ::=
+    * a parens delimited, comma-separated list of values which can be:
+       * placeholders (an unquoted question mark)
+       * numbers (unquoted numbers)
+       * column names (unquoted strings)
+       * nulls (unquoted word NULL)
+       * strings (delimited with single quote marks);
+       * note: leading and trailing percent mark (%) and underscore (_)
+         can be used as wildcards in quoted strings for use with
+         the LIKE and CLIKE operators
+       * note: escaped single quote marks within strings are not
+         supported, neither are embedded commas, use placeholders instead
+
+  set_clause ::=
+    * a comma-separated list of column = value pairs
+    * see val_list for acceptable value formats
+
+  where_clause ::=
+    * a single &quot;column/value &lt;op&gt; column/value&quot; predicate, optionally
+      preceded by &quot;NOT&quot;
+    * note: multiple predicates combined with ORs or ANDs are not supported
+    * see val_list for acceptable value formats
+    * op may be one of:
+         &lt; &gt; &gt;= &lt;= = &lt;&gt; LIKE CLIKE IS
+    * CLIKE is a case insensitive LIKE
+
+  order_clause ::= column_name [ASC|DESC]
+    * a single column optional ORDER BY clause is supported
+    * as in standard SQL, if neither ASC (ascending) nor
+      DESC (descending) is specified, ASC becomes the default
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>ACKNOWLEDGEMENTS</H2>
+
+<A NAME="ixAAH"></A>
+Tim Bunce provided the original idea for this module, helped me out of the tangled trap of namespace, and provided help and advice all along the way.  Although I wrote it from the ground up, it is based on Jochen Weidmann's orignal design of SQL::Statement, so much of the credit for the <FONT SIZE="-1">API</FONT> goes to him.
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR AND COPYRIGHT</H2>
+
+<A NAME="ixAAI"></A>
+This module is written and maintained by
+<P>
+
+Jeff Zucker &lt; jzucker <FONT SIZE="-1">AT</FONT> cpan.org &gt;
+<P>
+
+Copyright (C) 2004 by Jeff Zucker, all rights reserved.
+<P>
+
+You may freely distribute and/or modify this module under the terms of either the <FONT SIZE="-1">GNU</FONT> General Public License (<FONT SIZE="-1">GPL</FONT>) or the Artistic License, as specified in
+the Perl <FONT SIZE="-1">README</FONT> file.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">USAGE</A><DD>
+<DL>
+<DT><A HREF="#lbAF">Setting the <FONT SIZE="-1">DBI_SQL_NANO</FONT> flag</A><DD>
+<DT><A HREF="#lbAG">Supported <FONT SIZE="-1">SQL</FONT> syntax</A><DD>
+</DL>
+<DT><A HREF="#lbAH">ACKNOWLEDGEMENTS</A><DD>
+<DT><A HREF="#lbAI">AUTHOR AND COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:22 GMT, December 24, 2015
+</div></body>
+</HTML>

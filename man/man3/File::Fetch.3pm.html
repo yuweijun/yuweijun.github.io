@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of File::Fetch</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>File::Fetch</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+File::Fetch - A generic file fetching mechanism
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use File::Fetch;
+
+    ### build a File::Fetch object ###
+    my $ff = File::Fetch-&gt;new(uri =&gt; '<A HREF="http://some.where.com/dir/a.txt');">http://some.where.com/dir/a.txt');</A>
+
+    ### fetch the uri to cwd() ###
+    my $where = $ff-&gt;fetch() or die $ff-&gt;error;
+
+    ### fetch the uri to /tmp ###
+    my $where = $ff-&gt;fetch( to =&gt; '/tmp' );
+
+    ### parsed bits from the uri ###
+    $ff-&gt;uri;
+    $ff-&gt;scheme;
+    $ff-&gt;host;
+    $ff-&gt;path;
+    $ff-&gt;file;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+File::Fetch is a generic file fetching mechanism.
+<P>
+
+It allows you to fetch any file pointed to by a <TT>&quot;ftp&quot;</TT>, <TT>&quot;http&quot;</TT>,
+<TT>&quot;file&quot;</TT>, or <TT>&quot;rsync&quot;</TT> uri by a number of different means.
+<P>
+
+See the <TT>&quot;HOW IT WORKS&quot;</TT> section further down for details.
+<A NAME="lbAE">&nbsp;</A>
+<H2>ACCESSORS</H2>
+
+<A NAME="ixAAE"></A>
+A <TT>&quot;File::Fetch&quot;</TT> object has the following accessors
+<DL COMPACT>
+<DT>$ff-&gt;uri<DD>
+
+
+<A NAME="ixAAF"></A>
+The uri you passed to the constructor
+<DT>$ff-&gt;scheme<DD>
+
+
+<A NAME="ixAAG"></A>
+The scheme from the uri (like 'file', 'http', etc)
+<DT>$ff-&gt;host<DD>
+
+
+<A NAME="ixAAH"></A>
+The hostname in the uri.  Will be empty if host was originally 
+'localhost' for a '<A HREF="file://'">file://'</A> url.
+<DT>$ff-&gt;vol<DD>
+
+
+<A NAME="ixAAI"></A>
+On operating systems with the concept of a volume the second element
+of a file:// is considered to the be volume specification for the file.
+Thus on Win32 this routine returns the volume, on other operating
+systems this returns nothing.
+
+
+<P>
+
+
+On Windows this value may be empty if the uri is to a network share, in 
+which case the 'share' property will be defined. Additionally, volume 
+specifications that use '|' as ':' will be converted on read to use ':'.
+
+
+<P>
+
+
+On <FONT SIZE="-1">VMS</FONT>, which has a volume concept, this field will be empty because <FONT SIZE="-1">VMS</FONT>
+file specifications are converted to absolute <FONT SIZE="-1">UNIX</FONT> format and the volume
+information is transparently included.
+<DT>$ff-&gt;share<DD>
+
+
+<A NAME="ixAAJ"></A>
+On systems with the concept of a network share (currently only Windows) returns 
+the sharename from a <A HREF="file:////">file:////</A> url.  On other operating systems returns empty.
+<DT>$ff-&gt;path<DD>
+
+
+<A NAME="ixAAK"></A>
+The path from the uri, will be at least a single '/'.
+<DT>$ff-&gt;file<DD>
+
+
+<A NAME="ixAAL"></A>
+The name of the remote file. For the local file name, the
+result of <TT>$ff</TT>-&gt;output_file will be used.
+<DT>$ff-&gt;output_file<DD>
+
+
+<A NAME="ixAAM"></A>
+The name of the output file. This is the same as <TT>$ff</TT>-&gt;file,
+but any query parameters are stripped off. For example:
+
+
+<P>
+
+
+
+
+<PRE>
+    <A HREF="http://example.com/index.html?x=y">http://example.com/index.html?x=y</A>
+
+</PRE>
+
+
+
+
+<P>
+
+
+would make the output file be <TT>&quot;index.html&quot;</TT> rather than 
+<TT>&quot;index.html?x=y&quot;</TT>.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAN"></A>
+<A NAME="lbAG">&nbsp;</A>
+<H3>$ff = File::Fetch-&gt;new( uri =&gt; '<A HREF="http://some.where.com/dir/file.txt'">http://some.where.com/dir/file.txt'</A> );</H3>
+
+
+
+<A NAME="ixAAO"></A>
+Parses the uri and creates a corresponding File::Fetch::Item object,
+that is ready to be <TT>&quot;fetch&quot;</TT>ed and returns it.
+<P>
+
+Returns false on failure.
+<A NAME="lbAH">&nbsp;</A>
+<H3>$where = $ff-&gt;fetch( [to =&gt; /my/output/dir/ | \$scalar] )</H3>
+
+
+
+<A NAME="ixAAP"></A>
+Fetches the file you requested and returns the full path to the file.
+<P>
+
+By default it writes to <TT>&quot;cwd()&quot;</TT>, but you can override that by specifying 
+the <TT>&quot;to&quot;</TT> argument:
+<P>
+
+
+
+<PRE>
+    ### file fetch to /tmp, full path to the file in $where
+    $where = $ff-&gt;fetch( to =&gt; '/tmp' );
+
+    ### file slurped into $scalar, full path to the file in $where
+    ### file is downloaded to a temp directory and cleaned up at exit time
+    $where = $ff-&gt;fetch( to =&gt; \$scalar );
+
+</PRE>
+
+
+<P>
+
+Returns the full path to the downloaded file on success, and false
+on failure.
+<A NAME="lbAI">&nbsp;</A>
+<H3>$ff-&gt;error([<FONT SIZE="-1">BOOL</FONT>])</H3>
+
+
+
+<A NAME="ixAAQ"></A>
+Returns the last encountered error as string.
+Pass it a true value to get the <TT>&quot;Carp::longmess()&quot;</TT> output instead.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>HOW IT WORKS</H2>
+
+<A NAME="ixAAR"></A>
+File::Fetch is able to fetch a variety of uris, by using several
+external programs and modules.
+<P>
+
+Below is a mapping of what utilities will be used in what order
+for what schemes, if available:
+<P>
+
+
+
+<PRE>
+    file    =&gt; LWP, lftp, file
+    http    =&gt; LWP, wget, curl, lftp, lynx, iosock
+    ftp     =&gt; LWP, Net::FTP, wget, curl, lftp, ncftp, ftp
+    rsync   =&gt; rsync
+
+</PRE>
+
+
+<P>
+
+If you'd like to disable the use of one or more of these utilities
+and/or modules, see the <TT>$BLACKLIST</TT> variable further down.
+<P>
+
+If a utility or module isn't available, it will be marked in a cache
+(see the <TT>$METHOD_FAIL</TT> variable further down), so it will not be
+tried again. The <TT>&quot;fetch&quot;</TT> method will only fail when all options are
+exhausted, and it was not able to retrieve the file.
+<P>
+
+<TT>&quot;iosock&quot;</TT> is a very limited IO::Socket::INET based mechanism for
+retrieving <TT>&quot;http&quot;</TT> schemed urls. It doesn't follow redirects for instance.
+<P>
+
+A special note about fetching files from an ftp uri:
+<P>
+
+By default, all ftp connections are done in passive mode. To change
+that, see the <TT>$FTP_PASSIVE</TT> variable further down.
+<P>
+
+Furthermore, ftp uris only support anonymous connections, so no
+named user/password pair can be passed along.
+<P>
+
+<TT>&quot;/bin/ftp&quot;</TT> is blacklisted by default; see the <TT>$BLACKLIST</TT> variable
+further down.
+<A NAME="lbAK">&nbsp;</A>
+<H2>GLOBAL VARIABLES</H2>
+
+<A NAME="ixAAS"></A>
+The behaviour of File::Fetch can be altered by changing the following
+global variables:
+<A NAME="lbAL">&nbsp;</A>
+<H3>$File::Fetch::FROM_EMAIL</H3>
+
+
+
+<A NAME="ixAAT"></A>
+This is the email address that will be sent as your anonymous ftp
+password.
+<P>
+
+Default is <TT>&quot;<A HREF="mailto:File-Fetch@example.com">File-Fetch@example.com</A>&quot;</TT>.
+<A NAME="lbAM">&nbsp;</A>
+<H3>$File::Fetch::USER_AGENT</H3>
+
+
+
+<A NAME="ixAAU"></A>
+This is the useragent as <TT>&quot;LWP&quot;</TT> will report it.
+<P>
+
+Default is <TT>&quot;File::Fetch/$VERSION&quot;</TT>.
+<A NAME="lbAN">&nbsp;</A>
+<H3>$File::Fetch::FTP_PASSIVE</H3>
+
+
+
+<A NAME="ixAAV"></A>
+This variable controls whether the environment variable <TT>&quot;FTP_PASSIVE&quot;</TT>
+and any passive switches to commandline tools will be set to true.
+<P>
+
+Default value is 1.
+<P>
+
+Note: When <TT>$FTP_PASSIVE</TT> is true, <TT>&quot;ncftp&quot;</TT> will not be used to fetch
+files, since passive mode can only be set interactively for this binary
+<A NAME="lbAO">&nbsp;</A>
+<H3>$File::Fetch::TIMEOUT</H3>
+
+
+
+<A NAME="ixAAW"></A>
+When set, controls the network timeout (counted in seconds).
+<P>
+
+Default value is 0.
+<A NAME="lbAP">&nbsp;</A>
+<H3>$File::Fetch::WARN</H3>
+
+
+
+<A NAME="ixAAX"></A>
+This variable controls whether errors encountered internally by
+<TT>&quot;File::Fetch&quot;</TT> should be <TT>&quot;carp&quot;</TT>'d or not.
+<P>
+
+Set to false to silence warnings. Inspect the output of the <TT>&quot;error()&quot;</TT>
+method manually to see what went wrong.
+<P>
+
+Defaults to <TT>&quot;true&quot;</TT>.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>$File::Fetch::DEBUG</H3>
+
+
+
+<A NAME="ixAAY"></A>
+This enables debugging output when calling commandline utilities to
+fetch files.
+This also enables <TT>&quot;Carp::longmess&quot;</TT> errors, instead of the regular
+<TT>&quot;carp&quot;</TT> errors.
+<P>
+
+Good for tracking down why things don't work with your particular
+setup.
+<P>
+
+Default is 0.
+<A NAME="lbAR">&nbsp;</A>
+<H3>$File::Fetch::BLACKLIST</H3>
+
+
+
+<A NAME="ixAAZ"></A>
+This is an array ref holding blacklisted modules/utilities for fetching
+files with.
+<P>
+
+To disallow the use of, for example, <TT>&quot;LWP&quot;</TT> and <TT>&quot;Net::FTP&quot;</TT>, you could
+set <TT>$File::Fetch::BLACKLIST</TT> to:
+<P>
+
+
+
+<PRE>
+    $File::Fetch::BLACKLIST = [qw|lwp netftp|]
+
+</PRE>
+
+
+<P>
+
+The default blacklist is [qw|ftp|], as <TT>&quot;/bin/ftp&quot;</TT> is rather unreliable.
+<P>
+
+See the note on <TT>&quot;MAPPING&quot;</TT> below.
+<A NAME="lbAS">&nbsp;</A>
+<H3>$File::Fetch::METHOD_FAIL</H3>
+
+
+
+<A NAME="ixABA"></A>
+This is a hashref registering what modules/utilities were known to fail
+for fetching files (mostly because they weren't installed).
+<P>
+
+You can reset this cache by assigning an empty hashref to it, or
+individually remove keys.
+<P>
+
+See the note on <TT>&quot;MAPPING&quot;</TT> below.
+<A NAME="lbAT">&nbsp;</A>
+<H2>MAPPING</H2>
+
+<A NAME="ixABB"></A>
+Here's a quick mapping for the utilities/modules, and their names for
+the <TT>$BLACKLIST</TT>, <TT>$METHOD_FAIL</TT> and other internal functions.
+<P>
+
+
+
+<PRE>
+    LWP         =&gt; lwp
+    Net::FTP    =&gt; netftp
+    wget        =&gt; wget
+    lynx        =&gt; lynx
+    ncftp       =&gt; ncftp
+    ftp         =&gt; ftp
+    curl        =&gt; curl
+    rsync       =&gt; rsync
+    lftp        =&gt; lftp
+    IO::Socket  =&gt; iosock
+
+</PRE>
+
+
+<A NAME="lbAU">&nbsp;</A>
+<H2>FREQUENTLY ASKED QUESTIONS</H2>
+
+<A NAME="ixABC"></A>
+<A NAME="lbAV">&nbsp;</A>
+<H3>So how do I use a proxy with File::Fetch?</H3>
+
+<A NAME="ixABD"></A>
+<TT>&quot;File::Fetch&quot;</TT> currently only supports proxies with LWP::UserAgent.
+You will need to set your environment variables accordingly. For
+example, to use an ftp proxy:
+<P>
+
+
+
+<PRE>
+    $ENV{ftp_proxy} = 'foo.com';
+
+</PRE>
+
+
+<P>
+
+Refer to the LWP::UserAgent manpage for more details.
+<A NAME="lbAW">&nbsp;</A>
+<H3>I used 'lynx' to fetch a file, but its contents is all wrong!</H3>
+
+<A NAME="ixABE"></A>
+<TT>&quot;lynx&quot;</TT> can only fetch remote files by dumping its contents to <TT>&quot;STDOUT&quot;</TT>,
+which we in turn capture. If that content is a 'custom' error file
+(like, say, a <TT>&quot;404 handler&quot;</TT>), you will get that contents instead.
+<P>
+
+Sadly, <TT>&quot;lynx&quot;</TT> doesn't support any options to return a different exit
+code on non-<TT>&quot;200 OK&quot;</TT> status, giving us no way to tell the difference
+between a 'successfull' fetch and a custom error page.
+<P>
+
+Therefor, we recommend to only use <TT>&quot;lynx&quot;</TT> as a last resort. This is 
+why it is at the back of our list of methods to try as well.
+<A NAME="lbAX">&nbsp;</A>
+<H3>Files I'm trying to fetch have reserved characters or non-ASCII characters in them. What do I do?</H3>
+
+<A NAME="ixABF"></A>
+<TT>&quot;File::Fetch&quot;</TT> is relatively smart about things. When trying to write 
+a file to disk, it removes the <TT>&quot;query parameters&quot;</TT> (see the 
+<TT>&quot;output_file&quot;</TT> method for details) from the file name before creating
+it. In most cases this suffices.
+<P>
+
+If you have any other characters you need to escape, please install 
+the <TT>&quot;URI::Escape&quot;</TT> module from <FONT SIZE="-1">CPAN</FONT>, and pre-encode your <FONT SIZE="-1">URI</FONT> before
+passing it to <TT>&quot;File::Fetch&quot;</TT>. You can read about the details of URIs 
+and <FONT SIZE="-1">URI</FONT> encoding here:
+<P>
+
+
+
+<PRE>
+  <A HREF="http://www.faqs.org/rfcs/rfc2396.html">http://www.faqs.org/rfcs/rfc2396.html</A>
+
+</PRE>
+
+
+<A NAME="lbAY">&nbsp;</A>
+<H2>TODO</H2>
+
+<A NAME="ixABG"></A>
+<DL COMPACT>
+<DT>Implement $PREFER_BIN<DD>
+
+
+<A NAME="ixABH"></A>
+To indicate to rather use commandline tools than modules
+</DL>
+<A NAME="lbAZ">&nbsp;</A>
+<H2>BUG REPORTS</H2>
+
+<A NAME="ixABI"></A>
+Please report bugs or other issues to &lt;<A HREF="mailto:bug-file-fetch@rt.cpan.org">bug-file-fetch@rt.cpan.org</A>&lt;gt&gt;.
+<A NAME="lbBA">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABJ"></A>
+This module by Jos Boumans &lt;<A HREF="mailto:kane@cpan.org">kane@cpan.org</A>&gt;.
+<A NAME="lbBB">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABK"></A>
+This library is free software; you may redistribute and/or modify it 
+under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">ACCESSORS</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">$ff = File::Fetch-&gt;new( uri =&gt; 'http://some.where.com/dir/file.txt' );</A><DD>
+<DT><A HREF="#lbAH">$where = $ff-&gt;fetch( [to =&gt; /my/output/dir/ | \$scalar] )</A><DD>
+<DT><A HREF="#lbAI">$ff-&gt;error([<FONT SIZE="-1">BOOL</FONT>])</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">HOW IT WORKS</A><DD>
+<DT><A HREF="#lbAK">GLOBAL VARIABLES</A><DD>
+<DL>
+<DT><A HREF="#lbAL">$File::Fetch::FROM_EMAIL</A><DD>
+<DT><A HREF="#lbAM">$File::Fetch::USER_AGENT</A><DD>
+<DT><A HREF="#lbAN">$File::Fetch::FTP_PASSIVE</A><DD>
+<DT><A HREF="#lbAO">$File::Fetch::TIMEOUT</A><DD>
+<DT><A HREF="#lbAP">$File::Fetch::WARN</A><DD>
+<DT><A HREF="#lbAQ">$File::Fetch::DEBUG</A><DD>
+<DT><A HREF="#lbAR">$File::Fetch::BLACKLIST</A><DD>
+<DT><A HREF="#lbAS">$File::Fetch::METHOD_FAIL</A><DD>
+</DL>
+<DT><A HREF="#lbAT">MAPPING</A><DD>
+<DT><A HREF="#lbAU">FREQUENTLY ASKED QUESTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAV">So how do I use a proxy with File::Fetch?</A><DD>
+<DT><A HREF="#lbAW">I used 'lynx' to fetch a file, but its contents is all wrong!</A><DD>
+<DT><A HREF="#lbAX">Files I'm trying to fetch have reserved characters or non-ASCII characters in them. What do I do?</A><DD>
+</DL>
+<DT><A HREF="#lbAY">TODO</A><DD>
+<DT><A HREF="#lbAZ">BUG REPORTS</A><DD>
+<DT><A HREF="#lbBA">AUTHOR</A><DD>
+<DT><A HREF="#lbBB">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:27 GMT, December 24, 2015
+</div></body>
+</HTML>

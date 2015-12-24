@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of INSERT</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>INSERT</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+INSERT - create new rows in a table
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+INSERT INTO <I>table</I> [ ( <I>column</I> [, ...] ) ]
+    { DEFAULT VALUES | VALUES ( { <I>expression</I> | DEFAULT } [, ...] ) [, ...] | <I>query</I> }
+    [ RETURNING * | <I>output_expression</I> [ [ AS ] <I>output_name</I> ] [, ...] ]
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>INSERT</B> inserts new rows into a table.
+One can insert one or more rows specified by value expressions,
+or zero or more rows resulting from a query.
+<P>
+
+The target column names can be listed in any order. If no list of
+column names is given at all, the default is all the columns of the
+table in their declared order; or the first <I>N</I> column
+names, if there are only <I>N</I> columns supplied by the
+VALUES clause or <I>query</I>. The values
+supplied by the VALUES clause or <I>query</I> are
+associated with the explicit or implicit column list left-to-right.
+<P>
+
+Each column not present in the explicit or implicit column list will be
+filled with a default value, either its declared default value
+or null if there is none.
+<P>
+
+If the expression for any column is not of the correct data type,
+automatic type conversion will be attempted.
+<P>
+
+The optional RETURNING clause causes <B>INSERT</B>
+to compute and return value(s) based on each row actually inserted.
+This is primarily useful for obtaining values that were supplied by
+defaults, such as a serial sequence number. However, any expression
+using the table's columns is allowed. The syntax of the
+RETURNING list is identical to that of the output list
+of <B>SELECT</B>.
+<P>
+
+You must have INSERT privilege on a table in
+order to insert into it. If a column list is specified, you only
+need INSERT privilege on the listed columns.
+Use of the RETURNING clause requires SELECT
+privilege on all columns mentioned in RETURNING.
+If you use the <I>query</I> clause to insert rows from a
+query, you of course need to have SELECT privilege on
+any table or column used in the query.
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B></B><I>table</I><B></B><DD>
+The name (optionally schema-qualified) of an existing table.
+<DT><B></B><I>column</I><B></B><DD>
+The name of a column in <I>table</I>.
+The column name can be qualified with a subfield name or array
+subscript, if needed. (Inserting into only some fields of a
+composite column leaves the other fields null.)
+<DT><B>DEFAULT VALUES</B><DD>
+All columns will be filled with their default values.
+<DT><B></B><I>expression</I><B></B><DD>
+An expression or value to assign to the corresponding <I>column</I>.
+<DT><B>DEFAULT</B><DD>
+The corresponding <I>column</I> will be filled with
+its default value.
+<DT><B></B><I>query</I><B></B><DD>
+A query (<B>SELECT</B> statement) that supplies the
+rows to be inserted. Refer to the
+SELECT [<B><A HREF="/man/index.html?7+select">select</A></B>(7)]
+statement for a description of the syntax.
+<DT><B></B><I>output_expression</I><B></B><DD>
+An expression to be computed and returned by the <B>INSERT</B>
+command after each row is inserted. The expression can use any
+column names of the <I>table</I>.
+Write * to return all columns of the inserted row(s).
+<DT><B></B><I>output_name</I><B></B><DD>
+A name to use for a returned column.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>OUTPUTS</H2>
+
+<P>
+
+On successful completion, an <B>INSERT</B> command returns a command
+tag of the form
+<P>
+<PRE>
+INSERT <I>oid</I> <I>count</I>
+
+</PRE>
+
+The <I>count</I> is the number
+of rows inserted. If <I>count</I>
+is exactly one, and the target table has OIDs, then
+<I>oid</I> is the
+OID assigned to the inserted row. Otherwise
+<I>oid</I> is zero.
+<P>
+
+If the <B>INSERT</B> command contains a RETURNING
+clause, the result will be similar to that of a <B>SELECT</B>
+statement containing the columns and values defined in the
+RETURNING list, computed over the row(s) inserted by the
+command.
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+Insert a single row into table films:
+<P>
+<PRE>
+INSERT INTO films VALUES
+    ('UA502', 'Bananas', 105, '1971-07-13', 'Comedy', '82 minutes');
+
+</PRE>
+
+<P>
+
+In this example, the len column is
+omitted and therefore it will have the default value:
+<P>
+<PRE>
+INSERT INTO films (code, title, did, date_prod, kind)
+    VALUES ('T_601', 'Yojimbo', 106, '1961-06-16', 'Drama');
+
+</PRE>
+
+<P>
+
+This example uses the DEFAULT clause for
+the date columns rather than specifying a value:
+<P>
+<PRE>
+INSERT INTO films VALUES
+    ('UA502', 'Bananas', 105, DEFAULT, 'Comedy', '82 minutes');
+INSERT INTO films (code, title, did, date_prod, kind)
+    VALUES ('T_601', 'Yojimbo', 106, DEFAULT, 'Drama');
+
+</PRE>
+
+<P>
+
+To insert a row consisting entirely of default values:
+<P>
+<PRE>
+INSERT INTO films DEFAULT VALUES;
+
+</PRE>
+
+<P>
+
+To insert multiple rows using the multirow <B>VALUES</B> syntax:
+<P>
+<PRE>
+INSERT INTO films (code, title, did, date_prod, kind) VALUES
+    ('B6717', 'Tampopo', 110, '1985-02-10', 'Comedy'),
+    ('HG120', 'The Dinner Game', 140, DEFAULT, 'Comedy');
+
+</PRE>
+
+<P>
+
+This example inserts some rows into table
+films from a table tmp_films
+with the same column layout as films:
+<P>
+<PRE>
+INSERT INTO films SELECT * FROM tmp_films WHERE date_prod &lt; '2004-05-07';
+
+</PRE>
+
+<P>
+
+This example inserts into array columns:
+<P>
+<PRE>
+-- Create an empty 3x3 gameboard for noughts-and-crosses
+INSERT INTO tictactoe (game, board[1:3][1:3])
+    VALUES (1, '{{&quot; &quot;,&quot; &quot;,&quot; &quot;},{&quot; &quot;,&quot; &quot;,&quot; &quot;},{&quot; &quot;,&quot; &quot;,&quot; &quot;}}');
+-- The subscripts in the above example aren't really needed
+INSERT INTO tictactoe (game, board)
+    VALUES (2, '{{X,&quot; &quot;,&quot; &quot;},{&quot; &quot;,O,&quot; &quot;},{&quot; &quot;,X,&quot; &quot;}}');
+
+</PRE>
+
+<P>
+
+Insert a single row into table distributors, returning
+the sequence number generated by the DEFAULT clause:
+<P>
+<PRE>
+INSERT INTO distributors (did, dname) VALUES (DEFAULT, 'XYZ Widgets')
+   RETURNING did;
+
+</PRE>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+<B>INSERT</B> conforms to the SQL standard, except that
+the RETURNING clause is a
+PostgreSQL extension. Also, the case in
+which a column name list is omitted, but not all the columns are
+filled from the VALUES clause or <I>query</I>,
+is disallowed by the standard.
+<P>
+
+Possible limitations of the <I>query</I> clause are documented under
+SELECT [<B><A HREF="/man/index.html?7+select">select</A></B>(7)].
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">OUTPUTS</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">COMPATIBILITY</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:15 GMT, December 24, 2015
+</div></body>
+</HTML>

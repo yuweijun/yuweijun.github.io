@@ -1,0 +1,1722 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of VIRT-INSTALL</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>VIRT-INSTALL</H1>
+Section: Virtual Machine Install Tools (1)<BR>Updated: 2011-07-28<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+virt-install - provision new virtual machines
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+<B>virt-install</B> [<FONT SIZE="-1">OPTION</FONT>]...
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<B>virt-install</B> is a command line tool for creating new <FONT SIZE="-1">KVM</FONT>, Xen, or Linux
+container guests using the <TT>&quot;libvirt&quot;</TT> hypervisor management library.
+See the <FONT SIZE="-1">EXAMPLES</FONT> section at the end of this document to quickly get started.
+<P>
+
+<B>virt-install</B> tool supports both text based &amp; graphical installations,
+using <FONT SIZE="-1">VNC</FONT> or <FONT SIZE="-1">SDL</FONT> graphics, or a text serial console. The guest can be
+configured to use one or more virtual disks, network interfaces,
+audio devices, physical <FONT SIZE="-1">USB</FONT> or <FONT SIZE="-1">PCI</FONT> devices, among others.
+<P>
+
+The installation media can be held locally or remotely on <FONT SIZE="-1">NFS</FONT>, <FONT SIZE="-1">HTTP</FONT>, <FONT SIZE="-1">FTP</FONT>
+servers. In the latter case <TT>&quot;virt-install&quot;</TT> will fetch the minimal files
+necessary to kick off the installation process, allowing the guest
+to fetch the rest of the <FONT SIZE="-1">OS</FONT> distribution as needed. <FONT SIZE="-1">PXE</FONT> booting, and importing
+an existing disk image (thus skipping the install phase) are also supported.
+<P>
+
+Given suitable command line arguments, <TT>&quot;virt-install&quot;</TT> is capable of running
+completely unattended, with the guest 'kickstarting' itself too. This allows
+for easy automation of guest installs. An interactive mode is also available
+with the --prompt option, but this will only ask for the minimum required
+options.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<A NAME="ixAAE"></A>
+Most options are not required. Minimum requirements are --name, --ram,
+guest storage (--disk, --filesystem or --nodisks), and an install option.
+<DL COMPACT>
+<DT>-h, --help<DD>
+<A NAME="ixAAF"></A>
+Show the help message and exit
+<DT>--connect=CONNECT<DD>
+<A NAME="ixAAG"></A>
+Connect to a non-default hypervisor. The default connection is chosen based
+on the following rules:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>xen<DD>
+<A NAME="ixAAH"></A>
+If running on a host with the Xen kernel (checks against /proc/xen)
+<DT><A HREF="qemu:///system">qemu:///system</A><DD>
+<A NAME="ixAAI"></A>
+If running on a bare metal kernel as root (needed for <FONT SIZE="-1">KVM</FONT> installs)
+<DT><A HREF="qemu:///session">qemu:///session</A><DD>
+<A NAME="ixAAJ"></A>
+If running on a bare metal kernel as non-root
+
+
+<P>
+
+
+It is only necessary to provide the <TT>&quot;--connect&quot;</TT> argument if this default
+prioritization is incorrect, eg if wanting to use <FONT SIZE="-1">QEMU</FONT> while on a Xen kernel.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>General Options</H3>
+
+<A NAME="ixAAK"></A>
+General configuration parameters that apply to all types of guest installs.
+<DL COMPACT>
+<DT>-n <FONT SIZE="-1">NAME</FONT>, --name=NAME<DD>
+<A NAME="ixAAL"></A>
+Name of the new guest virtual machine instance. This must be unique amongst
+all guests known to the hypervisor on the connection, including those not
+currently active. To re-define an existing guest, use the <TT><A HREF="/man/index.html?1+virsh">virsh</A>(1)</TT> tool
+to shut it down ('virsh shutdown') &amp; delete ('virsh undefine') it prior to
+running <TT>&quot;virt-install&quot;</TT>.
+<DT>-r <FONT SIZE="-1">MEMORY</FONT>, --ram=MEMORY<DD>
+<A NAME="ixAAM"></A>
+Memory to allocate for guest instance in megabytes. If the hypervisor does
+not have enough free memory, it is usual for it to automatically take memory
+away from the host operating system to satisfy this allocation.
+<DT>--arch=ARCH<DD>
+<A NAME="ixAAN"></A>
+Request a non-native <FONT SIZE="-1">CPU</FONT> architecture for the guest virtual machine.
+If omitted, the host <FONT SIZE="-1">CPU</FONT> architecture will be used in the guest.
+<DT>--machine=MACHINE<DD>
+<A NAME="ixAAO"></A>
+The machine type to emulate. This will typically not need to be specified
+for Xen or <FONT SIZE="-1">KVM</FONT>, but is useful for choosing machine types of more exotic
+architectures.
+<DT>-u <FONT SIZE="-1">UUID</FONT>, --uuid=UUID<DD>
+<A NAME="ixAAP"></A>
+<FONT SIZE="-1">UUID</FONT> for the guest; if none is given a random <FONT SIZE="-1">UUID</FONT> will be generated. If you
+specify <FONT SIZE="-1">UUID</FONT>, you should use a 32-digit hexadecimal number. <FONT SIZE="-1">UUID</FONT> are intended
+to be unique across the entire data center, and indeed world. Bear this in
+mind if manually specifying a <FONT SIZE="-1">UUID</FONT>
+<DT>--vcpus=VCPUS[,maxvcpus=MAX][,sockets=#][,cores=#][,threads=#]<DD>
+<A NAME="ixAAQ"></A>
+Number of virtual cpus to configure for the guest. If 'maxvcpus' is specified,
+the guest will be able to hotplug up to <FONT SIZE="-1">MAX</FONT> vcpus while the guest is running,
+but will startup with <FONT SIZE="-1">VCPUS</FONT>.
+
+
+<P>
+
+
+<FONT SIZE="-1">CPU</FONT> topology can additionally be specified with sockets, cores, and threads.
+If values are omitted, the rest will be autofilled prefering sockets over
+cores over threads.
+<DT>--cpuset=CPUSET<DD>
+<A NAME="ixAAR"></A>
+Set which physical cpus the guest can use. <TT>&quot;CPUSET&quot;</TT> is a comma separated list of numbers, which can also be specified in ranges or cpus to exclude. Example:
+
+
+<P>
+
+
+
+
+<PRE>
+    0,2,3,5     : Use processors 0,2,3 and 5
+    1-5,^3,8    : Use processors 1,2,4,5 and 8
+
+</PRE>
+
+
+
+
+<P>
+
+
+If the value 'auto' is passed, virt-install attempts to automatically determine
+an optimal cpu pinning using <FONT SIZE="-1">NUMA</FONT> data, if available.
+<DT>--numatune=NODESET,[mode=MODE]<DD>
+<A NAME="ixAAS"></A>
+Tune <FONT SIZE="-1">NUMA</FONT> policy for the domain process. Example invocations
+
+
+<P>
+
+
+
+
+<PRE>
+    --numatune 1,2,3,4-7
+    --numatune \&quot;1-3,5\&quot;,mode=preferred
+
+</PRE>
+
+
+
+
+<P>
+
+
+Specifies the numa nodes to allocate memory from. This has the same syntax
+as <TT>&quot;--cpuset&quot;</TT> option. mode can be one of 'interleave', 'preferred', or
+'strict' (the default). See 'man 8 numactl' for information about each
+mode.
+
+
+<P>
+
+
+The nodeset string must use escaped-quotes if specifying any other option.
+<DT>--cpu MODEL[,+feature][,-feature][,match=MATCH][,vendor=VENDOR]<DD>
+<A NAME="ixAAT"></A>
+Configure the <FONT SIZE="-1">CPU</FONT> model and <FONT SIZE="-1">CPU</FONT> features exposed to the guest. The only
+required value is <FONT SIZE="-1">MODEL</FONT>, which is a valid <FONT SIZE="-1">CPU</FONT> model as listed in libvirt's
+cpu_map.xml file.
+
+
+<P>
+
+
+Specific <FONT SIZE="-1">CPU</FONT> features can be specified in a number of ways: using one of
+libvirt's feature policy values force, require, optional, disable, or forbid,
+or with the shorthand '+feature' and '-feature', which equal 'force=feature'
+and 'disable=feature' respectively
+
+
+<P>
+
+
+Some examples:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>--cpu core2duo,+x2apic,disable=vmx</B><DD>
+<A NAME="ixAAU"></A>
+Expose the core2duo <FONT SIZE="-1">CPU</FONT> model, force enable x2apic, but do not expose vmx
+<DT><B>--cpu host</B><DD>
+<A NAME="ixAAV"></A>
+Expose the host CPUs configuration to the guest. This enables the guest to
+take advantage of many of the host CPUs features (better performance), but
+may cause issues if migrating the guest to a host without an identical <FONT SIZE="-1">CPU</FONT>.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>--description<DD>
+<A NAME="ixAAW"></A>
+Human readable text description of the virtual machine. This will be stored
+in the guests <FONT SIZE="-1">XML</FONT> configuration for access by other applications.
+<DT>--security type=TYPE[,label=LABEL]<DD>
+<A NAME="ixAAX"></A>
+Configure domain security driver settings. Type can be either 'static' or
+'dynamic'. 'static' configuration requires a security <FONT SIZE="-1">LABEL</FONT>. Specifying
+<FONT SIZE="-1">LABEL</FONT> without <FONT SIZE="-1">TYPE</FONT> implies static configuration.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Installation Method options</H3>
+
+<A NAME="ixAAY"></A>
+<DL COMPACT>
+<DT>-c <FONT SIZE="-1">CDROM</FONT>, --cdrom=CDROM<DD>
+<A NAME="ixAAZ"></A>
+File or device use as a virtual CD-ROM device for fully virtualized guests.
+It can be path to an <FONT SIZE="-1">ISO</FONT> image, or to a <FONT SIZE="-1">CDROM</FONT> device. It can also be a <FONT SIZE="-1">URL</FONT>
+from which to fetch/access a minimal boot <FONT SIZE="-1">ISO</FONT> image. The URLs take the same
+format as described for the <TT>&quot;--location&quot;</TT> argument. If a cdrom has been
+specified via the <TT>&quot;--disk&quot;</TT> option, and neither <TT>&quot;--cdrom&quot;</TT> nor any other
+install option is specified, the <TT>&quot;--disk&quot;</TT> cdrom is used as the install media.
+<DT>-l <FONT SIZE="-1">LOCATION</FONT>, --location=LOCATION<DD>
+<A NAME="ixABA"></A>
+Distribution tree installtion source. virt-install can recognize
+certain distribution trees and fetches a bootable kernel/initrd pair to
+launch the install.
+
+
+<P>
+
+
+With libvirt 0.9.4 or later, network <FONT SIZE="-1">URL</FONT> installs work for remote connections.
+virt-install will download kernel/initrd to the local machine, and then
+upload the media to the remote host. This option requires the <FONT SIZE="-1">URL</FONT> to
+be accessible by both the local and remote host.
+
+
+<P>
+
+
+The <TT>&quot;LOCATION&quot;</TT> can take one of the following forms:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><FONT SIZE="-1">DIRECTORY</FONT><DD>
+<A NAME="ixABB"></A>
+Path to a local directory containing an installable distribution image
+<DT>nfs:host:/path or <A HREF="nfs://host/path">nfs://host/path</A><DD>
+<A NAME="ixABC"></A>
+An <FONT SIZE="-1">NFS</FONT> server location containing an installable distribution image
+<DT><A HREF="http://host/path">http://host/path</A><DD>
+<A NAME="ixABD"></A>
+An <FONT SIZE="-1">HTTP</FONT> server location containing an installable distribution image
+<DT><A HREF="ftp://host/path">ftp://host/path</A><DD>
+<A NAME="ixABE"></A>
+An <FONT SIZE="-1">FTP</FONT> server location containing an installable distribution image
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+Some distro specific url samples:
+<DL COMPACT>
+<DT>Fedora/Red Hat Based<DD>
+<A NAME="ixABF"></A>
+<A HREF="http://download.fedoraproject.org/pub/fedora/linux/releases/10/Fedora/i386/os/">http://download.fedoraproject.org/pub/fedora/linux/releases/10/Fedora/i386/os/</A>
+<DT>Debian/Ubuntu<DD>
+<A NAME="ixABG"></A>
+<A HREF="http://ftp.us.debian.org/debian/dists/etch/main/installer-amd64/">http://ftp.us.debian.org/debian/dists/etch/main/installer-amd64/</A>
+<DT>Suse<DD>
+<A NAME="ixABH"></A>
+<A HREF="http://download.opensuse.org/distribution/11.0/repo/oss/">http://download.opensuse.org/distribution/11.0/repo/oss/</A>
+<DT>Mandriva<DD>
+<A NAME="ixABI"></A>
+<A HREF="ftp://ftp.uwsg.indiana.edu/linux/mandrake/official/2009.0/i586/">ftp://ftp.uwsg.indiana.edu/linux/mandrake/official/2009.0/i586/</A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>--pxe<DD>
+<A NAME="ixABJ"></A>
+Use the <FONT SIZE="-1">PXE</FONT> boot protocol to load the initial ramdisk and kernel for starting
+the guest installation process.
+<DT>--import<DD>
+<A NAME="ixABK"></A>
+Skip the <FONT SIZE="-1">OS</FONT> installation process, and build a guest around an existing
+disk image. The device used for booting is the first device specified via
+<TT>&quot;--disk&quot;</TT> or <TT>&quot;--filesystem&quot;</TT>.
+<DT>--init=INITPATH<DD>
+<A NAME="ixABL"></A>
+Path to a binary that the container guest will init. If a root <TT>&quot;--filesystem&quot;</TT>
+is has been specified, virt-install will default to /sbin/init, otherwise
+will default to /bin/sh.
+<DT>--livecd<DD>
+<A NAME="ixABM"></A>
+Specify that the installation media is a live <FONT SIZE="-1">CD</FONT> and thus the guest
+needs to be configured to boot off the <FONT SIZE="-1">CDROM</FONT> device permanently. It
+may be desirable to also use the <TT>&quot;--nodisks&quot;</TT> flag in combination.
+<DT>-x <FONT SIZE="-1">EXTRA</FONT>, --extra-args=EXTRA<DD>
+<A NAME="ixABN"></A>
+Additional kernel command line arguments to pass to the installer when
+performing a guest install from <TT>&quot;--location&quot;</TT>. One common usage is specifying
+an anaconda kickstart file for automated installs, such as
+--extra-args ``ks=<A HREF="http://myserver/my.ks''">http://myserver/my.ks''</A>
+<DT>--initrd-inject=PATH<DD>
+<A NAME="ixABO"></A>
+Add <FONT SIZE="-1">PATH</FONT> to the root of the initrd fetched with <TT>&quot;--location&quot;</TT>. This can be
+used to run an automated install without requiring a network hosted kickstart
+file:
+
+
+<P>
+
+
+--initrd-inject=/path/to/my.ks --extra-args ``ks=file:/my.ks''
+<DT>--os-type=OS_TYPE<DD>
+<A NAME="ixABP"></A>
+Optimize the guest configuration for a type of operating system (ex. 'linux',
+'windows'). This will attempt to pick the most suitable <FONT SIZE="-1">ACPI</FONT> &amp; <FONT SIZE="-1">APIC</FONT> settings,
+optimally supported mouse drivers, virtio, and generally accommodate other
+operating system quirks.
+
+
+<P>
+
+
+By default, virt-install will attempt to auto detect this value from
+the install media (currently only supported for <FONT SIZE="-1">URL</FONT> installs). Autodetection
+can be disabled with the special value 'none'
+
+
+<P>
+
+
+See <TT>&quot;--os-variant&quot;</TT> for valid options.
+<DT>--os-variant=OS_VARIANT<DD>
+<A NAME="ixABQ"></A>
+Further optimize the guest configuration for a specific operating system
+variant (ex. 'fedora8', 'winxp'). This parameter is optional, and does not
+require an <TT>&quot;--os-type&quot;</TT> to be specified.
+
+
+<P>
+
+
+By default, virt-install will attempt to auto detect this value from
+the install media (currently only supported for <FONT SIZE="-1">URL</FONT> installs). Autodetection
+can be disabled with the special value 'none'.
+
+
+<P>
+
+
+If the special value 'list' is passed, virt-install will print the full
+list of variant values and exit. The printed format is not a stable
+interface, <FONT SIZE="-1">DO</FONT> <FONT SIZE="-1">NOT</FONT> <FONT SIZE="-1">PARSE</FONT> <FONT SIZE="-1">IT</FONT>.
+
+
+<P>
+
+
+If the special value 'none' is passed, no os variant is recorded and
+<FONT SIZE="-1">OS</FONT> autodetection is disabled.
+
+
+<P>
+
+
+Values for some recent <FONT SIZE="-1">OS</FONT> options are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>win7                 : Microsoft Windows 7<DD>
+<A NAME="ixABR"></A>
+
+<DT>vista                : Microsoft Windows Vista<DD>
+<A NAME="ixABS"></A>
+<DT>winxp64              : Microsoft Windows <FONT SIZE="-1">XP</FONT> (x86_64)<DD>
+<A NAME="ixABT"></A>
+<DT>winxp                : Microsoft Windows <FONT SIZE="-1">XP</FONT><DD>
+<A NAME="ixABU"></A>
+<DT>win2k8               : Microsoft Windows Server 2008<DD>
+<A NAME="ixABV"></A>
+<DT>win2k3               : Microsoft Windows Server 2003<DD>
+<A NAME="ixABW"></A>
+<DT>freebsd8             : FreeBSD 8.x<DD>
+<A NAME="ixABX"></A>
+<DT>generic              : Generic<DD>
+<A NAME="ixABY"></A>
+<DT>debiansqueeze        : Debian Squeeze<DD>
+<A NAME="ixABZ"></A>
+<DT>debianlenny          : Debian Lenny<DD>
+<A NAME="ixACA"></A>
+<DT>fedora16             : Fedora 16<DD>
+<A NAME="ixACB"></A>
+<DT>fedora15             : Fedora 15<DD>
+<A NAME="ixACC"></A>
+<DT>fedora14             : Fedora 14<DD>
+<A NAME="ixACD"></A>
+<DT>mes5.1               : Mandriva Enterprise Server 5.1 and later<DD>
+<A NAME="ixACE"></A>
+<DT>mandriva2010         : Mandriva Linux 2010 and later<DD>
+<A NAME="ixACF"></A>
+<DT>rhel6                : Red Hat Enterprise Linux 6<DD>
+<A NAME="ixACG"></A>
+<DT>rhel5.4              : Red Hat Enterprise Linux 5.4 or later<DD>
+<A NAME="ixACH"></A>
+<DT>rhel4                : Red Hat Enterprise Linux 4<DD>
+<A NAME="ixACI"></A>
+<DT>sles11               : Suse Linux Enterprise Server 11<DD>
+<A NAME="ixACJ"></A>
+<DT>sles10               : Suse Linux Enterprise Server<DD>
+<A NAME="ixACK"></A>
+<DT>ubuntuoneiric        : Ubuntu 11.10 (Oneiric Ocelot)<DD>
+<A NAME="ixACL"></A>
+<DT>ubuntunatty          : Ubuntu 11.04 (Natty Narwhal)<DD>
+<A NAME="ixACM"></A>
+<DT>ubuntumaverick       : Ubuntu 10.10 (Maverick Meerkat)<DD>
+<A NAME="ixACN"></A>
+<DT>ubuntulucid          : Ubuntu 10.04 (Lucid Lynx)<DD>
+<A NAME="ixACO"></A>
+<DT>ubuntuhardy          : Ubuntu 8.04 <FONT SIZE="-1">LTS</FONT> (Hardy Heron)<DD>
+<A NAME="ixACP"></A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+
+<P>
+
+
+Use '--os-variant list' to see the full <FONT SIZE="-1">OS</FONT> list
+</DL>
+
+<DT>--boot=BOOTOPTS<DD>
+<A NAME="ixACQ"></A>
+Optionally specify the post-install <FONT SIZE="-1">VM</FONT> boot configuration. This option allows
+specifying a boot device order, permanently booting off kernel/initrd with
+option kernel arguments, and enabling a <FONT SIZE="-1">BIOS</FONT> boot menu (requires libvirt
+0.8.3 or later)
+
+
+<P>
+
+
+--boot can be specified in addition to other install options
+(such as --location, --cdrom, etc.) or can be specified on it's own. In
+the latter case, behavior is similar to the --import install option: there
+is no 'install' phase, the guest is just created and launched as specified.
+
+
+<P>
+
+
+Some examples:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>--boot cdrom,fd,hd,network,menu=on</B><DD>
+<A NAME="ixACR"></A>
+Set the boot device priority as first cdrom, first floppy, first harddisk,
+network <FONT SIZE="-1">PXE</FONT> boot. Additionally enable <FONT SIZE="-1">BIOS</FONT> boot menu prompt.
+<DT><B>--boot kernel=KERNEL,initrd=INITRD,kernel_args=console=/dev/ttyS0</B><DD>
+
+
+<A NAME="ixACS"></A>
+Have guest permanently boot off a local kernel/initrd pair, with the
+specified kernel options.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Storage Configuration</H3>
+
+<A NAME="ixACT"></A>
+<DL COMPACT>
+<DT>--disk=DISKOPTS<DD>
+<A NAME="ixACU"></A>
+Specifies media to use as storage for the guest, with various options. The
+general format of a disk string is
+
+
+<P>
+
+
+
+
+<PRE>
+    --disk opt1=val1,opt2=val2,...
+
+</PRE>
+
+
+
+
+<P>
+
+
+To specify media, the command can either be:
+
+
+<P>
+
+
+
+
+<PRE>
+    --disk /some/storage/path,opt1=val1
+
+</PRE>
+
+
+
+
+<P>
+
+
+or explicitly specify one of the following arguments:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>path</B><DD>
+<A NAME="ixACV"></A>
+A path to some storage media to use, existing or not. Existing media can be
+a file or block device. If installing on a remote host, the existing media
+must be shared as a libvirt storage volume.
+
+
+<P>
+
+
+Specifying a non-existent path implies attempting to create the new storage,
+and will require specifyng a 'size' value. If the base directory of the path
+is a libvirt storage pool on the host, the new storage will be created as a
+libvirt storage volume. For remote hosts, the base directory is required to be
+a storage pool if using this method.
+<DT><B>pool</B><DD>
+<A NAME="ixACW"></A>
+An existing libvirt storage pool name to create new storage on. Requires
+specifying a 'size' value.
+<DT><B>vol</B><DD>
+<A NAME="ixACX"></A>
+An existing libvirt storage volume to use. This is specified as
+'poolname/volname'.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+Other available options:
+<DL COMPACT>
+<DT><B>device</B><DD>
+<A NAME="ixACY"></A>
+Disk device type. Value can be 'cdrom', 'disk', or 'floppy'. Default is
+'disk'. If a 'cdrom' is specified, and no install method is chosen, the
+cdrom is used as the install media.
+<DT><B>bus</B><DD>
+<A NAME="ixACZ"></A>
+Disk bus type. Value can be 'ide', 'scsi', 'usb', 'virtio' or 'xen'.  The
+default is hypervisor dependent since not all hypervisors support all bus
+types.
+<DT><B>perms</B><DD>
+<A NAME="ixADA"></A>
+Disk permissions. Value can be 'rw' (Read/Write), 'ro' (Readonly),
+or 'sh' (Shared Read/Write). Default is 'rw'
+<DT><B>size</B><DD>
+<A NAME="ixADB"></A>
+size (in <FONT SIZE="-1">GB</FONT>) to use if creating new storage
+<DT><B>sparse</B><DD>
+<A NAME="ixADC"></A>
+whether to skip fully allocating newly created storage. Value is 'true' or
+'false'. Default is 'true' (do not fully allocate).
+
+
+<P>
+
+
+The initial time taken to fully-allocate the guest virtual disk (sparse=false)
+will be usually by balanced by faster install times inside the guest. Thus
+use of this option is recommended to ensure consistently high performance
+and to avoid I/O errors in the guest should the host filesystem fill up.
+<DT><B>cache</B><DD>
+<A NAME="ixADD"></A>
+The cache mode to be used. The host pagecache provides cache memory.
+The cache value can be 'none', 'writethrough', or 'writeback'.
+'writethrough' provides read caching. 'writeback' provides
+read and write caching.
+<DT><B>format</B><DD>
+<A NAME="ixADE"></A>
+Image format to be used if creating managed storage. For file volumes, this
+can be 'raw', 'qcow2', 'vmdk', etc. See format types in
+&lt;<A HREF="http://libvirt.org/storage.html">http://libvirt.org/storage.html</A>&gt; for possible values. This is often
+mapped to the <B>driver_type</B> value as well.
+
+
+<P>
+
+
+With libvirt 0.8.3 and later, this option should be specified if reusing
+and existing disk image, since libvirt does not autodetect storage format
+as it is a potential security issue. For example, if reusing an existing
+qcow2 image, you will want to specify format=qcow2, otherwise the hypervisor
+may not be able to read your disk image.
+<DT><B>driver_name</B><DD>
+<A NAME="ixADF"></A>
+Driver name the hypervisor should use when accessing the specified
+storage. Typically does not need to be set by the user.
+<DT><B>driver_type</B><DD>
+<A NAME="ixADG"></A>
+Driver format/type the hypervisor should use when accessing the specified
+storage. Typically does not need to be set by the user.
+<DT><B>io</B><DD>
+<A NAME="ixADH"></A>
+Disk <FONT SIZE="-1">IO</FONT> backend. Can be either ``threads'' or ``native''.
+<DT><B>error_policy</B><DD>
+<A NAME="ixADI"></A>
+How guest should react if a write error is encountered. Can be one of
+``stop'', ``none'', or ``enospace''
+<DT><B>serial</B><DD>
+<A NAME="ixADJ"></A>
+Serial number of the emulated disk device. This is used in linux guests
+to set /dev/disk/by-id symlinks. An example serial number might be:
+<FONT SIZE="-1">WD-WMAP9A966149</FONT>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+See the examples section for some uses. This option deprecates <TT>&quot;--file&quot;</TT>,
+<TT>&quot;--file-size&quot;</TT>, and <TT>&quot;--nonsparse&quot;</TT>.
+</DL>
+
+<DT>--filesystem<DD>
+<A NAME="ixADK"></A>
+Specifies a directory on the host to export to the guest. The most simple
+invocation is:
+
+
+<P>
+
+
+
+
+<PRE>
+    --filesystem /source/on/host,/target/point/in/guest
+
+</PRE>
+
+
+
+
+<P>
+
+
+Which will work for recent <FONT SIZE="-1">QEMU</FONT> and linux guest <FONT SIZE="-1">OS</FONT> or <FONT SIZE="-1">LXC</FONT> containers. For
+<FONT SIZE="-1">QEMU</FONT>, the target point is just a mounting hint in sysfs, so will not be
+automatically mounted.
+
+
+<P>
+
+
+The following explicit options can be specified:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>type</B><DD>
+<A NAME="ixADL"></A>
+The type or the source directory. Valid values are 'mount' (the default) or
+'template' for OpenVZ templates.
+<DT><B>mode</B><DD>
+<A NAME="ixADM"></A>
+The access mode for the source directory from the guest <FONT SIZE="-1">OS</FONT>. Only used with
+<FONT SIZE="-1">QEMU</FONT> and type=mount. Valid modes are 'passthrough' (the default), 'mapped',
+or 'squash'. See libvirt domain <FONT SIZE="-1">XML</FONT> documentation for more info.
+<DT><B>source</B><DD>
+<A NAME="ixADN"></A>
+The directory on the host to share.
+<DT><B>target</B><DD>
+<A NAME="ixADO"></A>
+The mount location to use in the guest.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>--nodisks<DD>
+<A NAME="ixADP"></A>
+Request a virtual machine without any local disk storage, typically used for
+running 'Live <FONT SIZE="-1">CD</FONT>' images or installing to network storage (iSCSI or <FONT SIZE="-1">NFS</FONT> root).
+<DT>-f <FONT SIZE="-1">DISKFILE</FONT>, --file=DISKFILE<DD>
+<A NAME="ixADQ"></A>
+This option is deprecated in favor of <TT>&quot;--disk path=DISKFILE&quot;</TT>.
+<DT>-s <FONT SIZE="-1">DISKSIZE</FONT>, --file-size=DISKSIZE<DD>
+<A NAME="ixADR"></A>
+This option is deprecated in favor of <TT>&quot;--disk ...,size=DISKSIZE,...&quot;</TT>
+<DT>--nonsparse<DD>
+<A NAME="ixADS"></A>
+This option is deprecated in favor of <TT>&quot;--disk ...,sparse=false,...&quot;</TT>
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Networking Configuration</H3>
+
+<A NAME="ixADT"></A>
+<DL COMPACT>
+<DT>-w <FONT SIZE="-1">NETWORK</FONT>, --network=NETWORK,opt1=val1,opt2=val2<DD>
+<A NAME="ixADU"></A>
+Connect the guest to the host network. The value for <TT>&quot;NETWORK&quot;</TT> can take
+one of 3 formats:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>bridge=BRIDGE<DD>
+<A NAME="ixADV"></A>
+Connect to a bridge device in the host called <TT>&quot;BRIDGE&quot;</TT>. Use this option if
+the host has static networking config &amp; the guest requires full outbound
+and inbound connectivity  to/from the <FONT SIZE="-1">LAN</FONT>. Also use this if live migration
+will be used with this guest.
+<DT>network=NAME<DD>
+<A NAME="ixADW"></A>
+Connect to a virtual network in the host called <TT>&quot;NAME&quot;</TT>. Virtual networks
+can be listed, created, deleted using the <TT>&quot;virsh&quot;</TT> command line tool. In
+an unmodified install of <TT>&quot;libvirt&quot;</TT> there is usually a virtual network
+with a name of <TT>&quot;default&quot;</TT>. Use a virtual network if the host has dynamic
+networking (eg NetworkManager), or using wireless. The guest will be 
+NATed to the <FONT SIZE="-1">LAN</FONT> by whichever connection is active.
+<DT>user<DD>
+<A NAME="ixADX"></A>
+Connect to the <FONT SIZE="-1">LAN</FONT> using <FONT SIZE="-1">SLIRP</FONT>. Only use this if running a <FONT SIZE="-1">QEMU</FONT> guest as
+an unprivileged user. This provides a very limited form of <FONT SIZE="-1">NAT</FONT>.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+If this option is omitted a single <FONT SIZE="-1">NIC</FONT> will be created in the guest. If
+there is a bridge device in the host with a physical interface enslaved,
+that will be used for connectivity. Failing that, the virtual network
+called <TT>&quot;default&quot;</TT> will be used. This option can be specified multiple
+times to setup more than one <FONT SIZE="-1">NIC</FONT>.
+
+
+<P>
+
+
+Other available options are:
+<DL COMPACT>
+<DT><B>model</B><DD>
+<A NAME="ixADY"></A>
+Network device model as seen by the guest. Value can be any nic model supported
+by the hypervisor, e.g.: 'e1000', 'rtl8139', 'virtio', ...
+<DT><B>mac</B><DD>
+<A NAME="ixADZ"></A>
+Fixed <FONT SIZE="-1">MAC</FONT> address for the guest; If this parameter is omitted, or the value
+<TT>&quot;RANDOM&quot;</TT> is specified a suitable address will be randomly generated. For
+Xen virtual machines it is required that the first 3 pairs in the <FONT SIZE="-1">MAC</FONT> address
+be the sequence '00:16:3e', while for <FONT SIZE="-1">QEMU</FONT> or <FONT SIZE="-1">KVM</FONT> virtual machines it must
+be '52:54:00'.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>--nonetworks<DD>
+<A NAME="ixAEA"></A>
+Request a virtual machine without any network interfaces.
+<DT>-b <FONT SIZE="-1">BRIDGE</FONT>, --bridge=BRIDGE<DD>
+<A NAME="ixAEB"></A>
+This parameter is deprecated in favour of
+<TT>&quot;--network bridge=bridge_name&quot;</TT>.
+<DT>-m <FONT SIZE="-1">MAC</FONT>, --mac=MAC<DD>
+<A NAME="ixAEC"></A>
+This parameter is deprecated in favour of <TT>&quot;--network NETWORK,mac=12:34...&quot;</TT>
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Graphics Configuration</H3>
+
+<A NAME="ixAED"></A>
+If no graphics option is specified, <TT>&quot;virt-install&quot;</TT> will default to
+'--graphics vnc' if the <FONT SIZE="-1">DISPLAY</FONT> environment variable is set, otherwise
+'--graphics none' is used.
+<DL COMPACT>
+<DT>--graphics <FONT SIZE="-1">TYPE</FONT>,opt1=arg1,opt2=arg2,...<DD>
+<A NAME="ixAEE"></A>
+Specifies the graphical display configuration. This does not configure any
+virtual hardware, just how the guest's graphical display can be accessed.
+Typically the user does not need to specify this option, virt-install will
+try and choose a useful default, and launch a suitable connection.
+
+
+<P>
+
+
+General format of a graphical string is
+
+
+<P>
+
+
+
+
+<PRE>
+    --graphics TYPE,opt1=arg1,opt2=arg2,...
+
+</PRE>
+
+
+
+
+<P>
+
+
+For example:
+
+
+<P>
+
+
+
+
+<PRE>
+    --graphics vnc,password=foobar
+
+</PRE>
+
+
+
+
+<P>
+
+
+The supported options are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>type</B><DD>
+<A NAME="ixAEF"></A>
+The display type. This is one of:
+
+
+<P>
+
+
+vnc
+
+
+<P>
+
+
+Setup a virtual console in the guest and export it as a <FONT SIZE="-1">VNC</FONT> server in
+the host. Unless the <TT>&quot;port&quot;</TT> parameter is also provided, the <FONT SIZE="-1">VNC</FONT>
+server will run on the first free port number at 5900 or above. The
+actual <FONT SIZE="-1">VNC</FONT> display allocated can be obtained using the <TT>&quot;vncdisplay&quot;</TT>
+command to <TT>&quot;virsh&quot;</TT> (or <I><A HREF="/man/index.html?1+virt-viewer">virt-viewer</A></I>(1) can be used which handles this
+detail for the use).
+
+
+<P>
+
+
+sdl
+
+
+<P>
+
+
+Setup a virtual console in the guest and display an <FONT SIZE="-1">SDL</FONT> window in the
+host to render the output. If the <FONT SIZE="-1">SDL</FONT> window is closed the guest may
+be unconditionally terminated.
+
+
+<P>
+
+
+spice
+
+
+<P>
+
+
+Export the guest's console using the Spice protocol. Spice allows advanced
+features like audio and <FONT SIZE="-1">USB</FONT> device streaming, as well as improved graphical
+performance.
+
+
+<P>
+
+
+Using spice graphic type will work as if those arguments were given:
+
+
+<P>
+
+
+
+
+<PRE>
+    --video qxl --channel spicevmc
+
+</PRE>
+
+
+
+
+<P>
+
+
+none
+
+
+<P>
+
+
+No graphical console will be allocated for the guest. Fully virtualized guests
+(Xen <FONT SIZE="-1">FV</FONT> or QEmu/KVM) will need to have a text console configured on the first
+serial port in the guest (this can be done via the --extra-args option). Xen
+<FONT SIZE="-1">PV</FONT> will set this up automatically. The command 'virsh console <FONT SIZE="-1">NAME</FONT>' can be
+used to connect to the serial device.
+<DT><B>port</B><DD>
+<A NAME="ixAEG"></A>
+Request a permanent, statically assigned port number for the guest
+console. This is used by 'vnc' and 'spice'
+<DT><B>tlsport</B><DD>
+<A NAME="ixAEH"></A>
+Specify the spice tlsport.
+<DT><B>listen</B><DD>
+<A NAME="ixAEI"></A>
+Address to listen on for VNC/Spice connections. Default is typically 127.0.0.1
+(localhost only), but some hypervisors allow changing this globally (for
+example, the qemu driver default can be changed in /etc/libvirt/qemu.conf).
+Use 0.0.0.0 to allow access from other machines. This is use by 'vnc' and
+'spice'
+<DT><B>keymap</B><DD>
+<A NAME="ixAEJ"></A>
+Request that the virtual <FONT SIZE="-1">VNC</FONT> console be configured to run with a specific
+keyboard layout. If the special value 'local' is specified, virt-install
+will attempt to configure to use the same keymap as the local system. A value
+of 'none' specifically defers to the hypervisor. Default behavior is
+hypervisor specific, but typically is the same as 'local'. This is used
+by 'vnc'
+<DT><B>password</B><DD>
+<A NAME="ixAEK"></A>
+Request a <FONT SIZE="-1">VNC</FONT> password, required at connection time. Beware, this info may
+end up in virt-install log files, so don't use an important password. This
+is used by 'vnc' and 'spice'
+<DT><B>passwordvalidto</B><DD>
+<A NAME="ixAEL"></A>
+Set an expiration date for password. After the date/time has passed,
+all new graphical connections are denyed until a new password is set.
+This is used by 'vnc' and 'spice'
+
+
+<P>
+
+
+The format for this value is <FONT SIZE="-1">YYYY-MM-DDTHH:MM:SS</FONT>, for example
+2011-04-01T14:30:15
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>--vnc<DD>
+<A NAME="ixAEM"></A>
+This option is deprecated in favor of <TT>&quot;--graphics vnc,...&quot;</TT>
+<DT>--vncport=VNCPORT<DD>
+<A NAME="ixAEN"></A>
+This option is deprecated in favor of <TT>&quot;--graphics vnc,port=PORT,...&quot;</TT>
+<DT>--vnclisten=VNCLISTEN<DD>
+<A NAME="ixAEO"></A>
+This option is deprecated in favor of <TT>&quot;--graphics vnc,listen=LISTEN,...&quot;</TT>
+<DT>-k <FONT SIZE="-1">KEYMAP</FONT>, --keymap=KEYMAP<DD>
+<A NAME="ixAEP"></A>
+This option is deprecated in favor of <TT>&quot;--graphics vnc,keymap=KEYMAP,...&quot;</TT>
+<DT>--sdl<DD>
+<A NAME="ixAEQ"></A>
+This option is deprecated in favor of <TT>&quot;--graphics sdl,...&quot;</TT>
+<DT>--nographics<DD>
+<A NAME="ixAER"></A>
+This option is deprecated in favor of <TT>&quot;--graphics none&quot;</TT>
+<DT>--noautoconsole<DD>
+<A NAME="ixAES"></A>
+Don't automatically try to connect to the guest console. The default behaviour
+is to launch a <FONT SIZE="-1">VNC</FONT> client to display the graphical console, or to run the
+<TT>&quot;virsh&quot;</TT> <TT>&quot;console&quot;</TT> command to display the text console. Use of this parameter
+will disable this behaviour.
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H3>Virtualization Type options</H3>
+
+<A NAME="ixAET"></A>
+Options to override the default virtualization type choices.
+<DL COMPACT>
+<DT>-v, --hvm<DD>
+<A NAME="ixAEU"></A>
+Request the use of full virtualization, if both para &amp; full virtualization are
+available on the host. This parameter may not be available if connecting to a
+Xen hypervisor on a machine without hardware virtualization support. This
+parameter is implied if connecting to a <FONT SIZE="-1">QEMU</FONT> based hypervisor.
+<DT>-p, --paravirt<DD>
+<A NAME="ixAEV"></A>
+This guest should be a paravirtualized guest. If the host supports both
+para &amp; full virtualization, and neither this parameter nor the <TT>&quot;--hvm&quot;</TT>
+are specified, this will be assumed.
+<DT>--container<DD>
+<A NAME="ixAEW"></A>
+This guest should be a container type guest. This option is only required
+if the hypervisor supports other guest types as well (so for example this
+option is the default behavior for <FONT SIZE="-1">LXC</FONT> and OpenVZ, but is provided for
+completeness).
+<DT>--virt-type<DD>
+<A NAME="ixAEX"></A>
+The hypervisor to install on. Example choices are kvm, qemu, xen, or kqemu.
+Availabile options are listed via 'virsh capabilities' in the &lt;domain&gt; tags.
+<DT>--accelerate<DD>
+<A NAME="ixAEY"></A>
+Prefer <FONT SIZE="-1">KVM</FONT> or <FONT SIZE="-1">KQEMU</FONT> (in that order) if installing a <FONT SIZE="-1">QEMU</FONT> guest. This behavior
+is now the default, and this option is deprecated. To install a plain <FONT SIZE="-1">QEMU</FONT>
+guest, use '--virt-type qemu'
+<DT>--noapic<DD>
+<A NAME="ixAEZ"></A>
+Force disable <FONT SIZE="-1">APIC</FONT> for the guest.
+<DT>--noacpi<DD>
+<A NAME="ixAFA"></A>
+Force disable <FONT SIZE="-1">ACPI</FONT> for the guest.
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>Device Options</H3>
+
+<A NAME="ixAFB"></A>
+<DL COMPACT>
+<DT>--host-device=HOSTDEV<DD>
+<A NAME="ixAFC"></A>
+Attach a physical host device to the guest. Some example values for <FONT SIZE="-1">HOSTDEV:</FONT>
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>--host-device pci_0000_00_1b_0</B><DD>
+<A NAME="ixAFD"></A>
+A node device name via libvirt, as shown by 'virsh nodedev-list'
+<DT><B>--host-device 001.003</B><DD>
+<A NAME="ixAFE"></A>
+<FONT SIZE="-1">USB</FONT> by bus, device (via lsusb).
+<DT><B>--host-device 0x1234:0x5678</B><DD>
+<A NAME="ixAFF"></A>
+<FONT SIZE="-1">USB</FONT> by vendor, product (via lsusb).
+<DT><B>--host-device 1f.01.02</B><DD>
+<A NAME="ixAFG"></A>
+<FONT SIZE="-1">PCI</FONT> device (via lspci).
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>--soundhw <FONT SIZE="-1">MODEL</FONT><DD>
+<A NAME="ixAFH"></A>
+Attach a virtual audio device to the guest. <FONT SIZE="-1">MODEL</FONT> specifies the emulated
+sound card model. Possible values are ich6, ac97, es1370, sb16, pcspk,
+or default. 'default' will be <FONT SIZE="-1">AC97</FONT> if the hypervisor supports it,
+otherwise it will be <FONT SIZE="-1">ES1370</FONT>.
+
+
+<P>
+
+
+This deprecates the old boolean --sound model (which still works the same
+as a single '--soundhw default')
+<DT>--watchdog MODEL[,action=ACTION]<DD>
+<A NAME="ixAFI"></A>
+Attach a virtual hardware watchdog device to the guest. This requires a
+daemon and device driver in the guest. The watchdog fires a signal when
+the virtual machine appears to hung. <FONT SIZE="-1">ACTION</FONT> specifies what libvirt will do
+when the watchdog fires. Values are
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>reset</B><DD>
+<A NAME="ixAFJ"></A>
+Forcefully reset the guest (the default)
+<DT><B>poweroff</B><DD>
+<A NAME="ixAFK"></A>
+Forcefully power off the guest
+<DT><B>pause</B><DD>
+<A NAME="ixAFL"></A>
+Pause the guest
+<DT><B>none</B><DD>
+<A NAME="ixAFM"></A>
+Do nothing
+<DT><B>shutdown</B><DD>
+<A NAME="ixAFN"></A>
+Gracefully shutdown the guest (not recommended, since a hung guest probably
+won't respond to a graceful shutdown)
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+<FONT SIZE="-1">MODEL</FONT> is the emulated device model: either i6300esb (the default) or ib700.
+Some examples:
+
+
+<P>
+
+
+Use the recommended settings:
+
+
+<P>
+
+
+--watchdog default
+
+
+<P>
+
+
+Use the i6300esb with the 'poweroff' action
+
+
+<P>
+
+
+--watchdog i6300esb,action=poweroff
+</DL>
+
+<DT>--parallel=CHAROPTS<DD>
+<A NAME="ixAFO"></A>
+
+<DT>--serial=CHAROPTS<DD>
+<A NAME="ixAFP"></A>
+
+Specifies a serial device to attach to the guest, with various options. The
+general format of a serial string is
+
+
+<P>
+
+
+
+
+<PRE>
+    --serial type,opt1=val1,opt2=val2,...
+
+</PRE>
+
+
+
+
+<P>
+
+
+--serial and --parallel devices share all the same options, unless otherwise
+noted. Some of the types of character device redirection are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>--serial pty</B><DD>
+<A NAME="ixAFQ"></A>
+Pseudo <FONT SIZE="-1">TTY</FONT>. The allocated pty will be listed in the running guests <FONT SIZE="-1">XML</FONT>
+description.
+<DT><B>--serial dev,path=HOSTPATH</B><DD>
+<A NAME="ixAFR"></A>
+Host device. For serial devices, this could be /dev/ttyS0. For parallel
+devices, this could be /dev/parport0.
+<DT><B>--serial file,path=FILENAME</B><DD>
+<A NAME="ixAFS"></A>
+Write output to <FONT SIZE="-1">FILENAME</FONT>.
+<DT><B>--serial pipe,path=PIPEPATH</B><DD>
+<A NAME="ixAFT"></A>
+Named pipe (see <I><A HREF="/man/index.html?7+pipe">pipe</A></I>(7))
+<DT><B>--serial tcp,host=HOST:PORT,mode=MODE,protocol=PROTOCOL</B><DD>
+<A NAME="ixAFU"></A>
+<FONT SIZE="-1">TCP</FONT> net console. <FONT SIZE="-1">MODE</FONT> is either 'bind' (wait for connections on <FONT SIZE="-1">HOST:PORT</FONT>)
+or 'connect' (send output to <FONT SIZE="-1">HOST:PORT</FONT>), default is 'connect'. <FONT SIZE="-1">HOST</FONT> defaults
+to '127.0.0.1', but <FONT SIZE="-1">PORT</FONT> is required. <FONT SIZE="-1">PROTOCOL</FONT> can be either 'raw' or 'telnet'
+(default 'raw'). If 'telnet', the port acts like a telnet server or client.
+Some examples:
+
+
+<P>
+
+
+Connect to localhost, port 1234:
+
+
+<P>
+
+
+--serial tcp,host=:1234
+
+
+<P>
+
+
+Wait for connections on any address, port 4567:
+
+
+<P>
+
+
+--serial tcp,host=0.0.0.0:4567,mode=bind
+
+
+<P>
+
+
+Wait for telnet connection on localhost, port 2222. The user could then
+connect interactively to this console via 'telnet localhost 2222':
+
+
+<P>
+
+
+--serial tcp,host=:2222,mode=bind,protocol=telnet
+<DT><B>--serial udp,host=CONNECT_HOST:PORT,bind_host=BIND_HOST:BIND_PORT</B><DD>
+<A NAME="ixAFV"></A>
+<FONT SIZE="-1">UDP</FONT> net console. <FONT SIZE="-1">HOST:PORT</FONT> is the destination to send output to (default
+<FONT SIZE="-1">HOST</FONT> is '127.0.0.1', <FONT SIZE="-1">PORT</FONT> is required). <FONT SIZE="-1">BIND_HOST:BIND_PORT</FONT> is the optional
+local address to bind to (default <FONT SIZE="-1">BIND_HOST</FONT> is 127.0.0.1, but is only set if
+<FONT SIZE="-1">BIND_PORT</FONT> is specified). Some examples:
+
+
+<P>
+
+
+Send output to default syslog port (may need to edit /etc/rsyslog.conf
+accordingly):
+
+
+<P>
+
+
+--serial udp,host=:514
+
+
+<P>
+
+
+Send output to remote host 192.168.10.20, port 4444 (this output can be
+read on the remote host using 'nc -u -l 4444'):
+
+
+<P>
+
+
+--serial udp,host=192.168.10.20:4444
+<DT><B>--serial unix,path=UNIXPATH,mode=MODE</B><DD>
+<A NAME="ixAFW"></A>
+Unix socket, see <I><A HREF="/man/index.html?7+unix">unix</A></I>(7). <FONT SIZE="-1">MODE</FONT> has similar behavior and defaults as
+--serial tcp,mode=MODE
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>--channel<DD>
+<A NAME="ixAFX"></A>
+Specifies a communication channel device to connect the guest and host
+machine. This option uses the same options as --serial and --parallel
+for specifying the host/source end of the channel. Extra 'target' options
+are used to specify how the guest machine sees the channel.
+
+
+<P>
+
+
+Some of the types of character device redirection are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>--channel </B><FONT SIZE="-1"><B>SOURCE</B></FONT><B>,target_type=guestfwd,target_address=HOST:PORT</B><DD>
+<A NAME="ixAFY"></A>
+Communication channel using <FONT SIZE="-1">QEMU</FONT> usermode networking stack. The guest can
+connect to the channel using the specified <FONT SIZE="-1">HOST:PORT</FONT> combination.
+<DT><B>--channel </B><FONT SIZE="-1"><B>SOURCE</B></FONT><B>,target_type=virtio[,name=NAME]</B><DD>
+<A NAME="ixAFZ"></A>
+Communication channel using virtio serial (requires 2.6.34 or later host and
+guest). Each instance of a virtio --channel line is exposed in the
+guest as /dev/vport0p1, /dev/vport0p2, etc. <FONT SIZE="-1">NAME</FONT> is optional metadata, and
+can be any string, such as org.linux-kvm.virtioport1.
+If specified, this will be exposed in the guest at
+/sys/class/virtio-ports/vport0p1/NAME
+<DT><B>--channel spicevmc,target_type=virtio[,name=NAME]</B><DD>
+<A NAME="ixAGA"></A>
+Communication channel for <FONT SIZE="-1">QEMU</FONT> spice agent, using virtio serial
+(requires 2.6.34 or later host and guest). <FONT SIZE="-1">NAME</FONT> is optional metadata,
+and can be any string, such as the default com.redhat.spice.0 that
+specifies how the guest will see the channel.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>--console<DD>
+<A NAME="ixAGB"></A>
+Connect a text console between the guest and host. Certain guest and
+hypervisor combinations can automatically set up a getty in the guest, so
+an out of the box text login can be provided (target_type=xen for xen
+paravirt guests, and possibly target_type=virtio in the future).
+
+
+<P>
+
+
+Example:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>--console pty,target_type=virtio</B><DD>
+<A NAME="ixAGC"></A>
+Connect a virtio console to the guest, redirected to a <FONT SIZE="-1">PTY</FONT> on the host.
+For supported guests, this exposes /dev/hvc0 in the guest. See
+<A HREF="http://fedoraproject.org/wiki/Features/VirtioSerial">http://fedoraproject.org/wiki/Features/VirtioSerial</A> for more info. virtio
+console requires libvirt 0.8.3 or later.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>--video=VIDEO<DD>
+<A NAME="ixAGD"></A>
+Specify what video device model will be attached to the guest. Valid values
+for <FONT SIZE="-1">VIDEO</FONT> are hypervisor specific, but some options for recent kvm are
+cirrus, vga, qxl, or vmvga (vmware).
+<DT>--smartcard=MODE[,OPTS]<DD>
+<A NAME="ixAGE"></A>
+Configure a virtual smartcard device.
+
+
+<P>
+
+
+Mode is one of <B>host</B>, <B>host-certificates</B>, or <B>passthrough</B>. Additional
+options are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>type</B><DD>
+<A NAME="ixAGF"></A>
+Character device type to connect to on the host. This is only applicable
+for <B>passthrough</B> mode.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+An example invocation:
+<DL COMPACT>
+<DT><B>--smartcard passthrough,type=spicevmc</B><DD>
+<A NAME="ixAGG"></A>
+Use the smartcard channel of a <FONT SIZE="-1">SPICE</FONT> graphics device to pass smartcard info
+to the guest
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+See <TT>&quot;<A HREF="http://libvirt.org/formatdomain.html#elementsSmartcard">http://libvirt.org/formatdomain.html#elementsSmartcard</A>&quot;</TT> for complete
+details.
+</DL>
+
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H3>Miscellaneous Options</H3>
+
+<A NAME="ixAGH"></A>
+<DL COMPACT>
+<DT>--autostart<DD>
+<A NAME="ixAGI"></A>
+Set the autostart flag for a domain. This causes the domain to be started
+on host boot up.
+<DT>--print-xml<DD>
+<A NAME="ixAGJ"></A>
+If the requested guest has no install phase (--import, --boot), print the
+generated <FONT SIZE="-1">XML</FONT> instead of defining the guest. By default this <FONT SIZE="-1">WILL</FONT> do storage
+creation (can be disabled with --dry-run).
+
+
+<P>
+
+
+If the guest has an install phase, you will need to use --print-step to
+specify exactly what <FONT SIZE="-1">XML</FONT> output you want. This option implies --quiet.
+<DT>--print-step<DD>
+<A NAME="ixAGK"></A>
+Acts similarly to --print-xml, except requires specifying which install step
+to print <FONT SIZE="-1">XML</FONT> for. Possible values are 1, 2, 3, or all. Stage 1 is typically
+booting from the install media, and stage 2 is typically the final guest
+config booting off hardisk. Stage 3 is only relevant for windows installs,
+which by default have a second install stage. This option implies --quiet.
+<DT>--noreboot<DD>
+<A NAME="ixAGL"></A>
+Prevent the domain from automatically rebooting after the install has
+completed.
+<DT>--wait=WAIT<DD>
+<A NAME="ixAGM"></A>
+Amount of time to wait (in minutes) for a <FONT SIZE="-1">VM</FONT> to complete its install.
+Without this option, virt-install will wait for the console to close (not
+neccessarily indicating the guest has shutdown), or in the case of
+--noautoconsole, simply kick off the install and exit. Any negative
+value will make virt-install wait indefinitely, a value of 0 triggers the
+same results as noautoconsole. If the time limit is exceeded, virt-install
+simply exits, leaving the virtual machine in its current state.
+<DT>--force<DD>
+<A NAME="ixAGN"></A>
+Prevent interactive prompts. If the intended prompt was a yes/no prompt, always
+say yes. For any other prompts, the application will exit.
+<DT>--dry-run<DD>
+<A NAME="ixAGO"></A>
+Proceed through the guest creation process, but do <FONT SIZE="-1">NOT</FONT> create storage devices,
+change host device configuration, or actually teach libvirt about the guest.
+virt-install may still fetch install media, since this is required to
+properly detect the <FONT SIZE="-1">OS</FONT> to install.
+<DT>--prompt<DD>
+<A NAME="ixAGP"></A>
+Specifically enable prompting for required information. Default prompting
+is off (as of virtinst 0.400.0)
+<DT>--check-cpu<DD>
+<A NAME="ixAGQ"></A>
+Check that the number virtual cpus requested does not exceed physical CPUs and
+warn if they do.
+<DT>-q, --quiet<DD>
+<A NAME="ixAGR"></A>
+Only print fatal error messages.
+<DT>-d, --debug<DD>
+<A NAME="ixAGS"></A>
+Print debugging information to the terminal when running the install process.
+The debugging information is also stored in <TT>&quot;$HOME/.virtinst/virt-install.log&quot;</TT>
+even if this parameter is omitted.
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAGT"></A>
+Install a Fedora 13 <FONT SIZE="-1">KVM</FONT> guest with virtio accelerated disk/network,
+creating a new 8GB storage file, installing from media in the hosts
+<FONT SIZE="-1">CDROM</FONT> drive, auto launching a graphical <FONT SIZE="-1">VNC</FONT> viewer
+<P>
+
+
+
+<PRE>
+  # virt-install \
+       --connect <A HREF="qemu:///system">qemu:///system</A> \
+       --virt-type kvm \
+       --name demo \
+       --ram 500 \
+       --disk path=/var/lib/libvirt/images/demo.img,size=8 \
+       --graphics vnc \
+       --cdrom /dev/cdrom \
+       --os-variant fedora13
+
+</PRE>
+
+
+<P>
+
+Install a Fedora 9 plain <FONT SIZE="-1">QEMU</FONT> guest, using <FONT SIZE="-1">LVM</FONT> partition, virtual networking,
+booting from <FONT SIZE="-1">PXE</FONT>, using <FONT SIZE="-1">VNC</FONT> server/viewer
+<P>
+
+
+
+<PRE>
+  # virt-install \
+       --connect <A HREF="qemu:///system">qemu:///system</A> \
+       --name demo \
+       --ram 500 \
+       --disk path=/dev/HostVG/DemoVM \
+       --network network=default \
+       --virt-type qemu
+       --graphics vnc \
+       --os-variant fedora9
+
+</PRE>
+
+
+<P>
+
+Install a guest with a real partition, with the default <FONT SIZE="-1">QEMU</FONT> hypervisor for
+a different architecture using <FONT SIZE="-1">SDL</FONT> graphics, using a remote kernel and initrd
+pair:
+<P>
+
+
+
+<PRE>
+  # virt-install \
+       --connect <A HREF="qemu:///system">qemu:///system</A> \
+       --name demo \
+       --ram 500 \
+       --disk path=/dev/hdc \
+       --network bridge=eth1 \
+       --arch ppc64 \
+       --graphics sdl \
+       --location <A HREF="http://download.fedora.redhat.com/pub/fedora/linux/core/6/x86_64/os/">http://download.fedora.redhat.com/pub/fedora/linux/core/6/x86_64/os/</A>
+
+</PRE>
+
+
+<P>
+
+Run a Live <FONT SIZE="-1">CD</FONT> image under Xen fullyvirt, in diskless environment
+<P>
+
+
+
+<PRE>
+  # virt-install \
+       --hvm \
+       --name demo \
+       --ram 500 \
+       --nodisks \
+       --livecd \
+       --graphics vnc \
+       --cdrom /root/fedora7live.iso
+
+</PRE>
+
+
+<P>
+
+Run /usr/bin/httpd in a linux container guest (<FONT SIZE="-1">LXC</FONT>). Resource usage is capped
+at 512 <FONT SIZE="-1">MB</FONT> of ram and 2 host cpus:
+<P>
+
+
+
+<PRE>
+  # virt-install \
+        --connect <A HREF="lxc:///">lxc:///</A> \
+        --name httpd_guest \
+        --ram 512 \
+        --vcpus 2 \
+        --init /usr/bin/httpd
+
+</PRE>
+
+
+<P>
+
+Install a paravirtualized Xen guest, 500 <FONT SIZE="-1">MB</FONT> of <FONT SIZE="-1">RAM</FONT>, a 5 <FONT SIZE="-1">GB</FONT> of disk, and
+Fedora Core 6 from a web server, in text-only mode, with old style --file
+options:
+<P>
+
+
+
+<PRE>
+  # virt-install \
+       --paravirt \
+       --name demo \
+       --ram 500 \
+       --file /var/lib/xen/images/demo.img \
+       --file-size 6 \
+       --graphics none \
+       --location <A HREF="http://download.fedora.redhat.com/pub/fedora/linux/core/6/x86_64/os/">http://download.fedora.redhat.com/pub/fedora/linux/core/6/x86_64/os/</A>
+
+</PRE>
+
+
+<P>
+
+Create a guest from an existing disk image 'mydisk.img' using defaults for
+the rest of the options.
+<P>
+
+
+
+<PRE>
+  # virt-install \
+       --name demo
+       --ram 512
+       --disk /home/user/VMs/mydisk.img
+       --import
+
+</PRE>
+
+
+<P>
+
+Test a custom kernel/initrd using an existing disk image, manually
+specifying a serial device hooked to a <FONT SIZE="-1">PTY</FONT> on the host machine.
+<P>
+
+
+
+<PRE>
+  # virt-install \
+       --name mykernel
+       --ram 512
+       --disk /home/user/VMs/mydisk.img
+       --boot kernel=/tmp/mykernel,initrd=/tmp/myinitrd,kernel_args=&quot;console=ttyS0&quot;
+       --serial pty
+
+</PRE>
+
+
+<A NAME="lbAO">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<A NAME="ixAGU"></A>
+Written by Daniel P. Berrange, Hugh Brock, Jeremy Katz, Cole Robinson and a
+team of many other contributors. See the <FONT SIZE="-1">AUTHORS</FONT> file in the source
+distribution for the complete list of credits.
+<A NAME="lbAP">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAGV"></A>
+Please see <A HREF="http://virt-manager.org/page/BugReporting">http://virt-manager.org/page/BugReporting</A>
+<A NAME="lbAQ">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAGW"></A>
+Copyright (C) 2006-2011 Red Hat, Inc, and various contributors.
+This is free software. You may redistribute copies of it under the terms of
+the <FONT SIZE="-1">GNU</FONT> General Public License <TT>&quot;<A HREF="http://www.gnu.org/licenses/gpl.html">http://www.gnu.org/licenses/gpl.html</A>&quot;</TT>. There
+is <FONT SIZE="-1">NO</FONT> <FONT SIZE="-1">WARRANTY</FONT>, to the extent permitted by law.
+<A NAME="lbAR">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAGX"></A>
+<TT><A HREF="/man/index.html?1+virsh">virsh</A>(1)</TT>, <TT>&quot;<A HREF="http://localhost/cgi-bin/man/man2html?1+virt-clone">virt-clone</A>(1)&quot;</TT>, <TT>&quot;<A HREF="http://localhost/cgi-bin/man/man2html?1+virt-manager">virt-manager</A>(1)&quot;</TT>, the project website <TT>&quot;<A HREF="http://virt-manager.org">http://virt-manager.org</A>&quot;</TT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAF">General Options</A><DD>
+<DT><A HREF="#lbAG">Installation Method options</A><DD>
+<DT><A HREF="#lbAH">Storage Configuration</A><DD>
+<DT><A HREF="#lbAI">Networking Configuration</A><DD>
+<DT><A HREF="#lbAJ">Graphics Configuration</A><DD>
+<DT><A HREF="#lbAK">Virtualization Type options</A><DD>
+<DT><A HREF="#lbAL">Device Options</A><DD>
+<DT><A HREF="#lbAM">Miscellaneous Options</A><DD>
+</DL>
+<DT><A HREF="#lbAN">EXAMPLES</A><DD>
+<DT><A HREF="#lbAO">AUTHORS</A><DD>
+<DT><A HREF="#lbAP">BUGS</A><DD>
+<DT><A HREF="#lbAQ">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAR">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:12 GMT, December 24, 2015
+</div></body>
+</HTML>

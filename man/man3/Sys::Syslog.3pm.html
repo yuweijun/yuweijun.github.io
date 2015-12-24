@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Sys::Syslog</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Sys::Syslog</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-04-14<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Sys::Syslog - Perl interface to the UNIX <A HREF="/man/index.html?3+syslog">syslog</A>(3) calls
+<A NAME="lbAC">&nbsp;</A>
+<H2>VERSION</H2>
+
+<A NAME="ixAAC"></A>
+Version 0.27
+<A NAME="lbAD">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAD"></A>
+
+
+<PRE>
+    use Sys::Syslog;                          # all except setlogsock(), or:
+    use Sys::Syslog qw(:DEFAULT setlogsock);  # default set, plus setlogsock()
+    use Sys::Syslog qw(:standard :macros);    # standard functions, plus macros
+
+    openlog $ident, $logopt, $facility;       # don't forget this
+    syslog $priority, $format, @args;
+    $oldmask = setlogmask $mask_priority;
+    closelog;
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAE"></A>
+<TT>&quot;Sys::Syslog&quot;</TT> is an interface to the <FONT SIZE="-1">UNIX</FONT> <TT><A HREF="/man/index.html?3+syslog">syslog</A>(3)</TT> program.
+Call <TT>&quot;syslog()&quot;</TT> with a string priority and a list of <TT>&quot;printf()&quot;</TT> args
+just like <TT><A HREF="/man/index.html?3+syslog">syslog</A>(3)</TT>.
+<P>
+
+You can find a kind of <FONT SIZE="-1">FAQ</FONT> in ``<FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">RULES</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">SYS::SYSLOG</FONT>''.  Please read 
+it before coding, and again before asking questions.
+<A NAME="lbAF">&nbsp;</A>
+<H2>EXPORTS</H2>
+
+<A NAME="ixAAF"></A>
+<TT>&quot;Sys::Syslog&quot;</TT> exports the following <TT>&quot;Exporter&quot;</TT> tags:
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;:standard&quot;</TT> exports the standard <TT><A HREF="/man/index.html?3+syslog">syslog</A>(3)</TT> functions:
+
+
+<P>
+
+
+
+
+<PRE>
+    openlog closelog setlogmask syslog
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>&quot;:extended&quot;</TT> exports the Perl specific functions for <TT><A HREF="/man/index.html?3+syslog">syslog</A>(3)</TT>:
+
+
+<P>
+
+
+
+
+<PRE>
+    setlogsock
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>&quot;:macros&quot;</TT> exports the symbols corresponding to most of your <TT><A HREF="/man/index.html?3+syslog">syslog</A>(3)</TT> 
+macros and the <TT>&quot;LOG_UPTO()&quot;</TT> and <TT>&quot;LOG_MASK()&quot;</TT> functions. 
+See ``<FONT SIZE="-1">CONSTANTS</FONT>'' for the supported constants and their meaning.
+</DL>
+<P>
+
+By default, <TT>&quot;Sys::Syslog&quot;</TT> exports the symbols from the <TT>&quot;:standard&quot;</TT> tag.
+<A NAME="lbAG">&nbsp;</A>
+<H2>FUNCTIONS</H2>
+
+<A NAME="ixAAG"></A>
+<DL COMPACT>
+<DT><B>openlog($ident, $logopt, </B>$facility<B>)</B><DD>
+
+
+<A NAME="ixAAH"></A>
+Opens the syslog.
+<TT>$ident</TT> is prepended to every message.  <TT>$logopt</TT> contains zero or
+more of the options detailed below.  <TT>$facility</TT> specifies the part 
+of the system to report about, for example <TT>&quot;LOG_USER&quot;</TT> or <TT>&quot;LOG_LOCAL0&quot;</TT>:
+see ``Facilities'' for a list of well-known facilities, and your 
+<TT><A HREF="/man/index.html?3+syslog">syslog</A>(3)</TT> documentation for the facilities available in your system. 
+Check ``<FONT SIZE="-1">SEE</FONT> <FONT SIZE="-1">ALSO</FONT>'' for useful links. Facility can be given as a string 
+or a numeric macro.
+
+
+<P>
+
+
+This function will croak if it can't connect to the syslog daemon.
+
+
+<P>
+
+
+Note that <TT>&quot;openlog()&quot;</TT> now takes three arguments, just like <TT><A HREF="/man/index.html?3+openlog">openlog</A>(3)</TT>.
+
+
+<P>
+
+
+<B>You should use </B>&quot;openlog()&quot;<B> before calling </B>&quot;syslog()&quot;<B>.</B>
+
+
+<P>
+
+
+<B>Options</B>
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;cons&quot;</TT> - This option is ignored, since the failover mechanism will drop 
+down to the console automatically if all other media fail.
+<DT>*<DD>
+<TT>&quot;ndelay&quot;</TT> - Open the connection immediately (normally, the connection is
+opened when the first message is logged).
+<DT>*<DD>
+<TT>&quot;nofatal&quot;</TT> - When set to true, <TT>&quot;openlog()&quot;</TT> and <TT>&quot;syslog()&quot;</TT> will only 
+emit warnings instead of dying if the connection to the syslog can't 
+be established.
+<DT>*<DD>
+<TT>&quot;nowait&quot;</TT> - Don't wait for child processes that may have been created 
+while logging the message.  (The <FONT SIZE="-1">GNU</FONT> C library does not create a child
+process, so this option has no effect on Linux.)
+<DT>*<DD>
+<TT>&quot;perror&quot;</TT> - Write the message to standard error output as well to the
+system log.
+<DT>*<DD>
+<TT>&quot;pid&quot;</TT> - Include <FONT SIZE="-1">PID</FONT> with each message.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+<B>Examples</B>
+
+
+<P>
+
+
+Open the syslog with options <TT>&quot;ndelay&quot;</TT> and <TT>&quot;pid&quot;</TT>, and with facility <TT>&quot;LOCAL0&quot;</TT>:
+
+
+<P>
+
+
+
+
+<PRE>
+    openlog($name, &quot;ndelay,pid&quot;, &quot;local0&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Same thing, but this time using the macro corresponding to <TT>&quot;LOCAL0&quot;</TT>:
+
+
+<P>
+
+
+
+
+<PRE>
+    openlog($name, &quot;ndelay,pid&quot;, LOG_LOCAL0);
+
+</PRE>
+
+
+</DL>
+
+<DT><B>syslog($priority, $message)</B><DD>
+
+
+<A NAME="ixAAI"></A>
+
+<DT><B>syslog($priority, $format, </B>@args<B>)</B><DD>
+
+
+<A NAME="ixAAJ"></A>
+
+If <TT>$priority</TT> permits, logs <TT>$message</TT> or <TT>&quot;sprintf($format, @args)&quot;</TT>
+with the addition that <TT>%m</TT> in <TT>$message</TT> or <TT>$format</TT> is replaced with
+<TT>&quot;$!&quot;</TT> (the latest error message).
+
+
+<P>
+
+
+<TT>$priority</TT> can specify a level, or a level and a facility.  Levels and 
+facilities can be given as strings or as macros.  When using the <TT>&quot;eventlog&quot;</TT>
+mechanism, priorities <TT>&quot;DEBUG&quot;</TT> and <TT>&quot;INFO&quot;</TT> are mapped to event type 
+<TT>&quot;informational&quot;</TT>, <TT>&quot;NOTICE&quot;</TT> and <TT>&quot;WARNIN&quot;</TT> to <TT>&quot;warning&quot;</TT> and <TT>&quot;ERR&quot;</TT> to 
+<TT>&quot;EMERG&quot;</TT> to <TT>&quot;error&quot;</TT>.
+
+
+<P>
+
+
+If you didn't use <TT>&quot;openlog()&quot;</TT> before using <TT>&quot;syslog()&quot;</TT>, <TT>&quot;syslog()&quot;</TT> will 
+try to guess the <TT>$ident</TT> by extracting the shortest prefix of 
+<TT>$format</TT> that ends in a <TT>&quot;:&quot;</TT>.
+
+
+<P>
+
+
+<B>Examples</B>
+
+
+<P>
+
+
+
+
+<PRE>
+    syslog(&quot;info&quot;, $message);           # informational level
+    syslog(LOG_INFO, $message);         # informational level
+
+    syslog(&quot;info|local0&quot;, $message);        # information level, Local0 facility
+    syslog(LOG_INFO|LOG_LOCAL0, $message);  # information level, Local0 facility
+
+</PRE>
+
+
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>Note</B><DD>
+<A NAME="ixAAK"></A>
+<TT>&quot;Sys::Syslog&quot;</TT> version v0.07 and older passed the <TT>$message</TT> as the 
+formatting string to <TT>&quot;sprintf()&quot;</TT> even when no formatting arguments
+were provided.  If the code calling <TT>&quot;syslog()&quot;</TT> might execute with 
+older versions of this module, make sure to call the function as
+<TT>&quot;syslog($priority, &quot;%s&quot;, $message)&quot;</TT> instead of <TT>&quot;syslog($priority,
+$message)&quot;</TT>.  This protects against hostile formatting sequences that
+might show up if <TT>$message</TT> contains tainted data.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT><B>setlogmask($mask_priority)</B><DD>
+<A NAME="ixAAL"></A>
+Sets the log mask for the current process to <TT>$mask_priority</TT> and 
+returns the old mask.  If the mask argument is 0, the current log mask 
+is not modified.  See ``Levels'' for the list of available levels. 
+You can use the <TT>&quot;LOG_UPTO()&quot;</TT> function to allow all levels up to a 
+given priority (but it only accept the numeric macros as arguments).
+
+
+<P>
+
+
+<B>Examples</B>
+
+
+<P>
+
+
+Only log errors:
+
+
+<P>
+
+
+
+
+<PRE>
+    setlogmask( LOG_MASK(LOG_ERR) );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Log everything except informational messages:
+
+
+<P>
+
+
+
+
+<PRE>
+    setlogmask( ~(LOG_MASK(LOG_INFO)) );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Log critical messages, errors and warnings:
+
+
+<P>
+
+
+
+
+<PRE>
+    setlogmask( LOG_MASK(LOG_CRIT) | LOG_MASK(LOG_ERR) | LOG_MASK(LOG_WARNING) );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Log all messages up to debug:
+
+
+<P>
+
+
+
+
+<PRE>
+    setlogmask( LOG_UPTO(LOG_DEBUG) );
+
+</PRE>
+
+
+<DT><B>setlogsock($sock_type)</B><DD>
+<A NAME="ixAAM"></A>
+
+<DT><B>setlogsock($sock_type, $stream_location)</B> (added in Perl 5.004_02)<DD>
+
+
+<A NAME="ixAAN"></A>
+<DT><B>setlogsock($sock_type, $stream_location, </B>$sock_timeout<B>)</B> (added in 0.25)<DD>
+
+
+<A NAME="ixAAO"></A>
+
+Sets the socket type to be used for the next call to
+<TT>&quot;openlog()&quot;</TT> or <TT>&quot;syslog()&quot;</TT> and returns true on success,
+<TT>&quot;undef&quot;</TT> on failure. The available mechanisms are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;native&quot;</TT> - use the native C functions from your <TT><A HREF="/man/index.html?3+syslog">syslog</A>(3)</TT> library
+(added in <TT>&quot;Sys::Syslog&quot;</TT> 0.15).
+<DT>*<DD>
+<TT>&quot;eventlog&quot;</TT> - send messages to the Win32 events logger (Win32 only; 
+added in <TT>&quot;Sys::Syslog&quot;</TT> 0.19).
+<DT>*<DD>
+<TT>&quot;tcp&quot;</TT> - connect to a <FONT SIZE="-1">TCP</FONT> socket, on the <TT>&quot;syslog/tcp&quot;</TT> or <TT>&quot;syslogng/tcp&quot;</TT> 
+service. If defined, the second parameter is used as a hostname to connect to.
+<DT>*<DD>
+<TT>&quot;udp&quot;</TT> - connect to a <FONT SIZE="-1">UDP</FONT> socket, on the <TT>&quot;syslog/udp&quot;</TT> service.
+If defined, the second parameter is used as a hostname to connect to, 
+and the third parameter as the timeout used to check for <FONT SIZE="-1">UDP</FONT> response.
+<DT>*<DD>
+<TT>&quot;inet&quot;</TT> - connect to an <FONT SIZE="-1">INET</FONT> socket, either <FONT SIZE="-1">TCP</FONT> or <FONT SIZE="-1">UDP</FONT>, tried in that 
+order.  If defined, the second parameter is used as a hostname to connect to.
+<DT>*<DD>
+<TT>&quot;unix&quot;</TT> - connect to a <FONT SIZE="-1">UNIX</FONT> domain socket (in some systems a character 
+special device).  The name of that socket is the second parameter or, if 
+you omit the second parameter, the value returned by the <TT>&quot;_PATH_LOG&quot;</TT> macro 
+(if your system defines it), or <I>/dev/log</I> or <I>/dev/conslog</I>, whatever is 
+writable.
+<DT>*<DD>
+<TT>&quot;stream&quot;</TT> - connect to the stream indicated by the pathname provided as 
+the optional second parameter, or, if omitted, to <I>/dev/conslog</I>. 
+For example Solaris and <FONT SIZE="-1">IRIX</FONT> system may prefer <TT>&quot;stream&quot;</TT> instead of <TT>&quot;unix&quot;</TT>.
+<DT>*<DD>
+<TT>&quot;pipe&quot;</TT> - connect to the named pipe indicated by the pathname provided as 
+the optional second parameter, or, if omitted, to the value returned by 
+the <TT>&quot;_PATH_LOG&quot;</TT> macro (if your system defines it), or <I>/dev/log</I>
+(added in <TT>&quot;Sys::Syslog&quot;</TT> 0.21).
+<DT>*<DD>
+<TT>&quot;console&quot;</TT> - send messages directly to the console, as for the <TT>&quot;cons&quot;</TT> 
+option of <TT>&quot;openlog()&quot;</TT>.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+A reference to an array can also be passed as the first parameter.
+When this calling method is used, the array should contain a list of
+mechanisms which are attempted in order.
+
+
+<P>
+
+
+The default is to try <TT>&quot;native&quot;</TT>, <TT>&quot;tcp&quot;</TT>, <TT>&quot;udp&quot;</TT>, <TT>&quot;unix&quot;</TT>, <TT>&quot;pipe&quot;</TT>, <TT>&quot;stream&quot;</TT>, 
+<TT>&quot;console&quot;</TT>.
+Under systems with the Win32 <FONT SIZE="-1">API</FONT>, <TT>&quot;eventlog&quot;</TT> will be added as the first 
+mechanism to try if <TT>&quot;Win32::EventLog&quot;</TT> is available.
+
+
+<P>
+
+
+Giving an invalid value for <TT>$sock_type</TT> will <TT>&quot;croak&quot;</TT>.
+
+
+<P>
+
+
+<B>Examples</B>
+
+
+<P>
+
+
+Select the <FONT SIZE="-1">UDP</FONT> socket mechanism:
+
+
+<P>
+
+
+
+
+<PRE>
+    setlogsock(&quot;udp&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Select the native, <FONT SIZE="-1">UDP</FONT> socket then <FONT SIZE="-1">UNIX</FONT> domain socket mechanisms:
+
+
+<P>
+
+
+
+
+<PRE>
+    setlogsock([&quot;native&quot;, &quot;udp&quot;, &quot;unix&quot;]);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT><B>Note</B><DD>
+<A NAME="ixAAP"></A>
+Now that the ``native'' mechanism is supported by <TT>&quot;Sys::Syslog&quot;</TT> and selected 
+by default, the use of the <TT>&quot;setlogsock()&quot;</TT> function is discouraged because 
+other mechanisms are less portable across operating systems.  Authors of 
+modules and programs that use this function, especially its cargo-cult form 
+<TT>&quot;setlogsock(&quot;unix&quot;)&quot;</TT>, are advised to remove any occurence of it unless they 
+specifically want to use a given mechanism (like <FONT SIZE="-1">TCP</FONT> or <FONT SIZE="-1">UDP</FONT> to connect to 
+a remote host).
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT><B></B>closelog()<B></B><DD>
+<A NAME="ixAAQ"></A>
+Closes the log file and returns true on success.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>THE RULES OF SYS::SYSLOG</H2>
+
+<A NAME="ixAAR"></A>
+<I>The First Rule of Sys::Syslog is:</I>
+You do not call <TT>&quot;setlogsock&quot;</TT>.
+<P>
+
+<I>The Second Rule of Sys::Syslog is:</I>
+You <B>do not</B> call <TT>&quot;setlogsock&quot;</TT>.
+<P>
+
+<I>The Third Rule of Sys::Syslog is:</I>
+The program crashes, <TT>&quot;die&quot;</TT>s, calls <TT>&quot;closelog&quot;</TT>, the log is over.
+<P>
+
+<I>The Fourth Rule of Sys::Syslog is:</I>
+One facility, one priority.
+<P>
+
+<I>The Fifth Rule of Sys::Syslog is:</I>
+One log at a time.
+<P>
+
+<I>The Sixth Rule of Sys::Syslog is:</I>
+No <TT>&quot;syslog&quot;</TT> before <TT>&quot;openlog&quot;</TT>.
+<P>
+
+<I>The Seventh Rule of Sys::Syslog is:</I>
+Logs will go on as long as they have to.
+<P>
+
+<I>The Eighth, and Final Rule of Sys::Syslog is:</I>
+If this is your first use of Sys::Syslog, you must read the doc.
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAS"></A>
+An example:
+<P>
+
+
+
+<PRE>
+    openlog($program, 'cons,pid', 'user');
+    syslog('info', '%s', 'this is another test');
+    syslog('mail|warning', 'this is a better test: %d', time);
+    closelog();
+
+    syslog('debug', 'this is the last test');
+
+</PRE>
+
+
+<P>
+
+Another example:
+<P>
+
+
+
+<PRE>
+    openlog(&quot;$program $$&quot;, 'ndelay', 'user');
+    syslog('notice', 'fooprogram: this is really done');
+
+</PRE>
+
+
+<P>
+
+Example of use of <TT>%m</TT>:
+<P>
+
+
+
+<PRE>
+    $! = 55;
+    syslog('info', 'problem was %m');   # %m == $! in <A HREF="/man/index.html?3+syslog">syslog</A>(3)
+
+</PRE>
+
+
+<P>
+
+Log to <FONT SIZE="-1">UDP</FONT> port on <TT>$remotehost</TT> instead of logging locally:
+<P>
+
+
+
+<PRE>
+    setlogsock(&quot;udp&quot;, $remotehost);
+    openlog($program, 'ndelay', 'user');
+    syslog('info', 'something happened over here');
+
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>CONSTANTS</H2>
+
+<A NAME="ixAAT"></A>
+<A NAME="lbAK">&nbsp;</A>
+<H3>Facilities</H3>
+
+<A NAME="ixAAU"></A>
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;LOG_AUDIT&quot;</TT> - audit daemon (<FONT SIZE="-1">IRIX</FONT>); falls back to <TT>&quot;LOG_AUTH&quot;</TT>
+<DT>*<DD>
+<TT>&quot;LOG_AUTH&quot;</TT> - security/authorization messages
+<DT>*<DD>
+<TT>&quot;LOG_AUTHPRIV&quot;</TT> - security/authorization messages (private)
+<DT>*<DD>
+<TT>&quot;LOG_CONSOLE&quot;</TT> - <TT>&quot;/dev/console&quot;</TT> output (FreeBSD); falls back to <TT>&quot;LOG_USER&quot;</TT>
+<DT>*<DD>
+<TT>&quot;LOG_CRON&quot;</TT> - clock daemons (<B>cron</B> and <B>at</B>)
+<DT>*<DD>
+<TT>&quot;LOG_DAEMON&quot;</TT> - system daemons without separate facility value
+<DT>*<DD>
+<TT>&quot;LOG_FTP&quot;</TT> - <FONT SIZE="-1">FTP</FONT> daemon
+<DT>*<DD>
+<TT>&quot;LOG_KERN&quot;</TT> - kernel messages
+<DT>*<DD>
+<TT>&quot;LOG_INSTALL&quot;</TT> - installer subsystem (Mac <FONT SIZE="-1">OS</FONT> X); falls back to <TT>&quot;LOG_USER&quot;</TT>
+<DT>*<DD>
+<TT>&quot;LOG_LAUNCHD&quot;</TT> - launchd - general bootstrap daemon (Mac <FONT SIZE="-1">OS</FONT> X);
+falls back to <TT>&quot;LOG_DAEMON&quot;</TT>
+<DT>*<DD>
+<TT>&quot;LOG_LFMT&quot;</TT> - logalert facility; falls back to <TT>&quot;LOG_USER&quot;</TT>
+<DT>*<DD>
+<TT>&quot;LOG_LOCAL0&quot;</TT> through <TT>&quot;LOG_LOCAL7&quot;</TT> - reserved for local use
+<DT>*<DD>
+<TT>&quot;LOG_LPR&quot;</TT> - line printer subsystem
+<DT>*<DD>
+<TT>&quot;LOG_MAIL&quot;</TT> - mail subsystem
+<DT>*<DD>
+<TT>&quot;LOG_NETINFO&quot;</TT> - NetInfo subsystem (Mac <FONT SIZE="-1">OS</FONT> X); falls back to <TT>&quot;LOG_DAEMON&quot;</TT>
+<DT>*<DD>
+<TT>&quot;LOG_NEWS&quot;</TT> - <FONT SIZE="-1">USENET</FONT> news subsystem
+<DT>*<DD>
+<TT>&quot;LOG_NTP&quot;</TT> - <FONT SIZE="-1">NTP</FONT> subsystem (FreeBSD, NetBSD); falls back to <TT>&quot;LOG_DAEMON&quot;</TT>
+<DT>*<DD>
+<TT>&quot;LOG_RAS&quot;</TT> - Remote Access Service (<FONT SIZE="-1">VPN</FONT> / <FONT SIZE="-1">PPP</FONT>) (Mac <FONT SIZE="-1">OS</FONT> X);
+falls back to <TT>&quot;LOG_AUTH&quot;</TT>
+<DT>*<DD>
+<TT>&quot;LOG_REMOTEAUTH&quot;</TT> - remote authentication/authorization (Mac <FONT SIZE="-1">OS</FONT> X);
+falls back to <TT>&quot;LOG_AUTH&quot;</TT>
+<DT>*<DD>
+<TT>&quot;LOG_SECURITY&quot;</TT> - security subsystems (firewalling, etc.) (FreeBSD);
+falls back to <TT>&quot;LOG_AUTH&quot;</TT>
+<DT>*<DD>
+<TT>&quot;LOG_SYSLOG&quot;</TT> - messages generated internally by <B>syslogd</B>
+<DT>*<DD>
+<TT>&quot;LOG_USER&quot;</TT> (default) - generic user-level messages
+<DT>*<DD>
+<TT>&quot;LOG_UUCP&quot;</TT> - <FONT SIZE="-1">UUCP</FONT> subsystem
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>Levels</H3>
+
+<A NAME="ixAAV"></A>
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;LOG_EMERG&quot;</TT> - system is unusable
+<DT>*<DD>
+<TT>&quot;LOG_ALERT&quot;</TT> - action must be taken immediately
+<DT>*<DD>
+<TT>&quot;LOG_CRIT&quot;</TT> - critical conditions
+<DT>*<DD>
+<TT>&quot;LOG_ERR&quot;</TT> - error conditions
+<DT>*<DD>
+<TT>&quot;LOG_WARNING&quot;</TT> - warning conditions
+<DT>*<DD>
+<TT>&quot;LOG_NOTICE&quot;</TT> - normal, but significant, condition
+<DT>*<DD>
+<TT>&quot;LOG_INFO&quot;</TT> - informational message
+<DT>*<DD>
+<TT>&quot;LOG_DEBUG&quot;</TT> - debug-level message
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+<A NAME="ixAAW"></A>
+<DL COMPACT>
+<DT>Invalid argument passed to setlogsock<DD>
+
+
+<A NAME="ixAAX"></A>
+<B>(F)</B> You gave <TT>&quot;setlogsock()&quot;</TT> an invalid value for <TT>$sock_type</TT>.
+<DT>eventlog passed to setlogsock, but no Win32 API available<DD>
+
+
+<A NAME="ixAAY"></A>
+<B>(W)</B> You asked <TT>&quot;setlogsock()&quot;</TT> to use the Win32 event logger but the 
+operating system running the program isn't Win32 or does not provides Win32
+compatible facilities.
+<DT>no connection to syslog available<DD>
+
+
+<A NAME="ixAAZ"></A>
+<B>(F)</B> <TT>&quot;syslog()&quot;</TT> failed to connect to the specified socket.
+<DT>stream passed to setlogsock, but %s is not writable<DD>
+
+
+<A NAME="ixABA"></A>
+<B>(W)</B> You asked <TT>&quot;setlogsock()&quot;</TT> to use a stream socket, but the given 
+path is not writable.
+<DT>stream passed to setlogsock, but could not find any device<DD>
+
+
+<A NAME="ixABB"></A>
+<B>(W)</B> You asked <TT>&quot;setlogsock()&quot;</TT> to use a stream socket, but didn't 
+provide a path, and <TT>&quot;Sys::Syslog&quot;</TT> was unable to find an appropriate one.
+<DT>tcp passed to setlogsock, but tcp service unavailable<DD>
+
+
+<A NAME="ixABC"></A>
+<B>(W)</B> You asked <TT>&quot;setlogsock()&quot;</TT> to use a <FONT SIZE="-1">TCP</FONT> socket, but the service 
+is not available on the system.
+<DT>syslog: expecting argument %s<DD>
+
+
+<A NAME="ixABD"></A>
+<B>(F)</B> You forgot to give <TT>&quot;syslog()&quot;</TT> the indicated argument.
+<DT>syslog: invalid level/facility: %s<DD>
+
+
+<A NAME="ixABE"></A>
+<B>(F)</B> You specified an invalid level or facility.
+<DT>syslog: too many levels given: %s<DD>
+
+
+<A NAME="ixABF"></A>
+<B>(F)</B> You specified too many levels.
+<DT>syslog: too many facilities given: %s<DD>
+
+
+<A NAME="ixABG"></A>
+<B>(F)</B> You specified too many facilities.
+<DT>syslog: level must be given<DD>
+
+
+<A NAME="ixABH"></A>
+<B>(F)</B> You forgot to specify a level.
+<DT>udp passed to setlogsock, but udp service unavailable<DD>
+
+
+<A NAME="ixABI"></A>
+<B>(W)</B> You asked <TT>&quot;setlogsock()&quot;</TT> to use a <FONT SIZE="-1">UDP</FONT> socket, but the service 
+is not available on the system.
+<DT>unix passed to setlogsock, but path not available<DD>
+
+
+<A NAME="ixABJ"></A>
+<B>(W)</B> You asked <TT>&quot;setlogsock()&quot;</TT> to use a <FONT SIZE="-1">UNIX</FONT> socket, but <TT>&quot;Sys::Syslog&quot;</TT> 
+was unable to find an appropriate an appropriate device.
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABK"></A>
+<A NAME="lbAO">&nbsp;</A>
+<H3>Manual Pages</H3>
+
+<A NAME="ixABL"></A>
+<I><A HREF="/man/index.html?3+syslog">syslog</A></I>(3)
+<P>
+
+SUSv3 issue 6, <FONT SIZE="-1">IEEE</FONT> Std 1003.1, 2004 edition, 
+&lt;<A HREF="http://www.opengroup.org/onlinepubs/000095399/basedefs/syslog.h.html">http://www.opengroup.org/onlinepubs/000095399/basedefs/syslog.h.html</A>&gt;
+<P>
+
+<FONT SIZE="-1">GNU</FONT> C Library documentation on syslog, 
+&lt;<A HREF="http://www.gnu.org/software/libc/manual/html_node/Syslog.html">http://www.gnu.org/software/libc/manual/html_node/Syslog.html</A>&gt;
+<P>
+
+Solaris 10 documentation on syslog, 
+&lt;<A HREF="http://docs.sun.com/app/docs/doc/816-5168/syslog-3c?a=view">http://docs.sun.com/app/docs/doc/816-5168/syslog-3c?a=view</A>&gt;
+<P>
+
+Mac <FONT SIZE="-1">OS</FONT> X documentation on syslog,
+&lt;<A HREF="http://developer.apple.com/documentation/Darwin/Reference/ManPages/man3/syslog.3.html">http://developer.apple.com/documentation/Darwin/Reference/ManPages/man3/syslog.3.html</A>&gt;
+<P>
+
+<FONT SIZE="-1">IRIX</FONT> 6.5 documentation on syslog,
+&lt;<A HREF="http://techpubs.sgi.com/library/tpl/cgi-bin/getdoc.cgi?coll=0650">http://techpubs.sgi.com/library/tpl/cgi-bin/getdoc.cgi?coll=0650</A>&amp;db=man&amp;fname=3c+syslog&gt;
+<P>
+
+<FONT SIZE="-1">AIX</FONT> 5L 5.3 documentation on syslog, 
+&lt;<A HREF="http://publib.boulder.ibm.com/infocenter/pseries/v5r3/index.jsp?topic=/com.ibm.aix.basetechref/doc/basetrf2/syslog.htm">http://publib.boulder.ibm.com/infocenter/pseries/v5r3/index.jsp?topic=/com.ibm.aix.basetechref/doc/basetrf2/syslog.htm</A>&gt;
+<P>
+
+HP-UX 11i documentation on syslog, 
+&lt;<A HREF="http://docs.hp.com/en/B2355-60130/syslog.3C.html">http://docs.hp.com/en/B2355-60130/syslog.3C.html</A>&gt;
+<P>
+
+Tru64 5.1 documentation on syslog, 
+&lt;<A HREF="http://h30097.www3.hp.com/docs/base_doc/DOCUMENTATION/V51_HTML/MAN/MAN3/0193____.HTM">http://h30097.www3.hp.com/docs/base_doc/DOCUMENTATION/V51_HTML/MAN/MAN3/0193____.HTM</A>&gt;
+<P>
+
+Stratus <FONT SIZE="-1">VOS</FONT> 15.1, 
+&lt;<A HREF="http://stratadoc.stratus.com/vos/15.1.1/r502-01/wwhelp/wwhimpl/js/html/wwhelp.htm?context=r502-01">http://stratadoc.stratus.com/vos/15.1.1/r502-01/wwhelp/wwhimpl/js/html/wwhelp.htm?context=r502-01</A>&amp;file=ch5r502-01bi.html&gt;
+<A NAME="lbAP">&nbsp;</A>
+<H3>RFCs</H3>
+
+<A NAME="ixABM"></A>
+<I></I><FONT SIZE="-1"><I>RFC</I></FONT><I> 3164 - The </I><FONT SIZE="-1"><I>BSD</I></FONT><I> syslog Protocol</I>, &lt;<A HREF="http://www.faqs.org/rfcs/rfc3164.html">http://www.faqs.org/rfcs/rfc3164.html</A>&gt;
+--- Please note that this is an informational <FONT SIZE="-1">RFC</FONT>, and therefore does not 
+specify a standard of any kind.
+<P>
+
+<I></I><FONT SIZE="-1"><I>RFC</I></FONT><I> 3195 - Reliable Delivery for syslog</I>, &lt;<A HREF="http://www.faqs.org/rfcs/rfc3195.html">http://www.faqs.org/rfcs/rfc3195.html</A>&gt;
+<A NAME="lbAQ">&nbsp;</A>
+<H3>Articles</H3>
+
+<A NAME="ixABN"></A>
+<I>Syslogging with Perl</I>, &lt;<A HREF="http://lexington.pm.org/meetings/022001.html">http://lexington.pm.org/meetings/022001.html</A>&gt;
+<A NAME="lbAR">&nbsp;</A>
+<H3>Event Log</H3>
+
+<A NAME="ixABO"></A>
+Windows Event Log,
+&lt;<A HREF="http://msdn.microsoft.com/library/default.asp?url=/library/en-us/wes/wes/windows_event_log.asp">http://msdn.microsoft.com/library/default.asp?url=/library/en-us/wes/wes/windows_event_log.asp</A>&gt;
+<A NAME="lbAS">&nbsp;</A>
+<H2>AUTHORS &amp; ACKNOWLEDGEMENTS</H2>
+
+<A NAME="ixABP"></A>
+Tom Christiansen &lt;<I>tchrist (at) perl.com</I>&gt; and Larry Wall
+&lt;<I>larry (at) wall.org</I>&gt;.
+<P>
+
+<FONT SIZE="-1">UNIX</FONT> domain sockets added by Sean Robinson
+&lt;<I>robinson_s (at) sc.maricopa.edu</I>&gt; with support from Tim Bunce 
+&lt;<I>Tim.Bunce (at) ig.co.uk</I>&gt; and the <TT>&quot;perl5-porters&quot;</TT> mailing list.
+<P>
+
+Dependency on <I>syslog.ph</I> replaced with <FONT SIZE="-1">XS</FONT> code by Tom Hughes
+&lt;<I>tom (at) compton.nu</I>&gt;.
+<P>
+
+Code for <TT>&quot;constant()&quot;</TT>s regenerated by Nicholas Clark &lt;<I>nick (at) ccl4.org</I>&gt;.
+<P>
+
+Failover to different communication modes by Nick Williams
+&lt;<I>Nick.Williams (at) morganstanley.com</I>&gt;.
+<P>
+
+Extracted from core distribution for publishing on the <FONT SIZE="-1">CPAN</FONT> by 
+Sebastien Aperghis-Tramoni &lt;sebastien (at) aperghis.net&gt;.
+<P>
+
+<FONT SIZE="-1">XS</FONT> code for using native C functions borrowed from <TT>&quot;Unix::Syslog&quot;</TT>, 
+written by Marcus Harnisch &lt;<I>marcus.harnisch (at) gmx.net</I>&gt;.
+<P>
+
+Yves Orton suggested and helped for making <TT>&quot;Sys::Syslog&quot;</TT> use the native 
+event logger under Win32 systems.
+<P>
+
+Jerry D. Hedden and Reini Urban provided greatly appreciated help to 
+debug and polish <TT>&quot;Sys::Syslog&quot;</TT> under Cygwin.
+<A NAME="lbAT">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixABQ"></A>
+Please report any bugs or feature requests to
+<TT>&quot;bug-sys-syslog (at) rt.cpan.org&quot;</TT>, or through the web interface at
+&lt;<A HREF="http://rt.cpan.org/Public/Dist/Display.html?Name=Sys-Syslog">http://rt.cpan.org/Public/Dist/Display.html?Name=Sys-Syslog</A>&gt;.
+I will be notified, and then you'll automatically be notified of progress on
+your bug as I make changes.
+<A NAME="lbAU">&nbsp;</A>
+<H2>SUPPORT</H2>
+
+<A NAME="ixABR"></A>
+You can find documentation for this module with the perldoc command.
+<P>
+
+
+
+<PRE>
+    perldoc Sys::Syslog
+
+</PRE>
+
+
+<P>
+
+You can also look for information at:
+<DL COMPACT>
+<DT>*<DD>
+AnnoCPAN: Annotated <FONT SIZE="-1">CPAN</FONT> documentation
+
+
+<P>
+
+
+&lt;<A HREF="http://annocpan.org/dist/Sys-Syslog">http://annocpan.org/dist/Sys-Syslog</A>&gt;
+<DT>*<DD>
+<FONT SIZE="-1">CPAN</FONT> Ratings
+
+
+<P>
+
+
+&lt;<A HREF="http://cpanratings.perl.org/d/Sys-Syslog">http://cpanratings.perl.org/d/Sys-Syslog</A>&gt;
+<DT>*<DD>
+<FONT SIZE="-1">RT:</FONT> <FONT SIZE="-1">CPAN</FONT>'s request tracker
+
+
+<P>
+
+
+&lt;<A HREF="http://rt.cpan.org/NoAuth/Bugs.html?Dist=Sys-Syslog">http://rt.cpan.org/NoAuth/Bugs.html?Dist=Sys-Syslog</A>&gt;
+<DT>*<DD>
+Search <FONT SIZE="-1">CPAN</FONT>
+
+
+<P>
+
+
+&lt;<A HREF="http://search.cpan.org/dist/Sys-Syslog/">http://search.cpan.org/dist/Sys-Syslog/</A>&gt;
+<DT>*<DD>
+Kobes' <FONT SIZE="-1">CPAN</FONT> Search
+
+
+<P>
+
+
+&lt;<A HREF="http://cpan.uwinnipeg.ca/dist/Sys-Syslog">http://cpan.uwinnipeg.ca/dist/Sys-Syslog</A>&gt;
+<DT>*<DD>
+Perl Documentation
+
+
+<P>
+
+
+&lt;<A HREF="http://perldoc.perl.org/Sys/Syslog.html">http://perldoc.perl.org/Sys/Syslog.html</A>&gt;
+</DL>
+<A NAME="lbAV">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABS"></A>
+Copyright (C) 1990-2008 by Larry Wall and others.
+<A NAME="lbAW">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixABT"></A>
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">VERSION</A><DD>
+<DT><A HREF="#lbAD">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAE">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAF">EXPORTS</A><DD>
+<DT><A HREF="#lbAG">FUNCTIONS</A><DD>
+<DT><A HREF="#lbAH">THE RULES OF SYS::SYSLOG</A><DD>
+<DT><A HREF="#lbAI">EXAMPLES</A><DD>
+<DT><A HREF="#lbAJ">CONSTANTS</A><DD>
+<DL>
+<DT><A HREF="#lbAK">Facilities</A><DD>
+<DT><A HREF="#lbAL">Levels</A><DD>
+</DL>
+<DT><A HREF="#lbAM">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAN">SEE ALSO</A><DD>
+<DL>
+<DT><A HREF="#lbAO">Manual Pages</A><DD>
+<DT><A HREF="#lbAP">RFCs</A><DD>
+<DT><A HREF="#lbAQ">Articles</A><DD>
+<DT><A HREF="#lbAR">Event Log</A><DD>
+</DL>
+<DT><A HREF="#lbAS">AUTHORS &amp; ACKNOWLEDGEMENTS</A><DD>
+<DT><A HREF="#lbAT">BUGS</A><DD>
+<DT><A HREF="#lbAU">SUPPORT</A><DD>
+<DT><A HREF="#lbAV">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAW">LICENSE</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:43 GMT, December 24, 2015
+</div></body>
+</HTML>

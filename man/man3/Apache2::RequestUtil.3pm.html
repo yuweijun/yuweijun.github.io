@@ -1,0 +1,1894 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of docs::api::Apache2::RequestUtil</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>docs::api::Apache2::RequestUtil</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-11-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Apache2::RequestUtil - Perl API for Apache request record utils
+<A NAME="lbAC">&nbsp;</A>
+<H2>Synopsis</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Apache2::RequestUtil ();
+  
+  # add httpd config dynamically
+  $r-&gt;add_config(['require valid-user']);
+  
+  # dump the request object as a string
+  print $r-&gt;as_string();
+  
+  # default content_type
+  $content_type = $r-&gt;default_type();
+  
+  # get PerlSetVar/PerlAddVar values
+  @values = $r-&gt;dir_config-&gt;get($key);
+  
+  # get server docroot
+  $docroot = $r-&gt;document_root();
+  
+  # set server docroot
+  $r-&gt;document_root($new_root);
+  
+  # what are the registered perl handlers for a given phase
+  my @handlers = @{ $r-&gt;get_handlers('PerlResponseHandler') || [] };
+  
+  # push a new handler for a given phase
+  $r-&gt;push_handlers(PerlCleanupHandler =&gt; \&amp;handler);
+  
+  # set handlers for a given phase (resetting previous values)
+  $r-&gt;set_handlers(PerlCleanupHandler =&gt; []);
+  
+  # what's the request body limit
+  $limit = $r-&gt;get_limit_req_body();
+  
+  # server and port names
+  $server = $r-&gt;get_server_name();
+  $port   = $r-&gt;get_server_port();
+  
+  # what string Apache is going to send for a given status code
+  $status_line = Apache2::RequestUtil::get_status_line(404);
+  
+  # are we in the main request?
+  $is_initial = $r-&gt;is_initial_req();
+  
+  # directory level PerlOptions flags lookup
+  $r-&gt;subprocess_env unless $r-&gt;is_perl_option_enabled('SetupEnv');
+  
+  # current &lt;Location&gt; value
+  $location = $r-&gt;location();
+  
+  # merge a &lt;Location&gt; container in a request object
+  $r-&gt;location_merge($location);
+  
+  # create a new Apache2::RequestRec object
+  $r = Apache2::RequestRec-&gt;new($c);
+  
+  # tell the client not to cache the response
+  $r-&gt;no_cache($boolean);
+  
+  # share perl objects like $r-&gt;notes
+  $r-&gt;pnotes($key =&gt; [$obj1, $obj2]);
+  
+  # get HTML signature
+  $sig = $r-&gt;psignature($prefix);
+  
+  # get the global request object (requires PerlOptions +GlobalRequest)
+  $r = Apache2::RequestUtil-&gt;request;
+  
+  # insert auth credentials into the request as if the client did that
+  $r-&gt;set_basic_credentials($username, $password);
+  
+  # slurp the contents of $r-&gt;filename
+  my $content = ${ $r-&gt;slurp_filename() };
+  
+  # terminate the current child after this request
+  $r-&gt;child_terminate();
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>Description</H2>
+
+<A NAME="ixAAD"></A>
+<TT>&quot;Apache2::RequestUtil&quot;</TT> provides the Apache request
+object utilities <FONT SIZE="-1">API</FONT>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>API</H2>
+
+<A NAME="ixAAE"></A>
+<A NAME="lbAF">&nbsp;</A>
+<H3>add_config</H3>
+
+
+
+<A NAME="ixAAF"></A>
+Dynamically add Apache configuration at request processing runtime:
+<P>
+
+
+
+<PRE>
+  $r-&gt;add_config($lines);
+  $r-&gt;add_config($lines, $override);
+  $r-&gt;add_config($lines, $override, $path);
+  $r-&gt;add_config($lines, $override, $path, $override_opts);
+
+</PRE>
+
+
+<P>
+
+Configuration directives are processed as if given in a <TT>&quot;&lt;Location&gt;&quot;</TT>
+block.
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAG"></A>
+
+<DT>arg1: $lines (<FONT SIZE="-1">ARRAY</FONT> ref)<DD>
+
+
+<A NAME="ixAAH"></A>
+
+An <FONT SIZE="-1">ARRAY</FONT> reference containing configuration lines per element, without
+the new line terminators.
+<DT>opt arg2: $override ( Apache2::Const override constant )<DD>
+
+
+<A NAME="ixAAI"></A>
+Which allow-override bits are set
+
+
+<P>
+
+
+Default value is:
+<TT>&quot;Apache2::Const::OR_AUTHCFG&quot;</TT>
+<DT>opt arg3: $path ( string )<DD>
+
+
+<A NAME="ixAAJ"></A>
+Set the <TT>&quot;Apache2::CmdParms object&quot;</TT> <TT>&quot;path&quot;</TT> component.
+This is the path of the <TT>&quot;&lt;Location&gt;&quot;</TT> block. Some directives need this,
+for example <TT>&quot;ProxyPassReverse&quot;</TT>.
+
+
+<P>
+
+
+If an empty string is passed a <TT>&quot;NULL&quot;</TT> pointer is passed further at C-level.
+This is necessary to make something like this work:
+
+
+<P>
+
+
+
+
+<PRE>
+  $r-&gt;add_config( [
+                   '&lt;Directory /&gt;',
+                   'AllowOverride Options AuthConfig',
+                   '&lt;/Directory&gt;',
+                  ], ~0, '' );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note: <TT>&quot;AllowOverride&quot;</TT> is valid only in directory context.
+
+
+<P>
+
+
+<B>Caution:</B> Some directives need a non-empty path otherwise they cause
+segfaults. Thus, use the empty path with caution.
+
+
+<P>
+
+
+Default value is: <TT>&quot;/&quot;</TT>
+<DT>opt arg4: $override_opts ( Apache2::Const options constant )<DD>
+
+
+<A NAME="ixAAK"></A>
+Apache limits the applicable directives in certain situations with
+<TT>&quot;AllowOverride&quot;</TT>. With Apache 2.2 comes the possibility to enable or
+disable single options, for example
+
+
+<P>
+
+
+
+
+<PRE>
+  AllowOverride AuthConfig Options=ExecCGI,Indexes
+
+</PRE>
+
+
+
+
+<P>
+
+
+Internally, this directive is parsed into 2 bit fields that are represented
+by the <TT>$override</TT> and <TT>$override_opts</TT> parameters to <TT>&quot;add_config&quot;</TT>.
+The above example is parsed into an <TT>$override</TT> with 2 bits set, one for
+<TT>&quot;AuthConfig&quot;</TT> the other for <TT>&quot;Options&quot;</TT> and an <TT>$override_opts</TT> with
+2 bits set for ExecCGI and Indexes.
+
+
+<P>
+
+
+When applying other directives, for example <TT>&quot;AuthType&quot;</TT> or <TT>&quot;Options&quot;</TT> the
+appropriate bits in <TT>$override</TT> must be set. For the <TT>&quot;Options&quot;</TT> directive
+additionally <TT>$override_opts</TT> bits must be set.
+
+
+<P>
+
+
+The <TT>$override</TT> and <TT>$override_opts</TT> parameters to <TT>&quot;add_config&quot;</TT> are
+valid while applying <TT>$lines</TT>.
+
+
+<P>
+
+
+<TT>$override_opts</TT> is new in Apache 2.2. The mod_perl implementation for
+Apache 2.0 lets you pass the parameter but ignores it.
+
+
+<P>
+
+
+Default for <TT>$override_opts</TT> is:
+<TT>&quot;Apache2::Const::OPT_UNSET&quot;</TT> |
+<TT>&quot;Apache2::Const::OPT_ALL&quot;</TT> |
+<TT>&quot;Apache2::Const::OPT_INCNOEXEC&quot;</TT> |
+<TT>&quot;Apache2::Const::OPT_SYM_OWNER&quot;</TT> |
+<TT>&quot;Apache2::Const::OPT_MULTI&quot;</TT>
+
+
+<P>
+
+
+That means, all options are allowed.
+<DT>ret: no return value<DD>
+<A NAME="ixAAL"></A>
+
+<DT>since: 2.0.00, $path and $override_opts since 2.0.3<DD>
+
+
+<A NAME="ixAAM"></A>
+
+</DL>
+<P>
+
+See also:
+<TT>&quot;$s-&gt;add_config&quot;</TT>
+<P>
+
+For example:
+<P>
+
+
+
+<PRE>
+  use Apache2::RequestUtil ();
+  use Apache2::Access ();
+
+  $r-&gt;add_config(['require valid-user']);
+
+  # this regards the current AllowOverride setting
+  $r-&gt;add_config(['AuthName secret',
+                  'AuthType Basic',
+                  'Options ExecCGI'],
+                 $r-&gt;allow_override, $path, $r-&gt;allow_override_opts);
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>as_string</H3>
+
+
+
+<A NAME="ixAAN"></A>
+Dump the request object as a string
+<P>
+
+
+
+<PRE>
+  $dump = $r-&gt;as_string();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAO"></A>
+
+<DT>ret: $dump ( string )<DD>
+
+
+<A NAME="ixAAP"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAQ"></A>
+
+</DL>
+<P>
+
+Dumps various request and response headers (mainly useful for
+debugging)
+<A NAME="lbAH">&nbsp;</A>
+<H3>child_terminate</H3>
+
+
+
+<A NAME="ixAAR"></A>
+Terminate the current worker process as soon as the current request is
+over
+<P>
+
+
+
+<PRE>
+  $r-&gt;child_terminate();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAS"></A>
+
+<DT>ret: no return value<DD>
+<A NAME="ixAAT"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAU"></A>
+
+</DL>
+<P>
+
+This method is not supported in threaded MPMs
+<A NAME="lbAI">&nbsp;</A>
+<H3>default_type</H3>
+
+
+
+<A NAME="ixAAV"></A>
+Retrieve the value of the DefaultType directive for the current
+request. If not set <TT>&quot;text/plain&quot;</TT> is returned.
+<P>
+
+
+
+<PRE>
+  $content_type = $r-&gt;default_type();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAW"></A>
+The current request
+<DT>ret: $content_type ( string )<DD>
+
+
+<A NAME="ixAAX"></A>
+The default type
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAY"></A>
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3>dir_config</H3>
+
+
+
+<A NAME="ixAAZ"></A>
+<TT>&quot;$r-&gt;dir_config()&quot;</TT> provides an interface for the per-directory
+variable specified by the <TT>&quot;PerlSetVar&quot;</TT> and <TT>&quot;PerlAddVar&quot;</TT> directives,
+and also can be manipulated via the
+<TT>&quot;APR::Table&quot;</TT> methods.
+<P>
+
+
+
+<PRE>
+  $table  = $r-&gt;dir_config();
+  $value  = $r-&gt;dir_config($key);
+  @values = $r-&gt;dir_config-&gt;get($key);
+  $r-&gt;dir_config($key, $val);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABA"></A>
+
+<DT>opt arg2: $key ( string )<DD>
+
+
+<A NAME="ixABB"></A>
+
+Key string
+<DT>opt arg3: $val ( string )<DD>
+
+
+<A NAME="ixABC"></A>
+Value string
+<DT>ret: ...<DD>
+<A NAME="ixABD"></A>
+Depends on the passed arguments, see further discussion
+<DT>since: 2.0.00<DD>
+<A NAME="ixABE"></A>
+</DL>
+<P>
+
+The keys are case-insensitive.
+<P>
+
+
+
+<PRE>
+  $apr_table = $r-&gt;dir_config();
+
+</PRE>
+
+
+<P>
+
+<I>dir_config()</I> called in a scalar context without the <TT>$key</TT> argument
+returns a <I></I><FONT SIZE="-1"><I>HASH</I></FONT><I></I> reference blessed into the
+<TT>&quot;APR::Table&quot;</TT> class. This object can be
+manipulated via the <TT>&quot;APR::Table&quot;</TT>
+methods. For available methods see
+the <TT>&quot;APR::Table&quot;</TT> manpage.
+<P>
+
+
+
+<PRE>
+  $value = $r-&gt;dir_config($key);
+
+</PRE>
+
+
+<P>
+
+If the <TT>$key</TT> argument is passed in the scalar context only a single
+value will be returned. Since the table preserves the insertion order,
+if there is more than one value for the same key, the oldest value
+assosiated with the desired key is returned. Calling in the scalar
+context is also much faster, as it'll stop searching the table as soon
+as the first match happens.
+<P>
+
+
+
+<PRE>
+  @values = $r-&gt;dir_config-&gt;get($key);
+
+</PRE>
+
+
+<P>
+
+To receive a list of values you must use <TT>&quot;get()&quot;</TT> method from the
+<TT>&quot;APR::Table&quot;</TT> class.
+<P>
+
+
+
+<PRE>
+  $r-&gt;dir_config($key =&gt; $val);
+
+</PRE>
+
+
+<P>
+
+If the <TT>$key</TT> and the <TT>$val</TT> arguments are used, the <I>set()</I> operation
+will happen: all existing values associated with the key <TT>$key</TT> (and
+the key itself) will be deleted and <TT>$value</TT> will be placed instead.
+<P>
+
+
+
+<PRE>
+  $r-&gt;dir_config($key =&gt; undef);
+
+</PRE>
+
+
+<P>
+
+If <TT>$val</TT> is <I>undef</I> the <I>unset()</I> operation will happen: all existing
+values associated with the key <TT>$key</TT> (and the key itself) will be
+deleted.
+<A NAME="lbAK">&nbsp;</A>
+<H3>document_root</H3>
+
+
+
+<A NAME="ixABF"></A>
+Retrieve the document root for this server
+<P>
+
+
+
+<PRE>
+  $docroot = $r-&gt;document_root();
+  $docroot = $r-&gt;document_root($new_root);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABG"></A>
+The current request
+<DT>opt arg1: $new_root<DD>
+
+
+<A NAME="ixABH"></A>
+Sets the document root to a new value <B>only for the duration of the
+current request</B>.
+
+
+<P>
+
+
+Note the limited functionality under threaded
+MPMs.
+<DT>ret: $docroot ( string )<DD>
+
+
+<A NAME="ixABI"></A>
+The document root
+<DT>since: 2.0.00<DD>
+<A NAME="ixABJ"></A>
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>get_handlers</H3>
+
+
+
+<A NAME="ixABK"></A>
+Returns a reference to a list of handlers enabled for a given phase.
+<P>
+
+
+
+<PRE>
+  $handlers_list = $r-&gt;get_handlers($hook_name);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABL"></A>
+
+<DT>arg1: $hook_name ( string )<DD>
+
+
+<A NAME="ixABM"></A>
+
+a string representing the phase to handle (e.g. <TT>&quot;PerlLogHandler&quot;</TT>)
+<DT>ret: $handlers_list (ref to an <FONT SIZE="-1">ARRAY</FONT> of <FONT SIZE="-1">CODE</FONT> refs)<DD>
+
+
+<A NAME="ixABN"></A>
+a list of handler subroutines <FONT SIZE="-1">CODE</FONT> references
+<DT>since: 2.0.00<DD>
+<A NAME="ixABO"></A>
+</DL>
+<P>
+
+See also:
+<TT>&quot;$s-&gt;add_config&quot;</TT>
+<P>
+
+For example:
+<P>
+
+A list of handlers configured to run at the response phase:
+<P>
+
+
+
+<PRE>
+  my @handlers = @{ $r-&gt;get_handlers('PerlResponseHandler') || [] };
+
+</PRE>
+
+
+<A NAME="lbAM">&nbsp;</A>
+<H3>get_limit_req_body</H3>
+
+
+
+<A NAME="ixABP"></A>
+Return the limit on bytes in request msg body
+<P>
+
+
+
+<PRE>
+  $limit = $r-&gt;get_limit_req_body();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABQ"></A>
+The current request
+<DT>ret: $limit (integer)<DD>
+
+
+<A NAME="ixABR"></A>
+the maximum number of bytes in the request msg body
+<DT>since: 2.0.00<DD>
+<A NAME="ixABS"></A>
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H3>get_server_name</H3>
+
+
+
+<A NAME="ixABT"></A>
+Get the current request's server name
+<P>
+
+
+
+<PRE>
+  $server = $r-&gt;get_server_name();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABU"></A>
+The current request
+<DT>ret: $server ( string )<DD>
+
+
+<A NAME="ixABV"></A>
+the server name
+<DT>since: 2.0.00<DD>
+<A NAME="ixABW"></A>
+</DL>
+<P>
+
+For example, consruct a hostport string:
+<P>
+
+
+
+<PRE>
+  use Apache2::RequestUtil ();
+  my $hostport = join ':', $r-&gt;get_server_name, $r-&gt;get_server_port;
+
+</PRE>
+
+
+<A NAME="lbAO">&nbsp;</A>
+<H3>get_server_port</H3>
+
+
+
+<A NAME="ixABX"></A>
+Get the current server port
+<P>
+
+
+
+<PRE>
+  $port = $r-&gt;get_server_port();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABY"></A>
+The current request
+<DT>ret: $port ( integer )<DD>
+
+
+<A NAME="ixABZ"></A>
+The server's port number
+<DT>since: 2.0.00<DD>
+<A NAME="ixACA"></A>
+</DL>
+<P>
+
+For example, consruct a hostport string:
+<P>
+
+
+
+<PRE>
+  use Apache2::RequestUtil ();
+  my $hostport = join ':', $r-&gt;get_server_name, $r-&gt;get_server_port;
+
+</PRE>
+
+
+<A NAME="lbAP">&nbsp;</A>
+<H3>get_status_line</H3>
+
+
+
+<A NAME="ixACB"></A>
+Return the <TT>&quot;Status-Line&quot;</TT> for a given status code (excluding the
+HTTP-Version field).
+<P>
+
+
+
+<PRE>
+  $status_line = Apache2::RequestUtil::get_status_line($status);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $status (integer)<DD>
+
+
+<A NAME="ixACC"></A>
+The <FONT SIZE="-1">HTTP</FONT> status code
+<DT>ret: $status_line ( string )<DD>
+
+
+<A NAME="ixACD"></A>
+The Status-Line
+
+
+<P>
+
+
+If an invalid or unknown status code is passed, <TT>&quot;500 Internal Server
+Error&quot;</TT> will be returned.
+<DT>since: 2.0.00<DD>
+<A NAME="ixACE"></A>
+</DL>
+<P>
+
+For example:
+<P>
+
+
+
+<PRE>
+  use Apache2::RequestUtil ();
+  print Apache2::RequestUtil::get_status_line(400);
+
+</PRE>
+
+
+<P>
+
+will print:
+<P>
+
+
+
+<PRE>
+  400 Bad Request
+
+</PRE>
+
+
+<A NAME="lbAQ">&nbsp;</A>
+<H3>is_initial_req</H3>
+
+
+
+<A NAME="ixACF"></A>
+Determine whether the current request is the main request or a
+sub-request
+<P>
+
+
+
+<PRE>
+  $is_initial = $r-&gt;is_initial_req();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixACG"></A>
+A request or a sub-request object
+<DT>ret: $is_initial ( boolean )<DD>
+
+
+<A NAME="ixACH"></A>
+If true --- it's the main request, otherwise it's a sub-request
+<DT>since: 2.0.00<DD>
+<A NAME="ixACI"></A>
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H3>is_perl_option_enabled</H3>
+
+
+
+<A NAME="ixACJ"></A>
+check whether a directory level <TT>&quot;PerlOptions&quot;</TT> flag is enabled or not.
+<P>
+
+
+
+<PRE>
+  $result = $r-&gt;is_perl_option_enabled($flag);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixACK"></A>
+
+<DT>arg1: $flag ( string )<DD>
+
+
+<A NAME="ixACL"></A>
+<DT>ret: $result ( boolean )<DD>
+
+
+<A NAME="ixACM"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixACN"></A>
+
+</DL>
+<P>
+
+For example to check whether the <TT>&quot;SetupEnv&quot;</TT> option is enabled for the
+current request (which can be disabled with <TT>&quot;PerlOptions -SetupEnv&quot;</TT>)
+and populate the environment variables table if disabled:
+<P>
+
+
+
+<PRE>
+  $r-&gt;subprocess_env unless $r-&gt;is_perl_option_enabled('SetupEnv');
+
+</PRE>
+
+
+<P>
+
+See also:
+PerlOptions and
+the equivalent function for server level PerlOptions
+flags.
+<A NAME="lbAS">&nbsp;</A>
+<H3>location</H3>
+
+
+
+<A NAME="ixACO"></A>
+Get the path of the &lt;Location&gt; section from which the current
+<TT>&quot;Perl*Handler&quot;</TT> is being called.
+<P>
+
+
+
+<PRE>
+  $location = $r-&gt;location();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixACP"></A>
+
+<DT>ret: $location ( string )<DD>
+
+
+<A NAME="ixACQ"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixACR"></A>
+
+</DL>
+<A NAME="lbAT">&nbsp;</A>
+<H3>location_merge</H3>
+
+
+
+<A NAME="ixACS"></A>
+Merge a given <TT>&quot;&lt;Location&gt;&quot;</TT> container into the current request
+object:
+<P>
+
+
+
+<PRE>
+  $ret = $r-&gt;location_merge($location);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixACT"></A>
+
+<DT>arg1: $location ( string )<DD>
+
+
+<A NAME="ixACU"></A>
+
+The argument in a <TT>&quot;&lt;Location&gt;&quot;</TT> section. For example to merge
+a container:
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;Location /foo&gt;
+      ...
+  &lt;/Location&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+that argument will be <I>/foo</I>
+<DT>ret: $ret ( boolean )<DD>
+
+
+<A NAME="ixACV"></A>
+a true value if the merge was successful (i.e. the request
+<TT>$location</TT> match was found), otherwise false.
+<DT>since: 2.0.00<DD>
+<A NAME="ixACW"></A>
+</DL>
+<P>
+
+Useful for insertion of a configuration section into a custom
+<TT>&quot;Apache2::RequestRec&quot;</TT> object, created via the
+<TT>&quot;Apache2::RequestRec-&gt;new()&quot;</TT> method. See for example the Command
+Server protocol
+example.
+<A NAME="lbAU">&nbsp;</A>
+<H3>new</H3>
+
+
+
+<A NAME="ixACX"></A>
+Create a new <TT>&quot;Apache2::RequestRec&quot;</TT> object.
+<P>
+
+
+
+<PRE>
+  $r = Apache2::RequestRec-&gt;new($c);
+  $r = Apache2::RequestRec-&gt;new($c, $pool);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: Apache2::RequestRec ( Apache2::RequestRec class name )<DD>
+
+
+<A NAME="ixACY"></A>
+
+<DT>arg1: $c (Apache2::Connection object)<DD>
+
+
+<A NAME="ixACZ"></A>
+<DT>opt arg2: $pool<DD>
+
+
+<A NAME="ixADA"></A>
+
+If no <TT>$pool</TT> argument is passed, <TT>&quot;$c-&gt;pool&quot;</TT> is used. That means
+that the created <TT>&quot;Apache2::RequestRec&quot;</TT> object will be valid as long as
+the connection object is valid.
+<DT>ret: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixADB"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixADC"></A>
+
+</DL>
+<P>
+
+It's possible to reuse the <FONT SIZE="-1">HTTP</FONT> framework features outside the
+familiar <FONT SIZE="-1">HTTP</FONT> request cycle. It's possible to write your own full or
+partial <FONT SIZE="-1">HTTP</FONT> implementation without needing a running Apache
+server. You will need the <TT>&quot;Apache2::RequestRec&quot;</TT> object in order to be
+able to reuse the rich functionality supplied via this object.
+<P>
+
+See for example the Command Server protocol
+example which
+reuses <FONT SIZE="-1">HTTP</FONT> <FONT SIZE="-1">AAA</FONT> model under non-HTTP protocol.
+<A NAME="lbAV">&nbsp;</A>
+<H3>no_cache</H3>
+
+
+
+<A NAME="ixADD"></A>
+Add/remove cache control headers:
+<P>
+
+
+
+<PRE>
+  $prev_no_cache = $r-&gt;no_cache($boolean);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixADE"></A>
+
+<DT>arg1: $boolean ( boolean )<DD>
+
+
+<A NAME="ixADF"></A>
+
+A true value sets the <TT>&quot;no_cache&quot;</TT> request record member to a true
+value and inserts:
+
+
+<P>
+
+
+
+
+<PRE>
+  Pragma: no-cache
+  Cache-control: no-cache
+
+</PRE>
+
+
+
+
+<P>
+
+
+into the response headers, indicating that the data being returned is
+volatile and the client should not cache it.
+
+
+<P>
+
+
+A false value unsets the <TT>&quot;no_cache&quot;</TT> request record member and the
+mentioned headers if they were previously set.
+<DT>ret: $prev_no_cache ( boolean )<DD>
+
+
+<A NAME="ixADG"></A>
+Should you care, the <TT>&quot;no_cache&quot;</TT> request record member value prior to
+the change is returned.
+<DT>since: 2.0.00<DD>
+<A NAME="ixADH"></A>
+</DL>
+<P>
+
+This method should be invoked before any response data has been sent
+out.
+<A NAME="lbAW">&nbsp;</A>
+<H3>pnotes</H3>
+
+
+
+<A NAME="ixADI"></A>
+Share Perl variables between Perl <FONT SIZE="-1">HTTP</FONT> handlers
+<P>
+
+
+
+<PRE>
+  $old_val  = $r-&gt;pnotes($key =&gt; $val);
+  $val      = $r-&gt;pnotes($key);
+  $hash_ref = $r-&gt;pnotes();
+
+</PRE>
+
+
+<P>
+
+<B>Note:</B> sharing variables really means it. The variable is not copied.
+Only its reference count is incremented. If it is changed after being
+put in pnotes that change also affects the stored value. The following
+example illustrates the effect:
+<P>
+
+
+
+<PRE>
+  my $v=1;                     my $v=1;
+  $r-&gt;pnotes( 'v'=&gt;$v );       $r-&gt;pnotes-&gt;{v}=$v;
+  $v++;                        $v++;
+  my $x=$r-&gt;pnotes('v');       my $x=$r-&gt;pnotes-&gt;{v};
+
+</PRE>
+
+
+<P>
+
+In both cases <TT>$x</TT> is <TT>2</TT> not <TT>1</TT>. See also <TT>&quot;Apache2::SafePnotes&quot;</TT> on
+<FONT SIZE="-1">CPAN</FONT>.
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixADJ"></A>
+
+<DT>opt arg1: $key ( string )<DD>
+
+
+<A NAME="ixADK"></A>
+
+A key value
+<DT>opt arg2: $val ( <FONT SIZE="-1">SCALAR</FONT> )<DD>
+
+
+<A NAME="ixADL"></A>
+Any scalar value (e.g. a reference to an array)
+<DT>ret: (3 different possible values)<DD>
+<A NAME="ixADM"></A>
+if both, <TT>$key</TT> and <TT>$val</TT> are passed the previous value for <TT>$key</TT>
+is returned if such existed, otherwise <TT>&quot;undef&quot;</TT> is returned.
+
+
+<P>
+
+
+if only <TT>$key</TT> is passed, the current value for the given key is
+returned.
+
+
+<P>
+
+
+if no arguments are passed, a hash reference is returned, which can
+then be directly accessed without going through the <TT>&quot;pnotes()&quot;</TT>
+interface.
+<DT>since: 2.0.00<DD>
+<A NAME="ixADN"></A>
+</DL>
+<P>
+
+This method provides functionality similar to
+(<TT>&quot;Apache2::RequestRec::notes&quot;</TT>),
+but values can be any Perl variables. That also means that it can be
+used only between Perl modules.
+<P>
+
+The values get reset automatically at the end of each <FONT SIZE="-1">HTTP</FONT> request.
+<P>
+
+Examples:
+<P>
+
+Set a key/value pair:
+<P>
+
+
+
+<PRE>
+  $r-&gt;pnotes(foo =&gt; [1..5]);
+
+</PRE>
+
+
+<P>
+
+Get the value:
+<P>
+
+
+
+<PRE>
+  $val = $r-&gt;pnotes(&quot;foo&quot;);
+
+</PRE>
+
+
+<P>
+
+<TT>$val</TT> now contains an array ref containing 5 elements (<TT>1..5</TT>).
+<P>
+
+Now change the existing value:
+<P>
+
+
+
+<PRE>
+  $old_val = $r-&gt;pnotes(foo =&gt; ['a'..'c']);
+  $val = $r-&gt;pnotes(&quot;foo&quot;);
+
+</PRE>
+
+
+<P>
+
+<TT>$old_val</TT> now contains an array ref with 5 elements (<TT>1..5</TT>) and
+<TT>$val</TT> contains an array ref with 3 elements <TT>'a'</TT>, <TT>'b'</TT>, <TT>'c'</TT>.
+<P>
+
+Alternatively you can access the hash reference with all pnotes
+values:
+<P>
+
+
+
+<PRE>
+  $pnotes = $r-&gt;pnotes;
+
+</PRE>
+
+
+<P>
+
+Now we can read what's in there for the key <I>foo</I>:
+<P>
+
+
+
+<PRE>
+  $val = $pnotes-&gt;{foo};
+
+</PRE>
+
+
+<P>
+
+and as before <TT>$val</TT> still gives us an array ref with 3 elements
+<TT>'a'</TT>, <TT>'b'</TT>, <TT>'c'</TT>.
+<P>
+
+Now we can add elements to it:
+<P>
+
+
+
+<PRE>
+  push @{ $pnotes{foo} }, 'd'..'f';
+
+</PRE>
+
+
+<P>
+
+and we can try to retrieve them using the hash and non-hash <FONT SIZE="-1">API:</FONT>
+<P>
+
+
+
+<PRE>
+  $val1 = $pnotes{foo};
+  $val2 = $r-&gt;pnotes(&quot;foo&quot;);
+
+</PRE>
+
+
+<P>
+
+Both <TT>$val1</TT> and <TT>$val2</TT> contain an array ref with 6 elements
+(letters 'a' to 'f').
+<P>
+
+Finally to reset an entry you could just assign <TT>&quot;undef&quot;</TT> as a value:
+<P>
+
+
+
+<PRE>
+  $r-&gt;pnotes(foo =&gt; undef);
+
+</PRE>
+
+
+<P>
+
+but the entry for the key <I>foo</I> still remains with the value
+<TT>&quot;undef&quot;</TT>. If you really want to completely remove it, use the hash
+interface:
+<P>
+
+
+
+<PRE>
+  delete $r-&gt;pnotes-&gt;{foo};
+
+</PRE>
+
+
+<A NAME="lbAX">&nbsp;</A>
+<H3>psignature</H3>
+
+
+
+<A NAME="ixADO"></A>
+Get <FONT SIZE="-1">HTML</FONT> describing the address and (optionally) admin of the server.
+<P>
+
+
+
+<PRE>
+  $sig = $r-&gt;psignature($prefix);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec )<DD>
+
+
+<A NAME="ixADP"></A>
+
+<DT>arg1: $prefix ( string )<DD>
+
+
+<A NAME="ixADQ"></A>
+
+Text which is prepended to the return value
+<DT>ret: $sig ( string )<DD>
+
+
+<A NAME="ixADR"></A>
+<FONT SIZE="-1">HTML</FONT> text describing the server. Note that depending on the value of
+the <TT>&quot;ServerSignature&quot;</TT> directive, the function may return the address,
+including the admin information or nothing at all.
+<DT>since: 2.0.00<DD>
+<A NAME="ixADS"></A>
+</DL>
+<A NAME="lbAY">&nbsp;</A>
+<H3>request</H3>
+
+
+
+<A NAME="ixADT"></A>
+Get/set the ( <TT>&quot;Apache2::RequestRec
+object&quot;</TT> ) object for the current
+request.
+<P>
+
+
+
+<PRE>
+  $r = Apache2::RequestUtil-&gt;request;
+       Apache2::RequestUtil-&gt;request($new_r);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: Apache2 (class name)<DD>
+
+
+<A NAME="ixADU"></A>
+The Apache class name
+<DT>opt arg1: $new_r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixADV"></A>
+
+<DT>ret: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixADW"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixADX"></A>
+
+</DL>
+<P>
+
+The get-able part of this method is only available if <TT>&quot;PerlOptions
++GlobalRequest&quot;</TT> is
+in effect or if <TT>&quot;Apache2-&gt;request($new_r)&quot;</TT> was called earlier. So
+instead of setting <TT>&quot;PerlOptions
++GlobalRequest&quot;</TT>, one
+can set the global request from within the handler.
+<A NAME="lbAZ">&nbsp;</A>
+<H3>push_handlers</H3>
+
+
+
+<A NAME="ixADY"></A>
+Add one or more handlers to a list of handlers to be called for a
+given phase.
+<P>
+
+
+
+<PRE>
+  $ok = $r-&gt;push_handlers($hook_name =&gt; \&amp;handler);
+  $ok = $r-&gt;push_handlers($hook_name =&gt; ['Foo::Bar::handler', \&amp;handler2]);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixADZ"></A>
+
+<DT>arg1: $hook_name ( string )<DD>
+
+
+<A NAME="ixAEA"></A>
+
+the phase to add the handlers to
+<DT>arg2: $handlers ( <FONT SIZE="-1">CODE</FONT> ref or <FONT SIZE="-1">SUB</FONT> name or an <FONT SIZE="-1">ARRAY</FONT> ref )<DD>
+
+
+<A NAME="ixAEB"></A>
+a single handler <FONT SIZE="-1">CODE</FONT> reference or just a name of the subroutine
+(fully qualified unless defined in the current package).
+
+
+<P>
+
+
+if more than one passed, use a reference to an array of <FONT SIZE="-1">CODE</FONT> refs
+and/or subroutine names.
+<DT>ret: $ok ( boolean )<DD>
+
+
+<A NAME="ixAEC"></A>
+returns a true value on success, otherwise a false value
+<DT>since: 2.0.00<DD>
+<A NAME="ixAED"></A>
+See also:
+<TT>&quot;$s-&gt;add_config&quot;</TT>
+
+
+<P>
+
+
+Note that to push input/output filters you have to use
+<TT>&quot;Apache2::Filter&quot;</TT> methods:
+<TT>&quot;add_input_filter&quot;</TT>
+and
+<TT>&quot;add_output_filter&quot;</TT>.
+</DL>
+<P>
+
+Examples:
+<P>
+
+A single handler:
+<P>
+
+
+
+<PRE>
+  $r-&gt;push_handlers(PerlResponseHandler =&gt; \&amp;handler);
+
+</PRE>
+
+
+<P>
+
+Multiple handlers:
+<P>
+
+
+
+<PRE>
+  $r-&gt;push_handlers(PerlFixupHandler =&gt; ['Foo::Bar::handler', \&amp;handler2]);
+
+</PRE>
+
+
+<P>
+
+Anonymous functions:
+<P>
+
+
+
+<PRE>
+  $r-&gt;push_handlers(PerlLogHandler =&gt; sub { return Apache2::Const::OK });
+
+</PRE>
+
+
+<A NAME="lbBA">&nbsp;</A>
+<H3>set_basic_credentials</H3>
+
+
+
+<A NAME="ixAEE"></A>
+Populate the incoming request headers table (<TT>&quot;headers_in&quot;</TT>) with
+authentication headers for Basic Authorization as if the client has
+submitted those in first place:
+<P>
+
+
+
+<PRE>
+  $r-&gt;set_basic_credentials($username, $password);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAEF"></A>
+
+<DT>arg1: $username ( string )<DD>
+
+
+<A NAME="ixAEG"></A>
+<DT>arg2: $password ( string )<DD>
+
+
+<A NAME="ixAEH"></A>
+<DT>ret: no return value<DD>
+<A NAME="ixAEI"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixAEJ"></A>
+
+</DL>
+<P>
+
+See for example the Command Server protocol
+example which
+reuses <FONT SIZE="-1">HTTP</FONT> <FONT SIZE="-1">AAA</FONT> model under non-HTTP protocol.
+<A NAME="lbBB">&nbsp;</A>
+<H3>set_handlers</H3>
+
+
+
+<A NAME="ixAEK"></A>
+Set a list of handlers to be called for a given phase. Any previously
+set handlers are forgotten.
+<P>
+
+
+
+<PRE>
+  $ok = $r-&gt;set_handlers($hook_name =&gt; \&amp;handler);
+  $ok = $r-&gt;set_handlers($hook_name =&gt; ['Foo::Bar::handler', \&amp;handler2]);
+  $ok = $r-&gt;set_handlers($hook_name =&gt; []);
+  $ok = $r-&gt;set_handlers($hook_name =&gt; undef);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAEL"></A>
+
+<DT>arg1: $hook_name ( string )<DD>
+
+
+<A NAME="ixAEM"></A>
+
+the phase to set the handlers in
+<DT>arg2: $handlers (<FONT SIZE="-1">CODE</FONT> ref or <FONT SIZE="-1">SUB</FONT> name or an <FONT SIZE="-1">ARRAY</FONT> ref)<DD>
+
+
+<A NAME="ixAEN"></A>
+a reference to a single handler <FONT SIZE="-1">CODE</FONT> reference or just a name of the
+subroutine (fully qualified unless defined in the current package).
+
+
+<P>
+
+
+if more than one passed, use a reference to an array of <FONT SIZE="-1">CODE</FONT> refs
+and/or subroutine names.
+
+
+<P>
+
+
+if the argument is <TT>&quot;undef&quot;</TT> or <TT>&quot;[]&quot;</TT> the list of handlers is reset to
+zero.
+<DT>ret: $ok ( boolean )<DD>
+
+
+<A NAME="ixAEO"></A>
+returns a true value on success, otherwise a false value
+<DT>since: 2.0.00<DD>
+<A NAME="ixAEP"></A>
+</DL>
+<P>
+
+See also:
+<TT>&quot;$s-&gt;add_config&quot;</TT>
+<P>
+
+Examples:
+<P>
+
+A single handler:
+<P>
+
+
+
+<PRE>
+  $r-&gt;set_handlers(PerlResponseHandler =&gt; \&amp;handler);
+
+</PRE>
+
+
+<P>
+
+Multiple handlers:
+<P>
+
+
+
+<PRE>
+  $r-&gt;set_handlers(PerlFixupHandler =&gt; ['Foo::Bar::handler', \&amp;handler2]);
+
+</PRE>
+
+
+<P>
+
+Anonymous functions:
+<P>
+
+
+
+<PRE>
+  $r-&gt;set_handlers(PerlLogHandler =&gt; sub { return Apache2::Const::OK });
+
+</PRE>
+
+
+<P>
+
+Reset any previously set handlers:
+<P>
+
+
+
+<PRE>
+  $r-&gt;set_handlers(PerlCleanupHandler =&gt; []);
+
+</PRE>
+
+
+<P>
+
+or
+<P>
+
+
+
+<PRE>
+  $r-&gt;set_handlers(PerlCleanupHandler =&gt; undef);
+
+</PRE>
+
+
+<A NAME="lbBC">&nbsp;</A>
+<H3>slurp_filename</H3>
+
+
+
+<A NAME="ixAEQ"></A>
+Slurp the contents of <TT>&quot;$r-&gt;filename&quot;</TT>:
+<P>
+
+
+
+<PRE>
+  $content_ref = $r-&gt;slurp_filename($tainted);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAER"></A>
+
+<DT>arg1: $tainted (number)<DD>
+
+
+<A NAME="ixAES"></A>
+
+If the server is run under the tainting mode (<TT>&quot;-T&quot;</TT>) which we hope you
+do, by default the returned data is tainted. If an optional
+<TT>$tainted</TT> flag is set to zero, the data will be marked as
+non-tainted.
+
+
+<P>
+
+
+Do <B>not</B> set this flag to zero unless you know what you are doing,
+you may create a security hole in your program if you do. For more
+information see the <I>perlsec</I> manpage.
+
+
+<P>
+
+
+If you wonder why this option is available, it is used internally by
+the <TT>&quot;ModPerl::Registry&quot;</TT> handler
+and friends, because the <FONT SIZE="-1">CGI</FONT> scripts that it reads are considered safe
+(you could just as well <TT>&quot;require()&quot;</TT> them).
+<DT>ret: $content_ref ( <FONT SIZE="-1">SCALAR</FONT> ref )<DD>
+
+
+<A NAME="ixAET"></A>
+A reference to a string with the contents
+<DT>excpt: APR::Error<DD>
+
+
+<A NAME="ixAEU"></A>
+Possible error codes could be:
+<TT>&quot;APR::Const::EACCES&quot;</TT>
+(permission problems),
+<TT>&quot;APR::Const::ENOENT&quot;</TT>
+(file not found), and others. For checking such error codes, see the
+documentation for, for example,
+<TT>&quot;APR::Status::is_EACCES&quot;</TT>
+and
+<TT>&quot;APR::Status::is_ENOENT&quot;</TT>.
+<DT>since: 2.0.00<DD>
+<A NAME="ixAEV"></A>
+</DL>
+<P>
+
+Note that if you assign to <TT>&quot;$r-&gt;filename&quot;</TT> you need to update
+its stat record.
+<A NAME="lbBD">&nbsp;</A>
+<H2>See Also</H2>
+
+<A NAME="ixAEW"></A>
+mod_perl 2.0 documentation.
+<A NAME="lbBE">&nbsp;</A>
+<H2>Copyright</H2>
+
+<A NAME="ixAEX"></A>
+mod_perl 2.0 and its core modules are copyrighted under
+The Apache Software License, Version 2.0.
+<A NAME="lbBF">&nbsp;</A>
+<H2>Authors</H2>
+
+<A NAME="ixAEY"></A>
+The mod_perl development team and numerous
+contributors.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">Synopsis</A><DD>
+<DT><A HREF="#lbAD">Description</A><DD>
+<DT><A HREF="#lbAE">API</A><DD>
+<DL>
+<DT><A HREF="#lbAF">add_config</A><DD>
+<DT><A HREF="#lbAG">as_string</A><DD>
+<DT><A HREF="#lbAH">child_terminate</A><DD>
+<DT><A HREF="#lbAI">default_type</A><DD>
+<DT><A HREF="#lbAJ">dir_config</A><DD>
+<DT><A HREF="#lbAK">document_root</A><DD>
+<DT><A HREF="#lbAL">get_handlers</A><DD>
+<DT><A HREF="#lbAM">get_limit_req_body</A><DD>
+<DT><A HREF="#lbAN">get_server_name</A><DD>
+<DT><A HREF="#lbAO">get_server_port</A><DD>
+<DT><A HREF="#lbAP">get_status_line</A><DD>
+<DT><A HREF="#lbAQ">is_initial_req</A><DD>
+<DT><A HREF="#lbAR">is_perl_option_enabled</A><DD>
+<DT><A HREF="#lbAS">location</A><DD>
+<DT><A HREF="#lbAT">location_merge</A><DD>
+<DT><A HREF="#lbAU">new</A><DD>
+<DT><A HREF="#lbAV">no_cache</A><DD>
+<DT><A HREF="#lbAW">pnotes</A><DD>
+<DT><A HREF="#lbAX">psignature</A><DD>
+<DT><A HREF="#lbAY">request</A><DD>
+<DT><A HREF="#lbAZ">push_handlers</A><DD>
+<DT><A HREF="#lbBA">set_basic_credentials</A><DD>
+<DT><A HREF="#lbBB">set_handlers</A><DD>
+<DT><A HREF="#lbBC">slurp_filename</A><DD>
+</DL>
+<DT><A HREF="#lbBD">See Also</A><DD>
+<DT><A HREF="#lbBE">Copyright</A><DD>
+<DT><A HREF="#lbBF">Authors</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

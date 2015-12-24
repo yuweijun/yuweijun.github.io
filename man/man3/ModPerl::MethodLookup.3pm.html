@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of docs::api::ModPerl::MethodLookup</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>docs::api::ModPerl::MethodLookup</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-11-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ModPerl::MethodLookup -- Lookup mod_perl modules, objects and methods
+<A NAME="lbAC">&nbsp;</A>
+<H2>Synopsis</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use ModPerl::MethodLookup;
+  
+  # return all module names containing XS method 'print'
+  my ($hint, @modules) =
+      ModPerl::MethodLookup::lookup_method('print');
+  
+  # return only module names containing method 'print' which
+  # expects the first argument to be of type 'Apache2::Filter'
+  # (here $filter is an Apache2::Filter object)
+  my ($hint, @modules) =
+      ModPerl::MethodLookup::lookup_method('print', $filter);
+  # or
+  my ($hint, @modules) =
+      ModPerl::MethodLookup::lookup_method('print', 'Apache2::Filter');
+  
+  # what XS methods defined by module 'Apache2::Filter'
+  my ($hint, @methods) =
+      ModPerl::MethodLookup::lookup_module('Apache2::Filter');
+  
+  # what XS methods can be invoked on the object $r (or a ref)
+  my ($hint, @methods) =
+      ModPerl::MethodLookup::lookup_object($r);
+  # or
+  my ($hint, @methods) =
+      ModPerl::MethodLookup::lookup_object('Apache2::RequestRec');
+  
+  # preload all mp2 modules in startup.pl
+  ModPerl::MethodLookup::preload_all_modules();
+  
+  # command line shortcuts
+  % perl -MModPerl::MethodLookup -e print_module \
+    Apache2::RequestRec Apache2::Filter
+  % perl -MModPerl::MethodLookup -e print_object Apache2
+  % perl -MModPerl::MethodLookup -e print_method \
+    get_server_built request
+  % perl -MModPerl::MethodLookup -e print_method read
+  % perl -MModPerl::MethodLookup -e print_method read APR::Bucket
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>Description</H2>
+
+<A NAME="ixAAD"></A>
+mod_perl 2.0 provides many methods, which reside in various
+modules. One has to load each of the modules before using the desired
+methods. <TT>&quot;ModPerl::MethodLookup&quot;</TT> provides the Perl <FONT SIZE="-1">API</FONT> for finding
+module names which contain methods in question and other helper
+functions, to find out out what methods defined by some module, what
+methods can be called on a given object, etc.
+<A NAME="lbAE">&nbsp;</A>
+<H2>API</H2>
+
+<A NAME="ixAAE"></A>
+<A NAME="lbAF">&nbsp;</A>
+<H3>lookup_method()</H3>
+
+
+
+<A NAME="ixAAF"></A>
+Find modules (packages) containing a certain method
+<P>
+
+
+
+<PRE>
+  ($hint, @modules) = lookup_method($method_name);
+  ($hint, @modules) = lookup_method($method_name, $object);
+  ($hint, @modules) = lookup_method($method_name, $class));
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $method_name ( string )<DD>
+
+
+<A NAME="ixAAG"></A>
+the method name to look up
+<DT>opt arg2: $object or $class<DD>
+
+
+<A NAME="ixAAH"></A>
+a blessed object or the name of the class it's blessed into. If there
+is more than one match, this extra information is used to return only
+modules containing methods operating on the objects of the same kind.
+
+
+<P>
+
+
+If a sub-classed object is passed it'll be handled correctly, by
+checking its super-class(es).  This usage is useful when the
+<TT>&quot;AUTOLOAD&quot;</TT> is used to find a not yet loaded module
+which include the called method.
+<DT>ret1: $hint<DD>
+
+
+<A NAME="ixAAI"></A>
+a string containing a human readable lookup result, suggesting which
+modules should be loaded, ready for copy-n-paste or explaining the
+failure if the lookup didn't succeed.
+<DT>ret2: @modules<DD>
+
+
+<A NAME="ixAAJ"></A>
+an array of modules which have matched the query, i.e. the names of
+the modules which contain the requested method.
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAK"></A>
+</DL>
+<P>
+
+Examples:
+<P>
+
+Return all module names containing <FONT SIZE="-1">XS</FONT> method <I>print</I>:
+<P>
+
+
+
+<PRE>
+  my ($hint, @modules) =
+      ModPerl::MethodLookup::lookup_method('print');
+
+</PRE>
+
+
+<P>
+
+Return only module names containing method <I>print</I> which expects the
+first argument to be of type <TT>&quot;Apache2::Filter&quot;</TT>:
+<P>
+
+
+
+<PRE>
+  my $filter = bless {}, 'Apache2::Filter';
+  my ($hint, @modules) =
+      ModPerl::MethodLookup::lookup_method('print', $filter);
+
+</PRE>
+
+
+<P>
+
+or:
+<P>
+
+
+
+<PRE>
+  my ($hint, @modules) =
+      ModPerl::MethodLookup::lookup_method('print', 'Apache2::Filter');
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>lookup_module()</H3>
+
+
+
+<A NAME="ixAAL"></A>
+Find methods contained in a certain module (package)
+<P>
+
+
+
+<PRE>
+  ($hint, @methods) = lookup_module($module_name);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $module_name ( string )<DD>
+
+
+<A NAME="ixAAM"></A>
+the module name
+<DT>ret1: $hint<DD>
+
+
+<A NAME="ixAAN"></A>
+a string containing a human readable lookup result, suggesting, which
+methods the module <TT>$module_name</TT> implements, or explaining the
+failure if the lookup failed.
+<DT>ret2: @methods<DD>
+
+
+<A NAME="ixAAO"></A>
+an array of methods which have matched the query, i.e. the names of
+the methods defined in the requested module.
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAP"></A>
+</DL>
+<P>
+
+Example:
+<P>
+
+What <FONT SIZE="-1">XS</FONT> methods defined by module <TT>&quot;Apache2::Filter&quot;</TT>:
+<P>
+
+
+
+<PRE>
+  my ($hint, @methods) =
+      ModPerl::MethodLookup::lookup_module('Apache2::Filter');
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>lookup_object()</H3>
+
+
+
+<A NAME="ixAAQ"></A>
+
+
+<PRE>
+  ($hint, @methods) = lookup_object($object);
+  ($hint, @methods) = lookup_object($class);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $object or $class<DD>
+
+
+<A NAME="ixAAR"></A>
+an object or a name of a class an object is blessed into
+
+
+<P>
+
+
+If a sub-classed object is passed it'll be handled correctly, by
+including methods provided by its super-class(es).
+<DT>ret1: $hint<DD>
+
+
+<A NAME="ixAAS"></A>
+a string containing a human readable lookup result, suggesting, which
+methods the given object can invoke (including module names that need
+to be loaded to use those methods), or explaining the failure if the
+lookup failed.
+<DT>ret2: @methods<DD>
+
+
+<A NAME="ixAAT"></A>
+an array of methods which have matched the query, i.e. the names of
+the methods that can be invoked on the given object (or its class
+name).
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAU"></A>
+</DL>
+<P>
+
+<FONT SIZE="-1">META:</FONT> As of this writing this function may miss some of the
+functions/methods that can be invoked on the given object. Currently
+we can't programmatically deduct the objects they are invoked on,
+because these methods are written in pure <FONT SIZE="-1">XS</FONT> and manipulate the
+arguments stack themselves. Currently these are mainly <FONT SIZE="-1">XS</FONT> functions,
+not methods, which of course aren't invoked on objects. There are also
+logging function wrappers (<TT>&quot;Apache2::Log&quot;</TT>).
+<P>
+
+Examples:
+<P>
+
+What <FONT SIZE="-1">XS</FONT> methods can be invoked on the object <TT>$r</TT>:
+<P>
+
+
+
+<PRE>
+  my ($hint, @methods) =
+      ModPerl::MethodLookup::lookup_object($r);
+
+</PRE>
+
+
+<P>
+
+or <TT>$r</TT>'s class --- <TT>&quot;Apache2::RequestRec&quot;</TT>:
+<P>
+
+
+
+<PRE>
+  my ($hint, @methods) =
+      ModPerl::MethodLookup::lookup_object('Apache2::RequestRec');
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>preload_all_modules()</H3>
+
+
+
+<A NAME="ixAAV"></A>
+The function <TT>&quot;preload_all_modules()&quot;</TT> preloads all mod_perl 2.0
+modules, which implement their <FONT SIZE="-1">API</FONT> in <FONT SIZE="-1">XS</FONT>. This is similar to the
+mod_perl 1.0 behavior which has most of its methods loaded at the
+startup.
+<P>
+
+<FONT SIZE="-1">CPAN</FONT> modules developers should make sure their distribution loads each
+of the used mod_perl 2.0 modules explicitly, and not use this
+function, as it takes the fine control away from the users. One should
+avoid doing this the production server (unless all modules are used
+indeed) in order to save memory.
+<DL COMPACT>
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAW"></A>
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3>print_method()</H3>
+
+
+
+<A NAME="ixAAX"></A>
+<TT>&quot;print_method()&quot;</TT> is a convenience wrapper for
+<TT>&quot;lookup_method()&quot;</TT>, mainly designed to be used
+from the command line. For example to print all the modules which
+define method <I>read</I> execute:
+<P>
+
+
+
+<PRE>
+  % perl -MModPerl::MethodLookup -e print_method read
+
+</PRE>
+
+
+<P>
+
+Since this will return more than one module, we can narrow the query
+to only those methods which expect the first argument to be blessed
+into class <TT>&quot;APR::Bucket&quot;</TT>:
+<P>
+
+
+
+<PRE>
+  % perl -MModPerl::MethodLookup -e print_method read APR::Bucket
+
+</PRE>
+
+
+<P>
+
+You can pass more than one method and it'll perform a lookup on each
+of the methods. For example to lookup methods <TT>&quot;get_server_built&quot;</TT> and
+<TT>&quot;request&quot;</TT> you can do:
+<P>
+
+
+
+<PRE>
+  % perl -MModPerl::MethodLookup -e print_method \
+    get_server_built request
+
+</PRE>
+
+
+<P>
+
+The function <TT>&quot;print_method()&quot;</TT> is exported by default.
+<DL COMPACT>
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAY"></A>
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H3>print_module()</H3>
+
+
+
+<A NAME="ixAAZ"></A>
+<TT>&quot;print_module()&quot;</TT> is a convenience wrapper for
+<TT>&quot;lookup_module()&quot;</TT>, mainly designed to be used
+from the command line. For example to print all the methods defined in
+the module <TT>&quot;Apache2::RequestRec&quot;</TT>, followed by methods defined in the
+module <TT>&quot;Apache2::Filter&quot;</TT> you can run:
+<P>
+
+
+
+<PRE>
+  % perl -MModPerl::MethodLookup -e print_module \
+    Apache2::RequestRec Apache2::Filter
+
+</PRE>
+
+
+<P>
+
+The function <TT>&quot;print_module()&quot;</TT> is exported by default.
+<DL COMPACT>
+<DT>since: 2.0.00<DD>
+<A NAME="ixABA"></A>
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>print_object()</H3>
+
+
+
+<A NAME="ixABB"></A>
+<TT>&quot;print_object()&quot;</TT> is a convenience wrapper for
+<TT>&quot;lookup_object()&quot;</TT>, mainly designed to be used
+from the command line. For example to print all the methods that can
+be invoked on object blessed into a class <TT>&quot;Apache2::RequestRec&quot;</TT> run:
+<P>
+
+
+
+<PRE>
+  % perl -MModPerl::MethodLookup -e print_object \
+    Apache2::RequestRec
+
+</PRE>
+
+
+<P>
+
+Similar to <TT>&quot;print_object()&quot;</TT>, more than one
+class can be passed to this function.
+<P>
+
+The function <TT>&quot;print_object()&quot;</TT> is exported by default.
+<DL COMPACT>
+<DT>since: 2.0.00<DD>
+<A NAME="ixABC"></A>
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H2>Applications</H2>
+
+<A NAME="ixABD"></A>
+<A NAME="lbAN">&nbsp;</A>
+<H3>AUTOLOAD</H3>
+
+
+
+<A NAME="ixABE"></A>
+When Perl fails to locate a method it checks whether the package the
+object belongs to has an <TT>&quot;AUTOLOAD&quot;</TT> function defined and if so, calls
+it with the same arguments as the missing method while setting a
+global variable <TT>$AUTOLOAD</TT> (in that package) to the name of the
+originally called method. We can use this facility to lookup the
+modules to be loaded when such a failure occurs. Though since we have
+many packages to take care of we will use a special
+<TT>&quot;UNIVERSAL::AUTOLOAD&quot;</TT> function which Perl calls if can't find the
+<TT>&quot;AUTOLOAD&quot;</TT> function in the given package.
+<P>
+
+In that function you can query <TT>&quot;ModPerl::MethodLookup&quot;</TT>, <I>require()</I> the
+module that includes the called method and call that method again
+using the <I>goto()</I> trick:
+<P>
+
+
+
+<PRE>
+  use ModPerl::MethodLookup;
+  sub UNIVERSAL::AUTOLOAD {
+      my ($hint, @modules) =
+          ModPerl::MethodLookup::lookup_method($UNIVERSAL::AUTOLOAD, @_);
+      if (@modules) {
+          eval &quot;require $_&quot; for @modules;
+          goto &amp;$UNIVERSAL::AUTOLOAD;
+      }
+      else {
+          die $hint;
+      }
+  }
+
+</PRE>
+
+
+<P>
+
+However we don't endorse this approach. It's a better approach to
+always abort the execution which printing the <TT>$hint</TT>and use fix the
+code to load the missing module. Moreover installing
+<TT>&quot;UNIVERSAL::AUTOLOAD&quot;</TT> may cause a lot of problems, since once it's
+installed Perl will call it every time some method is missing
+(e.g. undefined <TT>&quot;DESTROY&quot;</TT> methods). The following approach seems to
+somewhat work for me. It installs <TT>&quot;UNIVERSAL::AUTOLOAD&quot;</TT> only when the
+the child process starts.
+<P>
+
+
+
+<PRE>
+  httpd.conf:
+  -----------
+  PerlChildInitHandler ModPerl::MethodLookupAuto
+
+  startup.pl:
+  -----------
+  {
+      package ModPerl::MethodLookupAuto;
+      use ModPerl::MethodLookup;
+    
+      use Carp;
+      sub handler {
+    
+          *UNIVERSAL::AUTOLOAD = sub {
+              my $method = $AUTOLOAD;
+              return if $method =~ /DESTROY/; # exclude DESTROY resolving
+    
+              my ($hint, @modules) =
+                  ModPerl::MethodLookup::lookup_method($method, @_);
+              $hint ||= &quot;Can't find method $AUTOLOAD&quot;;
+              croak $hint;
+          };
+          return 0;
+      }
+  }
+
+</PRE>
+
+
+<P>
+
+This example doesn't load the modules for you. It'll print to <FONT SIZE="-1">STDERR</FONT>
+what module should be loaded, when a method from the not-yet-loaded
+module is called.
+<P>
+
+A similar technique is used by
+<TT>&quot;Apache2::porting&quot;</TT>.
+<P>
+
+<FONT SIZE="-1">META:</FONT> there is a better version of <FONT SIZE="-1">AUTOLOAD</FONT> discussed on the dev
+list. Replace the current one with it. (search the archive for
+EazyLife)
+<A NAME="lbAO">&nbsp;</A>
+<H3>Command Line Lookups</H3>
+
+<A NAME="ixABF"></A>
+When a method is used and mod_perl has reported a failure to find it,
+it's often useful to use the command line query to figure out which
+module needs to be loaded. For example if when executing:
+<P>
+
+
+
+<PRE>
+  $r-&gt;construct_url();
+
+</PRE>
+
+
+<P>
+
+mod_perl complains:
+<P>
+
+
+
+<PRE>
+  Can't locate object method &quot;construct_url&quot; via package
+  &quot;Apache2::RequestRec&quot; at ...
+
+</PRE>
+
+
+<P>
+
+you can ask <TT>&quot;ModPerl::MethodLookup&quot;</TT> for help:
+<P>
+
+
+
+<PRE>
+  % perl -MModPerl::MethodLookup -e print_method construct_url
+  To use method 'construct_url' add:
+          use Apache2::URI ();
+
+</PRE>
+
+
+<P>
+
+and after copy-n-pasting the use statement in our code, the problem
+goes away.
+<P>
+
+One can create a handy alias for this technique. For example, C-style
+shell users can do:
+<P>
+
+
+
+<PRE>
+   % alias lookup &quot;perl -MModPerl::MethodLookup -e print_method&quot;
+
+</PRE>
+
+
+<P>
+
+For Bash-style shell users:
+<P>
+
+
+
+<PRE>
+   % alias lookup=&quot;perl -MModPerl::MethodLookup -e print_method&quot;
+
+</PRE>
+
+
+<P>
+
+Now the lookup is even easier:
+<P>
+
+
+
+<PRE>
+  % lookup construct_url
+  to use method 'construct_url' add:
+          use Apache2::URI;
+
+</PRE>
+
+
+<P>
+
+Similar aliases can be provided for
+<TT>&quot;print_object()&quot;</TT> and
+<TT>&quot;print_module()&quot;</TT>.
+<A NAME="lbAP">&nbsp;</A>
+<H2>Todo</H2>
+
+<A NAME="ixABG"></A>
+These methods aren't yet picked by this module (the extract from the
+map file):
+<P>
+
+
+
+<PRE>
+ modperl_filter_attributes     | MODIFY_CODE_ATTRIBUTES
+ modperl_spawn_proc_prog       | spawn_proc_prog
+ apr_ipsubnet_create           | new
+
+</PRE>
+
+
+<P>
+
+Please report to the mod_perl development mailing
+list if you find any other missing methods. But remember that
+as of this moment the module reports only <FONT SIZE="-1">XS</FONT> functions. In the future
+we may add support for pure perl functions/methods as well.
+<A NAME="lbAQ">&nbsp;</A>
+<H2>See Also</H2>
+
+<A NAME="ixABH"></A>
+<DL COMPACT>
+<DT>*<DD>
+the mod_perl 1.0 backward compatibility
+document
+<DT>*<DD>
+porting Perl modules
+<DT>*<DD>
+porting <FONT SIZE="-1">XS</FONT> modules
+<DT>*<DD>
+<TT>&quot;Apache2::porting&quot;</TT>
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H2>Copyright</H2>
+
+<A NAME="ixABI"></A>
+mod_perl 2.0 and its core modules are copyrighted under
+The Apache Software License, Version 2.0.
+<A NAME="lbAS">&nbsp;</A>
+<H2>Authors</H2>
+
+<A NAME="ixABJ"></A>
+The mod_perl development team and numerous
+contributors.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">Synopsis</A><DD>
+<DT><A HREF="#lbAD">Description</A><DD>
+<DT><A HREF="#lbAE">API</A><DD>
+<DL>
+<DT><A HREF="#lbAF">lookup_method()</A><DD>
+<DT><A HREF="#lbAG">lookup_module()</A><DD>
+<DT><A HREF="#lbAH">lookup_object()</A><DD>
+<DT><A HREF="#lbAI">preload_all_modules()</A><DD>
+<DT><A HREF="#lbAJ">print_method()</A><DD>
+<DT><A HREF="#lbAK">print_module()</A><DD>
+<DT><A HREF="#lbAL">print_object()</A><DD>
+</DL>
+<DT><A HREF="#lbAM">Applications</A><DD>
+<DL>
+<DT><A HREF="#lbAN">AUTOLOAD</A><DD>
+<DT><A HREF="#lbAO">Command Line Lookups</A><DD>
+</DL>
+<DT><A HREF="#lbAP">Todo</A><DD>
+<DT><A HREF="#lbAQ">See Also</A><DD>
+<DT><A HREF="#lbAR">Copyright</A><DD>
+<DT><A HREF="#lbAS">Authors</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:34 GMT, December 24, 2015
+</div></body>
+</HTML>

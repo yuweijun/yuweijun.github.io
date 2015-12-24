@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of File::DosGlob</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>File::DosGlob</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+File::DosGlob - DOS like globbing and then some
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    require 5.004;
+
+    # override CORE::glob in current package
+    use File::DosGlob 'glob';
+
+    # override CORE::glob in ALL packages (use with extreme caution!)
+    use File::DosGlob 'GLOBAL_glob';
+
+    @perlfiles = glob  &quot;..\\pe?l/*.p?&quot;;
+    print &lt;..\\pe?l/*.p?&gt;;
+
+    # from the command line (overrides only in main::)
+    &gt; perl -MFile::DosGlob=glob -e &quot;print &lt;../pe*/*p?&gt;&quot;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+A module that implements DOS-like globbing with a few enhancements.
+It is largely compatible with perlglob.exe (the M$ setargv.obj
+version) in all but one respect---it understands wildcards in
+directory components.
+<P>
+
+For example, <TT>&quot;&lt;..\\l*b\\file/*glob.p?&quot;</TT>&gt; will work as expected (in
+that it will find something like '..\lib\File/DosGlob.pm' alright).
+Note that all path components are case-insensitive, and that
+backslashes and forward slashes are both accepted, and preserved.
+You may have to double the backslashes if you are putting them in
+literally, due to double-quotish parsing of the pattern by perl.
+<P>
+
+Spaces in the argument delimit distinct patterns, so
+<TT>&quot;glob('*.exe *.dll')&quot;</TT> globs all filenames that end in <TT>&quot;.exe&quot;</TT>
+or <TT>&quot;.dll&quot;</TT>.  If you want to put in literal spaces in the glob
+pattern, you can escape them with either double quotes, or backslashes.
+e.g. <TT>&quot;glob('c:/&quot;Program Files&quot;/*/*.dll')&quot;</TT>, or
+<TT>&quot;glob('c:/Program\ Files/*/*.dll')&quot;</TT>.  The argument is tokenized using
+<TT>&quot;Text::ParseWords::parse_line()&quot;</TT>, so see Text::ParseWords for details
+of the quoting rules used.
+<P>
+
+Extending it to csh patterns is left as an exercise to the reader.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT>*<DD>
+Mac <FONT SIZE="-1">OS</FONT> (Classic) users should note a few differences. The specification 
+of pathnames in glob patterns adheres to the usual Mac <FONT SIZE="-1">OS</FONT> conventions: 
+The path separator is a colon ':', not a slash '/' or backslash '\'. A 
+full path always begins with a volume name. A relative pathname on Mac 
+<FONT SIZE="-1">OS</FONT> must always begin with a ':', except when specifying a file or 
+directory name in the current working directory, where the leading colon 
+is optional. If specifying a volume name only, a trailing ':' is 
+required. Due to these rules, a glob like &lt;*:&gt; will find all 
+mounted volumes, while a glob like &lt;*&gt; or &lt;:*&gt; will find 
+all files and directories in the current directory.
+
+
+<P>
+
+
+Note that updirs in the glob pattern are resolved before the matching begins,
+i.e. a pattern like ``*HD:t?p::a*'' will be matched as ``*HD:a*''. Note also,
+that a single trailing ':' in the pattern is ignored (unless it's a volume
+name pattern like ``*HD:''), i.e. a glob like &lt;:*:&gt; will find both directories 
+<I>and</I> files (and not, as one might expect, only directories).
+
+
+<P>
+
+
+The metachars '*', '?' and the escape char '\' are valid characters in 
+volume, directory and file names on Mac <FONT SIZE="-1">OS</FONT>. Hence, if you want to match
+a '*', '?' or '\' literally, you have to escape these characters. Due to 
+perl's quoting rules, things may get a bit complicated, when you want to 
+match a string like '\*' literally, or when you want to match '\' literally, 
+but treat the immediately following character '*' as metachar. So, here's a 
+rule of thumb (applies to both single- and double-quoted strings): escape 
+each '*' or '?' or '\' with a backslash, if you want to treat them literally, 
+and then double each backslash and your are done. E.g.
+
+
+<P>
+
+
+- Match '\*' literally
+
+
+<P>
+
+
+
+
+<PRE>
+   escape both '\' and '*'  : '\\\*'
+   double the backslashes   : '\\\\\\*'
+
+</PRE>
+
+
+
+
+<P>
+
+
+(Internally, the glob routine sees a '\\\*', which means that both '\' and 
+'*' are escaped.)
+
+
+<P>
+
+
+- Match '\' literally, treat '*' as metachar
+
+
+<P>
+
+
+
+
+<PRE>
+   escape '\' but not '*'   : '\\*'
+   double the backslashes   : '\\\\*'
+
+</PRE>
+
+
+
+
+<P>
+
+
+(Internally, the glob routine sees a '\\*', which means that '\' is escaped and 
+'*' is not.)
+
+
+<P>
+
+
+Note that you also have to quote literal spaces in the glob pattern, as described
+above.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>EXPORTS (by request only)</H2>
+
+<A NAME="ixAAF"></A>
+<I>glob()</I>
+<A NAME="lbAG">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAG"></A>
+Should probably be built into the core, and needs to stop
+pandering to <FONT SIZE="-1">DOS</FONT> habits.  Needs a dose of optimizium too.
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAH"></A>
+Gurusamy Sarathy &lt;<A HREF="mailto:gsar@activestate.com">gsar@activestate.com</A>&gt;
+<A NAME="lbAI">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<A NAME="ixAAI"></A>
+<DL COMPACT>
+<DT>*<DD>
+Support for globally overriding <I>glob()</I> (<FONT SIZE="-1">GSAR</FONT> 3-JUN-98)
+<DT>*<DD>
+Scalar context, independent iterator context fixes (<FONT SIZE="-1">GSAR</FONT> 15-SEP-97)
+<DT>*<DD>
+A few dir-vs-file optimizations result in glob importation being
+10 times faster than using perlglob.exe, and using perlglob.bat is
+only twice as slow as perlglob.exe (<FONT SIZE="-1">GSAR</FONT> 28-MAY-97)
+<DT>*<DD>
+Several cleanups prompted by lack of compatible perlglob.exe
+under Borland (<FONT SIZE="-1">GSAR</FONT> 27-MAY-97)
+<DT>*<DD>
+Initial version (<FONT SIZE="-1">GSAR</FONT> 20-FEB-97)
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAJ"></A>
+perl
+<P>
+
+perlglob.bat
+<P>
+
+Text::ParseWords
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">EXPORTS (by request only)</A><DD>
+<DT><A HREF="#lbAG">BUGS</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+<DT><A HREF="#lbAI">HISTORY</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:27 GMT, December 24, 2015
+</div></body>
+</HTML>

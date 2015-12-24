@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERFMONCTL</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERFMONCTL</H1>
+Section: Linux System Calls (2)<BR>Updated: 28 August 2006<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perfmonctl - interface to PMU 
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/syscall.h">syscall.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/perfmon.h">perfmon.h</A>&gt;</B>
+
+<B>long perfmonctl(int </B><I>fd</I><B>, int </B><I>cmd</I><B>, void *</B><I>arg</I><B>, int </B><I>narg</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>perfmonctl</B>
+
+system call provides an interface to PMU (performance monitoring unit).
+PMU consists of PMD (performance monitoring data) registers and
+PMC (performance monitoring control) registers, where are
+gathered the hardware statistic.
+<P>
+<B>perfmonctl</B>
+
+will apply a function
+<I>cmd</I>
+
+to input arguments 
+<I>arg.</I>
+
+The number of arguments is defined by input variable <I>narg</I>.
+<I>fd</I>
+
+specifies the perfmon context to operate on.
+<P>
+The implemented commands 
+<I>cmd</I>
+
+are:
+<P>
+<DL COMPACT>
+<DT><B>PFM_CREATE_CONTEXT  <TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT></B>
+
+<DD>
+set up a context <BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_CREATE_CONTEXT , pfarg_context_t *</B><I>ctxt</I><B>, 1);</B>
+</PRE>
+
+<P>
+The
+<I>fd</I>
+
+parameter is ignored.  A new context is created as specified in
+<I>ctxt</I>
+
+and its file descriptor is returned in <I>ctxt-&gt;ctx_fd</I>.
+<P>
+The file descriptor, apart from passing it to <B>perfmonctl</B>,
+can be used to read event notifications (type
+<B>pfm_msg_t</B>) using the
+<B><A HREF="/man/index.html?2+read">read</A></B>(2)
+
+system call.
+Both
+<B><A HREF="/man/index.html?2+select">select</A></B>(2)
+
+and
+<B><A HREF="/man/index.html?2+poll">poll</A></B>(2)
+
+can be used to wait for event notifications.
+<P>
+The context can be destroyed using the
+<B><A HREF="/man/index.html?2+close">close</A></B>(2)
+
+system call.
+<DT><B>PFM_WRITE_PMCS</B>
+
+<DD>
+set PMC registers
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_WRITE_PMCS , pfarg_pmc_t *</B><I>pmcs</I><B>, n);</B>
+</PRE>
+
+<DT><B>PFM_WRITE_PMDS  <TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT></B>
+
+<DD>
+set PMD registers<BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_WRITE_PMDS , pfarg_pmd_t *</B><I>pmds</I><B>, n);</B>
+</PRE>
+
+<DT><B>PFM_READ_PMDS <TT>&nbsp;</TT></B>
+
+<DD>
+read PMD registers<BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_READ_PMDS , pfarg_pmd_t *</B><I>pmds</I><B>, n);</B>
+</PRE>
+
+<DT><B>PFM_START <TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT></B>
+
+<DD>
+start monitoring<BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_START , arg , 1);</B>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_START , NULL , 0);</B>
+</PRE>
+
+<DT><B>PFM_STOP <TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT></B>
+
+<DD>
+stop monitoring<BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_START , NULL , 0);</B>
+</PRE>
+
+<DT><B>PFM_LOAD_CONTEXT <TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT></B>
+
+<DD>
+attach the context to a thread<BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_LOAD_CONTEXT ,pfarg_load_t *</B><I>largs</I><B>,</B><I>1);</I>
+</PRE>
+
+<DT><B>PFM_UNLOAD_CONTEXT <TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT></B>
+
+<DD>
+detach the context from a thread<BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_UNLOAD_CONTEXT , NULL , 0);</B>
+</PRE>
+
+<DT><B>PFM_RESTART <TT>&nbsp;&nbsp;&nbsp;</TT></B>
+
+<DD>
+restart monitoring after recieving an overflow notification<BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_RESTART , NULL , 0);</B>
+</PRE>
+
+<DT><B>PFM_CREATE_EVTSETS <TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT></B>
+
+<DD>
+create or modify event sets<BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_CREATE_EVTSETS, pfarg_setdesc_t *desc , n);</B>
+</PRE>
+
+<DT><B>PFM_DELETE_EVTSETS <TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT></B>
+
+<DD>
+delete event sets<BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_DELETE_EVTSET, pfarg_setdesc_t *desc , n);</B>
+</PRE>
+
+<DT><B>PFM_GETINFO_EVTSETS <TT>&nbsp;&nbsp;&nbsp;</TT></B>
+
+<DD>
+get information about event sets <BR>
+<PRE>
+<B>perfmonctl(int </B><I>fd</I><B>, PFM_GETINFO_EVTSETS, pfarg_setinfo_t *info, n);</B>
+</PRE>
+
+<P>
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+<B>performctl</B>
+
+returns zero when the operation is successful.
+On error -1 is returned and an error code is set in <B>errno</B>.
+<P>
+<A NAME="lbAF">&nbsp;</A>
+<H2>AVAILABILITY</H2>
+
+This syscall is implemented only on the IA-64 architecture since kernel 2.6.
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?1+gprof">gprof</A>(1),</B>
+
+The perfmon2 interface specification
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">AVAILABILITY</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:04 GMT, December 24, 2015
+</div></body>
+</HTML>

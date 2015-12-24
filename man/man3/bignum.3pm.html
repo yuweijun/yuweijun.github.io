@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of bignum</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>bignum</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+bignum - Transparent BigNumber support for Perl
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use bignum;
+
+  $x = 2 + 4.5,&quot;\n&quot;;                    # BigFloat 6.5
+  print 2 ** 512 * 0.1,&quot;\n&quot;;            # really is what you think it is
+  print inf * inf,&quot;\n&quot;;                 # prints inf
+  print NaN * 3,&quot;\n&quot;;                   # prints NaN
+
+  {
+    no bignum;
+    print 2 ** 256,&quot;\n&quot;;                # a normal Perl scalar now
+  }
+
+  # for older Perls, note that this will be global:
+  use bignum qw/hex oct/;
+  print hex(&quot;0x1234567890123490&quot;),&quot;\n&quot;;
+  print oct(&quot;01234567890123490&quot;),&quot;\n&quot;;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+All operators (including basic math operations) are overloaded. Integer and
+floating-point constants are created as proper BigInts or BigFloats,
+respectively.
+<P>
+
+If you do
+<P>
+
+
+
+<PRE>
+        use bignum;
+
+</PRE>
+
+
+<P>
+
+at the top of your script, Math::BigFloat and Math::BigInt will be loaded
+and any constant number will be converted to an object (Math::BigFloat for
+floats like 3.1415 and Math::BigInt for integers like 1234).
+<P>
+
+So, the following line:
+<P>
+
+
+
+<PRE>
+        $x = 1234;
+
+</PRE>
+
+
+<P>
+
+creates actually a Math::BigInt and stores a reference to in <TT>$x</TT>.
+This happens transparently and behind your back, so to speak.
+<P>
+
+You can see this with the following:
+<P>
+
+
+
+<PRE>
+        perl -Mbignum -le 'print ref(1234)'
+
+</PRE>
+
+
+<P>
+
+Don't worry if it says Math::BigInt::Lite, bignum and friends will use Lite
+if it is installed since it is faster for some operations. It will be
+automatically upgraded to BigInt whenever necessary:
+<P>
+
+
+
+<PRE>
+        perl -Mbignum -le 'print ref(2**255)'
+
+</PRE>
+
+
+<P>
+
+This also means it is a bad idea to check for some specific package, since
+the actual contents of <TT>$x</TT> might be something unexpected. Due to the
+transparent way of bignum <TT>&quot;ref()&quot;</TT> should not be necessary, anyway.
+<P>
+
+Since Math::BigInt and BigFloat also overload the normal math operations,
+the following line will still work:
+<P>
+
+
+
+<PRE>
+        perl -Mbignum -le 'print ref(1234+1234)'
+
+</PRE>
+
+
+<P>
+
+Since numbers are actually objects, you can call all the usual methods from
+BigInt/BigFloat on them. This even works to some extent on expressions:
+<P>
+
+
+
+<PRE>
+        perl -Mbignum -le '$x = 1234; print $x-&gt;bdec()'
+        perl -Mbignum -le 'print 1234-&gt;copy()-&gt;binc();'
+        perl -Mbignum -le 'print 1234-&gt;copy()-&gt;binc-&gt;<A HREF="/man/index.html?6+badd">badd</A>(6);'
+        perl -Mbignum -le 'print +(1234)-&gt;copy()-&gt;binc()'
+
+</PRE>
+
+
+<P>
+
+(Note that print doesn't do what you expect if the expression starts with
+'(' hence the <TT>&quot;+&quot;</TT>)
+<P>
+
+You can even chain the operations together as usual:
+<P>
+
+
+
+<PRE>
+        perl -Mbignum -le 'print 1234-&gt;copy()-&gt;binc-&gt;<A HREF="/man/index.html?6+badd">badd</A>(6);'
+        1241
+
+</PRE>
+
+
+<P>
+
+Under bignum (or bigint or bigrat), Perl will ``upgrade'' the numbers
+appropriately. This means that:
+<P>
+
+
+
+<PRE>
+        perl -Mbignum -le 'print 1234+4.5'
+        1238.5
+
+</PRE>
+
+
+<P>
+
+will work correctly. These mixed cases don't do always work when using
+Math::BigInt or Math::BigFloat alone, or at least not in the way normal Perl
+scalars work.
+<P>
+
+If you do want to work with large integers like under <TT>&quot;use integer;&quot;</TT>, try
+<TT>&quot;use bigint;&quot;</TT>:
+<P>
+
+
+
+<PRE>
+        perl -Mbigint -le 'print 1234.5+4.5'
+        1238
+
+</PRE>
+
+
+<P>
+
+There is also <TT>&quot;use bigrat;&quot;</TT> which gives you big rationals:
+<P>
+
+
+
+<PRE>
+        perl -Mbigrat -le 'print 1234+4.1'
+        12381/10
+
+</PRE>
+
+
+<P>
+
+The entire upgrading/downgrading is still experimental and might not work
+as you expect or may even have bugs. You might get errors like this:
+<P>
+
+
+
+<PRE>
+        Can't use an undefined value as an ARRAY reference at
+        /usr/local/lib/perl5/5.8.0/Math/BigInt/Calc.pm line 864
+
+</PRE>
+
+
+<P>
+
+This means somewhere a routine got a BigFloat/Lite but expected a BigInt (or
+vice versa) and the upgrade/downgrad path was missing. This is a bug, please
+report it so that we can fix it.
+<P>
+
+You might consider using just Math::BigInt or Math::BigFloat, since they
+allow you finer control over what get's done in which module/space. For
+instance, simple loop counters will be Math::BigInts under <TT>&quot;use bignum;&quot;</TT> and
+this is slower than keeping them as Perl scalars:
+<P>
+
+
+
+<PRE>
+        perl -Mbignum -le 'for ($i = 0; $i &lt; 10; $i++) { print ref($i); }'
+
+</PRE>
+
+
+<P>
+
+Please note the following does not work as expected (prints nothing), since
+overloading of '..' is not yet possible in Perl (as of v5.8.0):
+<P>
+
+
+
+<PRE>
+        perl -Mbignum -le 'for (1..2) { print ref($_); }'
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>Options</H3>
+
+<A NAME="ixAAE"></A>
+bignum recognizes some options that can be passed while loading it via use.
+The options can (currently) be either a single letter form, or the long form.
+The following options exist:
+<DL COMPACT>
+<DT>a or accuracy<DD>
+<A NAME="ixAAF"></A>
+This sets the accuracy for all math operations. The argument must be greater
+than or equal to zero. See Math::BigInt's <I>bround()</I> function for details.
+
+
+<P>
+
+
+
+
+<PRE>
+        perl -Mbignum=a,50 -le 'print sqrt(20)'
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that setting precision and accurary at the same time is not possible.
+<DT>p or precision<DD>
+<A NAME="ixAAG"></A>
+This sets the precision for all math operations. The argument can be any
+integer. Negative values mean a fixed number of digits after the dot, while
+a positive value rounds to this digit left from the dot. 0 or 1 mean round to
+integer. See Math::BigInt's <I>bfround()</I> function for details.
+
+
+<P>
+
+
+
+
+<PRE>
+        perl -Mbignum=p,-50 -le 'print sqrt(20)'
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that setting precision and accurary at the same time is not possible.
+<DT>t or trace<DD>
+<A NAME="ixAAH"></A>
+This enables a trace mode and is primarily for debugging bignum or
+Math::BigInt/Math::BigFloat.
+<DT>l or lib<DD>
+<A NAME="ixAAI"></A>
+Load a different math lib, see ``<FONT SIZE="-1">MATH</FONT> <FONT SIZE="-1">LIBRARY</FONT>''.
+
+
+<P>
+
+
+
+
+<PRE>
+        perl -Mbignum=l,GMP -e 'print 2 ** 512'
+
+</PRE>
+
+
+
+
+<P>
+
+
+Currently there is no way to specify more than one library on the command
+line. This means the following does not work:
+
+
+<P>
+
+
+
+
+<PRE>
+        perl -Mbignum=l,GMP,Pari -e 'print 2 ** 512'
+
+</PRE>
+
+
+
+
+<P>
+
+
+This will be hopefully fixed soon ;)
+<DT>hex<DD>
+<A NAME="ixAAJ"></A>
+Override the built-in <I>hex()</I> method with a version that can handle big
+integers. Note that under Perl older than v5.9.4, this will be global
+and cannot be disabled with ``no bigint;''.
+<DT>oct<DD>
+<A NAME="ixAAK"></A>
+Override the built-in <I>oct()</I> method with a version that can handle big
+integers. Note that under Perl older than v5.9.4, this will be global
+and cannot be disabled with ``no bigint;''.
+<DT>v or version<DD>
+<A NAME="ixAAL"></A>
+This prints out the name and version of all modules used and then exits.
+
+
+<P>
+
+
+
+
+<PRE>
+        perl -Mbignum=v
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Methods</H3>
+
+<A NAME="ixAAM"></A>
+Beside <I>import()</I> and <FONT SIZE="-1"><I>AUTOLOAD</I></FONT><I>()</I> there are only a few other methods.
+<P>
+
+Since all numbers are now objects, you can use all functions that are part of
+the BigInt or BigFloat <FONT SIZE="-1">API</FONT>. It is wise to use only the <I>bxxx()</I> notation, and not
+the <I>fxxx()</I> notation, though. This makes it possible that the underlying object
+might morph into a different class than BigFloat.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Caveats</H3>
+
+<A NAME="ixAAN"></A>
+But a warning is in order. When using the following to make a copy of a number,
+only a shallow copy will be made.
+<P>
+
+
+
+<PRE>
+        $x = 9; $y = $x;
+        $x = $y = 7;
+
+</PRE>
+
+
+<P>
+
+If you want to make a real copy, use the following:
+<P>
+
+
+
+<PRE>
+        $y = $x-&gt;copy();
+
+</PRE>
+
+
+<P>
+
+Using the copy or the original with overloaded math is okay, e.g. the
+following work:
+<P>
+
+
+
+<PRE>
+        $x = 9; $y = $x;
+        print $x + 1, &quot; &quot;, $y,&quot;\n&quot;;     # prints 10 9
+
+</PRE>
+
+
+<P>
+
+but calling any method that modifies the number directly will result in
+<B>both</B> the original and the copy being destroyed:
+<P>
+
+
+
+<PRE>
+        $x = 9; $y = $x;
+        print $x-&gt;<A HREF="/man/index.html?1+badd">badd</A>(1), &quot; &quot;, $y,&quot;\n&quot;;        # prints 10 10
+
+        $x = 9; $y = $x;
+        print $x-&gt;<A HREF="/man/index.html?1+binc">binc</A>(1), &quot; &quot;, $y,&quot;\n&quot;;        # prints 10 10
+
+        $x = 9; $y = $x;
+        print $x-&gt;<A HREF="/man/index.html?2+bmul">bmul</A>(2), &quot; &quot;, $y,&quot;\n&quot;;        # prints 18 18
+
+</PRE>
+
+
+<P>
+
+Using methods that do not modify, but test the contents works:
+<P>
+
+
+
+<PRE>
+        $x = 9; $y = $x;
+        $z = 9 if $x-&gt;is_zero();                # works fine
+
+</PRE>
+
+
+<P>
+
+See the documentation about the copy constructor and <TT>&quot;=&quot;</TT> in overload, as
+well as the documentation in BigInt for further details.
+<DL COMPACT>
+<DT><I>inf()</I><DD>
+<A NAME="ixAAO"></A>
+A shortcut to return Math::BigInt-&gt;<I>binf()</I>. Useful because Perl does not always
+handle bareword <TT>&quot;inf&quot;</TT> properly.
+<DT><I>NaN()</I><DD>
+<A NAME="ixAAP"></A>
+A shortcut to return Math::BigInt-&gt;<I>bnan()</I>. Useful because Perl does not always
+handle bareword <TT>&quot;NaN&quot;</TT> properly.
+<DT>e<DD>
+<A NAME="ixAAQ"></A>
+
+
+<PRE>
+        # perl -Mbignum=e -wle 'print e'
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns Euler's number <TT>&quot;e&quot;</TT>, aka <I><A HREF="/man/index.html?1+exp">exp</A></I>(1).
+<DT><FONT SIZE="-1"><I>PI</I></FONT><I>()</I><DD>
+<A NAME="ixAAR"></A>
+
+
+<PRE>
+        # perl -Mbignum=PI -wle 'print PI'
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <FONT SIZE="-1">PI</FONT>.
+<DT><I>bexp()</I><DD>
+<A NAME="ixAAS"></A>
+
+
+<PRE>
+        bexp($power,$accuracy);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns Euler's number <TT>&quot;e&quot;</TT> raised to the appropriate power, to
+the wanted accuracy.
+
+
+<P>
+
+
+Example:
+
+
+<P>
+
+
+
+
+<PRE>
+        # perl -Mbignum=bexp -wle 'print bexp(1,80)'
+
+</PRE>
+
+
+<DT><I>bpi()</I><DD>
+<A NAME="ixAAT"></A>
+
+
+<PRE>
+        bpi($accuracy);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <FONT SIZE="-1">PI</FONT> to the wanted accuracy.
+
+
+<P>
+
+
+Example:
+
+
+<P>
+
+
+
+
+<PRE>
+        # perl -Mbignum=bpi -wle 'print bpi(80)'
+
+</PRE>
+
+
+<DT><I>upgrade()</I><DD>
+<A NAME="ixAAU"></A>
+Return the class that numbers are upgraded to, is in fact returning
+<TT>$Math::BigInt::upgrade</TT>.
+<DT><I>in_effect()</I><DD>
+<A NAME="ixAAV"></A>
+
+
+<PRE>
+        use bignum;
+
+        print &quot;in effect\n&quot; if bignum::in_effect;       # true
+        {
+          no bignum;
+          print &quot;in effect\n&quot; if bignum::in_effect;     # false
+        }
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns true or false if <TT>&quot;bignum&quot;</TT> is in effect in the current scope.
+
+
+<P>
+
+
+This method only works on Perl v5.9.4 or later.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Math Library</H3>
+
+<A NAME="ixAAW"></A>
+Math with the numbers is done (by default) by a module called
+Math::BigInt::Calc. This is equivalent to saying:
+<P>
+
+
+
+<PRE>
+        use bignum lib =&gt; 'Calc';
+
+</PRE>
+
+
+<P>
+
+You can change this by using:
+<P>
+
+
+
+<PRE>
+        use bignum lib =&gt; 'GMP';
+
+</PRE>
+
+
+<P>
+
+The following would first try to find Math::BigInt::Foo, then
+Math::BigInt::Bar, and when this also fails, revert to Math::BigInt::Calc:
+<P>
+
+
+
+<PRE>
+        use bignum lib =&gt; 'Foo,Math::BigInt::Bar';
+
+</PRE>
+
+
+<P>
+
+Please see respective module documentation for further details.
+<P>
+
+Using <TT>&quot;lib&quot;</TT> warns if none of the specified libraries can be found and
+Math::BigInt did fall back to one of the default libraries.
+To supress this warning, use <TT>&quot;try&quot;</TT> instead:
+<P>
+
+
+
+<PRE>
+        use bignum try =&gt; 'GMP';
+
+</PRE>
+
+
+<P>
+
+If you want the code to die instead of falling back, use <TT>&quot;only&quot;</TT> instead:
+<P>
+
+
+
+<PRE>
+        use bignum only =&gt; 'GMP';
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3><FONT SIZE="-1">INTERNAL</FONT> <FONT SIZE="-1">FORMAT</FONT></H3>
+
+<A NAME="ixAAX"></A>
+The numbers are stored as objects, and their internals might change at anytime,
+especially between math operations. The objects also might belong to different
+classes, like Math::BigInt, or Math::BigFLoat. Mixing them together, even
+with normal scalars is not extraordinary, but normal and expected.
+<P>
+
+You should not depend on the internal format, all accesses must go through
+accessor methods. E.g. looking at <TT>$x</TT>-&gt;{sign} is not a bright idea since there
+is no guaranty that the object in question has such a hashkey, nor is a hash
+underneath at all.
+<A NAME="lbAJ">&nbsp;</A>
+<H3><FONT SIZE="-1">SIGN</FONT></H3>
+
+<A NAME="ixAAY"></A>
+The sign is either '+', '-', 'NaN', '+inf' or '-inf' and stored seperately.
+You can access it with the <I>sign()</I> method.
+<P>
+
+A sign of 'NaN' is used to represent the result when input arguments are not
+numbers or as a result of 0/0. '+inf' and '-inf' represent plus respectively
+minus infinity. You will get '+inf' when dividing a positive number by 0, and
+'-inf' when dividing any negative number by 0.
+<A NAME="lbAK">&nbsp;</A>
+<H2>CAVAETS</H2>
+
+<A NAME="ixAAZ"></A>
+<DL COMPACT>
+<DT><I>in_effect()</I><DD>
+<A NAME="ixABA"></A>
+This method only works on Perl v5.9.4 or later.
+<DT><I>hex()</I>/<I>oct()</I><DD>
+<A NAME="ixABB"></A>
+<TT>&quot;bigint&quot;</TT> overrides these routines with versions that can also handle
+big integer values. Under Perl prior to version v5.9.4, however, this
+will not happen unless you specifically ask for it with the two
+import tags ``hex'' and ``oct'' - and then it will be global and cannot be
+disabled inside a scope with ``no bigint'':
+
+
+<P>
+
+
+
+
+<PRE>
+        use bigint qw/hex oct/;
+
+        print hex(&quot;0x1234567890123456&quot;);
+        {
+                no bigint;
+                print hex(&quot;0x1234567890123456&quot;);
+        }
+
+</PRE>
+
+
+
+
+<P>
+
+
+The second call to <I>hex()</I> will warn about a non-portable constant.
+
+
+<P>
+
+
+Compare this to:
+
+
+<P>
+
+
+
+
+<PRE>
+        use bigint;
+
+        # will warn only under older than v5.9.4
+        print hex(&quot;0x1234567890123456&quot;);
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H2>MODULES USED</H2>
+
+<A NAME="ixABC"></A>
+<TT>&quot;bignum&quot;</TT> is just a thin wrapper around various modules of the Math::BigInt
+family. Think of it as the head of the family, who runs the shop, and orders
+the others to do the work.
+<P>
+
+The following modules are currently used by bignum:
+<P>
+
+
+
+<PRE>
+        Math::BigInt::Lite      (for speed, and only if it is loadable)
+        Math::BigInt
+        Math::BigFloat
+
+</PRE>
+
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixABD"></A>
+Some cool command line examples to impress the Python crowd ;)
+<P>
+
+
+
+<PRE>
+        perl -Mbignum -le 'print sqrt(33)'
+        perl -Mbignum -le 'print 2*255'
+        perl -Mbignum -le 'print 4.5+2*255'
+        perl -Mbignum -le 'print 3/7 + 5/7 + 8/3'
+        perl -Mbignum -le 'print 123-&gt;is_odd()'
+        perl -Mbignum -le 'print <A HREF="/man/index.html?2+log">log</A>(2)'
+        perl -Mbignum -le 'print <A HREF="/man/index.html?1+exp">exp</A>(1)'
+        perl -Mbignum -le 'print 2 ** 0.5'
+        perl -Mbignum=a,65 -le 'print 2 ** 0.2'
+        perl -Mbignum=a,65,l,GMP -le 'print 7 ** 7777'
+
+</PRE>
+
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixABE"></A>
+This program is free software; you may redistribute it and/or modify it under
+the same terms as Perl itself.
+<A NAME="lbAO">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABF"></A>
+Especially bigrat as in <TT>&quot;perl -Mbigrat -le 'print 1/3+1/4'&quot;</TT>.
+<P>
+
+Math::BigFloat, Math::BigInt, Math::BigRat and Math::Big as well
+as Math::BigInt::BitVect, Math::BigInt::Pari and  Math::BigInt::GMP.
+<A NAME="lbAP">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<A NAME="ixABG"></A>
+(C) by Tels &lt;<A HREF="http://bloodgate.com/">http://bloodgate.com/</A>&gt; in early 2002 - 2007.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Options</A><DD>
+<DT><A HREF="#lbAF">Methods</A><DD>
+<DT><A HREF="#lbAG">Caveats</A><DD>
+<DT><A HREF="#lbAH">Math Library</A><DD>
+<DT><A HREF="#lbAI"><FONT SIZE="-1">INTERNAL</FONT> <FONT SIZE="-1">FORMAT</FONT></A><DD>
+<DT><A HREF="#lbAJ"><FONT SIZE="-1">SIGN</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAK">CAVAETS</A><DD>
+<DT><A HREF="#lbAL">MODULES USED</A><DD>
+<DT><A HREF="#lbAM">EXAMPLES</A><DD>
+<DT><A HREF="#lbAN">LICENSE</A><DD>
+<DT><A HREF="#lbAO">SEE ALSO</A><DD>
+<DT><A HREF="#lbAP">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:12 GMT, December 24, 2015
+</div></body>
+</HTML>

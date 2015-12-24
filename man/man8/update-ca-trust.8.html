@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of UPDATE\-CA\-TRUST</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>UPDATE\-CA\-TRUST</H1>
+Section: update-ca-trust (8)<BR>Updated: 10/15/2014<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+update-ca-trust - manage consolidated and dynamic configuration of CA certificates and associated trust
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<B>update-ca-trust</B> [<I>COMMAND</I>]
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+<A HREF="/man/index.html?8+update-ca-trust">update-ca-trust</A>(8) is used to manage a consolidated and dynamic configuration feature of Certificate Authority (CA) certificates and associated trust.
+<P>
+The feature is available for new applications that read the consolidated configuration files found in the /etc/pki/ca-trust/extracted directory or that load the PKCS#11 module p11-kit-trust.so
+<P>
+This manual page is specific to the series of RHEL 6 releases, which implements this configuration as an optional feature for legacy applications.
+<P>
+Many legacy applications expect CA certificates and trust configuration in a fixed location, contained in files with particular path and name, or by referring to a classic PKCS#11 trust module provided by the NSS cryptographic library.
+<P>
+The dynamic configuration feature can optionally provide functionally compatible replacements for classic configuration files and for the classic NSS trust module named libnssckbi.
+<P>
+By default, the replacements are disabled, the classic file locations are kept as static files, and the classic PKCS#11 module filename still refers to the classic module provided by the NSS cryptographic library.
+<P>
+In order to enable legacy applications, that read the classic files or access the classic module name, to make use of the new consolidated and dynamic configuration feature, the compatible replacements can be enabled using the <I>update-ca-trust enable</I> command.
+<P>
+When enabled, the classic filenames are changed to symbolic links. The symbolic links will refer to dynamically created and consolidated output stored below the /etc/pki/ca-trust/extracted directory hierarchy.
+<P>
+The output is produced using the <I>update-ca-trust</I> command (without parameters), or using the <I>update-ca-trust extract</I> command. In order to produce the output, a flexible set of source configuration is read, as described in section SOURCE CONFIGURATION.
+<P>
+In addition, if the replacements are enabled, the classic PKCS#11 module is replaced by a new PKCS#11 module (p11-kit-trust.so) that dynamically reads the same source configuration.
+<P>
+Use the <I>update-ca-trust check</I> command to display the enabled or disabled state of the compatible replacements.
+<P>
+On computer systems that used modified copies of the classic configuration files, prior to enabling the compatible replacements, a manual migration of the systemcqs CA and trust configuration modifications is required. It is advisable to compare the active configuration with the original configuration that had been used as a base for the modified copies, because software active on the system may depend on past modifications to the classic configuration files.
+<P>
+Alternatively, on a system with modified copies of the classic configuration files, you may accept to lose any past configuration modifications and forcefully switch to the most recent set of standard CA certificates and trust, using the <I>update-ca-trust force-enable</I> command.
+<P>
+When using the <I>update-ca-trust enable</I> or <I>update-ca-trust force-enable</I> commands, backups of the classic configuration files will be created in the /etc/pki/backup-traditional-original-config (on the first execution) and /etc/pki/backup-traditional-recent-config (on the first on all subsequent executions) directories. The backup files will be restored when disabling the compatible replacements using the <I>update-ca-trust disable</I> or <I>update-ca-trust force-disable</I> commands.
+<A NAME="lbAE">&nbsp;</A>
+<H2>DISABLED OR ENABLED COMPATIBLE REPLACEMENTS</H2>
+
+<P>
+
+<B>When disabled (default):</B>
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+classic configuration files containing CA trust bundles in the PEM or JAVA keystore file formats are still being used
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+the classic PKCS#11 module named libnssckbi.so, which provides CA trust and distrust information, primarily used by applications that use the NSS cryptographic library, still refers to the classic module provided by the NSS cryptographic library.
+</DL>
+
+<P>
+
+<B>When enabled:</B>
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+classic configuration files containing CA trust bundles in the PEM or JAVA keystore file formats are replaced with symbolic links that resolve to consolidated and dynamically updated files below the /etc/pki/ca-trust/extracted directory hierarchy.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+the classic PKCS#11 module named libnssckbi.so, which provides CA trust and distrust information, primarily used by applications that use the NSS cryptographic library, refers to the replacement p11-kit-trust.so module
+</DL>
+
+<P>
+
+<B>The classic filenames and the classic PKCS#11 module mentioned above are:</B>
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+/etc/pki/tls/cert.pem
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+/etc/pki/tls/certs/ca-bundle.crt
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+/etc/pki/tls/certs/ca-bundle.trust.crt
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+/usr/lib/libnssckbi.so
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+/usr/lib64/libnssckbi.so
+</DL>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>SOURCE CONFIGURATION</H2>
+
+<P>
+The dynamic configuration feature uses several source directories that will be scanned for any number of source files. <B>It is important to select the correct subdirectory for adding files, as the subdirectory defines how contained certificates will be trusted or distrusted, and which file formats are read.</B>
+<P>
+Files in <B>subdirectories below the directory hierarchy /usr/share/pki/ca-trust-source/</B> contain CA certificates and trust settings in the PEM file format. The trust settings found here will be interpreted with a <B>low priority</B>.
+<P>
+Files in <B>subdirectories below the directory hierarchy /etc/pki/ca-trust/source/</B> contain CA certificates and trust settings in the PEM file format. The trust settings found here will be interpreted with a <B>high priority</B>.
+<P>
+
+<B>You may use the following rules of thumb to decide, whether your configuration files should be added to the /etc or rather to the /usr directory hierarchy:</B>
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+If you are manually adding a configuration file to a system, you probably want it to override any other default configuration, and you most likely should add it to the respective subdirectory in the /etc hierarchy.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+If you are creating a package that provides additional root CA certificates, that is intended for distribution to several computer systems, but you still want to allow the administrator to override your list, then your package should add your files to the respective subdirectory in the /usr hierarchy.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+If you are creating a package that is supposed to override the default system trust settings, that is intended for distribution to several computer systems, then your package should install the files to the respective subdirectory in the /etc hierarchy.
+</DL>
+
+<P>
+
+<B>QUICK HELP 1</B><B>: To add a certificate in the simple PEM or DER file formats to the list of CAs trusted on the system:</B>
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+add it as a new file to directory /etc/pki/ca-trust/source/anchors/
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+run
+<I>update-ca-trust extract</I>
+</DL>
+
+<P>
+
+<B>QUICK HELP 2</B><B>: If your certificate is in the extended BEGIN TRUSTED file format (which may contain distrust/blacklist trust flags, or trust flags for usages other than TLS) then:</B>
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+add it as a new file to directory /etc/pki/ca-trust/source/
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+run
+<I>update-ca-trust extract</I>
+</DL>
+
+<P>
+
+<B>In order to offer simplicity and flexibility, the way certificate files are treated depends on the subdirectory they are installed to.</B>
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+simple trust anchors subdirectory: /usr/share/pki/ca-trust-source/anchors/ or /etc/pki/ca-trust/source/anchors/
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+simple blacklist (distrust) subdirectory: /usr/share/pki/ca-trust-source/blacklist/ or /etc/pki/ca-trust/source/blacklist/
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+extended format directory: /usr/share/pki/ca-trust-source/ or /etc/pki/ca-trust/source/
+</DL>
+
+<P>
+
+<B>In the main directories /usr/share/pki/ca-trust-source/ or /etc/pki/ca-trust/source/ you may install one or multiple files in the following file formats:</B>
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+certificate files that include trust flags, in the BEGIN/END TRUSTED CERTIFICATE file format (any file name), which have been created using the openssl x509 tool and the -addreject -addtrust options. Bundle files with multiple certificates are supported.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+files in the p11-kit file format using the .p11-kit file name extension, which can (e.g.) be used to distrust certificates based on serial number and issuer name, without having the full certificate available. (This is currently an undocumented format, to be extended later. For examples of the supported formats, see the files shipped with the ca-certificates package.)
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+certificate files without trust flags in either the DER file format or in the PEM (BEGIN/END CERTIFICATE) file format (any file name). Such files will be added with neutral trust, neither trusted nor distrusted. They will simply be known to the system, which might be helpful to assist cryptographic software in constructing chains of certificates. (If you want a CA certificate in these file formats to be trusted, you should remove it from this directory and move it to the ./anchors subdirectory instead.)
+</DL>
+
+<P>
+In the anchors subdirectories /usr/share/pki/ca-trust-source/anchors/ or /etc/pki/ca-trust/source/anchors/ you may install one or multiple certificates in either the DER file format or in the PEM (BEGIN/END CERTIFICATE) file format. Each certificate will be treated as <B>trusted</B> for all purposes.
+<P>
+In the blacklist subdirectories /usr/share/pki/ca-trust-source/blacklist/ or /etc/pki/ca-trust/source/blacklist/ you may install one or multiple certificates in either the DER file format or in the PEM (BEGIN/END CERTIFICATE) file format. Each certificate will be treated as <B>distrusted</B> for all purposes.
+<P>
+Please refer to the <A HREF="/man/index.html?1+x509">x509</A>(1) manual page for the documentation of the BEGIN/END CERTIFICATE and BEGIN/END TRUSTED CERTIFICATE file formats.
+<P>
+Applications that rely on a static file for a list of trusted CAs may load one of the files found in the /etc/pki/ca-trust/extracted directory. After modifying any file in the /usr/share/pki/ca-trust-source/ or /etc/pki/ca-trust/source/ directories or in any of their subdirectories, or after adding a file, it is necessary to run the <I>update-ca-trust extract</I> command, in order to update the consolidated files in /etc/pki/ca-trust/extracted/ .
+<P>
+Legacy applications that rely on classic filenames benefit from configuration updates only if the functionally compatible replacements are enabled.
+<P>
+Applications that use the classic PKCS#11 module libnssckbi.so on a system with enabled compatible replacements, and any application capable of loading PKCS#11 modules and loading p11-kit-trust.so, will benefit from the dynamically merged set of certificates and trust information stored in the /usr/share/pki/ca-trust-source/ and /etc/pki/ca-trust/source/ directories.
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXTRACTED CONFIGURATION</H2>
+
+<P>
+The directory /etc/pki/ca-trust/extracted/ contains generated CA certificate bundle files which are created and updated, based on the SOURCE CONFIGURATION by running the <I>update-ca-trust extract</I> command.
+<P>
+If your application isncqt able to load the PKCS#11 module p11-kit-trust.so, then you can use these files in your application to load a list of global root CA certificates.
+<P>
+Please never manually edit the files stored in this directory, because your changes will be lost and the files automatically overwritten, each time the <I>update-ca-trust extract</I> command gets executed.
+<P>
+In order to install new trusted or distrusted certificates, please rather install them in the respective subdirectory below the /usr/share/pki/ca-trust-source/ or /etc/pki/ca-trust/source/ directories, as described in the SOURCE CONFIGURATION section.
+<P>
+The directory /etc/pki/ca-trust/extracted/java/ contains a CA certificate bundle in the java keystore file format. Distrust information cannot be represented in this file format, and distrusted certificates are missing from these files. File cacerts contains CA certificates trusted for TLS server authentication.
+<P>
+The directory /etc/pki/ca-trust/extracted/openssl/ contains CA certificate bundle files in the extended BEGIN/END TRUSTED CERTIFICATE file format, as described in the <A HREF="/man/index.html?1+x509">x509</A>(1) manual page. File ca-bundle.trust.crt contains the full set of all trusted or distrusted certificates, including the associated trust flags.
+<P>
+The directory /etc/pki/ca-trust/extracted/pem/ contains CA certificate bundle files in the simple BEGIN/END CERTIFICATE file format, as decribed in the <A HREF="/man/index.html?1+x509">x509</A>(1) manual page. Distrust information cannot be represented in this file format, and distrusted certificates are missing from these files. File tls-ca-bundle.pem contains CA certificates trusted for TLS server authentication. File email-ca-bundle.pem contains CA certificates trusted for E-Mail protection. File objsign-ca-bundle.pem contains CA certificates trusted for code signing.
+<A NAME="lbAH">&nbsp;</A>
+<H2>COMMANDS</H2>
+
+<P>
+
+(absent/empty command)
+<DL COMPACT><DT><DD>
+Same as the
+<B>extract</B>
+command described below. (However, the command may print fewer warnings, as this command is being run during rpm package installation, where non-fatal status output is undesired.)
+</DL>
+
+<P>
+
+<B>check</B>
+<DL COMPACT><DT><DD>
+Report consistency status, and whether the compatible CA trust replacements are currently enabled or disabled.
+</DL>
+
+<P>
+
+<B>disable</B>
+<DL COMPACT><DT><DD>
+Check the consistency status, and if no problems are detected, disable the compatible CA trust replacements, thereby reverting to the classic configuration. Restores previously backuped classic configuration files.
+</DL>
+
+<P>
+
+<B>enable</B>
+<DL COMPACT><DT><DD>
+Check the consistency status, and if no problems are detected, enable the compatible CA trust replacements. Backup copies of classic configuration files will be created.
+</DL>
+
+<P>
+
+<B>extract</B>
+<DL COMPACT><DT><DD>
+Instruct update-ca-trust to scan the
+SOURCE CONFIGURATION
+and produce updated versions of the consolidated configuration files stored below the /etc/pki/ca-trust/extracted directory hierarchy.
+</DL>
+
+<P>
+
+<B>force-enable</B>
+<DL COMPACT><DT><DD>
+Enable the compatible CA trust replacements regardless of inconsistencies. Backup copies of classic configuration files will be created.
+</DL>
+
+<P>
+
+<B>force-disable</B>
+<DL COMPACT><DT><DD>
+Disable the compatible CA trust replacements regardless of inconsistencies, thereby reverting to the classic configuration. Restores previously backuped classic configuration files.
+</DL>
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>FILES</H2>
+
+<P>
+
+/etc/pki/tls/certs/ca-bundle.crt
+<DL COMPACT><DT><DD>
+Legacy filename, file contains a list of CA certificates trusted for TLS server authentication usage, in the simple BEGIN/END CERTIFICATE file format, without distrust information. If compatible CA trust replacements are disabled, this is a static file and will remain unchanged. Only if compatible CA trust replacements are enabled, this file is a symbolic link that refers to the consolidated output created by the update-ca-trust command.
+</DL>
+
+<P>
+
+/etc/pki/tls/certs/ca-bundle.trust.crt
+<DL COMPACT><DT><DD>
+Legacy filename, file contains a list of CA certificates in the extended BEGIN/END TRUSTED CERTIFICATE file format, which includes trust (and/or distrust) flags specific to certificate usage. If compatible CA trust replacements are disabled, this is a static file and will remain unchanged. Only if compatible CA trust replacements are enabled, this file is a symbolic link that refers to the consolidated output created by the update-ca-trust command.
+</DL>
+
+<P>
+
+/etc/pki/java/cacerts
+<DL COMPACT><DT><DD>
+Legacy filename, file contains a list of CA certificates trusted for TLS server authentication usage, in the Java keystore file format, without distrust information. If compatible CA trust replacements are disabled, this is a static file and will remain unchanged. Only if compatible CA trust replacements are enabled, this file is a symbolic link that refers to the consolidated output created by the update-ca-trust command.
+</DL>
+
+<P>
+
+/usr/share/pki/ca-trust-source
+<DL COMPACT><DT><DD>
+Contains multiple, low priority source configuration files as explained in section
+SOURCE CONFIGURATION. Please pay attention to the specific meanings of the respective subdirectories.
+</DL>
+
+<P>
+
+/etc/pki/ca-trust/source
+<DL COMPACT><DT><DD>
+Contains multiple, high priority source configuration files as explained in section
+SOURCE CONFIGURATION. Please pay attention to the specific meanings of the respective subdirectories.
+</DL>
+
+<P>
+
+/etc/pki/ca-trust/extracted
+<DL COMPACT><DT><DD>
+Contains consolidated and automatically generated configuration files for consumption by applications, which are created using the
+<I>update-ca-trust extract</I>
+command. Doncqt edit files in this directory, because they will be overwritten. See section
+EXTRACTED CONFIGURATION
+for additional details.
+</DL>
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<P>
+Written by Kai Engert and Stef Walter.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">DISABLED OR ENABLED COMPATIBLE REPLACEMENTS</A><DD>
+<DT><A HREF="#lbAF">SOURCE CONFIGURATION</A><DD>
+<DT><A HREF="#lbAG">EXTRACTED CONFIGURATION</A><DD>
+<DT><A HREF="#lbAH">COMMANDS</A><DD>
+<DT><A HREF="#lbAI">FILES</A><DD>
+<DT><A HREF="#lbAJ">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:31 GMT, December 24, 2015
+</div></body>
+</HTML>

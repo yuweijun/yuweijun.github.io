@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of LDIF</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>LDIF</H1>
+Section: File Formats (5)<BR>Updated: 2010/06/30<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ldif - LDAP Data Interchange Format
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The LDAP Data Interchange Format (LDIF) is used to represent LDAP
+entries and change records in text form. LDAP tools, such as
+<B><A HREF="/man/index.html?1+ldapadd">ldapadd</A></B>(1)
+
+and
+<B><A HREF="/man/index.html?1+ldapsearch">ldapsearch</A></B>(1),
+
+read and write LDIF entry
+records.
+<B><A HREF="/man/index.html?1+ldapmodify">ldapmodify</A></B>(1)
+
+reads LDIF change records.
+<P>
+
+This manual page provides a basic description of LDIF.  A
+formal specification of LDIF is published in RFC 2849.
+<A NAME="lbAD">&nbsp;</A>
+<H2>ENTRY RECORDS</H2>
+
+<P>
+
+LDIF entry records are used to represent directory entries.  The basic
+form of an entry record is:
+<P>
+
+<PRE>
+        dn: &lt;distinguished name&gt;
+        &lt;attrdesc&gt;: &lt;attrvalue&gt;
+        &lt;attrdesc&gt;: &lt;attrvalue&gt;
+        &lt;attrdesc&gt;:: &lt;base64-encoded-value&gt;
+        &lt;attrdesc&gt;:&lt; &lt;URL&gt;
+        ...
+</PRE>
+
+<P>
+
+The value may be specified as UTF-8 text or as base64 encoded data,
+or a URI may be provided to the location of the attribute value.
+<P>
+
+A line may be continued by starting the next line with a single space
+or tab, e.g.,
+<P>
+
+<PRE>
+        dn: cn=Barbara J Jensen,dc=exam
+         ple,dc=com
+</PRE>
+
+<P>
+
+Lines beginning with a sharp sign ('#') are ignored.
+<P>
+
+Multiple attribute values are specified on separate lines, e.g.,
+<P>
+
+<PRE>
+        cn: Barbara J Jensen
+        cn: Babs Jensen
+</PRE>
+
+<P>
+
+If an value contains a non-printing character, or begins
+with a space or a colon ':', the &lt;attrtype&gt; is followed by a
+double colon and the value is encoded in base 64 notation. e.g.,
+the value &quot; begins with a space&quot; would be encoded like this:
+<P>
+
+<PRE>
+        cn:: IGJlZ2lucyB3aXRoIGEgc3BhY2U=
+</PRE>
+
+<P>
+
+If the attribute value is located in a file, the &lt;attrtype&gt; is
+followed by a ':&lt;' and a file: URI.  e.g., the value contained
+in the file /tmp/value would be listed like this:
+<P>
+
+<PRE>
+        cn:&lt; <A HREF="file:///tmp/value">file:///tmp/value</A>
+</PRE>
+
+Other URI schemes (ftp,http) may be supported as well.
+<P>
+
+Multiple entries within the same LDIF file are separated by blank
+lines.
+<A NAME="lbAE">&nbsp;</A>
+<H2>ENTRY RECORD EXAMPLE</H2>
+
+Here is an example of an LDIF file containing three entries.
+<P>
+
+<PRE>
+        dn: cn=Barbara J Jensen,dc=example,dc=com
+        cn: Barbara J Jensen
+        cn: Babs Jensen
+        objectclass: person
+        description:&lt; <A HREF="file:///tmp/babs">file:///tmp/babs</A>
+        sn: Jensen
+
+        dn: cn=Bjorn J Jensen,dc=example,dc=com
+        cn: Bjorn J Jensen
+        cn: Bjorn Jensen
+        objectclass: person
+        sn: Jensen
+
+        dn: cn=Jennifer J Jensen,dc=example,dc=com
+        cn: Jennifer J Jensen
+        cn: Jennifer Jensen
+        objectclass: person
+        sn: Jensen
+        jpegPhoto:: /9j/4AAQSkZJRgABAAAAAQABAAD/2wBDABALD
+         A4MChAODQ4SERATGCgaGBYWGDEjJR0oOjM9PDkzODdASFxOQ
+         ERXRTc4UG1RV19iZ2hnPk1xeXBkeFxlZ2P/2wBDARESEhgVG
+        ...
+</PRE>
+
+<P>
+
+Note that the description in Barbara Jensen's entry is
+read from <A HREF="file:///tmp/babs">file:///tmp/babs</A> and the jpegPhoto in Jennifer
+Jensen's entry is encoded using base 64.
+<A NAME="lbAF">&nbsp;</A>
+<H2>CHANGE RECORDS</H2>
+
+LDIF change records are used to represent directory change requests.
+Each change record starts with line indicating the distinguished
+name of the entry being changed:
+<P>
+
+<PRE>
+        dn: &lt;distinguishedname&gt;
+</PRE>
+
+<P>
+
+<PRE>
+        changetype: &lt;[modify|add|delete|modrdn]&gt;
+</PRE>
+
+<P>
+
+Finally, the change information itself is given, the format of which
+depends on what kind of change was specified above.  For a <I>changetype</I>
+of <I>modify</I>, the format is one or more of the following:
+<P>
+
+<PRE>
+        add: &lt;attributetype&gt;
+        &lt;attrdesc&gt;: &lt;value1&gt;
+        &lt;attrdesc&gt;: &lt;value2&gt;
+        ...
+        -
+</PRE>
+
+<P>
+
+Or, for a replace modification:
+<P>
+
+<PRE>
+        replace: &lt;attributetype&gt;
+        &lt;attrdesc&gt;: &lt;value1&gt;
+        &lt;attrdesc&gt;: &lt;value2&gt;
+        ...
+        -
+</PRE>
+
+<P>
+
+If no <I>attributetype</I> lines are given to replace,
+the entire attribute is to be deleted (if present).
+<P>
+
+Or, for a delete modification:
+<P>
+
+<PRE>
+        delete: &lt;attributetype&gt;
+        &lt;attrdesc&gt;: &lt;value1&gt;
+        &lt;attrdesc&gt;: &lt;value2&gt;
+        ...
+        -
+</PRE>
+
+<P>
+
+If no <I>attributetype</I> lines are given to delete,
+the entire attribute is to be deleted.
+<P>
+
+For a <I>changetype</I> of <I>add</I>, the format is:
+<P>
+
+<PRE>
+        &lt;attrdesc1&gt;: &lt;value1&gt;
+        &lt;attrdesc1&gt;: &lt;value2&gt;
+        ...
+        &lt;attrdescN&gt;: &lt;value1&gt;
+        &lt;attrdescN&gt;: &lt;value2&gt;
+</PRE>
+
+<P>
+
+For a <I>changetype</I> of <I>modrdn</I> or <I>moddn</I>,
+the format is:
+<P>
+
+<PRE>
+        newrdn: &lt;newrdn&gt;
+        deleteoldrdn: 0 | 1
+        newsuperior: &lt;DN&gt;
+</PRE>
+
+<P>
+
+where a value of 1 for deleteoldrdn means to delete the values
+forming the old rdn from the entry, and a value of 0 means to
+leave the values as non-distinguished attributes in the entry.
+The newsuperior line is optional and, if present, specifies the
+new superior to move the entry to.
+<P>
+
+For a <I>changetype</I> of <I>delete</I>, no additional information
+is needed in the record.
+<P>
+
+Note that attribute values may be presented using base64 or in
+files as described for entry records.  Lines in change records
+may be continued in the manner described for entry records as
+well. 
+<A NAME="lbAG">&nbsp;</A>
+<H2>CHANGE RECORD EXAMPLE</H2>
+
+The following sample LDIF file contains a change record
+of each type of change.
+<P>
+
+<PRE>
+        dn: cn=Babs Jensen,dc=example,dc=com
+        changetype: add
+        objectclass: person
+        objectclass: extensibleObject
+        cn: babs
+        cn: babs jensen
+        sn: jensen
+
+        dn: cn=Babs Jensen,dc=example,dc=com
+        changetype: modify
+        add: givenName
+        givenName: Barbara
+        givenName: babs
+        -
+        replace: description
+        description: the fabulous babs
+        -
+        delete: sn
+        sn: jensen
+        -
+
+        dn: cn=Babs Jensen,dc=example,dc=com
+        changetype: modrdn
+        newrdn: cn=Barbara J Jensen
+        deleteoldrdn: 0
+        newsuperior: ou=People,dc=example,dc=com
+
+        dn: cn=Barbara J Jensen,ou=People,dc=example,dc=com
+        changetype: delete
+</PRE>
+
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>INCLUDE STATEMENT</H2>
+
+The LDIF parser has been extended to support an
+<B>include</B>
+
+statement for referencing other LDIF files.  The
+<B>include</B>
+
+statement must be separated from other records by a blank line.
+The referenced file is specified using a file: URI and all of its
+contents are incorporated as if they were part of the original
+LDIF file. As above, other URI schemes may be supported. For example:
+<P>
+
+<PRE>
+        dn: dc=example,dc=com
+        objectclass: domain
+        dc: example
+
+        include: <A HREF="file:///tmp/example.com.ldif">file:///tmp/example.com.ldif</A>
+
+        dn: dc=example,dc=org
+        objectclass: domain
+        dc: example
+</PRE>
+
+This feature is not part of the LDIF specification in RFC 2849 but
+is expected to appear in a future revision of this spec. It is supported
+by the
+<B><A HREF="/man/index.html?1+ldapadd">ldapadd</A></B>(1),
+
+<B><A HREF="/man/index.html?1+ldapmodify">ldapmodify</A></B>(1),
+
+and
+<B><A HREF="/man/index.html?8+slapadd">slapadd</A></B>(8)
+
+commands.
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?3+ldap">ldap</A></B>(3),
+
+<B><A HREF="/man/index.html?1+ldapsearch">ldapsearch</A></B>(1),
+
+<B><A HREF="/man/index.html?1+ldapadd">ldapadd</A></B>(1),
+
+<B><A HREF="/man/index.html?1+ldapmodify">ldapmodify</A></B>(1),
+
+<B><A HREF="/man/index.html?8+slapadd">slapadd</A></B>(8),
+
+<B><A HREF="/man/index.html?8+slapcat">slapcat</A></B>(8),
+
+<B><A HREF="/man/index.html?5+slapd-ldif">slapd-ldif</A></B>(5).
+
+<P>
+
+&quot;LDAP Data Interchange Format,&quot; Good, G., RFC 2849.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>ACKNOWLEDGEMENTS</H2>
+
+
+
+<B>OpenLDAP Software</B>
+
+is developed and maintained by The OpenLDAP Project &lt;<A HREF="http://www.openldap.org/">http://www.openldap.org/</A>&gt;.
+<B>OpenLDAP Software</B>
+
+is derived from University of Michigan LDAP 3.3 Release.  
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">ENTRY RECORDS</A><DD>
+<DT><A HREF="#lbAE">ENTRY RECORD EXAMPLE</A><DD>
+<DT><A HREF="#lbAF">CHANGE RECORDS</A><DD>
+<DT><A HREF="#lbAG">CHANGE RECORD EXAMPLE</A><DD>
+<DT><A HREF="#lbAH">INCLUDE STATEMENT</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">ACKNOWLEDGEMENTS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

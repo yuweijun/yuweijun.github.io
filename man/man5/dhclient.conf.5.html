@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of dhclient.conf</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>dhclient.conf</H1>
+Section: File Formats (5)<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+dhclient.conf - DHCP client configuration file
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The dhclient.conf file contains configuration information for
+<I>dhclient,</I>
+
+the Internet Systems Consortium DHCP Client.
+<P>
+
+The dhclient.conf file is a free-form ASCII text file.   It is parsed by
+the recursive-descent parser built into dhclient.   The file may contain
+extra tabs and newlines for formatting purposes.  Keywords in the file
+are case-insensitive.   Comments may be placed anywhere within the
+file (except within quotes).   Comments begin with the # character and
+end at the end of the line.
+<P>
+
+The dhclient.conf file can be used to configure the behaviour of the
+client in a wide variety of ways: protocol timing, information
+requested from the server, information required of the server,
+defaults to use if the server does not provide certain information,
+values with which to override information provided by the server, or
+values to prepend or append to information provided by the server.
+The configuration file can also be preinitialized with addresses to
+use on networks that don't have DHCP servers.
+<A NAME="lbAD">&nbsp;</A>
+<H2>PROTOCOL TIMING</H2>
+
+The timing behaviour of the client need not be configured by the user.
+If no timing configuration is provided by the user, a fairly
+reasonable timing behaviour will be used by default - one which
+results in fairly timely updates without placing an inordinate load on
+the server.
+<P>
+
+The following statements can be used to adjust the timing behaviour of
+the DHCP client if required, however:
+<P>
+
+<I>The</I>
+
+<B>timeout</B>
+
+<I>statement</I>
+
+<P>
+
+<B>timeout</B>
+
+<I>time</I>
+
+<B>;</B>
+
+<P>
+
+The
+<I>timeout</I>
+
+statement determines the amount of time that must pass between the
+time that the client begins to try to determine its address and the
+time that it decides that it's not going to be able to contact a
+server.   By default, this timeout is sixty seconds.   After the
+timeout has passed, if there are any static leases defined in the
+configuration file, or any leases remaining in the lease database that
+have not yet expired, the client will loop through these leases
+attempting to validate them, and if it finds one that appears to be
+valid, it will use that lease's address.   If there are no valid
+static leases or unexpired leases in the lease database, the client
+will restart the protocol after the defined retry interval.
+<P>
+
+<I>The</I>
+
+<B>retry</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>retry&nbsp;</B><I>time</I><B>;</B>
+<P>
+
+The
+<I>retry</I>
+
+statement determines the time that must pass after the client has
+determined that there is no DHCP server present before it tries again
+to contact a DHCP server.   By default, this is five minutes.
+<P>
+
+<I>The</I>
+
+<B>select-timeout</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>select-timeout&nbsp;</B><I>time</I><B>;</B>
+<P>
+
+It is possible (some might say desirable) for there to be more than
+one DHCP server serving any given network.   In this case, it is
+possible that a client may be sent more than one offer in response to
+its initial lease discovery message.   It may be that one of these
+offers is preferable to the other (e.g., one offer may have the
+address the client previously used, and the other may not).
+<P>
+
+The
+<I>select-timeout</I>
+
+is the time after the client sends its first lease discovery request
+at which it stops waiting for offers from servers, assuming that it
+has received at least one such offer.   If no offers have been
+received by the time the
+<I>select-timeout</I>
+
+has expired, the client will accept the first offer that arrives.
+<P>
+
+By default, the select-timeout is zero seconds - that is, the client
+will take the first offer it sees.
+<P>
+
+<I>The</I>
+
+<B>reboot</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>reboot&nbsp;</B><I>time</I><B>;</B>
+<P>
+
+When the client is restarted, it first tries to reacquire the last
+address it had.   This is called the INIT-REBOOT state.   If it is
+still attached to the same network it was attached to when it last
+ran, this is the quickest way to get started.   The
+<I>reboot</I>
+
+statement sets the time that must elapse after the client first tries
+to reacquire its old address before it gives up and tries to discover
+a new address.   By default, the reboot timeout is ten seconds.
+<P>
+
+<I>The</I>
+
+<B>backoff-cutoff</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>backoff-cutoff&nbsp;</B><I>time</I><B>;</B>
+<P>
+
+The client uses an exponential backoff algorithm with some randomness,
+so that if many clients try to configure themselves at the same time,
+they will not make their requests in lockstep.   The
+<I>backoff-cutoff</I>
+
+statement determines the maximum amount of time that the client is
+allowed to back off, the actual value will be evaluated randomly between
+1/2 to 1 1/2 times the <I>time</I> specified.   It defaults to two minutes.
+<P>
+
+<I>The</I>
+
+<B>initial-interval</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>initial-interval&nbsp;</B><I>time</I><B>;</B>
+<P>
+
+The
+<I>initial-interval</I>
+
+statement sets the amount of time between the first attempt to reach a
+server and the second attempt to reach a server.  Each time a message
+is sent, the interval between messages is incremented by twice the
+current interval multiplied by a random number between zero and one.
+If it is greater than the backoff-cutoff amount, it is set to that
+amount.  It defaults to ten seconds.
+<A NAME="lbAE">&nbsp;</A>
+<H2>LEASE REQUIREMENTS AND REQUESTS</H2>
+
+The DHCP protocol allows the client to request that the server send it
+specific information, and not send it other information that it is not
+prepared to accept.   The protocol also allows the client to reject
+offers from servers if they don't contain information the client
+needs, or if the information provided is not satisfactory.
+<P>
+
+There is a variety of data contained in offers that DHCP servers send
+to DHCP clients.  The data that can be specifically requested is what
+are called <I>DHCP Options</I>.  DHCP Options are defined in
+<BR>&nbsp;<B><A HREF="/man/index.html?5+dhcp-options">dhcp-options</A>(5)</B>.
+<P>
+
+<I>The</I>
+
+<B>request</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>[&nbsp;also&nbsp;]&nbsp;request&nbsp;[&nbsp;[&nbsp;</B><I>option-space</I>&nbsp;.&nbsp;]&nbsp;<I>option</I>&nbsp;]&nbsp;[<B>,</B><I>&nbsp;...&nbsp;]</I><B>;</B>
+<P>
+
+The request statement causes the client to request that any server
+responding to the client send the client its values for the specified
+options.   Only the option names should be specified in the request
+statement - not option parameters.   By default, the DHCPv4 client
+requests the subnet-mask, broadcast-address, time-offset, routers,
+domain-name, domain-search, domain-name-servers, host-name, nis-domain, nis-servers,
+ntp-servers and interface-mtu options. The DHCPv6 client requests by default
+name-servers and domain-search. Note that if you enter a 'request' statement,
+you over-ride this default and these options will not be requested.
+<P>
+
+In some cases, it may be desirable to send no parameter request list
+at all.   To do this, simply write the request statement but specify
+no parameters:
+<P>
+
+<PRE>
+        request;
+</PRE>
+
+<P>
+
+In most cases, it is desirable to simply add one option to the request
+list which is of interest to the client in question.  In this case, it
+is best to 'also request' the additional options:
+<P>
+
+<PRE>
+        also request domain-search, dhcp6.sip-servers-addresses;
+</PRE>
+
+<P>
+
+<I>The</I>
+
+<B>require</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>[&nbsp;also&nbsp;]&nbsp;require&nbsp;[&nbsp;[&nbsp;</B><I>option-space</I>&nbsp;.&nbsp;]&nbsp;<I>option</I>&nbsp;]&nbsp;[<B>,</B><I>&nbsp;...&nbsp;]</I><B>;</B>
+<P>
+
+The require statement lists options that must be sent in order for an
+offer to be accepted.   Offers that do not contain all the listed
+options will be ignored.  There is no default require list.
+<P>
+
+<PRE>
+        require name-servers;
+
+        interface eth0 {
+                also require domain-search;
+        }
+
+<I>The</I>
+<B>send</B>
+<I>statement</I>
+
+ <B>send { [ </B><I>option declaration</I> ]
+[<B>,</B><I> ... option declaration</I> ]<B>}</B>
+
+The send statement causes the client to send the specified options to
+the server with the specified values.  These are full option
+declarations as described in <B><A HREF="/man/index.html?5+dhcp-options">dhcp-options</A>(5)</B>.  Options that are
+always sent in the DHCP protocol should not be specified here, except
+that the client can specify a requested <B>dhcp-lease-time</B> option other
+than the default requested lease time, which is two hours.  The other
+obvious use for this statement is to send information to the server
+that will allow it to differentiate between this client and other
+clients or kinds of clients.
+</PRE><A NAME="lbAF">&nbsp;</A>
+<H2>DYNAMIC DNS</H2>
+
+The client now has some very limited support for doing DNS updates
+when a lease is acquired.   This is prototypical, and probably doesn't
+do what you want.   It also only works if you happen to have control
+over your DNS server, which isn't very likely.
+<P>
+
+Note that everything in this section is true whether you are using DHCPv4
+or DHCPv6.  The exact same syntax is used for both.
+<P>
+
+To make it work, you have to declare a key and zone as in the DHCP
+server (see <B><A HREF="/man/index.html?5+dhcpd.conf">dhcpd.conf</A></B>(5) for details).   You also need to
+configure the fqdn option on the client, as follows:
+<P>
+
+<PRE>
+  send fqdn.fqdn &quot;grosse.fugue.com.&quot;;
+  send fqdn.encoded on;
+  send fqdn.server-update off;
+  also request fqdn, dhcp6.fqdn;
+</PRE>
+
+<P>
+
+The <I>fqdn.fqdn</I> option <B>MUST</B> be a fully-qualified domain
+name.   You <B>MUST</B> define a zone statement for the zone to be
+updated.   The <I>fqdn.encoded</I> option may need to be set to
+<I>on</I> or <I>off</I>, depending on the DHCP server you are using.
+<P>
+
+<I>The</I>
+
+<B>do-forward-updates</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>do-forward-updates&nbsp;[&nbsp;</B><I>flag</I>&nbsp;]&nbsp;<B>;</B>
+<P>
+
+If you want to do DNS updates in the DHCP client
+script (see <B><A HREF="/man/index.html?8+dhclient-script">dhclient-script</A>(8)</B>) rather than having the
+DHCP client do the update directly (for example, if you want to
+use SIG(0) authentication, which is not supported directly by the
+DHCP client, you can instruct the client not to do the update using
+the <B>do-forward-updates</B> statement.   <I>Flag</I> should be <B>true</B>
+if you want the DHCP client to do the update, and <B>false</B> if
+you don't want the DHCP client to do the update.   By default, the DHCP
+client will do the DNS update.
+<A NAME="lbAG">&nbsp;</A>
+<H2>OPTION MODIFIERS</H2>
+
+In some cases, a client may receive option data from the server which
+is not really appropriate for that client, or may not receive
+information that it needs, and for which a useful default value
+exists.   It may also receive information which is useful, but which
+needs to be supplemented with local information.   To handle these
+needs, several option modifiers are available.
+<P>
+
+<I>The</I>
+
+<B>default</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>default&nbsp;[&nbsp;</B><I>option&nbsp;declaration</I>&nbsp;]&nbsp;<B>;</B>
+<P>
+
+If for some option the client should use the value supplied by
+the server, but needs to use some default value if no value was supplied
+by the server, these values can be defined in the
+<B>default</B>
+
+statement.
+<P>
+
+<I>The</I>
+
+<B>supersede</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>supersede&nbsp;[&nbsp;</B><I>option&nbsp;declaration</I>&nbsp;]&nbsp;<B>;</B>
+<P>
+
+If for some option the client should always use a locally-configured
+value or values rather than whatever is supplied by the server, these
+values can be defined in the 
+<B>supersede</B>
+
+statement.
+<P>
+
+<I>The</I>
+
+<B>prepend</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>prepend&nbsp;[&nbsp;</B><I>option&nbsp;declaration</I>&nbsp;]&nbsp;<B>;</B>
+<P>
+
+If for some set of options the client should use a value you
+supply, and then use the values supplied by
+the server, if any, these values can be defined in the
+<B>prepend</B>
+
+statement.   The
+<B>prepend</B>
+
+statement can only be used for options which
+allow more than one value to be given.   This restriction is not
+enforced - if you ignore it, the behaviour will be unpredictable.
+<P>
+
+<I>The</I>
+
+<B>append</B>
+
+<I>statement</I>
+
+<P>
+
+<BR>&nbsp;<B>append&nbsp;[&nbsp;</B><I>option&nbsp;declaration</I>&nbsp;]&nbsp;<B>;</B>
+<P>
+
+If for some set of options the client should first use the values
+supplied by the server, if any, and then use values you supply, these
+values can be defined in the
+<B>append</B>
+
+statement.   The
+<B>append</B>
+
+statement can only be used for options which
+allow more than one value to be given.   This restriction is not
+enforced - if you ignore it, the behaviour will be unpredictable.
+<A NAME="lbAH">&nbsp;</A>
+<H2>LEASE DECLARATIONS</H2>
+
+<P>
+
+<I>The</I>
+
+<B>lease</B>
+
+<I>declaration</I>
+
+<P>
+
+<BR>&nbsp;<B>lease&nbsp;{</B>&nbsp;<I>lease-declaration</I>&nbsp;[&nbsp;...&nbsp;<I>lease-declaration&nbsp;]&nbsp;</I><B>}</B>
+<P>
+
+The DHCP client may decide after some period of time (see <B>PROTOCOL
+TIMING</B>) that it is not going to succeed in contacting a
+server.   At that time, it consults its own database of old leases and
+tests each one that has not yet timed out by pinging the listed router
+for that lease to see if that lease could work.   It is possible to
+define one or more <I>fixed</I> leases in the client configuration file
+for networks where there is no DHCP or BOOTP service, so that the
+client can still automatically configure its address.   This is done
+with the
+<B>lease</B>
+
+statement.
+<P>
+
+NOTE: the lease statement is also used in the dhclient.leases file in
+order to record leases that have been received from DHCP servers.
+Some of the syntax for leases as described below is only needed in the
+dhclient.leases file.   Such syntax is documented here for
+completeness.
+<P>
+
+A lease statement consists of the lease keyword, followed by a left
+curly brace, followed by one or more lease declaration statements,
+followed by a right curly brace.   The following lease declarations
+are possible:
+<P>
+
+<BR>&nbsp;<B>bootp;</B>
+<P>
+
+The
+<B>bootp</B>
+
+statement is used to indicate that the lease was acquired using the
+BOOTP protocol rather than the DHCP protocol.   It is never necessary
+to specify this in the client configuration file.   The client uses
+this syntax in its lease database file.
+<P>
+
+<BR>&nbsp;<B>interface</B>&nbsp;<B>&quot;</B><I>string</I><B>&quot;;</B>
+<P>
+
+The
+<B>interface</B>
+
+lease statement is used to indicate the interface on which the lease
+is valid.   If set, this lease will only be tried on a particular
+interface.   When the client receives a lease from a server, it always
+records the interface number on which it received that lease.
+If predefined leases are specified in the dhclient.conf file, the
+interface should also be specified, although this is not required.
+<P>
+
+<BR>&nbsp;<B>fixed-address</B>&nbsp;<I>ip-address</I><B>;</B>
+<P>
+
+The
+<B>fixed-address</B>
+
+statement is used to set the ip address of a particular lease.   This
+is required for all lease statements.   The IP address must be
+specified as a dotted quad (e.g., 12.34.56.78).
+<P>
+
+<BR>&nbsp;<B>filename&nbsp;&quot;</B><I>string</I><B>&quot;;</B>
+<P>
+
+The
+<B>filename</B>
+
+statement specifies the name of the boot filename to use.   This is
+not used by the standard client configuration script, but is included
+for completeness.
+<P>
+
+<BR>&nbsp;<B>server-name&nbsp;&quot;</B><I>string</I><B>&quot;;</B>
+<P>
+
+The
+<B>server-name</B>
+
+statement specifies the name of the boot server name to use.   This is
+also not used by the standard client configuration script.
+<P>
+
+<BR>&nbsp;<B>option</B>&nbsp;<I>option-declaration</I><B>;</B>
+<P>
+
+The
+<B>option</B>
+
+statement is used to specify the value of an option supplied by the
+server, or, in the case of predefined leases declared in
+dhclient.conf, the value that the user wishes the client configuration
+script to use if the predefined lease is used.
+<P>
+
+<BR>&nbsp;<B>script&nbsp;&quot;</B><I>script-name</I><B>&quot;;</B>
+<P>
+
+The
+<B>script</B>
+
+statement is used to specify the pathname of the dhcp client
+configuration script.  This script is used by the dhcp client to set
+each interface's initial configuration prior to requesting an address,
+to test the address once it has been offered, and to set the
+interface's final configuration once a lease has been acquired.   If
+no lease is acquired, the script is used to test predefined leases, if
+any, and also called once if no valid lease can be identified.   For
+more information, see
+<B><A HREF="/man/index.html?8+dhclient-script">dhclient-script</A>(8).</B>
+
+<P>
+
+<BR>&nbsp;<B>vendor&nbsp;option&nbsp;space&nbsp;&quot;</B><I>name</I><B>&quot;;</B>
+<P>
+
+The
+<B>vendor option space</B>
+
+statement is used to specify which option space should be used for
+decoding the vendor-encapsulate-options option if one is received.
+The <I>dhcp-vendor-identifier</I> can be used to request a specific
+class of vendor options from the server.   See
+<B><A HREF="/man/index.html?5+dhcp-options">dhcp-options</A>(5)</B>
+
+for details.
+<P>
+
+<BR>&nbsp;<B>medium&nbsp;&quot;</B><I>media&nbsp;setup</I><B>&quot;;</B>
+<P>
+
+The
+<B>medium</B>
+
+statement can be used on systems where network interfaces cannot
+automatically determine the type of network to which they are
+connected.  The media setup string is a system-dependent parameter
+which is passed to the dhcp client configuration script when
+initializing the interface.  On Unix and Unix-like systems, the
+argument is passed on the ifconfig command line when configuring the
+interface.
+<P>
+
+The dhcp client automatically declares this parameter if it uses a
+media type (see the
+<B>media</B>
+
+statement) when configuring the interface in order to obtain a lease.
+This statement should be used in predefined leases only if the network
+interface requires media type configuration.
+<P>
+
+<BR>&nbsp;<B>renew</B>&nbsp;<I>date</I><B>;</B>
+<P>
+
+<BR>&nbsp;<B>rebind</B>&nbsp;<I>date</I><B>;</B>
+<P>
+
+<BR>&nbsp;<B>expire</B>&nbsp;<I>date</I><B>;</B>
+<P>
+
+The <B>renew</B> statement defines the time at which the dhcp client
+should begin trying to contact its server to renew a lease that it is
+using.   The <B>rebind</B> statement defines the time at which the dhcp
+client should begin to try to contact <I>any</I> dhcp server in order
+to renew its lease.   The <B>expire</B> statement defines the time at
+which the dhcp client must stop using a lease if it has not been able
+to contact a server in order to renew it.
+<P>
+
+These declarations are automatically set in leases acquired by the
+DHCP client, but must also be configured in predefined leases - a
+predefined lease whose expiry time has passed will not be used by the
+DHCP client.
+<P>
+
+Dates are specified in one of two ways.  The software will output times in
+these two formats depending on if the <B>db-time-format</B> configuration
+parameter has been set to <I>default</I> or <I>local</I>.
+<P>
+
+If it is set to <I>default</I>, then <I>date</I> values appear as follows:
+<P>
+
+<BR>&nbsp;<I>&lt;weekday&gt;&nbsp;&lt;year&gt;</I><B>/</B><I>&lt;month&gt;</I><B>/</B><I>&lt;day&gt;
+&lt;hour&gt;</I><B>:</B><I>&lt;minute&gt;</I><B>:</B><I>&lt;second&gt;</I>
+<P>
+
+The weekday is present to make it easy for a human to tell when a
+lease expires - it's specified as a number from zero to six, with zero
+being Sunday.  When declaring a predefined lease, it can always be
+specified as zero.  The year is specified with the century, so it
+should generally be four digits except for really long leases.  The
+month is specified as a number starting with 1 for January.  The day
+of the month is likewise specified starting with 1.  The hour is a
+number between 0 and 23, the minute a number between 0 and 59, and the
+second also a number between 0 and 59.
+<P>
+
+If the <B>db-time-format</B> configuration was set to <I>local</I>, then
+the <I>date</I> values appear as follows:
+<P>
+
+<BR>&nbsp;<B>epoch</B>&nbsp;<I>&lt;seconds-since-epoch&gt;</I><B>;&nbsp;#</B>&nbsp;<I>&lt;day-name&gt;&nbsp;&lt;month-name&gt;
+&lt;day-number&gt; &lt;hours&gt;</I><B>:</B><I>&lt;minutes&gt;</I><B>:</B><I>&lt;seconds&gt; &lt;year&gt;</I>
+<P>
+
+The <I>seconds-since-epoch</I> is as according to the system's local clock (often
+referred to as &quot;unix time&quot;).  The <B>#</B> symbol supplies a comment that
+describes what actual time this is as according to the system's configured
+timezone, at the time the value was written.  It is provided only for human
+inspection, the epoch time is the only recommended value for machine
+inspection.
+<P>
+
+Note that when defining a static lease, one may use either time format one
+wishes, and need not include the comment or values after it.
+<P>
+
+If the time is infinite in duration, then the <I>date</I> is <B>never</B>
+instead of an actual date.
+<A NAME="lbAI">&nbsp;</A>
+<H2>ALIAS DECLARATIONS</H2>
+
+<BR>&nbsp;<B>alias&nbsp;{&nbsp;</B><I>&nbsp;declarations&nbsp;...&nbsp;</I><B>}</B>
+<P>
+
+Some DHCP clients running TCP/IP roaming protocols may require that in
+addition to the lease they may acquire via DHCP, their interface also
+be configured with a predefined IP alias so that they can have a
+permanent IP address even while roaming.   The Internet Systems
+Consortium DHCP client doesn't support roaming with fixed addresses
+directly, but in order to facilitate such experimentation, the dhcp
+client can be set up to configure an IP alias using the
+<B>alias</B>
+
+declaration.
+<P>
+
+The alias declaration resembles a lease declaration, except that
+options other than the subnet-mask option are ignored by the standard
+client configuration script, and expiry times are ignored.  A typical
+alias declaration includes an interface declaration, a fixed-address
+declaration for the IP alias address, and a subnet-mask option
+declaration.   A medium statement should never be included in an alias
+declaration.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>OTHER DECLARATIONS</H2>
+
+<BR>&nbsp;<B>db-time-format</B>&nbsp;[&nbsp;<I>default</I>&nbsp;|&nbsp;<I>local</I>&nbsp;]&nbsp;<B>;</B>
+<P>
+
+The <B>db-time-format</B> option determines which of two output methods are
+used for printing times in leases files.  The <I>default</I> format provides
+day-and-time in UTC, whereas <I>local</I> uses a seconds-since-epoch to store
+the time value, and helpfully places a local timezone time in a comment on
+the same line.  The formats are described in detail in this manpage, whithin
+the LEASE DECLARATIONS section.
+<P>
+
+<BR>&nbsp;<B>reject&nbsp;</B><I>cidr-ip-address</I>&nbsp;[<B>,</B>&nbsp;<I>...</I><B>&nbsp;</B><I>cidr-ip-address</I>&nbsp;]&nbsp;<B>;</B>
+<P>
+
+The
+<B>reject</B>
+
+statement causes the DHCP client to reject offers from
+servers whose server identifier matches any of the specified hosts or
+subnets.  This can be used to avoid being configured by rogue or
+misconfigured dhcp servers, although it should be a last resort -
+better to track down the bad DHCP server and fix it.
+<P>
+
+The <I>cidr-ip-address</I> configuration type is of the
+form <I>ip-address</I>[<B>/</B><I>prefixlen</I>], where <I>ip-address</I> is a
+dotted quad IP address, and prefixlen is the CIDR prefix length of
+the subnet, counting the number of significant bits in the netmask starting
+from the leftmost end.  Example configuration syntax:
+<P>
+
+<I>reject</I> 192.168.0.0<B>/</B>16<B>,</B> 10.0.0.5<B>;</B>
+
+
+<P>
+
+The above example would cause offers from any server identifier in the
+entire RFC 1918 &quot;Class C&quot; network 192.168.0.0/16, or the specific
+single address 10.0.0.5, to be rejected.
+<P>
+
+<BR>&nbsp;<B>interface&nbsp;&quot;</B><I>name</I><B>&quot;&nbsp;{&nbsp;</B><I>declarations&nbsp;...&nbsp;</I><B>&nbsp;}
+<P>
+
+A client with more than one network interface may require different
+behaviour depending on which interface is being configured.   All
+timing parameters and declarations other than lease and alias
+declarations can be enclosed in an interface declaration, and those
+parameters will then be used only for the interface that matches the
+specified name.   Interfaces for which there is no interface
+declaration will use the parameters declared outside of any interface
+declaration, or the default settings.
+<P>
+
+Note well:</B>
+
+ISC dhclient only maintains one list of interfaces, which is either
+determined at startup from command line arguments, or otherwise is
+autodetected.  If you supplied the list of interfaces on the command
+line, this configuration clause will add the named interface to the
+list in such a way that will cause it to be configured by DHCP.  Which
+may not be the result you had intended.  This is an undesirable side
+effect that will be addressed in a future release.
+<P>
+
+<BR>&nbsp;<B>pseudo&nbsp;&quot;</B><I>name</I>&quot;&nbsp;&quot;<I>real-name</I><B>&quot;&nbsp;{&nbsp;</B><I>declarations&nbsp;...&nbsp;</I><B>&nbsp;}
+<P>
+
+Under some circumstances it can be useful to declare a pseudo-interface 
+and have the DHCP client acquire a configuration for that interface.
+Each interface that the DHCP client is supporting normally has a DHCP
+client state machine running on it to acquire and maintain its lease.
+A pseudo-interface is just another state machine running on the
+interface named </B><I>real-name</I>, with its own lease and its own
+state.   If you use this feature, you must provide a client identifier
+for both the pseudo-interface and the actual interface, and the two
+identifiers must be different.   You must also provide a separate
+client script for the pseudo-interface to do what you want with the IP
+address.   For example:
+<P>
+
+<PRE>
+        interface &quot;ep0&quot; {
+                send dhcp-client-identifier &quot;my-client-ep0&quot;;
+        }
+        pseudo &quot;secondary&quot; &quot;ep0&quot; {
+                send dhcp-client-identifier &quot;my-client-ep0-secondary&quot;;
+                script &quot;/etc/dhclient-secondary&quot;;
+        }
+</PRE>
+
+<P>
+
+The client script for the pseudo-interface should not configure the
+interface up or down - essentially, all it needs to handle are the
+states where a lease has been acquired or renewed, and the states
+where a lease has expired.   See <B><A HREF="/man/index.html?8+dhclient-script">dhclient-script</A>(8)</B> for more
+information.
+<P>
+
+<BR>&nbsp;<B>media&nbsp;&quot;</B><I>media&nbsp;setup</I><B>&quot;</B><I>&nbsp;[&nbsp;</I><B>,&nbsp;&quot;</B><I>media&nbsp;setup</I><B>&quot;,&nbsp;</B><I>...&nbsp;]</I><B>;</B>
+<P>
+
+The
+<B>media</B>
+
+statement defines one or more media configuration parameters which may
+be tried while attempting to acquire an IP address.   The dhcp client
+will cycle through each media setup string on the list, configuring
+the interface using that setup and attempting to boot, and then trying
+the next one.   This can be used for network interfaces which aren't
+capable of sensing the media type unaided - whichever media type
+succeeds in getting a request to the server and hearing the reply is
+probably right (no guarantees).
+<P>
+
+The media setup is only used for the initial phase of address
+acquisition (the DHCPDISCOVER and DHCPOFFER packets).   Once an
+address has been acquired, the dhcp client will record it in its lease
+database and will record the media type used to acquire the address.
+Whenever the client tries to renew the lease, it will use that same
+media type.   The lease must expire before the client will go back to
+cycling through media types.
+<P>
+
+<BR>&nbsp;<B>bootp-broadcast-always;</B>
+<P>
+
+The
+<B>bootp-broadcast-always</B>
+
+statement instructs dhclient to always set the bootp broadcast flag in
+request packets, so that servers will always broadcast replies.
+This is equivalent to supplying the dhclient -B argument, and has
+the same effect as specifying 'always-broadcast' in the server's dhcpd.conf.
+This option is provided as an extension to enable dhclient to work
+on IBM s390 Linux guests.
+<P>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SAMPLE</H2>
+
+The following configuration file is used on a laptop running NetBSD
+1.3.   The laptop has an IP alias of 192.5.5.213, and has one
+interface, ep0 (a 3com 3C589C).   Booting intervals have been
+shortened somewhat from the default, because the client is known to
+spend most of its time on networks with little DHCP activity.   The
+laptop does roam to multiple networks.
+<P>
+<PRE>
+
+timeout 60;
+retry 60;
+reboot 10;
+select-timeout 5;
+initial-interval 2;
+reject 192.33.137.209;
+
+interface &quot;ep0&quot; {
+    send host-name &quot;andare.fugue.com&quot;;
+    send dhcp-client-identifier 1:0:a0:24:ab:fb:9c;
+    send dhcp-lease-time 3600;
+    supersede domain-search &quot;fugue.com&quot;, &quot;rc.vix.com&quot;, &quot;home.vix.com&quot;;
+    prepend domain-name-servers 127.0.0.1;
+    request subnet-mask, broadcast-address, time-offset, routers,
+            domain-search, domain-name, domain-name-servers, host-name;
+    require subnet-mask, domain-name-servers;
+    script &quot;/sbin/dhclient-script&quot;;
+    media &quot;media 10baseT/UTP&quot;, &quot;media 10base2/BNC&quot;;
+}
+
+alias {
+  interface &quot;ep0&quot;;
+  fixed-address 192.5.5.213;
+  option subnet-mask 255.255.255.255;
+}
+</PRE>
+
+This is a very complicated dhclient.conf file - in general, yours
+should be much simpler.   In many cases, it's sufficient to just
+create an empty dhclient.conf file - the defaults are usually fine.
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A HREF="/man/index.html?5+dhcp-options">dhcp-options</A>(5), <A HREF="http://localhost/cgi-bin/man/man2html?5+dhcp-eval">dhcp-eval</A>(5), <A HREF="http://localhost/cgi-bin/man/man2html?5+dhclient.leases">dhclient.leases</A>(5), <A HREF="http://localhost/cgi-bin/man/man2html?8+dhcpd">dhcpd</A>(8), <A HREF="http://localhost/cgi-bin/man/man2html?5+dhcpd.conf">dhcpd.conf</A>(5),
+RFC2132, RFC2131.
+<A NAME="lbAM">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<B><A HREF="/man/index.html?8+dhclient">dhclient</A>(8)</B>
+
+was written by Ted Lemon
+under a contract with Vixie Labs.   Funding
+for this project was provided by Internet Systems Consortium.
+Information about Internet Systems Consortium can be found at
+<B><A HREF="https://www.isc.org.">https://www.isc.org.</A></B>
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">PROTOCOL TIMING</A><DD>
+<DT><A HREF="#lbAE">LEASE REQUIREMENTS AND REQUESTS</A><DD>
+<DT><A HREF="#lbAF">DYNAMIC DNS</A><DD>
+<DT><A HREF="#lbAG">OPTION MODIFIERS</A><DD>
+<DT><A HREF="#lbAH">LEASE DECLARATIONS</A><DD>
+<DT><A HREF="#lbAI">ALIAS DECLARATIONS</A><DD>
+<DT><A HREF="#lbAJ">OTHER DECLARATIONS</A><DD>
+<DT><A HREF="#lbAK">SAMPLE</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+<DT><A HREF="#lbAM">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:59 GMT, December 24, 2015
+</div></body>
+</HTML>

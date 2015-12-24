@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of LWP::ConnCache</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>LWP::ConnCache</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-10-03<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+LWP::ConnCache - Connection cache manager
+<A NAME="lbAC">&nbsp;</A>
+<H2>NOTE</H2>
+
+<A NAME="ixAAC"></A>
+This module is experimental.  Details of its interface is likely to
+change in the future.
+<A NAME="lbAD">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAD"></A>
+
+
+<PRE>
+ use LWP::ConnCache;
+ my $cache = LWP::ConnCache-&gt;new;
+ $cache-&gt;deposit($type, $key, $sock);
+ $sock = $cache-&gt;withdraw($type, $key);
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAE"></A>
+The <TT>&quot;LWP::ConnCache&quot;</TT> class is the standard connection cache manager
+for LWP::UserAgent.
+<P>
+
+The following basic methods are provided:
+<DL COMPACT>
+<DT>$cache = LWP::ConnCache-&gt;new( %options )<DD>
+
+
+<A NAME="ixAAF"></A>
+This method constructs a new <TT>&quot;LWP::ConnCache&quot;</TT> object.  The only
+option currently accepted is 'total_capacity'.  If specified it
+initialize the total_capacity option.  It defaults to the value 1.
+<DT>$cache-&gt;total_capacity( [$num_connections] )<DD>
+
+
+<A NAME="ixAAG"></A>
+Get/sets the number of connection that will be cached.  Connections
+will start to be dropped when this limit is reached.  If set to <TT>0</TT>,
+then all connections are immediately dropped.  If set to <TT>&quot;undef&quot;</TT>,
+then there is no limit.
+<DT>$cache-&gt;capacity($type, [$num_connections] )<DD>
+
+
+<A NAME="ixAAH"></A>
+Get/set a limit for the number of connections of the specified type
+that can be cached.  The <TT>$type</TT> will typically be a short string like
+``http'' or ``ftp''.
+<DT>$cache-&gt;drop( [$checker, [$reason]] )<DD>
+
+
+<A NAME="ixAAI"></A>
+Drop connections by some criteria.  The <TT>$checker</TT> argument is a
+subroutine that is called for each connection.  If the routine returns
+a <FONT SIZE="-1">TRUE</FONT> value then the connection is dropped.  The routine is called
+with ($conn, <TT>$type</TT>, <TT>$key</TT>, <TT>$deposit_time</TT>) as arguments.
+
+
+<P>
+
+
+Shortcuts: If the <TT>$checker</TT> argument is absent (or <TT>&quot;undef&quot;</TT>) all cached
+connections are dropped.  If the <TT>$checker</TT> is a number then all
+connections untouched that the given number of seconds or more are
+dropped.  If <TT>$checker</TT> is a string then all connections of the given
+type are dropped.
+
+
+<P>
+
+
+The <TT>$reason</TT> argument is passed on to the <I>dropped()</I> method.
+<DT>$cache-&gt;prune<DD>
+
+
+<A NAME="ixAAJ"></A>
+Calling this method will drop all connections that are dead.  This is
+tested by calling the <I>ping()</I> method on the connections.  If the <I>ping()</I>
+method exists and returns a <FONT SIZE="-1">FALSE</FONT> value, then the connection is
+dropped.
+<DT>$cache-&gt;get_types<DD>
+
+
+<A NAME="ixAAK"></A>
+This returns all the 'type' fields used for the currently cached
+connections.
+<DT>$cache-&gt;get_connections( [$type] )<DD>
+
+
+<A NAME="ixAAL"></A>
+This returns all connection objects of the specified type.  If no type
+is specified then all connections are returned.  In scalar context the
+number of cached connections of the specified type is returned.
+</DL>
+<P>
+
+The following methods are called by low-level protocol modules to
+try to save away connections and to get them back.
+<DL COMPACT>
+<DT>$cache-&gt;deposit($type, $key, $conn)<DD>
+
+
+<A NAME="ixAAM"></A>
+This method adds a new connection to the cache.  As a result other
+already cached connections might be dropped.  Multiple connections with
+the same <TT>$type</TT>/$key might added.
+<DT>$conn = $cache-&gt;withdraw($type, $key)<DD>
+
+
+<A NAME="ixAAN"></A>
+This method tries to fetch back a connection that was previously
+deposited.  If no cached connection with the specified <TT>$type</TT>/$key is
+found, then <TT>&quot;undef&quot;</TT> is returned.  There is not guarantee that a
+deposited connection can be withdrawn, as the cache manger is free to
+drop connections at any time.
+</DL>
+<P>
+
+The following methods are called internally.  Subclasses might want to
+override them.
+<DL COMPACT>
+<DT>$conn-&gt;enforce_limits([$type])<DD>
+
+
+<A NAME="ixAAO"></A>
+This method is called with after a new connection is added (deposited)
+in the cache or capacity limits are adjusted.  The default
+implementation drops connections until the specified capacity limits
+are not exceeded.
+<DT>$conn-&gt;dropping($conn_record, $reason)<DD>
+
+
+<A NAME="ixAAP"></A>
+This method is called when a connection is dropped.  The record
+belonging to the dropped connection is passed as the first argument
+and a string describing the reason for the drop is passed as the
+second argument.  The default implementation makes some noise if the
+<TT>$LWP::ConnCache::DEBUG</TT> variable is set and nothing more.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>SUBCLASSING</H2>
+
+<A NAME="ixAAQ"></A>
+For specialized cache policy it makes sense to subclass
+<TT>&quot;LWP::ConnCache&quot;</TT> and perhaps override the <I>deposit()</I>, <I>enforce_limits()</I>
+and <I>dropping()</I> methods.
+<P>
+
+The object itself is a hash.  Keys prefixed with <TT>&quot;cc_&quot;</TT> are reserved
+for the base class.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAR"></A>
+LWP::UserAgent
+<A NAME="lbAH">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAS"></A>
+Copyright 2001 Gisle Aas.
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">NOTE</A><DD>
+<DT><A HREF="#lbAD">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAE">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAF">SUBCLASSING</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:33 GMT, December 24, 2015
+</div></body>
+</HTML>

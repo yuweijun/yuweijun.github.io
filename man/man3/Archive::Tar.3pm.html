@@ -1,0 +1,1385 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Archive::Tar</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Archive::Tar</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Archive::Tar - module for manipulations of tar archives
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Archive::Tar;
+    my $tar = Archive::Tar-&gt;new;
+
+    $tar-&gt;read('origin.tgz');
+    $tar-&gt;extract();
+
+    $tar-&gt;add_files('file/foo.pl', 'docs/README');
+    $tar-&gt;add_data('file/baz.txt', 'This is the contents now');
+
+    $tar-&gt;rename('oldname', 'new/file/name');
+
+    $tar-&gt;write('files.tar');                   # plain tar
+    $tar-&gt;write('files.tgz', COMPRESS_GZIP);    # gzip compressed
+    $tar-&gt;write('files.tbz', COMPRESS_BZIP);    # bzip2 compressed
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Archive::Tar provides an object oriented mechanism for handling tar
+files.  It provides class methods for quick and easy files handling
+while also allowing for the creation of tar file objects for custom
+manipulation.  If you have the IO::Zlib module installed,
+Archive::Tar will also support compressed or gzipped tar files.
+<P>
+
+An object of class Archive::Tar represents a .tar(.gz) archive full
+of files and things.
+<A NAME="lbAE">&nbsp;</A>
+<H2>Object Methods</H2>
+
+<A NAME="ixAAE"></A>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Archive::Tar-&gt;new( [$file, $compressed] )</H3>
+
+
+
+<A NAME="ixAAF"></A>
+Returns a new Tar object. If given any arguments, <TT>&quot;new()&quot;</TT> calls the
+<TT>&quot;read()&quot;</TT> method automatically, passing on the arguments provided to
+the <TT>&quot;read()&quot;</TT> method.
+<P>
+
+If <TT>&quot;new()&quot;</TT> is invoked with arguments and the <TT>&quot;read()&quot;</TT> method fails
+for any reason, <TT>&quot;new()&quot;</TT> returns undef.
+<A NAME="lbAG">&nbsp;</A>
+<H3>$tar-&gt;read ( $filename|$handle, [$compressed, {opt =&gt; 'val'}] )</H3>
+
+
+
+<A NAME="ixAAG"></A>
+Read the given tar file into memory.
+The first argument can either be the name of a file or a reference to
+an already open filehandle (or an IO::Zlib object if it's compressed)
+<P>
+
+The <TT>&quot;read&quot;</TT> will <I>replace</I> any previous content in <TT>$tar</TT>!
+<P>
+
+The second argument may be considered optional, but remains for
+backwards compatibility. Archive::Tar now looks at the file
+magic to determine what class should be used to open the file
+and will transparently Do The Right Thing.
+<P>
+
+Archive::Tar will warn if you try to pass a bzip2 compressed file and the
+IO::Zlib / IO::Uncompress::Bunzip2 modules are not available and simply return.
+<P>
+
+Note that you can currently <B>not</B> pass a <TT>&quot;gzip&quot;</TT> compressed
+filehandle, which is not opened with <TT>&quot;IO::Zlib&quot;</TT>, a <TT>&quot;bzip2&quot;</TT> compressed
+filehandle, which is not opened with <TT>&quot;IO::Uncompress::Bunzip2&quot;</TT>, nor a string
+containing the full archive information (either compressed or
+uncompressed). These are worth while features, but not currently
+implemented. See the <TT>&quot;TODO&quot;</TT> section.
+<P>
+
+The third argument can be a hash reference with options. Note that
+all options are case-sensitive.
+<DL COMPACT>
+<DT>limit<DD>
+<A NAME="ixAAH"></A>
+Do not read more than <TT>&quot;limit&quot;</TT> files. This is useful if you have
+very big archives, and are only interested in the first few files.
+<DT>filter<DD>
+<A NAME="ixAAI"></A>
+Can be set to a regular expression.  Only files with names that match
+the expression will be read.
+<DT>extract<DD>
+<A NAME="ixAAJ"></A>
+If set to true, immediately extract entries when reading them. This
+gives you the same memory break as the <TT>&quot;extract_archive&quot;</TT> function.
+Note however that entries will not be read into memory, but written
+straight to disk. This means no <TT>&quot;Archive::Tar::File&quot;</TT> objects are
+created for you to inspect.
+</DL>
+<P>
+
+All files are stored internally as <TT>&quot;Archive::Tar::File&quot;</TT> objects.
+Please consult the Archive::Tar::File documentation for details.
+<P>
+
+Returns the number of files read in scalar context, and a list of
+<TT>&quot;Archive::Tar::File&quot;</TT> objects in list context.
+<A NAME="lbAH">&nbsp;</A>
+<H3>$tar-&gt;contains_file( $filename )</H3>
+
+
+
+<A NAME="ixAAK"></A>
+Check if the archive contains a certain file.
+It will return true if the file is in the archive, false otherwise.
+<P>
+
+Note however, that this function does an exact match using <TT>&quot;eq&quot;</TT>
+on the full path. So it cannot compensate for case-insensitive file-
+systems or compare 2 paths to see if they would point to the same
+underlying file.
+<A NAME="lbAI">&nbsp;</A>
+<H3>$tar-&gt;extract( [@filenames] )</H3>
+
+
+
+<A NAME="ixAAL"></A>
+Write files whose names are equivalent to any of the names in
+<TT>@filenames</TT> to disk, creating subdirectories as necessary. This
+might not work too well under <FONT SIZE="-1">VMS</FONT>.
+Under MacPerl, the file's modification time will be converted to the
+MacOS zero of time, and appropriate conversions will be done to the
+path.  However, the length of each element of the path is not
+inspected to see whether it's longer than MacOS currently allows (32
+characters).
+<P>
+
+If <TT>&quot;extract&quot;</TT> is called without a list of file names, the entire
+contents of the archive are extracted.
+<P>
+
+Returns a list of filenames extracted.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>$tar-&gt;extract_file( $file, [$extract_path] )</H3>
+
+
+
+<A NAME="ixAAM"></A>
+Write an entry, whose name is equivalent to the file name provided to
+disk. Optionally takes a second parameter, which is the full native
+path (including filename) the entry will be written to.
+<P>
+
+For example:
+<P>
+
+
+
+<PRE>
+    $tar-&gt;extract_file( 'name/in/archive', 'name/i/want/to/give/it' );
+
+    $tar-&gt;extract_file( $at_file_object,   'name/i/want/to/give/it' );
+
+</PRE>
+
+
+<P>
+
+Returns true on success, false on failure.
+<A NAME="lbAK">&nbsp;</A>
+<H3>$tar-&gt;list_files( [\@properties] )</H3>
+
+
+
+<A NAME="ixAAN"></A>
+Returns a list of the names of all the files in the archive.
+<P>
+
+If <TT>&quot;list_files()&quot;</TT> is passed an array reference as its first argument
+it returns a list of hash references containing the requested
+properties of each file.  The following list of properties is
+supported: name, size, mtime (last modified date), mode, uid, gid,
+linkname, uname, gname, devmajor, devminor, prefix.
+<P>
+
+Passing an array reference containing only one element, 'name', is
+special cased to return a list of names rather than a list of hash
+references, making it equivalent to calling <TT>&quot;list_files&quot;</TT> without
+arguments.
+<A NAME="lbAL">&nbsp;</A>
+<H3>$tar-&gt;get_files( [@filenames] )</H3>
+
+
+
+<A NAME="ixAAO"></A>
+Returns the <TT>&quot;Archive::Tar::File&quot;</TT> objects matching the filenames
+provided. If no filename list was passed, all <TT>&quot;Archive::Tar::File&quot;</TT>
+objects in the current Tar object are returned.
+<P>
+
+Please refer to the <TT>&quot;Archive::Tar::File&quot;</TT> documentation on how to
+handle these objects.
+<A NAME="lbAM">&nbsp;</A>
+<H3>$tar-&gt;get_content( $file )</H3>
+
+
+
+<A NAME="ixAAP"></A>
+Return the content of the named file.
+<A NAME="lbAN">&nbsp;</A>
+<H3>$tar-&gt;replace_content( $file, $content )</H3>
+
+
+
+<A NAME="ixAAQ"></A>
+Make the string <TT>$content</TT> be the content for the file named <TT>$file</TT>.
+<A NAME="lbAO">&nbsp;</A>
+<H3>$tar-&gt;rename( $file, $new_name )</H3>
+
+
+
+<A NAME="ixAAR"></A>
+Rename the file of the in-memory archive to <TT>$new_name</TT>.
+<P>
+
+Note that you must specify a Unix path for <TT>$new_name</TT>, since per tar
+standard, all files in the archive must be Unix paths.
+<P>
+
+Returns true on success and false on failure.
+<A NAME="lbAP">&nbsp;</A>
+<H3>$tar-&gt;remove (@filenamelist)</H3>
+
+
+
+<A NAME="ixAAS"></A>
+Removes any entries with names matching any of the given filenames
+from the in-memory archive. Returns a list of <TT>&quot;Archive::Tar::File&quot;</TT>
+objects that remain.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>$tar-&gt;clear</H3>
+
+
+
+<A NAME="ixAAT"></A>
+<TT>&quot;clear&quot;</TT> clears the current in-memory archive. This effectively gives
+you a 'blank' object, ready to be filled again. Note that <TT>&quot;clear&quot;</TT>
+only has effect on the object, not the underlying tarfile.
+<A NAME="lbAR">&nbsp;</A>
+<H3>$tar-&gt;write ( [$file, $compressed, $prefix] )</H3>
+
+
+
+<A NAME="ixAAU"></A>
+Write the in-memory archive to disk.  The first argument can either
+be the name of a file or a reference to an already open filehandle (a
+<FONT SIZE="-1">GLOB</FONT> reference).
+<P>
+
+The second argument is used to indicate compression. You can either
+compress using <TT>&quot;gzip&quot;</TT> or <TT>&quot;bzip2&quot;</TT>. If you pass a digit, it's assumed
+to be the <TT>&quot;gzip&quot;</TT> compression level (between 1 and 9), but the use of
+constants is prefered:
+<P>
+
+
+
+<PRE>
+  # write a gzip compressed file
+  $tar-&gt;write( 'out.tgz', COMPRESS_GZIP );
+
+  # write a bzip compressed file
+  $tar-&gt;write( 'out.tbz', COMPRESS_BZIP );
+
+</PRE>
+
+
+<P>
+
+Note that when you pass in a filehandle, the compression argument
+is ignored, as all files are printed verbatim to your filehandle.
+If you wish to enable compression with filehandles, use an
+<TT>&quot;IO::Zlib&quot;</TT> or <TT>&quot;IO::Compress::Bzip2&quot;</TT> filehandle instead.
+<P>
+
+The third argument is an optional prefix. All files will be tucked
+away in the directory you specify as prefix. So if you have files
+'a' and 'b' in your archive, and you specify 'foo' as prefix, they
+will be written to the archive as 'foo/a' and 'foo/b'.
+<P>
+
+If no arguments are given, <TT>&quot;write&quot;</TT> returns the entire formatted
+archive as a string, which could be useful if you'd like to stuff the
+archive into a socket or a pipe to gzip or something.
+<A NAME="lbAS">&nbsp;</A>
+<H3>$tar-&gt;add_files( @filenamelist )</H3>
+
+
+
+<A NAME="ixAAV"></A>
+Takes a list of filenames and adds them to the in-memory archive.
+<P>
+
+The path to the file is automatically converted to a Unix like
+equivalent for use in the archive, and, if on MacOS, the file's
+modification time is converted from the MacOS epoch to the Unix epoch.
+So tar archives created on MacOS with <B>Archive::Tar</B> can be read
+both with <I>tar</I> on Unix and applications like <I>suntar</I> or
+<I>Stuffit Expander</I> on MacOS.
+<P>
+
+Be aware that the file's type/creator and resource fork will be lost,
+which is usually what you want in cross-platform archives.
+<P>
+
+Instead of a filename, you can also pass it an existing <TT>&quot;Archive::Tar::File&quot;</TT>
+object from, for example, another archive. The object will be clone, and
+effectively be a copy of the original, not an alias.
+<P>
+
+Returns a list of <TT>&quot;Archive::Tar::File&quot;</TT> objects that were just added.
+<A NAME="lbAT">&nbsp;</A>
+<H3>$tar-&gt;add_data ( $filename, $data, [$opthashref] )</H3>
+
+
+
+<A NAME="ixAAW"></A>
+Takes a filename, a scalar full of data and optionally a reference to
+a hash with specific options.
+<P>
+
+Will add a file to the in-memory archive, with name <TT>$filename</TT> and
+content <TT>$data</TT>. Specific properties can be set using <TT>$opthashref</TT>.
+The following list of properties is supported: name, size, mtime
+(last modified date), mode, uid, gid, linkname, uname, gname,
+devmajor, devminor, prefix, type.  (On MacOS, the file's path and
+modification times are converted to Unix equivalents.)
+<P>
+
+Valid values for the file type are the following constants defined in
+Archive::Tar::Constants:
+<DL COMPACT>
+<DT><FONT SIZE="-1">FILE</FONT><DD>
+<A NAME="ixAAX"></A>
+Regular file.
+<DT><FONT SIZE="-1">HARDLINK</FONT><DD>
+<A NAME="ixAAY"></A>
+
+<DT><FONT SIZE="-1">SYMLINK</FONT><DD>
+<A NAME="ixAAZ"></A>
+
+Hard and symbolic (``soft'') links; linkname should specify target.
+<DT><FONT SIZE="-1">CHARDEV</FONT><DD>
+<A NAME="ixABA"></A>
+
+<DT><FONT SIZE="-1">BLOCKDEV</FONT><DD>
+<A NAME="ixABB"></A>
+
+Character and block devices. devmajor and devminor should specify the major
+and minor device numbers.
+<DT><FONT SIZE="-1">DIR</FONT><DD>
+<A NAME="ixABC"></A>
+Directory.
+<DT><FONT SIZE="-1">FIFO</FONT><DD>
+<A NAME="ixABD"></A>
+<FONT SIZE="-1">FIFO</FONT> (named pipe).
+<DT><FONT SIZE="-1">SOCKET</FONT><DD>
+<A NAME="ixABE"></A>
+Socket.
+</DL>
+<P>
+
+Returns the <TT>&quot;Archive::Tar::File&quot;</TT> object that was just added, or
+<TT>&quot;undef&quot;</TT> on failure.
+<A NAME="lbAU">&nbsp;</A>
+<H3>$tar-&gt;error( [$BOOL] )</H3>
+
+
+
+<A NAME="ixABF"></A>
+Returns the current errorstring (usually, the last error reported).
+If a true value was specified, it will give the <TT>&quot;Carp::longmess&quot;</TT>
+equivalent of the error, in effect giving you a stacktrace.
+<P>
+
+For backwards compatibility, this error is also available as
+<TT>$Archive::Tar::error</TT> although it is much recommended you use the
+method call instead.
+<A NAME="lbAV">&nbsp;</A>
+<H3>$tar-&gt;setcwd( $cwd );</H3>
+
+
+
+<A NAME="ixABG"></A>
+<TT>&quot;Archive::Tar&quot;</TT> needs to know the current directory, and it will run
+<TT>&quot;Cwd::cwd()&quot;</TT> <I>every</I> time it extracts a <I>relative</I> entry from the
+tarfile and saves it in the file system. (As of version 1.30, however,
+<TT>&quot;Archive::Tar&quot;</TT> will use the speed optimization described below
+automatically, so it's only relevant if you're using <TT>&quot;extract_file()&quot;</TT>).
+<P>
+
+Since <TT>&quot;Archive::Tar&quot;</TT> doesn't change the current directory internally
+while it is extracting the items in a tarball, all calls to <TT>&quot;Cwd::cwd()&quot;</TT>
+can be avoided if we can guarantee that the current directory doesn't
+get changed externally.
+<P>
+
+To use this performance boost, set the current directory via
+<P>
+
+
+
+<PRE>
+    use Cwd;
+    $tar-&gt;setcwd( cwd() );
+
+</PRE>
+
+
+<P>
+
+once before calling a function like <TT>&quot;extract_file&quot;</TT> and
+<TT>&quot;Archive::Tar&quot;</TT> will use the current directory setting from then on
+and won't call <TT>&quot;Cwd::cwd()&quot;</TT> internally.
+<P>
+
+To switch back to the default behaviour, use
+<P>
+
+
+
+<PRE>
+    $tar-&gt;setcwd( undef );
+
+</PRE>
+
+
+<P>
+
+and <TT>&quot;Archive::Tar&quot;</TT> will call <TT>&quot;Cwd::cwd()&quot;</TT> internally again.
+<P>
+
+If you're using <TT>&quot;Archive::Tar&quot;</TT>'s <TT>&quot;exract()&quot;</TT> method, <TT>&quot;setcwd()&quot;</TT> will
+be called for you.
+<A NAME="lbAW">&nbsp;</A>
+<H2>Class Methods</H2>
+
+<A NAME="ixABH"></A>
+<A NAME="lbAX">&nbsp;</A>
+<H3>Archive::Tar-&gt;create_archive($file, $compressed, @filelist)</H3>
+
+
+
+<A NAME="ixABI"></A>
+Creates a tar file from the list of files provided.  The first
+argument can either be the name of the tar file to create or a
+reference to an open file handle (e.g. a <FONT SIZE="-1">GLOB</FONT> reference).
+<P>
+
+The second argument is used to indicate compression. You can either
+compress using <TT>&quot;gzip&quot;</TT> or <TT>&quot;bzip2&quot;</TT>. If you pass a digit, it's assumed
+to be the <TT>&quot;gzip&quot;</TT> compression level (between 1 and 9), but the use of
+constants is prefered:
+<P>
+
+
+
+<PRE>
+  # write a gzip compressed file
+  Archive::Tar-&gt;create_archive( 'out.tgz', COMPRESS_GZIP, @filelist );
+
+  # write a bzip compressed file
+  Archive::Tar-&gt;create_archive( 'out.tbz', COMPRESS_BZIP, @filelist );
+
+</PRE>
+
+
+<P>
+
+Note that when you pass in a filehandle, the compression argument
+is ignored, as all files are printed verbatim to your filehandle.
+If you wish to enable compression with filehandles, use an
+<TT>&quot;IO::Zlib&quot;</TT> or <TT>&quot;IO::Compress::Bzip2&quot;</TT> filehandle instead.
+<P>
+
+The remaining arguments list the files to be included in the tar file.
+These files must all exist. Any files which don't exist or can't be
+read are silently ignored.
+<P>
+
+If the archive creation fails for any reason, <TT>&quot;create_archive&quot;</TT> will
+return false. Please use the <TT>&quot;error&quot;</TT> method to find the cause of the
+failure.
+<P>
+
+Note that this method does not write <TT>&quot;on the fly&quot;</TT> as it were; it
+still reads all the files into memory before writing out the archive.
+Consult the <FONT SIZE="-1">FAQ</FONT> below if this is a problem.
+<A NAME="lbAY">&nbsp;</A>
+<H3>Archive::Tar-&gt;iter( $filename, [ $compressed, {opt =&gt; $val} ] )</H3>
+
+
+
+<A NAME="ixABJ"></A>
+Returns an iterator function that reads the tar file without loading
+it all in memory.  Each time the function is called it will return the
+next file in the tarball. The files are returned as
+<TT>&quot;Archive::Tar::File&quot;</TT> objects. The iterator function returns the
+empty list once it has exhausted the files contained.
+<P>
+
+The second argument can be a hash reference with options, which are
+identical to the arguments passed to <TT>&quot;read()&quot;</TT>.
+<P>
+
+Example usage:
+<P>
+
+
+
+<PRE>
+    my $next = Archive::Tar-&gt;iter( &quot;example.tar.gz&quot;, 1, {filter =&gt; qr/\.pm$/} );
+
+    while( my $f = $next-&gt;() ) {
+        print $f-&gt;name, &quot;\n&quot;;
+
+        $f-&gt;extract or warn &quot;Extraction failed&quot;;
+
+        # ....
+    }
+
+</PRE>
+
+
+<A NAME="lbAZ">&nbsp;</A>
+<H3>Archive::Tar-&gt;list_archive($file, $compressed, [\@properties])</H3>
+
+
+
+<A NAME="ixABK"></A>
+Returns a list of the names of all the files in the archive.  The
+first argument can either be the name of the tar file to list or a
+reference to an open file handle (e.g. a <FONT SIZE="-1">GLOB</FONT> reference).
+<P>
+
+If <TT>&quot;list_archive()&quot;</TT> is passed an array reference as its third
+argument it returns a list of hash references containing the requested
+properties of each file.  The following list of properties is
+supported: full_path, name, size, mtime (last modified date), mode,
+uid, gid, linkname, uname, gname, devmajor, devminor, prefix.
+<P>
+
+See <TT>&quot;Archive::Tar::File&quot;</TT> for details about supported properties.
+<P>
+
+Passing an array reference containing only one element, 'name', is
+special cased to return a list of names rather than a list of hash
+references.
+<A NAME="lbBA">&nbsp;</A>
+<H3>Archive::Tar-&gt;extract_archive($file, $compressed)</H3>
+
+
+
+<A NAME="ixABL"></A>
+Extracts the contents of the tar file.  The first argument can either
+be the name of the tar file to create or a reference to an open file
+handle (e.g. a <FONT SIZE="-1">GLOB</FONT> reference).  All relative paths in the tar file will
+be created underneath the current working directory.
+<P>
+
+<TT>&quot;extract_archive&quot;</TT> will return a list of files it extracted.
+If the archive extraction fails for any reason, <TT>&quot;extract_archive&quot;</TT>
+will return false.  Please use the <TT>&quot;error&quot;</TT> method to find the cause
+of the failure.
+<A NAME="lbBB">&nbsp;</A>
+<H3>$bool = Archive::Tar-&gt;has_io_string</H3>
+
+
+
+<A NAME="ixABM"></A>
+Returns true if we currently have <TT>&quot;IO::String&quot;</TT> support loaded.
+<P>
+
+Either <TT>&quot;IO::String&quot;</TT> or <TT>&quot;perlio&quot;</TT> support is needed to support writing
+stringified archives. Currently, <TT>&quot;perlio&quot;</TT> is the preferred method, if
+available.
+<P>
+
+See the <TT>&quot;GLOBAL VARIABLES&quot;</TT> section to see how to change this preference.
+<A NAME="lbBC">&nbsp;</A>
+<H3>$bool = Archive::Tar-&gt;has_perlio</H3>
+
+
+
+<A NAME="ixABN"></A>
+Returns true if we currently have <TT>&quot;perlio&quot;</TT> support loaded.
+<P>
+
+This requires <TT>&quot;perl-5.8&quot;</TT> or higher, compiled with <TT>&quot;perlio&quot;</TT>
+<P>
+
+Either <TT>&quot;IO::String&quot;</TT> or <TT>&quot;perlio&quot;</TT> support is needed to support writing
+stringified archives. Currently, <TT>&quot;perlio&quot;</TT> is the preferred method, if
+available.
+<P>
+
+See the <TT>&quot;GLOBAL VARIABLES&quot;</TT> section to see how to change this preference.
+<A NAME="lbBD">&nbsp;</A>
+<H3>$bool = Archive::Tar-&gt;has_zlib_support</H3>
+
+
+
+<A NAME="ixABO"></A>
+Returns true if <TT>&quot;Archive::Tar&quot;</TT> can extract <TT>&quot;zlib&quot;</TT> compressed archives
+<A NAME="lbBE">&nbsp;</A>
+<H3>$bool = Archive::Tar-&gt;has_bzip2_support</H3>
+
+
+
+<A NAME="ixABP"></A>
+Returns true if <TT>&quot;Archive::Tar&quot;</TT> can extract <TT>&quot;bzip2&quot;</TT> compressed archives
+<A NAME="lbBF">&nbsp;</A>
+<H3>Archive::Tar-&gt;can_handle_compressed_files</H3>
+
+<A NAME="ixABQ"></A>
+A simple checking routine, which will return true if <TT>&quot;Archive::Tar&quot;</TT>
+is able to uncompress compressed archives on the fly with <TT>&quot;IO::Zlib&quot;</TT>
+and <TT>&quot;IO::Compress::Bzip2&quot;</TT> or false if not both are installed.
+<P>
+
+You can use this as a shortcut to determine whether <TT>&quot;Archive::Tar&quot;</TT>
+will do what you think before passing compressed archives to its
+<TT>&quot;read&quot;</TT> method.
+<A NAME="lbBG">&nbsp;</A>
+<H2>GLOBAL VARIABLES</H2>
+
+<A NAME="ixABR"></A>
+<A NAME="lbBH">&nbsp;</A>
+<H3>$Archive::Tar::FOLLOW_SYMLINK</H3>
+
+
+
+<A NAME="ixABS"></A>
+Set this variable to <TT>1</TT> to make <TT>&quot;Archive::Tar&quot;</TT> effectively make a
+copy of the file when extracting. Default is <TT>0</TT>, which
+means the symlink stays intact. Of course, you will have to pack the
+file linked to as well.
+<P>
+
+This option is checked when you write out the tarfile using <TT>&quot;write&quot;</TT>
+or <TT>&quot;create_archive&quot;</TT>.
+<P>
+
+This works just like <TT>&quot;/bin/tar&quot;</TT>'s <TT>&quot;-h&quot;</TT> option.
+<A NAME="lbBI">&nbsp;</A>
+<H3>$Archive::Tar::CHOWN</H3>
+
+
+
+<A NAME="ixABT"></A>
+By default, <TT>&quot;Archive::Tar&quot;</TT> will try to <TT>&quot;chown&quot;</TT> your files if it is
+able to. In some cases, this may not be desired. In that case, set
+this variable to <TT>0</TT> to disable <TT>&quot;chown&quot;</TT>-ing, even if it were
+possible.
+<P>
+
+The default is <TT>1</TT>.
+<A NAME="lbBJ">&nbsp;</A>
+<H3>$Archive::Tar::CHMOD</H3>
+
+
+
+<A NAME="ixABU"></A>
+By default, <TT>&quot;Archive::Tar&quot;</TT> will try to <TT>&quot;chmod&quot;</TT> your files to
+whatever mode was specified for the particular file in the archive.
+In some cases, this may not be desired. In that case, set this
+variable to <TT>0</TT> to disable <TT>&quot;chmod&quot;</TT>-ing.
+<P>
+
+The default is <TT>1</TT>.
+<A NAME="lbBK">&nbsp;</A>
+<H3>$Archive::Tar::SAME_PERMISSIONS</H3>
+
+
+
+<A NAME="ixABV"></A>
+When, <TT>$Archive::Tar::CHMOD</TT> is enabled, this setting controls whether
+the permissions on files from the archive are used without modification
+of if they are filtered by removing any setid bits and applying the
+current umask.
+<P>
+
+The default is <TT>1</TT> for the root user and <TT>0</TT> for normal users.
+<A NAME="lbBL">&nbsp;</A>
+<H3>$Archive::Tar::DO_NOT_USE_PREFIX</H3>
+
+
+
+<A NAME="ixABW"></A>
+By default, <TT>&quot;Archive::Tar&quot;</TT> will try to put paths that are over
+100 characters in the <TT>&quot;prefix&quot;</TT> field of your tar header, as
+defined per POSIX-standard. However, some (older) tar programs
+do not implement this spec. To retain compatibility with these older
+or non-POSIX compliant versions, you can set the <TT>$DO_NOT_USE_PREFIX</TT>
+variable to a true value, and <TT>&quot;Archive::Tar&quot;</TT> will use an alternate
+way of dealing with paths over 100 characters by using the
+<TT>&quot;GNU Extended Header&quot;</TT> feature.
+<P>
+
+Note that clients who do not support the <TT>&quot;GNU Extended Header&quot;</TT>
+feature will not be able to read these archives. Such clients include
+tars on <TT>&quot;Solaris&quot;</TT>, <TT>&quot;Irix&quot;</TT> and <TT>&quot;AIX&quot;</TT>.
+<P>
+
+The default is <TT>0</TT>.
+<A NAME="lbBM">&nbsp;</A>
+<H3>$Archive::Tar::DEBUG</H3>
+
+
+
+<A NAME="ixABX"></A>
+Set this variable to <TT>1</TT> to always get the <TT>&quot;Carp::longmess&quot;</TT> output
+of the warnings, instead of the regular <TT>&quot;carp&quot;</TT>. This is the same
+message you would get by doing:
+<P>
+
+
+
+<PRE>
+    $tar-&gt;<A HREF="/man/index.html?1+error">error</A>(1);
+
+</PRE>
+
+
+<P>
+
+Defaults to <TT>0</TT>.
+<A NAME="lbBN">&nbsp;</A>
+<H3>$Archive::Tar::WARN</H3>
+
+
+
+<A NAME="ixABY"></A>
+Set this variable to <TT>0</TT> if you do not want any warnings printed.
+Personally I recommend against doing this, but people asked for the
+option. Also, be advised that this is of course not threadsafe.
+<P>
+
+Defaults to <TT>1</TT>.
+<A NAME="lbBO">&nbsp;</A>
+<H3>$Archive::Tar::error</H3>
+
+
+
+<A NAME="ixABZ"></A>
+Holds the last reported error. Kept for historical reasons, but its
+use is very much discouraged. Use the <TT>&quot;error()&quot;</TT> method instead:
+<P>
+
+
+
+<PRE>
+    warn $tar-&gt;error unless $tar-&gt;extract;
+
+</PRE>
+
+
+<P>
+
+Note that in older versions of this module, the <TT>&quot;error()&quot;</TT> method
+would return an effectively global value even when called an instance
+method as above. This has since been fixed, and multiple instances of
+<TT>&quot;Archive::Tar&quot;</TT> now have separate error strings.
+<A NAME="lbBP">&nbsp;</A>
+<H3>$Archive::Tar::INSECURE_EXTRACT_MODE</H3>
+
+
+
+<A NAME="ixACA"></A>
+This variable indicates whether <TT>&quot;Archive::Tar&quot;</TT> should allow
+files to be extracted outside their current working directory.
+<P>
+
+Allowing this could have security implications, as a malicious
+tar archive could alter or replace any file the extracting user
+has permissions to. Therefor, the default is to not allow
+insecure extractions.
+<P>
+
+If you trust the archive, or have other reasons to allow the
+archive to write files outside your current working directory,
+set this variable to <TT>&quot;true&quot;</TT>.
+<P>
+
+Note that this is a backwards incompatible change from version
+<TT>1.36</TT> and before.
+<A NAME="lbBQ">&nbsp;</A>
+<H3>$Archive::Tar::HAS_PERLIO</H3>
+
+
+
+<A NAME="ixACB"></A>
+This variable holds a boolean indicating if we currently have
+<TT>&quot;perlio&quot;</TT> support loaded. This will be enabled for any perl
+greater than <TT>5.8</TT> compiled with <TT>&quot;perlio&quot;</TT>.
+<P>
+
+If you feel strongly about disabling it, set this variable to
+<TT>&quot;false&quot;</TT>. Note that you will then need <TT>&quot;IO::String&quot;</TT> installed
+to support writing stringified archives.
+<P>
+
+Don't change this variable unless you <B>really</B> know what you're
+doing.
+<A NAME="lbBR">&nbsp;</A>
+<H3>$Archive::Tar::HAS_IO_STRING</H3>
+
+
+
+<A NAME="ixACC"></A>
+This variable holds a boolean indicating if we currently have
+<TT>&quot;IO::String&quot;</TT> support loaded. This will be enabled for any perl
+that has a loadable <TT>&quot;IO::String&quot;</TT> module.
+<P>
+
+If you feel strongly about disabling it, set this variable to
+<TT>&quot;false&quot;</TT>. Note that you will then need <TT>&quot;perlio&quot;</TT> support from
+your perl to be able to  write stringified archives.
+<P>
+
+Don't change this variable unless you <B>really</B> know what you're
+doing.
+<A NAME="lbBS">&nbsp;</A>
+<H3>$Archive::Tar::ZERO_PAD_NUMBERS</H3>
+
+
+
+<A NAME="ixACD"></A>
+This variable holds a boolean indicating if we will create
+zero padded numbers for <TT>&quot;size&quot;</TT>, <TT>&quot;mtime&quot;</TT> and <TT>&quot;checksum&quot;</TT>. 
+The default is <TT>0</TT>, indicating that we will create space padded
+numbers. Added for compatibility with <TT>&quot;busybox&quot;</TT> implementations.
+<A NAME="lbBT">&nbsp;</A>
+<H2>FAQ</H2>
+
+<A NAME="ixACE"></A>
+<DL COMPACT>
+<DT>What's the minimum perl version required to run Archive::Tar?<DD>
+<A NAME="ixACF"></A>
+You will need perl version 5.005_03 or newer.
+<DT>Isn't Archive::Tar slow?<DD>
+<A NAME="ixACG"></A>
+Yes it is. It's pure perl, so it's a lot slower then your <TT>&quot;/bin/tar&quot;</TT>
+However, it's very portable. If speed is an issue, consider using
+<TT>&quot;/bin/tar&quot;</TT> instead.
+<DT>Isn't Archive::Tar heavier on memory than /bin/tar?<DD>
+<A NAME="ixACH"></A>
+Yes it is, see previous answer. Since <TT>&quot;Compress::Zlib&quot;</TT> and therefore
+<TT>&quot;IO::Zlib&quot;</TT> doesn't support <TT>&quot;seek&quot;</TT> on their filehandles, there is little
+choice but to read the archive into memory.
+This is ok if you want to do in-memory manipulation of the archive.
+
+
+<P>
+
+
+If you just want to extract, use the <TT>&quot;extract_archive&quot;</TT> class method
+instead. It will optimize and write to disk immediately.
+
+
+<P>
+
+
+Another option is to use the <TT>&quot;iter&quot;</TT> class method to iterate over
+the files in the tarball without reading them all in memory at once.
+<DT>Can you lazy-load data instead?<DD>
+<A NAME="ixACI"></A>
+In some cases, yes. You can use the <TT>&quot;iter&quot;</TT> class method to iterate
+over the files in the tarball without reading them all in memory at once.
+<DT>How much memory will an X kb tar file need?<DD>
+<A NAME="ixACJ"></A>
+Probably more than X kb, since it will all be read into memory. If
+this is a problem, and you don't need to do in memory manipulation
+of the archive, consider using the <TT>&quot;iter&quot;</TT> class method, or <TT>&quot;/bin/tar&quot;</TT>
+instead.
+<DT>What do you do with unsupported filetypes in an archive?<DD>
+<A NAME="ixACK"></A>
+<TT>&quot;Unix&quot;</TT> has a few filetypes that aren't supported on other platforms,
+like <TT>&quot;Win32&quot;</TT>. If we encounter a <TT>&quot;hardlink&quot;</TT> or <TT>&quot;symlink&quot;</TT> we'll just
+try to make a copy of the original file, rather than throwing an error.
+
+
+<P>
+
+
+This does require you to read the entire archive in to memory first,
+since otherwise we wouldn't know what data to fill the copy with.
+(This means that you cannot use the class methods, including <TT>&quot;iter&quot;</TT>
+on archives that have incompatible filetypes and still expect things
+to work).
+
+
+<P>
+
+
+For other filetypes, like <TT>&quot;chardevs&quot;</TT> and <TT>&quot;blockdevs&quot;</TT> we'll warn that
+the extraction of this particular item didn't work.
+<DT>I'm using WinZip, or some other non-POSIX client, and files are not being extracted properly!<DD>
+<A NAME="ixACL"></A>
+By default, <TT>&quot;Archive::Tar&quot;</TT> is in a completely POSIX-compatible
+mode, which uses the POSIX-specification of <TT>&quot;tar&quot;</TT> to store files.
+For paths greather than 100 characters, this is done using the
+<TT>&quot;POSIX header prefix&quot;</TT>. Non-POSIX-compatible clients may not support
+this part of the specification, and may only support the <TT>&quot;GNU Extended
+Header&quot;</TT> functionality. To facilitate those clients, you can set the
+<TT>$Archive::Tar::DO_NOT_USE_PREFIX</TT> variable to <TT>&quot;true&quot;</TT>. See the
+<TT>&quot;GLOBAL VARIABLES&quot;</TT> section for details on this variable.
+
+
+<P>
+
+
+Note that <FONT SIZE="-1">GNU</FONT> tar earlier than version 1.14 does not cope well with
+the <TT>&quot;POSIX header prefix&quot;</TT>. If you use such a version, consider setting
+the <TT>$Archive::Tar::DO_NOT_USE_PREFIX</TT> variable to <TT>&quot;true&quot;</TT>.
+<DT>How do I extract only files that have property X from an archive?<DD>
+<A NAME="ixACM"></A>
+Sometimes, you might not wish to extract a complete archive, just
+the files that are relevant to you, based on some criteria.
+
+
+<P>
+
+
+You can do this by filtering a list of <TT>&quot;Archive::Tar::File&quot;</TT> objects
+based on your criteria. For example, to extract only files that have
+the string <TT>&quot;foo&quot;</TT> in their title, you would use:
+
+
+<P>
+
+
+
+
+<PRE>
+    $tar-&gt;extract(
+        grep { $_-&gt;full_path =~ /foo/ } $tar-&gt;get_files
+    );
+
+</PRE>
+
+
+
+
+<P>
+
+
+This way, you can filter on any attribute of the files in the archive.
+Consult the <TT>&quot;Archive::Tar::File&quot;</TT> documentation on how to use these
+objects.
+<DT>How do I access .tar.Z files?<DD>
+<A NAME="ixACN"></A>
+The <TT>&quot;Archive::Tar&quot;</TT> module can optionally use <TT>&quot;Compress::Zlib&quot;</TT> (via
+the <TT>&quot;IO::Zlib&quot;</TT> module) to access tar files that have been compressed
+with <TT>&quot;gzip&quot;</TT>. Unfortunately tar files compressed with the Unix <TT>&quot;compress&quot;</TT>
+utility cannot be read by <TT>&quot;Compress::Zlib&quot;</TT> and so cannot be directly
+accesses by <TT>&quot;Archive::Tar&quot;</TT>.
+
+
+<P>
+
+
+If the <TT>&quot;uncompress&quot;</TT> or <TT>&quot;gunzip&quot;</TT> programs are available, you can use
+one of these workarounds to read <TT>&quot;.tar.Z&quot;</TT> files from <TT>&quot;Archive::Tar&quot;</TT>
+
+
+<P>
+
+
+Firstly with <TT>&quot;uncompress&quot;</TT>
+
+
+<P>
+
+
+
+
+<PRE>
+    use Archive::Tar;
+
+    open F, &quot;uncompress -c $filename |&quot;;
+    my $tar = Archive::Tar-&gt;new(*F);
+    ...
+
+</PRE>
+
+
+
+
+<P>
+
+
+and this with <TT>&quot;gunzip&quot;</TT>
+
+
+<P>
+
+
+
+
+<PRE>
+    use Archive::Tar;
+
+    open F, &quot;gunzip -c $filename |&quot;;
+    my $tar = Archive::Tar-&gt;new(*F);
+    ...
+
+</PRE>
+
+
+
+
+<P>
+
+
+Similarly, if the <TT>&quot;compress&quot;</TT> program is available, you can use this to
+write a <TT>&quot;.tar.Z&quot;</TT> file
+
+
+<P>
+
+
+
+
+<PRE>
+    use Archive::Tar;
+    use IO::File;
+
+    my $fh = new IO::File &quot;| compress -c &gt;$filename&quot;;
+    my $tar = Archive::Tar-&gt;new();
+    ...
+    $tar-&gt;write($fh);
+    $fh-&gt;close ;
+
+</PRE>
+
+
+<DT>How do I handle Unicode strings?<DD>
+<A NAME="ixACO"></A>
+<TT>&quot;Archive::Tar&quot;</TT> uses byte semantics for any files it reads from or writes
+to disk. This is not a problem if you only deal with files and never
+look at their content or work solely with byte strings. But if you use
+Unicode strings with character semantics, some additional steps need
+to be taken.
+
+
+<P>
+
+
+For example, if you add a Unicode string like
+
+
+<P>
+
+
+
+
+<PRE>
+    # Problem
+    $tar-&gt;add_data('file.txt', &quot;Euro: \x{20AC}&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+then there will be a problem later when the tarfile gets written out
+to disk via <TT>&quot;$tar-&quot;</TT><I>write()</I>&gt;:
+
+
+<P>
+
+
+
+
+<PRE>
+    Wide character in print at .../Archive/Tar.pm line 1014.
+
+</PRE>
+
+
+
+
+<P>
+
+
+The data was added as a Unicode string and when writing it out to disk,
+the <TT>&quot;:utf8&quot;</TT> line discipline wasn't set by <TT>&quot;Archive::Tar&quot;</TT>, so Perl
+tried to convert the string to <FONT SIZE="-1">ISO-8859</FONT> and failed. The written file
+now contains garbage.
+
+
+<P>
+
+
+For this reason, Unicode strings need to be converted to UTF-8-encoded
+bytestrings before they are handed off to <TT>&quot;add_data()&quot;</TT>:
+
+
+<P>
+
+
+
+
+<PRE>
+    use Encode;
+    my $data = &quot;Accented character: \x{20AC}&quot;;
+    $data = encode('utf8', $data);
+
+    $tar-&gt;add_data('file.txt', $data);
+
+</PRE>
+
+
+
+
+<P>
+
+
+A opposite problem occurs if you extract a UTF8-encoded file from a
+tarball. Using <TT>&quot;get_content()&quot;</TT> on the <TT>&quot;Archive::Tar::File&quot;</TT> object
+will return its content as a bytestring, not as a Unicode string.
+
+
+<P>
+
+
+If you want it to be a Unicode string (because you want character
+semantics with operations like regular expression matching), you need
+to decode the UTF8-encoded content and have Perl convert it into
+a Unicode string:
+
+
+<P>
+
+
+
+
+<PRE>
+    use Encode;
+    my $data = $tar-&gt;get_content();
+
+    # Make it a Unicode string
+    $data = decode('utf8', $data);
+
+</PRE>
+
+
+
+
+<P>
+
+
+There is no easy way to provide this functionality in <TT>&quot;Archive::Tar&quot;</TT>,
+because a tarball can contain many files, and each of which could be
+encoded in a different way.
+</DL>
+<A NAME="lbBU">&nbsp;</A>
+<H2>CAVEATS</H2>
+
+<A NAME="ixACP"></A>
+The <FONT SIZE="-1">AIX</FONT> tar does not fill all unused space in the tar archive with 0x00. 
+This sometimes leads to warning messages from <TT>&quot;Archive::Tar&quot;</TT>.
+<P>
+
+
+
+<PRE>
+  Invalid header block at offset nnn
+
+</PRE>
+
+
+<P>
+
+A fix for that problem is scheduled to be released in the following levels
+of <FONT SIZE="-1">AIX</FONT>, all of which should be coming out in the 4th quarter of 2009:
+<P>
+
+
+
+<PRE>
+ AIX 5.3 TL7 SP10
+ AIX 5.3 TL8 SP8
+ AIX 5.3 TL9 SP5
+ AIX 5.3 TL10 SP2
+ 
+ AIX 6.1 TL0 SP11
+ AIX 6.1 TL1 SP7
+ AIX 6.1 TL2 SP6
+ AIX 6.1 TL3 SP3
+
+</PRE>
+
+
+<P>
+
+The <FONT SIZE="-1">IBM</FONT> <FONT SIZE="-1">APAR</FONT> number for this problem is <FONT SIZE="-1">IZ50240</FONT> (Reported component <FONT SIZE="-1">ID:</FONT> 
+5765G0300 / <FONT SIZE="-1">AIX</FONT> 5.3). It is possible to get an ifix for that problem. 
+If you need an ifix please contact your local <FONT SIZE="-1">IBM</FONT> <FONT SIZE="-1">AIX</FONT> support.
+<A NAME="lbBV">&nbsp;</A>
+<H2>TODO</H2>
+
+<A NAME="ixACQ"></A>
+<DL COMPACT>
+<DT>Check if passed in handles are open for read/write<DD>
+<A NAME="ixACR"></A>
+Currently I don't know of any portable pure perl way to do this.
+Suggestions welcome.
+<DT>Allow archives to be passed in as string<DD>
+<A NAME="ixACS"></A>
+Currently, we only allow opened filehandles or filenames, but
+not strings. The internals would need some reworking to facilitate
+stringified archives.
+<DT>Facilitate processing an opened filehandle of a compressed archive<DD>
+<A NAME="ixACT"></A>
+Currently, we only support this if the filehandle is an IO::Zlib object.
+Environments, like apache, will present you with an opened filehandle
+to an uploaded file, which might be a compressed archive.
+</DL>
+<A NAME="lbBW">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixACU"></A>
+<DL COMPACT>
+<DT>The <FONT SIZE="-1">GNU</FONT> tar specification<DD>
+<A NAME="ixACV"></A>
+<TT>&quot;<A HREF="http://www.gnu.org/software/tar/manual/tar.html">http://www.gnu.org/software/tar/manual/tar.html</A>&quot;</TT>
+<DT>The <FONT SIZE="-1">PAX</FONT> format specication<DD>
+<A NAME="ixACW"></A>
+The specifcation which tar derives from; <TT>&quot; <A HREF="http://www.opengroup.org/onlinepubs/007904975/utilities/pax.html">http://www.opengroup.org/onlinepubs/007904975/utilities/pax.html</A>&quot;</TT>
+<DT>A comparison of <FONT SIZE="-1">GNU</FONT> and <FONT SIZE="-1">POSIX</FONT> tar standards; <A HREF="http://www.delorie.com/gnu/docs/tar/tar_114.html">http://www.delorie.com/gnu/docs/tar/tar_114.html</A><DD>
+
+
+<A NAME="ixACX"></A>
+
+<DT><FONT SIZE="-1">GNU</FONT> tar intends to switch to <FONT SIZE="-1">POSIX</FONT> compatibility<DD>
+<A NAME="ixACY"></A>
+
+<FONT SIZE="-1">GNU</FONT> Tar authors have expressed their intention to become completely
+POSIX-compatible; <TT>&quot;<A HREF="http://www.gnu.org/software/tar/manual/html_node/Formats.html">http://www.gnu.org/software/tar/manual/html_node/Formats.html</A>&quot;</TT>
+<DT>A Comparison between various tar implementations<DD>
+<A NAME="ixACZ"></A>
+Lists known issues and incompatibilities; <TT>&quot;<A HREF="http://gd.tuwien.ac.at/utils/archivers/star/README.otherbugs">http://gd.tuwien.ac.at/utils/archivers/star/README.otherbugs</A>&quot;</TT>
+</DL>
+<A NAME="lbBX">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixADA"></A>
+This module by Jos Boumans &lt;<A HREF="mailto:kane@cpan.org">kane@cpan.org</A>&gt;.
+<P>
+
+Please reports bugs to &lt;<A HREF="mailto:bug-archive-tar@rt.cpan.org">bug-archive-tar@rt.cpan.org</A>&gt;.
+<A NAME="lbBY">&nbsp;</A>
+<H2>ACKNOWLEDGEMENTS</H2>
+
+<A NAME="ixADB"></A>
+Thanks to Sean Burke, Chris Nandor, Chip Salzenberg, Tim Heaney, Gisle Aas,
+Rainer Tammer and especially Andrew Savige for their help and suggestions.
+<A NAME="lbBZ">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixADC"></A>
+This module is copyright (c) 2002 - 2009 Jos Boumans
+&lt;<A HREF="mailto:kane@cpan.org">kane@cpan.org</A>&gt;. All rights reserved.
+<P>
+
+This library is free software; you may redistribute and/or modify
+it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">Object Methods</A><DD>
+<DL>
+<DT><A HREF="#lbAF">Archive::Tar-&gt;new( [$file, $compressed] )</A><DD>
+<DT><A HREF="#lbAG">$tar-&gt;read ( $filename|$handle, [$compressed, {opt =&gt; 'val'}] )</A><DD>
+<DT><A HREF="#lbAH">$tar-&gt;contains_file( $filename )</A><DD>
+<DT><A HREF="#lbAI">$tar-&gt;extract( [@filenames] )</A><DD>
+<DT><A HREF="#lbAJ">$tar-&gt;extract_file( $file, [$extract_path] )</A><DD>
+<DT><A HREF="#lbAK">$tar-&gt;list_files( [\@properties] )</A><DD>
+<DT><A HREF="#lbAL">$tar-&gt;get_files( [@filenames] )</A><DD>
+<DT><A HREF="#lbAM">$tar-&gt;get_content( $file )</A><DD>
+<DT><A HREF="#lbAN">$tar-&gt;replace_content( $file, $content )</A><DD>
+<DT><A HREF="#lbAO">$tar-&gt;rename( $file, $new_name )</A><DD>
+<DT><A HREF="#lbAP">$tar-&gt;remove (@filenamelist)</A><DD>
+<DT><A HREF="#lbAQ">$tar-&gt;clear</A><DD>
+<DT><A HREF="#lbAR">$tar-&gt;write ( [$file, $compressed, $prefix] )</A><DD>
+<DT><A HREF="#lbAS">$tar-&gt;add_files( @filenamelist )</A><DD>
+<DT><A HREF="#lbAT">$tar-&gt;add_data ( $filename, $data, [$opthashref] )</A><DD>
+<DT><A HREF="#lbAU">$tar-&gt;error( [$BOOL] )</A><DD>
+<DT><A HREF="#lbAV">$tar-&gt;setcwd( $cwd );</A><DD>
+</DL>
+<DT><A HREF="#lbAW">Class Methods</A><DD>
+<DL>
+<DT><A HREF="#lbAX">Archive::Tar-&gt;create_archive($file, $compressed, @filelist)</A><DD>
+<DT><A HREF="#lbAY">Archive::Tar-&gt;iter( $filename, [ $compressed, {opt =&gt; $val} ] )</A><DD>
+<DT><A HREF="#lbAZ">Archive::Tar-&gt;list_archive($file, $compressed, [\@properties])</A><DD>
+<DT><A HREF="#lbBA">Archive::Tar-&gt;extract_archive($file, $compressed)</A><DD>
+<DT><A HREF="#lbBB">$bool = Archive::Tar-&gt;has_io_string</A><DD>
+<DT><A HREF="#lbBC">$bool = Archive::Tar-&gt;has_perlio</A><DD>
+<DT><A HREF="#lbBD">$bool = Archive::Tar-&gt;has_zlib_support</A><DD>
+<DT><A HREF="#lbBE">$bool = Archive::Tar-&gt;has_bzip2_support</A><DD>
+<DT><A HREF="#lbBF">Archive::Tar-&gt;can_handle_compressed_files</A><DD>
+</DL>
+<DT><A HREF="#lbBG">GLOBAL VARIABLES</A><DD>
+<DL>
+<DT><A HREF="#lbBH">$Archive::Tar::FOLLOW_SYMLINK</A><DD>
+<DT><A HREF="#lbBI">$Archive::Tar::CHOWN</A><DD>
+<DT><A HREF="#lbBJ">$Archive::Tar::CHMOD</A><DD>
+<DT><A HREF="#lbBK">$Archive::Tar::SAME_PERMISSIONS</A><DD>
+<DT><A HREF="#lbBL">$Archive::Tar::DO_NOT_USE_PREFIX</A><DD>
+<DT><A HREF="#lbBM">$Archive::Tar::DEBUG</A><DD>
+<DT><A HREF="#lbBN">$Archive::Tar::WARN</A><DD>
+<DT><A HREF="#lbBO">$Archive::Tar::error</A><DD>
+<DT><A HREF="#lbBP">$Archive::Tar::INSECURE_EXTRACT_MODE</A><DD>
+<DT><A HREF="#lbBQ">$Archive::Tar::HAS_PERLIO</A><DD>
+<DT><A HREF="#lbBR">$Archive::Tar::HAS_IO_STRING</A><DD>
+<DT><A HREF="#lbBS">$Archive::Tar::ZERO_PAD_NUMBERS</A><DD>
+</DL>
+<DT><A HREF="#lbBT">FAQ</A><DD>
+<DT><A HREF="#lbBU">CAVEATS</A><DD>
+<DT><A HREF="#lbBV">TODO</A><DD>
+<DT><A HREF="#lbBW">SEE ALSO</A><DD>
+<DT><A HREF="#lbBX">AUTHOR</A><DD>
+<DT><A HREF="#lbBY">ACKNOWLEDGEMENTS</A><DD>
+<DT><A HREF="#lbBZ">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERL592DELTA</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERL592DELTA</H1>
+Section: Perl Programmers Reference Guide (1)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perl592delta - what is new for perl v5.9.2
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+This document describes differences between the 5.9.1 and the 5.9.2
+development releases. See perl590delta and perl591delta for the
+differences between 5.8.0 and 5.9.1.
+<A NAME="lbAD">&nbsp;</A>
+<H2>Incompatible Changes</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Packing and <FONT SIZE="-1">UTF-8</FONT> strings</H3>
+
+<A NAME="ixAAE"></A>
+The semantics of <I>pack()</I> and <I>unpack()</I> regarding UTF-8-encoded data has been
+changed. Processing is now by default character per character instead of
+byte per byte on the underlying encoding. Notably, code that used things
+like <TT>&quot;pack(&quot;a*&quot;, $string)&quot;</TT> to see through the encoding of string will now
+simply get back the original <TT>$string</TT>. Packed strings can also get upgraded
+during processing when you store upgraded characters. You can get the old
+behaviour by using <TT>&quot;use bytes&quot;</TT>.
+<P>
+
+To be consistent with <I>pack()</I>, the <TT>&quot;C0&quot;</TT> in <I>unpack()</I> templates indicates
+that the data is to be processed in character mode, i.e. character by
+character; on the contrary, <TT>&quot;U0&quot;</TT> in <I>unpack()</I> indicates <FONT SIZE="-1">UTF-8</FONT> mode, where
+the packed string is processed in its UTF-8-encoded Unicode form on a byte
+by byte basis. This is reversed with regard to perl 5.8.X.
+<P>
+
+Moreover, <TT>&quot;C0&quot;</TT> and <TT>&quot;U0&quot;</TT> can also be used in <I>pack()</I> templates to specify
+respectively character and byte modes.
+<P>
+
+<TT>&quot;C0&quot;</TT> and <TT>&quot;U0&quot;</TT> in the middle of a pack or unpack format now switch to the
+specified encoding mode, honoring parens grouping. Previously, parens were
+ignored.
+<P>
+
+Also, there is a new <I>pack()</I> character format, <TT>&quot;W&quot;</TT>, which is intended to
+replace the old <TT>&quot;C&quot;</TT>. <TT>&quot;C&quot;</TT> is kept for unsigned chars coded as bytes in
+the strings internal representation. <TT>&quot;W&quot;</TT> represents unsigned (logical)
+character values, which can be greater than 255. It is therefore more
+robust when dealing with potentially UTF-8-encoded data (as <TT>&quot;C&quot;</TT> will wrap
+values outside the range 0..255, and not respect the string encoding).
+<P>
+
+In practice, that means that pack formats are now encoding-neutral, except
+<TT>&quot;C&quot;</TT>.
+<P>
+
+For consistency, <TT>&quot;A&quot;</TT> in <I>unpack()</I> format now trims all Unicode whitespace
+from the end of the string. Before perl 5.9.2, it used to strip only the
+classical <FONT SIZE="-1">ASCII</FONT> space characters.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Miscellaneous</H3>
+
+<A NAME="ixAAF"></A>
+The internal dump output has been improved, so that non-printable characters
+such as newline and backspace are output in <TT>&quot;\x&quot;</TT> notation, rather than
+octal.
+<P>
+
+The <B>-C</B> option can no longer be used on the <TT>&quot;#!&quot;</TT> line. It wasn't
+working there anyway.
+<A NAME="lbAG">&nbsp;</A>
+<H2>Core Enhancements</H2>
+
+<A NAME="ixAAG"></A>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Malloc wrapping</H3>
+
+<A NAME="ixAAH"></A>
+Perl can now be built to detect attempts to assign pathologically large chunks
+of memory.  Previously such assignments would suffer from integer wrap-around
+during size calculations causing a misallocation, which would crash perl, and
+could theoretically be used for ``stack smashing'' attacks.  The wrapping
+defaults to enabled on platforms where we know it works (most <FONT SIZE="-1">AIX</FONT>
+configurations, BSDi, Darwin, <FONT SIZE="-1">DEC</FONT> <FONT SIZE="-1">OSF/1</FONT>, FreeBSD, HP-UX, <FONT SIZE="-1">GNU</FONT> Linux, OpenBSD,
+Solaris, <FONT SIZE="-1">VMS</FONT> and most Win32 compilers) and defaults to disabled on other
+platforms.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Unicode Character Database 4.0.1</H3>
+
+<A NAME="ixAAI"></A>
+The copy of the Unicode Character Database included in Perl 5.9 has
+been updated to 4.0.1 from 4.0.0.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>suidperl less insecure</H3>
+
+<A NAME="ixAAJ"></A>
+Paul Szabo has analysed and patched <TT>&quot;suidperl&quot;</TT> to remove existing known
+insecurities. Currently there are no known holes in <TT>&quot;suidperl&quot;</TT>, but previous
+experience shows that we cannot be confident that these were the last. You may
+no longer invoke the set uid perl directly, so to preserve backwards
+compatibility with scripts that invoke #!/usr/bin/suidperl the only set uid
+binary is now <TT>&quot;sperl5.9.&quot;</TT><I>n</I> (<TT>&quot;sperl5.9.2&quot;</TT> for this release). <TT>&quot;suidperl&quot;</TT>
+is installed as a hard link to <TT>&quot;perl&quot;</TT>; both <TT>&quot;suidperl&quot;</TT> and <TT>&quot;perl&quot;</TT> will
+invoke <TT>&quot;sperl5.9.2&quot;</TT> automatically the set uid binary, so this change should
+be completely transparent.
+<P>
+
+For new projects the core perl team would strongly recommend that you use
+dedicated, single purpose security tools such as <TT>&quot;sudo&quot;</TT> in preference to
+<TT>&quot;suidperl&quot;</TT>.
+<A NAME="lbAK">&nbsp;</A>
+<H3><FONT SIZE="-1">PERLIO_DEBUG</FONT></H3>
+
+<A NAME="ixAAK"></A>
+The <TT>&quot;PERLIO_DEBUG&quot;</TT> environment variable has no longer any effect for
+setuid scripts and for scripts run with <B>-T</B>.
+<P>
+
+Moreover, with a thread-enabled perl, using <TT>&quot;PERLIO_DEBUG&quot;</TT> could lead to
+an internal buffer overflow. This has been fixed.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Formats</H3>
+
+<A NAME="ixAAL"></A>
+In addition to bug fixes, <TT>&quot;format&quot;</TT>'s features have been enhanced. See
+perlform.
+<A NAME="lbAM">&nbsp;</A>
+<H3>Unicode Character Classes</H3>
+
+<A NAME="ixAAM"></A>
+Perl's regular expression engine now contains support for matching on the
+intersection of two Unicode character classes. You can also now refer to
+user-defined character classes from within other user defined character
+classes.
+<A NAME="lbAN">&nbsp;</A>
+<H3>Byte-order modifiers for <I>pack()</I> and <I>unpack()</I></H3>
+
+<A NAME="ixAAN"></A>
+There are two new byte-order modifiers, <TT>&quot;&gt;&quot;</TT> (big-endian) and <TT>&quot;&lt;&quot;</TT>
+(little-endian), that can be appended to most <I>pack()</I> and <I>unpack()</I> template
+characters and groups to force a certain byte-order for that type or group.
+See ``pack'' in perlfunc and perlpacktut for details.
+<A NAME="lbAO">&nbsp;</A>
+<H3>Byte count feature in <I>pack()</I></H3>
+
+<A NAME="ixAAO"></A>
+A new <I>pack()</I> template character, <TT>&quot;.&quot;</TT>, returns the number of characters
+read so far.
+<A NAME="lbAP">&nbsp;</A>
+<H3>New variables</H3>
+
+<A NAME="ixAAP"></A>
+A new variable, ${^RE_DEBUG_FLAGS}, controls what debug flags are in
+effect for the regular expression engine when running under <TT>&quot;use re
+&quot;debug&quot;&quot;</TT>. See re for details.
+<P>
+
+A new variable ${^UTF8LOCALE} indicates where an <FONT SIZE="-1">UTF-8</FONT> locale was detected
+by perl at startup.
+<A NAME="lbAQ">&nbsp;</A>
+<H2>Modules and Pragmata</H2>
+
+<A NAME="ixAAQ"></A>
+<A NAME="lbAR">&nbsp;</A>
+<H3>New modules</H3>
+
+<A NAME="ixAAR"></A>
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;encoding::warnings&quot;</TT>, by Audrey Tang, is a module to emit warnings
+whenever an <FONT SIZE="-1">ASCII</FONT> character string containing high-bit bytes is implicitly
+converted into <FONT SIZE="-1">UTF-8</FONT>.
+<DT>*<DD>
+<TT>&quot;Module::CoreList&quot;</TT>, by Richard Clamp, is a small handy module that tells
+you what versions of core modules ship with any versions of Perl 5. It
+comes with a command-line frontend, <TT>&quot;corelist&quot;</TT>.
+</DL>
+<A NAME="lbAS">&nbsp;</A>
+<H3>Updated And Improved Modules and Pragmata</H3>
+
+<A NAME="ixAAS"></A>
+Dual-lived modules have been updated to be kept up-to-date with respect to
+<FONT SIZE="-1">CPAN</FONT>.
+<P>
+
+The dual-lived modules which contain an <TT>&quot;_&quot;</TT> in their version number are
+actually <I>ahead</I> of the corresponding <FONT SIZE="-1">CPAN</FONT> release.
+<DL COMPACT>
+<DT>B::Concise<DD>
+<A NAME="ixAAT"></A>
+<TT>&quot;B::Concise&quot;</TT> was significantly improved.
+<DT>Socket<DD>
+<A NAME="ixAAU"></A>
+There is experimental support for Linux abstract Unix domain sockets.
+<DT>Sys::Syslog<DD>
+<A NAME="ixAAV"></A>
+<TT>&quot;syslog()&quot;</TT> can now use numeric constants for facility names and priorities,
+in addition to strings.
+<DT>threads<DD>
+<A NAME="ixAAW"></A>
+Detached threads are now also supported on Windows.
+</DL>
+<A NAME="lbAT">&nbsp;</A>
+<H2>Utility Changes</H2>
+
+<A NAME="ixAAX"></A>
+<DL COMPACT>
+<DT>*<DD>
+The <TT>&quot;corelist&quot;</TT> utility is now installed with perl (see ``New modules''
+above).
+<DT>*<DD>
+<TT>&quot;h2ph&quot;</TT> and <TT>&quot;h2xs&quot;</TT> have been made a bit more robust with regard to
+``modern'' C code.
+<DT>*<DD>
+Several bugs have been fixed in <TT>&quot;find2perl&quot;</TT>, regarding <TT>&quot;-exec&quot;</TT> and
+<TT>&quot;-eval&quot;</TT>. Also the options <TT>&quot;-path&quot;</TT>, <TT>&quot;-ipath&quot;</TT> and <TT>&quot;-iname&quot;</TT> have been
+added.
+<DT>*<DD>
+The Perl debugger can now save all debugger commands for sourcing later;
+notably, it can now emulate stepping backwards, by restarting and
+rerunning all bar the last command from a saved command history.
+
+
+<P>
+
+
+It can also display the parent inheritance tree of a given class.
+
+
+<P>
+
+
+Perl has a new -dt command-line flag, which enables threads support in the
+debugger.
+</DL>
+<A NAME="lbAU">&nbsp;</A>
+<H2>Performance Enhancements</H2>
+
+<A NAME="ixAAY"></A>
+<DL COMPACT>
+<DT>*<DD>
+Unicode case mappings (<TT>&quot;/i&quot;</TT>, <TT>&quot;lc&quot;</TT>, <TT>&quot;uc&quot;</TT>, etc) are faster.
+<DT>*<DD>
+<TT>&quot;@a = sort @a&quot;</TT> was optimized to do in-place sort. Likewise, <TT>&quot;reverse
+sort ...&quot;</TT> is now optimized to sort in reverse, avoiding the generation of
+a temporary intermediate list.
+<DT>*<DD>
+Unnecessary assignments are optimised away in
+
+
+<P>
+
+
+
+
+<PRE>
+  my $s = undef;
+  my @a = ();
+  my %h = ();
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>&quot;map&quot;</TT> in scalar context is now optimized.
+<DT>*<DD>
+The regexp engine now implements the trie optimization : it's able to
+factorize common prefixes and suffixes in regular expressions. A new
+special variable, ${^RE_TRIE_MAXBUF}, has been added to fine-tune this
+optimization.
+</DL>
+<A NAME="lbAV">&nbsp;</A>
+<H2>Installation and Configuration Improvements</H2>
+
+<A NAME="ixAAZ"></A>
+Run-time customization of <TT>@INC</TT> can be enabled by passing the
+<TT>&quot;-Dusesitecustomize&quot;</TT> flag to configure. When enabled, this will make perl
+run <I></I>$sitelibexp<I>/sitecustomize.pl</I> before anything else.  This script can
+then be set up to add additional entries to <TT>@INC</TT>.
+<P>
+
+There is alpha support for relocatable <TT>@INC</TT> entries.
+<P>
+
+Perl should build on Interix and on GNU/kFreeBSD.
+<A NAME="lbAW">&nbsp;</A>
+<H2>Selected Bug Fixes</H2>
+
+<A NAME="ixABA"></A>
+Most of those bugs were reported in the perl 5.8.x maintenance track.
+Notably, quite a few utf8 bugs were fixed, and several memory leaks were
+suppressed. The perl58Xdelta manpages have more details on them.
+<P>
+
+Development-only bug fixes include :
+<P>
+
+<TT>$Foo::_</TT> was wrongly forced as <TT>$main::_</TT>.
+<A NAME="lbAX">&nbsp;</A>
+<H2>New or Changed Diagnostics</H2>
+
+<A NAME="ixABB"></A>
+A new warning, <TT>&quot;!=~ should be !~&quot;</TT>, is emitted to prevent this misspelling
+of the non-matching operator.
+<P>
+
+The warning <I>Newline in left-justified string</I> has been removed.
+<P>
+
+The error <I>Too late for ``-T'' option</I> has been reformulated to be more
+descriptive.
+<P>
+
+There is a new compilation error, <I>Illegal declaration of subroutine</I>,
+for an obscure case of syntax errors.
+<P>
+
+The diagnostic output of Carp has been changed slightly, to add a space after
+the comma between arguments. This makes it much easier for tools such as
+web browsers to wrap it, but might confuse any automatic tools which perform
+detailed parsing of Carp output.
+<P>
+
+<TT>&quot;perl -V&quot;</TT> has several improvements, making it more useable from shell
+scripts to get the value of configuration variables. See perlrun for
+details.
+<A NAME="lbAY">&nbsp;</A>
+<H2>Changed Internals</H2>
+
+<A NAME="ixABC"></A>
+The perl core has been refactored and reorganised in several places.
+In short, this release will not be binary compatible with any previous
+perl release.
+<A NAME="lbAZ">&nbsp;</A>
+<H2>Known Problems</H2>
+
+<A NAME="ixABD"></A>
+For threaded builds, <I>ext/threads/shared/t/wait.t</I> has been reported to
+fail some tests on HP-UX 10.20.
+<P>
+
+Net::Ping might fail some tests on HP-UX 11.00 with the latest <FONT SIZE="-1">OS</FONT>
+upgrades.
+<P>
+
+<I>t/io/dup.t</I>, <I>t/io/open.t</I> and <I>lib/ExtUtils/t/Constant.t</I> fail some
+tests on some <FONT SIZE="-1">BSD</FONT> flavours.
+<A NAME="lbBA">&nbsp;</A>
+<H2>Plans for the next release</H2>
+
+<A NAME="ixABE"></A>
+The current plan for perl 5.9.3 is to add <FONT SIZE="-1">CPANPLUS</FONT> as a core module.
+More regular expression optimizations are also in the works.
+<P>
+
+It is planned to release a development version of perl more frequently,
+i.e. each time something major changes.
+<A NAME="lbBB">&nbsp;</A>
+<H2>Reporting Bugs</H2>
+
+<A NAME="ixABF"></A>
+If you find what you think is a bug, you might check the articles
+recently posted to the comp.lang.perl.misc newsgroup and the perl
+bug database at <A HREF="http://bugs.perl.org/">http://bugs.perl.org/</A> .  There may also be
+information at <A HREF="http://www.perl.org/">http://www.perl.org/</A> , the Perl Home Page.
+<P>
+
+If you believe you have an unreported bug, please run the <B>perlbug</B>
+program included with your release.  Be sure to trim your bug down
+to a tiny but sufficient test case.  Your bug report, along with the
+output of <TT>&quot;perl -V&quot;</TT>, will be sent off to <A HREF="mailto:perlbug@perl.org">perlbug@perl.org</A> to be
+analysed by the Perl porting team.
+<A NAME="lbBC">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABG"></A>
+The <I>Changes</I> file for exhaustive details on what changed.
+<P>
+
+The <I></I><FONT SIZE="-1"><I>INSTALL</I></FONT><I></I> file for how to build Perl.
+<P>
+
+The <I></I><FONT SIZE="-1"><I>README</I></FONT><I></I> file for general stuff.
+<P>
+
+The <I>Artistic</I> and <I>Copying</I> files for copyright information.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">Incompatible Changes</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Packing and <FONT SIZE="-1">UTF-8</FONT> strings</A><DD>
+<DT><A HREF="#lbAF">Miscellaneous</A><DD>
+</DL>
+<DT><A HREF="#lbAG">Core Enhancements</A><DD>
+<DL>
+<DT><A HREF="#lbAH">Malloc wrapping</A><DD>
+<DT><A HREF="#lbAI">Unicode Character Database 4.0.1</A><DD>
+<DT><A HREF="#lbAJ">suidperl less insecure</A><DD>
+<DT><A HREF="#lbAK"><FONT SIZE="-1">PERLIO_DEBUG</FONT></A><DD>
+<DT><A HREF="#lbAL">Formats</A><DD>
+<DT><A HREF="#lbAM">Unicode Character Classes</A><DD>
+<DT><A HREF="#lbAN">Byte-order modifiers for <I>pack()</I> and <I>unpack()</I></A><DD>
+<DT><A HREF="#lbAO">Byte count feature in <I>pack()</I></A><DD>
+<DT><A HREF="#lbAP">New variables</A><DD>
+</DL>
+<DT><A HREF="#lbAQ">Modules and Pragmata</A><DD>
+<DL>
+<DT><A HREF="#lbAR">New modules</A><DD>
+<DT><A HREF="#lbAS">Updated And Improved Modules and Pragmata</A><DD>
+</DL>
+<DT><A HREF="#lbAT">Utility Changes</A><DD>
+<DT><A HREF="#lbAU">Performance Enhancements</A><DD>
+<DT><A HREF="#lbAV">Installation and Configuration Improvements</A><DD>
+<DT><A HREF="#lbAW">Selected Bug Fixes</A><DD>
+<DT><A HREF="#lbAX">New or Changed Diagnostics</A><DD>
+<DT><A HREF="#lbAY">Changed Internals</A><DD>
+<DT><A HREF="#lbAZ">Known Problems</A><DD>
+<DT><A HREF="#lbBA">Plans for the next release</A><DD>
+<DT><A HREF="#lbBB">Reporting Bugs</A><DD>
+<DT><A HREF="#lbBC">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:07 GMT, December 24, 2015
+</div></body>
+</HTML>

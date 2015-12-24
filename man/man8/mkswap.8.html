@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of MKSWAP</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>MKSWAP</H1>
+Section: Linux Programmer's Manual (8)<BR>Updated: 13 March 2009<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+mkswap - set up a Linux swap area
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>mkswap</B>
+
+[<B>-c</B>]
+
+[<B>-f</B>]
+
+[<B>-p</B>
+
+<I>PSZ</I>]
+
+[<B>-L</B>
+
+<I>label</I>]
+
+[<B>-U</B>
+
+<I>uuid</I>]
+
+<I>device</I>
+
+[<I>size</I>]
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>mkswap</B>
+
+sets up a Linux swap area on a device or in a file.
+<P>
+The
+<I>device</I>
+
+argument will usually be a disk partition (something like
+<I>/dev/sdb7</I>)
+
+but can also be a file.
+The Linux kernel does not look at partition Id's, but
+many installation scripts will assume that partitions
+of hex type 82 (LINUX_SWAP) are meant to be swap partitions.
+(<B>Warning: Solaris also uses this type. Be careful not to kill
+your Solaris partitions.</B>)
+<P>
+The
+<I>size</I>
+
+parameter is superfluous but retained for backwards compatibility.
+(It specifies the desired size of the swap area in 1024-byte blocks.
+<B>mkswap</B>
+
+will use the entire partition or file if it is omitted.
+Specifying it is unwise - a typo may destroy your disk.)
+<P>
+The
+<I>PSZ</I>
+
+parameter specifies the page size to use. It is almost always
+unnecessary (even unwise) to specify it, but certain old libc
+versions lie about the page size, so it is possible that
+<B>mkswap</B>
+
+gets it wrong. The symptom is that a subsequent
+<B>swapon</B>
+
+fails because no swap signature is found. Typical values for
+<I>PSZ</I>
+
+are 4096 or 8192.
+<P>
+After creating the swap area, you need the
+<B>swapon</B>
+
+command to start using it. Usually swap areas are listed in
+<I>/etc/fstab</I>
+
+so that they can be taken into use at boot time by a
+<B>swapon -a</B>
+
+command in some boot script.
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>WARNING</H2>
+
+The swap header does not touch the first block. A boot loader or disk label
+can be there, but it is not recommended setup. The recommended setup is to
+use a separate partition for a Linux swap area.
+<P>
+<B>mkswap like many others mkfs-like utils erases the first block to remove</B>
+
+<B>old on-disk filesystems.</B>
+
+<P>
+<B>mkswap</B>
+
+refuses to erase the first block on a device with a disk
+label (SUN, BSD, ...) or on whole disk (e.g. /dev/sda).
+<P>
+<A NAME="lbAF">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-c</B>
+
+<DD>
+Check the device (if it is a block device) for bad blocks
+before creating the swap area.
+If any are found, the count is printed.
+<DT><B>-f</B>
+
+<DD>
+Force - go ahead even if the command is stupid.
+This allows the creation of a swap area larger than the file
+or partition it resides on.
+<P>
+Without this option
+<B>mkswap</B>
+
+will refuse to erase the first block on a device with a partition table or on
+whole disk (e.g. /dec/sda).
+<DT><B>-p</B><I>&nbsp;PSZ</I>
+
+<DD>
+Specify the page size to use.
+<DT><B>-L</B><I>&nbsp;label</I>
+
+<DD>
+Specify a label, to allow swapon by label.
+(Only for new style swap areas.)
+<DT><B>-v0</B>,<B>&nbsp;-v1</B>
+
+<DD>
+Specify the swap space version. This option is deprecated and -v1 is
+supported only.
+<P>
+The kernel has not supported v0 swap space format since 2.5.22. The new version
+v1 is supported since 2.1.117.
+<P>
+<DT><B>-U</B><I>&nbsp;uuid</I>
+
+<DD>
+Specify the uuid to use. The default is to generate UUIDs.
+<P>
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+The maximum useful size of a swap area depends on the architecture and
+the kernel version.
+It is roughly 2GiB on i386, PPC, m68k, ARM, 1GiB on sparc, 512MiB on mips,
+128GiB on alpha and 3TiB on sparc64. For kernels after 2.3.3 there is no
+such limitation.
+<P>
+Note that before 2.1.117 the kernel allocated one byte for each page,
+while it now allocates two bytes, so that taking a swap area of 2 GiB
+in use might require 2 MiB of kernel memory.
+<P>
+Presently, Linux allows 32 swap areas (this was 8 before Linux 2.4.10).
+The areas in use can be seen in the file
+<I>/proc/swaps</I>
+
+(since 2.1.25).
+<P>
+<B>mkswap</B>
+
+refuses areas smaller than 10 pages.
+<P>
+If you don't know the page size that your machine uses, you may be
+able to look it up with &quot;cat /proc/cpuinfo&quot; (or you may not -
+the contents of this file depend on architecture and kernel version).
+<P>
+To setup a swap file, it is necessary to create that file before
+initializing it with
+<B>mkswap</B>,
+
+e.g. using a command like
+<P>
+<PRE>
+<DL COMPACT><DT><DD># dd if=/dev/zero of=swapfile bs=1024 count=65536
+</DL>
+</PRE>
+
+<P>
+Note that a swap file must not contain any holes (so, using
+<B><A HREF="/man/index.html?1+cp">cp</A></B>(1)
+
+to create the file is not acceptable).
+<P>
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?8+fdisk">fdisk</A></B>(8),
+
+<B><A HREF="/man/index.html?8+swapon">swapon</A></B>(8)
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>AVAILABILITY</H2>
+
+The mkswap command is part of the util-linux-ng package and is available from
+<A HREF="ftp://ftp.kernel.org/pub/linux/utils/util-linux-ng/.">ftp://ftp.kernel.org/pub/linux/utils/util-linux-ng/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">WARNING</A><DD>
+<DT><A HREF="#lbAF">OPTIONS</A><DD>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">AVAILABILITY</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:27 GMT, December 24, 2015
+</div></body>
+</HTML>

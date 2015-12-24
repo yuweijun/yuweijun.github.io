@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SPU_RUN</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SPU_RUN</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2005-09-28<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<P>
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+spu_run - execute an spu context
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/spu.h">sys/spu.h</A>&gt;</B>
+</PRE>
+
+<P>
+
+<B>int spu_run(int </B><I>fd</I><B>, unsigned int *</B><I>npc</I><B>,</B>
+
+<B>unsigned int *</B><I>event</I><B>);</B>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+The 
+<B>spu_run</B>
+
+system call is used on PowerPC machines that implement the 
+Cell Broadband Engine Architecture in order to access Synergistic 
+Processor Units (SPUs). It uses the
+<I>fd</I>
+
+that was returned from 
+<B><A HREF="/man/index.html?2+spu_create">spu_create</A></B>(2)
+
+to address a specific SPU context. When the context gets scheduled
+to a physical SPU, it starts execution at the instruction pointer
+passed in 
+<I>npc</I>.
+
+<P>
+Execution of SPU code happens synchronously, meaning that 
+<B>spu_run</B>
+
+does not return while the SPU is still running. If there is a need
+to execute SPU code in parallel with other code on either the 
+main CPU or other SPUs, you need to create a new thread of execution
+first, e.g. using the
+<B><A HREF="/man/index.html?3+pthread_create">pthread_create</A></B>(3)
+
+call.
+<P>
+When
+<B>spu_run</B>
+
+returns, the current value of the SPU instruction pointer is written
+back to
+<I>npc</I>,
+
+so you can call
+<B>spu_run</B>
+
+again without updating the pointers. 
+<P>
+<I>event</I>
+
+can be a NULL pointer or point to an extended status code that gets
+filled when
+<B>spu_run</B>
+
+returns. It can be one of the following constants:
+<DL COMPACT>
+<DT><B>SPE_EVENT_DMA_ALIGNMENT</B>
+
+<DD>
+A DMA alignment error
+<DT><B>SPE_EVENT_SPE_DATA_SEGMENT</B>
+
+<DD>
+A DMA segmentation error
+<DT><B>SPE_EVENT_SPE_DATA_STORAGE</B>
+
+<DD>
+A DMA storage error
+</DL>
+<P>
+
+If
+<B>NULL</B>
+
+is passed as the
+<I>event</I>
+
+argument, these errors will result in a signal delivered to
+the calling process.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+<B>spu_run</B>
+
+returns the value of the
+<I>spu_status</I>
+
+register or -1 to indicate an error and set errno to one
+of the error codes listed below.
+The 
+<I>spu_status</I>
+
+register value contains a bit mask of status codes and
+optionally a 14 bit code returned from the 
+<B>stop-and-signal</B>
+
+instruction on the SPU. The bit masks for the status codes
+are:
+<DL COMPACT>
+<DT><B>0x02</B>
+
+<DD>
+SPU was stopped by 
+<B>stop-and-signal</B>.
+
+<DT><B>0x04</B>
+
+<DD>
+SPU was stopped by 
+<B>halt</B>.
+
+<DT><B>0x08</B>
+
+<DD>
+SPU is waiting for a channel.
+<DT><B>0x10</B>
+
+<DD>
+SPU is in single-step mode.
+<DT><B>0x20</B>
+
+<DD>
+SPU has tried to execute an invalid instruction.
+<DT><B>0x40</B>
+
+<DD>
+SPU has tried to access an invalid channel.
+<DT><B>0x3fff0000</B>
+
+<DD>
+The bits masked with this value contain the code returned from
+<B>stop-and-signal</B>.
+
+</DL>
+<P>
+
+There are always one or more of the lower eight bits set or an
+error code is returned from
+<B>spu_run</B>.
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EAGAIN</B> or <B>EWOULDBLOCK</B>
+
+<DD>
+<I>fd</I>
+
+is in non-blocking mode and
+<B>spu_run</B>
+
+would block.
+<DT><B>EBADF</B>
+
+<DD>
+<I>fd</I>
+
+is not a valid file descriptor.
+<DT><B>EFAULT</B>
+
+<DD>
+<I>npc</I>
+
+is not a valid pointer or
+<I>status</I>
+
+is neither NULL nor a valid pointer.
+<DT><B>EINTR</B>
+
+<DD>
+A signal occured while
+<B>spu_run</B>
+
+was in progress. The
+<I>npc</I>
+
+value has been updated to the new program counter value if
+necessary.
+<DT><B>EINVAL</B>
+
+<DD>
+<I>fd</I>
+
+is not a file descriptor returned from
+<B><A HREF="/man/index.html?2+spu_create">spu_create</A></B>(2).
+
+<DT><B>ENOMEM</B>
+
+<DD>
+Insufficient memory was available to handle a page fault
+resulting from an MFC direct memory access.
+<DT><B>ENOSYS</B>
+
+<DD>
+the functionality is not provided by the current system, because
+either the hardware does not provide SPUs or the 
+<B>spufs</B>
+
+module is not loaded.
+</DL>
+<P>
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+<I>spu_run</I>
+
+is meant to be used from libraries that implement a more abstract
+interface to SPUs, not to be used from regular applications.
+See <A HREF="http://www.bsc.es/projects/deepcomputing/linuxoncell/">http://www.bsc.es/projects/deepcomputing/linuxoncell/</A> for
+the recommended libraries.
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+This call is Linux specific and only implemented by the ppc64
+architecture. Programs using this system call are not portable.
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+The code does not yet fully implement all features lined out here.
+<P>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Arnd Bergmann &lt;<A HREF="mailto:arndb@de.ibm.com">arndb@de.ibm.com</A>&gt;
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?7+capabilities">capabilities</A></B>(7),
+
+<B><A HREF="/man/index.html?2+close">close</A></B>(2),
+
+<B><A HREF="/man/index.html?2+spu_create">spu_create</A></B>(2),
+
+<B><A HREF="/man/index.html?7+spufs">spufs</A></B>(7)
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">AUTHOR</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:05 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DBI::Profile</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DBI::Profile</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2008-03-13<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+DBI::Profile - Performance profiling and benchmarking for the DBI
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+The easiest way to enable <FONT SIZE="-1">DBI</FONT> profiling is to set the <FONT SIZE="-1">DBI_PROFILE</FONT>
+environment variable to 2 and then run your code as usual:
+<P>
+
+
+
+<PRE>
+  DBI_PROFILE=2 prog.pl
+
+</PRE>
+
+
+<P>
+
+This will profile your program and then output a textual summary
+grouped by query when the program exits.  You can also enable profiling by
+setting the Profile attribute of any <FONT SIZE="-1">DBI</FONT> handle:
+<P>
+
+
+
+<PRE>
+  $dbh-&gt;{Profile} = 2;
+
+</PRE>
+
+
+<P>
+
+Then the summary will be printed when the handle is destroyed.
+<P>
+
+Many other values apart from are possible - see ``<FONT SIZE="-1">ENABLING</FONT> A <FONT SIZE="-1">PROFILE</FONT>'' below.
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The DBI::Profile module provides a simple interface to collect and
+report performance and benchmarking data from the <FONT SIZE="-1">DBI</FONT>.
+<P>
+
+For a more elaborate interface, suitable for larger programs, see
+DBI::ProfileDumper and dbiprof.
+For Apache/mod_perl applications see
+DBI::ProfileDumper::Apache.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OVERVIEW</H2>
+
+<A NAME="ixAAE"></A>
+Performance data collection for the <FONT SIZE="-1">DBI</FONT> is built around several
+concepts which are important to understand clearly.
+<DL COMPACT>
+<DT>Method Dispatch<DD>
+<A NAME="ixAAF"></A>
+Every method call on a <FONT SIZE="-1">DBI</FONT> handle passes through a single 'dispatch'
+function which manages all the common aspects of <FONT SIZE="-1">DBI</FONT> method calls,
+such as handling the RaiseError attribute.
+<DT>Data Collection<DD>
+<A NAME="ixAAG"></A>
+If profiling is enabled for a handle then the dispatch code takes
+a high-resolution timestamp soon after it is entered. Then, after
+calling the appropriate method and just before returning, it takes
+another high-resolution timestamp and calls a function to record
+the information.  That function is passed the two timestamps
+plus the <FONT SIZE="-1">DBI</FONT> handle and the name of the method that was called.
+That data about a single <FONT SIZE="-1">DBI</FONT> method call is called a <I>profile sample</I>.
+<DT>Data Filtering<DD>
+<A NAME="ixAAH"></A>
+If the method call was invoked by the <FONT SIZE="-1">DBI</FONT> or by a driver then the call is
+ignored for profiling because the time spent will be accounted for by the
+original 'outermost' call for your code.
+
+
+<P>
+
+
+For example, the calls that the <I>selectrow_arrayref()</I> method makes
+to <I>prepare()</I> and <I>execute()</I> etc. are not counted individually
+because the time spent in those methods is going to be allocated
+to the <I>selectrow_arrayref()</I> method when it returns. If this was not
+done then it would be very easy to double count time spent inside
+the <FONT SIZE="-1">DBI</FONT>.
+<DT>Data Storage Tree<DD>
+<A NAME="ixAAI"></A>
+The profile data is accumulated as 'leaves on a tree'. The 'path' through the
+branches of the tree to a particular leaf is determined dynamically for each sample.
+This is a key feature of <FONT SIZE="-1">DBI</FONT> profiliing.
+
+
+<P>
+
+
+For each profiled method call the <FONT SIZE="-1">DBI</FONT> walks along the Path and uses each value
+in the Path to step into and grow the Data tree.
+
+
+<P>
+
+
+For example, if the Path is
+
+
+<P>
+
+
+
+
+<PRE>
+  [ 'foo', 'bar', 'baz' ]
+
+</PRE>
+
+
+
+
+<P>
+
+
+then the new profile sample data will be <I>merged</I> into the tree at
+
+
+<P>
+
+
+
+
+<PRE>
+  $h-&gt;{Profile}-&gt;{Data}-&gt;{foo}-&gt;{bar}-&gt;{baz}
+
+</PRE>
+
+
+
+
+<P>
+
+
+But it's not very useful to merge all the call data into one leaf node (except
+to get an overall 'time spent inside the <FONT SIZE="-1">DBI</FONT>' total).  It's more common to want
+the Path to include dynamic values such as the current statement text and/or
+the name of the method called to show what the time spent inside the <FONT SIZE="-1">DBI</FONT> was for.
+
+
+<P>
+
+
+The Path can contain some 'magic cookie' values that are automatically replaced
+by corresponding dynamic values when they're used. These magic cookies always
+start with a punctuation character.
+
+
+<P>
+
+
+For example a value of '<TT>&quot;!MethodName&quot;</TT>' in the Path causes the corresponding
+entry in the Data to be the name of the method that was called.
+For example, if the Path was:
+
+
+<P>
+
+
+
+
+<PRE>
+  [ 'foo', '!MethodName', 'bar' ]
+
+</PRE>
+
+
+
+
+<P>
+
+
+and the <I>selectall_arrayref()</I> method was called, then the profile sample data
+for that call will be merged into the tree at:
+
+
+<P>
+
+
+
+
+<PRE>
+  $h-&gt;{Profile}-&gt;{Data}-&gt;{foo}-&gt;{selectall_arrayref}-&gt;{bar}
+
+</PRE>
+
+
+<DT>Profile Data<DD>
+<A NAME="ixAAJ"></A>
+Profile data is stored at the 'leaves' of the tree as references
+to an array of numeric values. For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  [
+    106,                  # 0: count of samples at this node
+    0.0312958955764771,   # 1: total duration
+    0.000490069389343262, # 2: first duration
+    0.000176072120666504, # 3: shortest duration
+    0.00140702724456787,  # 4: longest duration
+    1023115819.83019,     # 5: time of first sample
+    1023115819.86576,     # 6: time of last sample
+  ]
+
+</PRE>
+
+
+
+
+<P>
+
+
+After the first sample, later samples always update elements 0, 1, and 6, and
+may update 3 or 4 depending on the duration of the sampled call.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>ENABLING A PROFILE</H2>
+
+<A NAME="ixAAK"></A>
+Profiling is enabled for a handle by assigning to the Profile
+attribute. For example:
+<P>
+
+
+
+<PRE>
+  $h-&gt;{Profile} = DBI::Profile-&gt;new();
+
+</PRE>
+
+
+<P>
+
+The Profile attribute holds a blessed reference to a hash object
+that contains the profile data and attributes relating to it.
+<P>
+
+The class the Profile object is blessed into is expected to
+provide at least a <FONT SIZE="-1">DESTROY</FONT> method which will dump the profile data
+to the <FONT SIZE="-1">DBI</FONT> trace file handle (<FONT SIZE="-1">STDERR</FONT> by default).
+<P>
+
+All these examples have the same effect as each other:
+<P>
+
+
+
+<PRE>
+  $h-&gt;{Profile} = 0;
+  $h-&gt;{Profile} = &quot;/DBI::Profile&quot;;
+  $h-&gt;{Profile} = DBI::Profile-&gt;new();
+  $h-&gt;{Profile} = {};
+  $h-&gt;{Profile} = { Path =&gt; [] };
+
+</PRE>
+
+
+<P>
+
+Similarly, these examples have the same effect as each other:
+<P>
+
+
+
+<PRE>
+  $h-&gt;{Profile} = 6;
+  $h-&gt;{Profile} = &quot;6/DBI::Profile&quot;;
+  $h-&gt;{Profile} = &quot;!Statement:!MethodName/DBI::Profile&quot;;
+  $h-&gt;{Profile} = { Path =&gt; [ '!Statement', '!MethodName' ] };
+
+</PRE>
+
+
+<P>
+
+If a non-blessed hash reference is given then the DBI::Profile
+module is automatically <TT>&quot;require&quot;</TT>'d and the reference is blessed
+into that class.
+<P>
+
+If a string is given then it is processed like this:
+<P>
+
+
+
+<PRE>
+    ($path, $module, $args) = split /\//, $string, 3
+
+    @path = split /:/, $path
+    @args = split /:/, $args
+
+    eval &quot;require $module&quot; if $module
+    $module ||= &quot;DBI::Profile&quot;
+
+    $module-&gt;new( Path =&gt; \@Path, @args )
+
+</PRE>
+
+
+<P>
+
+So the first value is used to select the Path to be used (see below).
+The second value, if present, is used as the name of a module which
+will be loaded and it's <TT>&quot;new&quot;</TT> method called. If not present it
+defaults to DBI::Profile. Any other values are passed as arguments
+to the <TT>&quot;new&quot;</TT> method. For example: &quot;<TT>&quot;2/DBIx::OtherProfile/Foo:42&quot;</TT>&quot;.
+<P>
+
+Numbers can be used as a shorthand way to enable common Path values.
+The simplest way to explain how the values are interpreted is to show the code:
+<P>
+
+
+
+<PRE>
+    push @Path, &quot;DBI&quot;           if $path_elem &amp; 0x01;
+    push @Path, &quot;!Statement&quot;    if $path_elem &amp; 0x02;
+    push @Path, &quot;!MethodName&quot;   if $path_elem &amp; 0x04;
+    push @Path, &quot;!MethodClass&quot;  if $path_elem &amp; 0x08;
+    push @Path, &quot;!Caller2&quot;      if $path_elem &amp; 0x10;
+
+</PRE>
+
+
+<P>
+
+So ``2'' is the same as ``!Statement'' and ``6'' (2+4) is the same as
+``!Statement:!Method''.  Those are the two most commonly used values.  Using a
+negative number will reverse the path. Thus ``-6'' will group by method name then
+statement.
+<P>
+
+The spliting and parsing of string values assigned to the Profile
+attribute may seem a little odd, but there's a good reason for it.
+Remember that attributes can be embedded in the Data Source Name
+string which can be passed in to a script as a parameter. For
+example:
+<P>
+
+
+
+<PRE>
+    dbi:DriverName(Profile=&gt;2):dbname
+    dbi:DriverName(Profile=&gt;{Username}:!Statement/MyProfiler/Foo:42):dbname
+
+</PRE>
+
+
+<P>
+
+And also, if the <TT>&quot;DBI_PROFILE&quot;</TT> environment variable is set then
+The <FONT SIZE="-1">DBI</FONT> arranges for every driver handle to share the same profile
+object. When perl exits a single profile summary will be generated
+that reflects (as nearly as practical) the total use of the <FONT SIZE="-1">DBI</FONT> by
+the application.
+<A NAME="lbAG">&nbsp;</A>
+<H2>THE PROFILE OBJECT</H2>
+
+<A NAME="ixAAL"></A>
+The <FONT SIZE="-1">DBI</FONT> core expects the Profile attribute value to be a hash
+reference and if the following values don't exist it will create
+them as needed:
+<A NAME="lbAH">&nbsp;</A>
+<H3>Data</H3>
+
+<A NAME="ixAAM"></A>
+A reference to a hash containing the collected profile data.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Path</H3>
+
+<A NAME="ixAAN"></A>
+The Path value is a reference to an array. Each element controls the
+value to use at the corresponding level of the profile Data tree.
+<P>
+
+If the value of Path is anything other than an array reference,
+it is treated as if it was:
+<P>
+
+
+
+<PRE>
+        [ '!Statement' ]
+
+</PRE>
+
+
+<P>
+
+The elements of Path array can be one of the following types:
+<P>
+
+<I>Special Constant</I>
+<A NAME="ixAAO"></A>
+<P>
+
+<B>!Statement</B>
+<P>
+
+Use the current Statement text. Typically that's the value of the Statement
+attribute for the handle the method was called with. Some methods, like
+<I>commit()</I> and <I>rollback()</I>, are unrelated to a particular statement. For those
+methods !Statement records an empty string.
+<P>
+
+For statement handles this is always simply the string that was
+given to <I>prepare()</I> when the handle was created.  For database handles
+this is the statement that was last prepared or executed on that
+database handle. That can lead to a little 'fuzzyness' because, for
+example, calls to the <I>quote()</I> method to build a new statement will
+typically be associated with the previous statement. In practice
+this isn't a significant issue and the dynamic Path mechanism can
+be used to setup your own rules.
+<P>
+
+<B>!MethodName</B>
+<P>
+
+Use the name of the <FONT SIZE="-1">DBI</FONT> method that the profile sample relates to.
+<P>
+
+<B>!MethodClass</B>
+<P>
+
+Use the fully qualified name of the <FONT SIZE="-1">DBI</FONT> method, including
+the package, that the profile sample relates to. This shows you
+where the method was implemented. For example:
+<P>
+
+
+
+<PRE>
+  'DBD::_::db::selectrow_arrayref' =&gt;
+      0.022902s
+  'DBD::mysql::db::selectrow_arrayref' =&gt;
+      2.244521s / 99 = 0.022445s avg (first 0.022813s, min 0.022051s, max 0.028932s)
+
+</PRE>
+
+
+<P>
+
+The ``DBD::_::db::selectrow_arrayref'' shows that the driver has
+inherited the selectrow_arrayref method provided by the <FONT SIZE="-1">DBI</FONT>.
+<P>
+
+But you'll note that there is only one call to
+DBD::_::db::selectrow_arrayref but another 99 to
+DBD::mysql::db::selectrow_arrayref. Currently the first
+call Pern't record the true location. That may change.
+<P>
+
+<B>!Caller</B>
+<P>
+
+Use a string showing the filename and line number of the code calling the method.
+<P>
+
+<B>!Caller2</B>
+<P>
+
+Use a string showing the filename and line number of the code calling the
+method, as for !Caller, but also include filename and line number of the code
+that called that. Calls from <FONT SIZE="-1">DBI::</FONT> and <FONT SIZE="-1">DBD::</FONT> packages are skipped.
+<P>
+
+<B>!File</B>
+<P>
+
+Same as !Caller above except that only the filename is included, not the line number.
+<P>
+
+<B>!File2</B>
+<P>
+
+Same as !Caller2 above except that only the filenames are included, not the line number.
+<P>
+
+<B>!Time</B>
+<P>
+
+Use the current value of <I>time()</I>. Rarely used. See the more useful <TT>&quot;!Time~N&quot;</TT> below.
+<P>
+
+<B>!Time~N</B>
+<P>
+
+Where <TT>&quot;N&quot;</TT> is an integer. Use the current value of <I>time()</I> but with reduced precision.
+The value used is determined in this way:
+<P>
+
+
+
+<PRE>
+    int( time() / N ) * N
+
+</PRE>
+
+
+<P>
+
+This is a useful way to segregate a profile into time slots. For example:
+<P>
+
+
+
+<PRE>
+    [ '!Time~60', '!Statement' ]
+
+</PRE>
+
+
+<P>
+
+<I>Code Reference</I>
+<A NAME="ixAAP"></A>
+<P>
+
+The subroutine is passed the handle it was called on and the <FONT SIZE="-1">DBI</FONT> method name.
+The current Statement is in <TT>$_</TT>. The statement string should not be modified,
+so most subs start with <TT>&quot;local $_ = $_;&quot;</TT>.
+<P>
+
+The list of values it returns is used at that point in the Profile Path.
+<P>
+
+The sub can 'veto' (reject) a profile sample by including a reference to undef
+in the returned list. That can be useful when you want to only profile
+statements that match a certain pattern, or only profile certain methods.
+<P>
+
+<I>Subroutine Specifier</I>
+<A NAME="ixAAQ"></A>
+<P>
+
+A Path element that begins with '<TT>&quot;&amp;&quot;</TT>' is treated as the name of a subroutine
+in the DBI::ProfileSubs namespace and replaced with the corresponding code reference.
+<P>
+
+Currently this only works when the Path is specified by the <TT>&quot;DBI_PROFILE&quot;</TT>
+environment variable.
+<P>
+
+Also, currently, the only subroutine in the DBI::ProfileSubs namespace is
+<TT>'&amp;norm_std_n3'</TT>. That's a very handy subroutine when profiling code that
+doesn't use placeholders. See DBI::ProfileSubs for more information.
+<P>
+
+<I>Attribute Specifier</I>
+<A NAME="ixAAR"></A>
+<P>
+
+A string enclosed in braces, such as '<TT>&quot;{Username}&quot;</TT>', specifies that the current
+value of the corresponding database handle attribute should be used at that
+point in the Path.
+<P>
+
+<I>Reference to a Scalar</I>
+<A NAME="ixAAS"></A>
+<P>
+
+Specifies that the current value of the referenced scalar be used at that point
+in the Path.  This provides an efficient way to get 'contextual' values into
+your profile.
+<P>
+
+<I>Other Values</I>
+<A NAME="ixAAT"></A>
+<P>
+
+Any other values are stringified and used literally.
+<P>
+
+(References, and values that begin with punctuation characters are reserved.)
+<A NAME="lbAJ">&nbsp;</A>
+<H2>REPORTING</H2>
+
+<A NAME="ixAAU"></A>
+<A NAME="lbAK">&nbsp;</A>
+<H3>Report Format</H3>
+
+<A NAME="ixAAV"></A>
+The current accumulated profile data can be formatted and output using
+<P>
+
+
+
+<PRE>
+    print $h-&gt;{Profile}-&gt;format;
+
+</PRE>
+
+
+<P>
+
+To discard the profile data and start collecting fresh data
+you can do:
+<P>
+
+
+
+<PRE>
+    $h-&gt;{Profile}-&gt;{Data} = undef;
+
+</PRE>
+
+
+<P>
+
+The default results format looks like this:
+<P>
+
+
+
+<PRE>
+  DBI::Profile: 0.001015s 42.7% (5 calls) programname @ YYYY-MM-DD HH:MM:SS
+  '' =&gt;
+      0.000024s / 2 = 0.000012s avg (first 0.000015s, min 0.000009s, max 0.000015s)
+  'SELECT mode,size,name FROM table' =&gt;
+      0.000991s / 3 = 0.000330s avg (first 0.000678s, min 0.000009s, max 0.000678s)
+
+</PRE>
+
+
+<P>
+
+Which shows the total time spent inside the <FONT SIZE="-1">DBI</FONT>, with a count of
+the total number of method calls and the name of the script being
+run, then a formated version of the profile data tree.
+<P>
+
+If the results are being formated when the perl process is exiting
+(which is usually the case when the <FONT SIZE="-1">DBI_PROFILE</FONT> environment variable
+is used) then the percentage of time the process spent inside the
+<FONT SIZE="-1">DBI</FONT> is also shown. If the process is not exiting then the percentage is
+calculated using the time between the first and last call to the <FONT SIZE="-1">DBI</FONT>.
+<P>
+
+In the example above the paths in the tree are only one level deep and
+use the Statement text as the value (that's the default behaviour).
+<P>
+
+The merged profile data at the 'leaves' of the tree are presented
+as total time spent, count, average time spent (which is simply total
+time divided by the count), then the time spent on the first call,
+the time spent on the fastest call, and finally the time spent on
+the slowest call.
+<P>
+
+The 'avg', 'first', 'min' and 'max' times are not particularly
+useful when the profile data path only contains the statement text.
+Here's an extract of a more detailed example using both statement
+text and method name in the path:
+<P>
+
+
+
+<PRE>
+  'SELECT mode,size,name FROM table' =&gt;
+      'FETCH' =&gt;
+          0.000076s
+      'fetchrow_hashref' =&gt;
+          0.036203s / 108 = 0.000335s avg (first 0.000490s, min 0.000152s, max 0.002786s)
+
+</PRE>
+
+
+<P>
+
+Here you can see the 'avg', 'first', 'min' and 'max' for the
+108 calls to <I>fetchrow_hashref()</I> become rather more interesting.
+Also the data for <FONT SIZE="-1">FETCH</FONT> just shows a time value because it was only
+called once.
+<P>
+
+Currently the profile data is output sorted by branch names. That
+may change in a later version so the leaf nodes are sorted by total
+time per leaf node.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Report Destination</H3>
+
+<A NAME="ixAAW"></A>
+The default method of reporting is for the <FONT SIZE="-1">DESTROY</FONT> method of the
+Profile object to format the results and write them using:
+<P>
+
+
+
+<PRE>
+    DBI-&gt;trace_msg($results, 0);  # see $ON_DESTROY_DUMP below
+
+</PRE>
+
+
+<P>
+
+to write them to the <FONT SIZE="-1">DBI</FONT> <I>trace()</I> filehandle (which defaults to
+<FONT SIZE="-1">STDERR</FONT>). To direct the <FONT SIZE="-1">DBI</FONT> trace filehandle to write to a file
+without enabling tracing the <I>trace()</I> method can be called with a
+trace level of 0. For example:
+<P>
+
+
+
+<PRE>
+    DBI-&gt;trace(0, $filename);
+
+</PRE>
+
+
+<P>
+
+The same effect can be achieved without changing the code by
+setting the <TT>&quot;DBI_TRACE&quot;</TT> environment variable to <TT>&quot;0=filename&quot;</TT>.
+<P>
+
+The <TT>$DBI::Profile::ON_DESTROY_DUMP</TT> variable holds a code ref
+that's called to perform the output of the formatted results.
+The default value is:
+<P>
+
+
+
+<PRE>
+  $ON_DESTROY_DUMP = sub { DBI-&gt;trace_msg($results, 0) };
+
+</PRE>
+
+
+<P>
+
+Apart from making it easy to send the dump elsewhere, it can also
+be useful as a simple way to disable dumping results.
+<A NAME="lbAM">&nbsp;</A>
+<H2>CHILD HANDLES</H2>
+
+<A NAME="ixAAX"></A>
+Child handles inherit a reference to the Profile attribute value
+of their parent.  So if profiling is enabled for a database handle
+then by default the statement handles created from it all contribute
+to the same merged profile data tree.
+<A NAME="lbAN">&nbsp;</A>
+<H2>PROFILE OBJECT METHODS</H2>
+
+<A NAME="ixAAY"></A>
+<A NAME="lbAO">&nbsp;</A>
+<H3>format</H3>
+
+<A NAME="ixAAZ"></A>
+See ``<FONT SIZE="-1">REPORTING</FONT>''.
+<A NAME="lbAP">&nbsp;</A>
+<H3>as_node_path_list</H3>
+
+<A NAME="ixABA"></A>
+
+
+<PRE>
+  @ary = $dbh-&gt;{Profile}-&gt;as_node_path_list();
+  @ary = $dbh-&gt;{Profile}-&gt;as_node_path_list($node, $path);
+
+</PRE>
+
+
+<P>
+
+Returns the collected data ($dbh-&gt;{Profile}{Data}) restructured into a list of
+array refs, one for each leaf node in the Data tree. This 'flat' structure is
+often much simpler for applications to work with.
+<P>
+
+The first element of each array ref is a reference to the leaf node.
+The remaining elements are the 'path' through the data tree to that node.
+<P>
+
+For example, given a data tree like this:
+<P>
+
+
+
+<PRE>
+    {key1a}{key2a}[node1]
+    {key1a}{key2b}[node2]
+    {key1b}{key2a}{key3a}[node3]
+
+</PRE>
+
+
+<P>
+
+The <I>as_node_path_list()</I> method  will return this list:
+<P>
+
+
+
+<PRE>
+    [ [node1], 'key1a', 'key2a' ]
+    [ [node2], 'key1a', 'key2b' ]
+    [ [node3], 'key1b', 'key2a', 'key3a' ]
+
+</PRE>
+
+
+<P>
+
+The nodes are ordered by key, depth-first.
+<P>
+
+The <TT>$node</TT> argument can be used to focus on a sub-tree.
+If not specified it defaults to <TT>$dbh</TT>-&gt;{Profile}{Data}.
+<P>
+
+The <TT>$path</TT> argument can be used to specify a list of path elements that will be
+added to each element of the returned list. If not specified it defaults to a a
+ref to an empty array.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>as_text</H3>
+
+<A NAME="ixABB"></A>
+
+
+<PRE>
+  @txt = $dbh-&gt;{Profile}-&gt;as_text();
+  $txt = $dbh-&gt;{Profile}-&gt;as_text({
+      node      =&gt; undef,
+      path      =&gt; [],
+      separator =&gt; &quot; &gt; &quot;,
+      format    =&gt; '%1$s: %11$fs / %10$d = %2$fs avg (first %12$fs, min %13$fs, max %14$fs)'.&quot;\n&quot;;
+      sortsub   =&gt; sub { ... },
+  );
+
+</PRE>
+
+
+<P>
+
+Returns the collected data ($dbh-&gt;{Profile}{Data}) reformatted into a list of formatted strings.
+In scalar context the list is returned as a single contatenated string.
+<P>
+
+A hashref can be used to pass in arguments, the default values are shown in the example above.
+<P>
+
+The <TT>&quot;node&quot;</TT> and &lt;path&gt; arguments are passed to <I>as_node_path_list()</I>.
+<P>
+
+The <TT>&quot;separator&quot;</TT> argument is used to join the elemets of the path for each leaf node.
+<P>
+
+The <TT>&quot;sortsub&quot;</TT> argument is used to pass in a ref to a sub that will order the list.
+The subroutine will be passed a reference to the array returned by
+<I>as_node_path_list()</I> and should sort the contents of the array in place.
+The return value from the sub is ignored. For example, to sort the nodes by the
+second level key you could use:
+<P>
+
+
+
+<PRE>
+  sortsub =&gt; sub { my $ary=shift; @$ary = sort { $a-&gt;[2] cmp $b-&gt;[2] } @$ary }
+
+</PRE>
+
+
+<P>
+
+The <TT>&quot;format&quot;</TT> argument is a <TT>&quot;sprintf&quot;</TT> format string that specifies the format
+to use for each leaf node.  It uses the explicit format parameter index
+mechanism to specify which of the arguments should appear where in the string.
+The arguments to sprintf are:
+<P>
+
+
+
+<PRE>
+     1:  path to node, joined with the separator
+     2:  average duration (total duration/count)
+         (3 thru 9 are currently unused)
+    10:  count
+    11:  total duration
+    12:  first duration
+    13:  smallest duration
+    14:  largest duration
+    15:  time of first call
+    16:  time of first call
+
+</PRE>
+
+
+<A NAME="lbAR">&nbsp;</A>
+<H2>CUSTOM DATA MANIPULATION</H2>
+
+<A NAME="ixABC"></A>
+Recall that <TT>&quot;$h-&quot;</TT>{Profile}-&gt;{Data}&gt; is a reference to the collected data.
+Either to a 'leaf' array (when the Path is empty, i.e., <FONT SIZE="-1">DBI_PROFILE</FONT> env var is 1),
+or a reference to hash containing values that are either further hash
+references or leaf array references.
+<P>
+
+Sometimes it's useful to be able to summarise some or all of the collected data.
+The <I>dbi_profile_merge_nodes()</I> function can be used to merge leaf node values.
+<A NAME="lbAS">&nbsp;</A>
+<H3>dbi_profile_merge_nodes</H3>
+
+<A NAME="ixABD"></A>
+
+
+<PRE>
+  use DBI qw(dbi_profile_merge_nodes);
+
+  $time_in_dbi = dbi_profile_merge_nodes(my $totals=[], @$leaves);
+
+</PRE>
+
+
+<P>
+
+Merges profile data node. Given a reference to a destination array, and zero or
+more references to profile data, merges the profile data into the destination array.
+For example:
+<P>
+
+
+
+<PRE>
+  $time_in_dbi = dbi_profile_merge_nodes(
+      my $totals=[],
+      [ 10, 0.51, 0.11, 0.01, 0.22, 1023110000, 1023110010 ],
+      [ 15, 0.42, 0.12, 0.02, 0.23, 1023110005, 1023110009 ],
+  );
+
+</PRE>
+
+
+<P>
+
+<TT>$totals</TT> will then contain
+<P>
+
+
+
+<PRE>
+  [ 25, 0.93, 0.11, 0.01, 0.23, 1023110000, 1023110010 ]
+
+</PRE>
+
+
+<P>
+
+and <TT>$time_in_dbi</TT> will be 0.93;
+<P>
+
+The second argument need not be just leaf nodes. If given a reference to a hash
+then the hash is recursively searched for for leaf nodes and all those found
+are merged.
+<P>
+
+For example, to get the time spent 'inside' the <FONT SIZE="-1">DBI</FONT> during an http request,
+your logging code run at the end of the request (i.e. mod_perl LogHandler)
+could use:
+<P>
+
+
+
+<PRE>
+  my $time_in_dbi = 0;
+  if (my $Profile = $dbh-&gt;{Profile}) { # if DBI profiling is enabled
+      $time_in_dbi = dbi_profile_merge_nodes(my $total=[], $Profile-&gt;{Data});
+      $Profile-&gt;{Data} = {}; # reset the profile data
+  }
+
+</PRE>
+
+
+<P>
+
+If profiling has been enabled then <TT>$time_in_dbi</TT> will hold the time spent inside
+the <FONT SIZE="-1">DBI</FONT> for that handle (and any other handles that share the same profile data)
+since the last request.
+<P>
+
+Prior to <FONT SIZE="-1">DBI</FONT> 1.56 the <I>dbi_profile_merge_nodes()</I> function was called <I>dbi_profile_merge()</I>.
+That name still exists as an alias.
+<A NAME="lbAT">&nbsp;</A>
+<H2>CUSTOM DATA COLLECTION</H2>
+
+<A NAME="ixABE"></A>
+<A NAME="lbAU">&nbsp;</A>
+<H3>Using The Path Attribute</H3>
+
+<A NAME="ixABF"></A>
+
+
+<PRE>
+  XXX example to be added later using a selectall_arrayref call
+  XXX nested inside a fetch loop where the first column of the
+  XXX outer loop is bound to the profile Path using
+  XXX bind_column(1, \${ $dbh-&gt;{Profile}-&gt;{Path}-&gt;[0] })
+  XXX so you end up with separate profiles for each loop
+  XXX (patches welcome to add this to the docs :)
+
+</PRE>
+
+
+<A NAME="lbAV">&nbsp;</A>
+<H3>Adding Your Own Samples</H3>
+
+<A NAME="ixABG"></A>
+The <I>dbi_profile()</I> function can be used to add extra sample data
+into the profile data tree. For example:
+<P>
+
+
+
+<PRE>
+    use DBI;
+    use DBI::Profile (dbi_profile dbi_time);
+
+    my $t1 = dbi_time(); # floating point high-resolution time
+
+    ... execute code you want to profile here ...
+
+    my $t2 = dbi_time();
+    dbi_profile($h, $statement, $method, $t1, $t2);
+
+</PRE>
+
+
+<P>
+
+The <TT>$h</TT> parameter is the handle the extra profile sample should be
+associated with. The <TT>$statement</TT> parameter is the string to use where
+the Path specifies !Statement. If <TT>$statement</TT> is undef
+then <TT>$h</TT>-&gt;{Statement} will be used. Similarly <TT>$method</TT> is the string
+to use if the Path specifies !MethodName. There is no
+default value for <TT>$method</TT>.
+<P>
+
+The <TT>$h</TT>-&gt;{Profile}{Path} attribute is processed by <I>dbi_profile()</I> in
+the usual way.
+<P>
+
+The <TT>$h</TT> parameter is usually a <FONT SIZE="-1">DBI</FONT> handle but it can also be a reference to a
+hash, in which case the <I>dbi_profile()</I> acts on each defined value in the hash.
+This is an efficient way to update multiple profiles with a single sample,
+and is used by the DashProfiler module.
+<A NAME="lbAW">&nbsp;</A>
+<H2>SUBCLASSING</H2>
+
+<A NAME="ixABH"></A>
+Alternate profile modules must subclass DBI::Profile to help ensure
+they work with future versions of the <FONT SIZE="-1">DBI</FONT>.
+<A NAME="lbAX">&nbsp;</A>
+<H2>CAVEATS</H2>
+
+<A NAME="ixABI"></A>
+Applications which generate many different statement strings
+(typically because they don't use placeholders) and profile with
+!Statement in the Path (the default) will consume memory
+in the Profile Data structure for each statement. Use a code ref
+in the Path to return an edited (simplified) form of the statement.
+<P>
+
+If a method throws an exception itself (not via RaiseError) then
+it won't be counted in the profile.
+<P>
+
+If a HandleError subroutine throws an exception (rather than returning
+0 and letting RaiseError do it) then the method call won't be counted
+in the profile.
+<P>
+
+Time spent in <FONT SIZE="-1">DESTROY</FONT> is added to the profile of the parent handle.
+<P>
+
+Time spent in <FONT SIZE="-1">DBI-</FONT>&gt;*() methods is not counted. The time spent in
+the driver connect method, <TT>$drh</TT>-&gt;<I>connect()</I>, when it's called by
+<FONT SIZE="-1">DBI-</FONT>&gt;connect is counted if the <FONT SIZE="-1">DBI_PROFILE</FONT> environment variable is set.
+<P>
+
+Time spent fetching tied variables, <TT>$DBI::errstr</TT>, is counted.
+<P>
+
+Time spent in <FONT SIZE="-1">FETCH</FONT> for <TT>$h</TT>-&gt;{Profile} is not counted, so getting the profile
+data doesn't alter it.
+<P>
+
+DBI::PurePerl does not support profiling (though it could in theory).
+<P>
+
+A few platforms don't support the <I>gettimeofday()</I> high resolution
+time function used by the <FONT SIZE="-1">DBI</FONT> (and available via the <I>dbi_time()</I> function).
+In which case you'll get integer resolution time which is mostly useless.
+<P>
+
+On Windows platforms the <I>dbi_time()</I> function is limited to millisecond
+resolution. Which isn't sufficiently fine for our needs, but still
+much better than integer resolution. This limited resolution means
+that fast method calls will often register as taking 0 time. And
+timings in general will have much more 'jitter' depending on where
+within the 'current millisecond' the start and and timing was taken.
+<P>
+
+This documentation could be more clear. Probably needs to be reordered
+to start with several examples and build from there.  Trying to
+explain the concepts first seems painful and to lead to just as
+many forward references.  (Patches welcome!)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OVERVIEW</A><DD>
+<DT><A HREF="#lbAF">ENABLING A PROFILE</A><DD>
+<DT><A HREF="#lbAG">THE PROFILE OBJECT</A><DD>
+<DL>
+<DT><A HREF="#lbAH">Data</A><DD>
+<DT><A HREF="#lbAI">Path</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">REPORTING</A><DD>
+<DL>
+<DT><A HREF="#lbAK">Report Format</A><DD>
+<DT><A HREF="#lbAL">Report Destination</A><DD>
+</DL>
+<DT><A HREF="#lbAM">CHILD HANDLES</A><DD>
+<DT><A HREF="#lbAN">PROFILE OBJECT METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAO">format</A><DD>
+<DT><A HREF="#lbAP">as_node_path_list</A><DD>
+<DT><A HREF="#lbAQ">as_text</A><DD>
+</DL>
+<DT><A HREF="#lbAR">CUSTOM DATA MANIPULATION</A><DD>
+<DL>
+<DT><A HREF="#lbAS">dbi_profile_merge_nodes</A><DD>
+</DL>
+<DT><A HREF="#lbAT">CUSTOM DATA COLLECTION</A><DD>
+<DL>
+<DT><A HREF="#lbAU">Using The Path Attribute</A><DD>
+<DT><A HREF="#lbAV">Adding Your Own Samples</A><DD>
+</DL>
+<DT><A HREF="#lbAW">SUBCLASSING</A><DD>
+<DT><A HREF="#lbAX">CAVEATS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:22 GMT, December 24, 2015
+</div></body>
+</HTML>

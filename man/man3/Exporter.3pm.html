@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Exporter</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Exporter</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Exporter - Implements default import method for modules
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+In module <I>YourModule.pm</I>:
+<P>
+
+
+
+<PRE>
+  package YourModule;
+  require Exporter;
+  @ISA = qw(Exporter);
+  @EXPORT_OK = qw(munge frobnicate);  # symbols to export on request
+
+</PRE>
+
+
+<P>
+
+or
+<P>
+
+
+
+<PRE>
+  package YourModule;
+  use Exporter 'import'; # gives you Exporter's import() method directly
+  @EXPORT_OK = qw(munge frobnicate);  # symbols to export on request
+
+</PRE>
+
+
+<P>
+
+In other files which wish to use <TT>&quot;YourModule&quot;</TT>:
+<P>
+
+
+
+<PRE>
+  use YourModule qw(frobnicate);      # import listed symbols
+  frobnicate ($left, $right)          # calls YourModule::frobnicate
+
+</PRE>
+
+
+<P>
+
+Take a look at ``Good Practices'' for some variants
+you will like to use in modern Perl code.
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The Exporter module implements an <TT>&quot;import&quot;</TT> method which allows a module
+to export functions and variables to its users' namespaces. Many modules
+use Exporter rather than implementing their own <TT>&quot;import&quot;</TT> method because
+Exporter provides a highly flexible interface, with an implementation optimised
+for the common case.
+<P>
+
+Perl automatically calls the <TT>&quot;import&quot;</TT> method when processing a
+<TT>&quot;use&quot;</TT> statement for a module. Modules and <TT>&quot;use&quot;</TT> are documented
+in perlfunc and perlmod. Understanding the concept of
+modules and how the <TT>&quot;use&quot;</TT> statement operates is important to
+understanding the Exporter.
+<A NAME="lbAE">&nbsp;</A>
+<H3>How to Export</H3>
+
+<A NAME="ixAAE"></A>
+The arrays <TT>@EXPORT</TT> and <TT>@EXPORT_OK</TT> in a module hold lists of
+symbols that are going to be exported into the users name space by
+default, or which they can request to be exported, respectively.  The
+symbols can represent functions, scalars, arrays, hashes, or typeglobs.
+The symbols must be given by full name with the exception that the
+ampersand in front of a function is optional, e.g.
+<P>
+
+
+
+<PRE>
+    @EXPORT    = qw(afunc $scalar @array);   # afunc is a function
+    @EXPORT_OK = qw(&amp;bfunc %hash *typeglob); # explicit prefix on &amp;bfunc
+
+</PRE>
+
+
+<P>
+
+If you are only exporting function names it is recommended to omit the
+ampersand, as the implementation is faster this way.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Selecting What To Export</H3>
+
+<A NAME="ixAAF"></A>
+Do <B>not</B> export method names!
+<P>
+
+Do <B>not</B> export anything else by default without a good reason!
+<P>
+
+Exports pollute the namespace of the module user.  If you must export
+try to use <TT>@EXPORT_OK</TT> in preference to <TT>@EXPORT</TT> and avoid short or
+common symbol names to reduce the risk of name clashes.
+<P>
+
+Generally anything not exported is still accessible from outside the
+module using the <TT>&quot;YourModule::item_name&quot;</TT> (or <TT>&quot;$blessed_ref-&gt;method&quot;</TT>)
+syntax.  By convention you can use a leading underscore on names to
+informally indicate that they are 'internal' and not for public use.
+<P>
+
+(It is actually possible to get private functions by saying:
+<P>
+
+
+
+<PRE>
+  my $subref = sub { ... };
+  $subref-&gt;(@args);            # Call it as a function
+  $obj-&gt;$subref(@args);        # Use it as a method
+
+</PRE>
+
+
+<P>
+
+However if you use them for methods it is up to you to figure out
+how to make inheritance work.)
+<P>
+
+As a general rule, if the module is trying to be object oriented
+then export nothing. If it's just a collection of functions then
+<TT>@EXPORT_OK</TT> anything but use <TT>@EXPORT</TT> with caution. For function and
+method names use barewords in preference to names prefixed with
+ampersands for the export lists.
+<P>
+
+Other module design guidelines can be found in perlmod.
+<A NAME="lbAG">&nbsp;</A>
+<H3>How to Import</H3>
+
+<A NAME="ixAAG"></A>
+In other files which wish to use your module there are three basic ways for
+them to load your module and import its symbols:
+<DL COMPACT>
+<DT>use YourModule;<DD>
+
+
+<A NAME="ixAAH"></A>
+This imports all the symbols from YourModule's <TT>@EXPORT</TT> into the namespace
+of the <TT>&quot;use&quot;</TT> statement.
+<DT>use YourModule ();<DD>
+
+
+<A NAME="ixAAI"></A>
+This causes perl to load your module but does not import any symbols.
+<DT>use YourModule qw(...);<DD>
+
+
+<A NAME="ixAAJ"></A>
+This imports only the symbols listed by the caller into their namespace.
+All listed symbols must be in your <TT>@EXPORT</TT> or <TT>@EXPORT_OK</TT>, else an error
+occurs. The advanced export features of Exporter are accessed like this,
+but with list entries that are syntactically distinct from symbol names.
+</DL>
+<P>
+
+Unless you want to use its advanced features, this is probably all you
+need to know to use Exporter.
+<A NAME="lbAH">&nbsp;</A>
+<H2>Advanced features</H2>
+
+<A NAME="ixAAK"></A>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Specialised Import Lists</H3>
+
+<A NAME="ixAAL"></A>
+If any of the entries in an import list begins with !, : or / then
+the list is treated as a series of specifications which either add to
+or delete from the list of names to import. They are processed left to
+right. Specifications are in the form:
+<P>
+
+
+
+<PRE>
+    [!]name         This name only
+    [!]:DEFAULT     All names in @EXPORT
+    [!]:tag         All names in $EXPORT_TAGS{tag} anonymous list
+    [!]/pattern/    All names in @EXPORT and @EXPORT_OK which match
+
+</PRE>
+
+
+<P>
+
+A leading ! indicates that matching names should be deleted from the
+list of names to import.  If the first specification is a deletion it
+is treated as though preceded by :DEFAULT. If you just want to import
+extra names in addition to the default set you will still need to
+include :DEFAULT explicitly.
+<P>
+
+e.g., <I>Module.pm</I> defines:
+<P>
+
+
+
+<PRE>
+    @EXPORT      = qw(A1 A2 A3 A4 A5);
+    @EXPORT_OK   = qw(B1 B2 B3 B4 B5);
+    %EXPORT_TAGS = (T1 =&gt; [qw(A1 A2 B1 B2)], T2 =&gt; [qw(A1 A2 B3 B4)]);
+
+    Note that you cannot use tags in @EXPORT or @EXPORT_OK.
+    Names in EXPORT_TAGS must also appear in @EXPORT or @EXPORT_OK.
+
+</PRE>
+
+
+<P>
+
+An application using Module can say something like:
+<P>
+
+
+
+<PRE>
+    use Module qw(:DEFAULT :T2 !B3 A3);
+
+</PRE>
+
+
+<P>
+
+Other examples include:
+<P>
+
+
+
+<PRE>
+    use Socket qw(!/^[AP]F_/ !SOMAXCONN !SOL_SOCKET);
+    use POSIX  qw(:errno_h :termios_h !TCSADRAIN !/^EXIT/);
+
+</PRE>
+
+
+<P>
+
+Remember that most patterns (using //) will need to be anchored
+with a leading ^, e.g., <TT>&quot;/^EXIT/&quot;</TT> rather than <TT>&quot;/EXIT/&quot;</TT>.
+<P>
+
+You can say <TT>&quot;BEGIN { $Exporter::Verbose=1 }&quot;</TT> to see how the
+specifications are being processed and what is actually being imported
+into modules.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Exporting without using Exporter's import method</H3>
+
+<A NAME="ixAAM"></A>
+Exporter has a special method, 'export_to_level' which is used in situations
+where you can't directly call Exporter's import method. The export_to_level
+method looks like:
+<P>
+
+
+
+<PRE>
+    MyPackage-&gt;export_to_level($where_to_export, $package, @what_to_export);
+
+</PRE>
+
+
+<P>
+
+where <TT>$where_to_export</TT> is an integer telling how far up the calling stack
+to export your symbols, and <TT>@what_to_export</TT> is an array telling what
+symbols *to* export (usually this is <TT>@_</TT>).  The <TT>$package</TT> argument is
+currently unused.
+<P>
+
+For example, suppose that you have a module, A, which already has an
+import function:
+<P>
+
+
+
+<PRE>
+    package A;
+
+    @ISA = qw(Exporter);
+    @EXPORT_OK = qw ($b);
+
+    sub import
+    {
+        $A::b = 1;     # not a very useful import method
+    }
+
+</PRE>
+
+
+<P>
+
+and you want to Export symbol <TT>$A::b</TT> back to the module that called 
+package A. Since Exporter relies on the import method to work, via 
+inheritance, as it stands <I>Exporter::import()</I> will never get called. 
+Instead, say the following:
+<P>
+
+
+
+<PRE>
+    package A;
+    @ISA = qw(Exporter);
+    @EXPORT_OK = qw ($b);
+
+    sub import
+    {
+        $A::b = 1;
+        A-&gt;export_to_level(1, @_);
+    }
+
+</PRE>
+
+
+<P>
+
+This will export the symbols one level 'above' the current package - ie: to 
+the program or module that used package A.
+<P>
+
+Note: Be careful not to modify <TT>@_</TT> at all before you call export_to_level
+- or people using your package will get very unexplained results!
+<A NAME="lbAK">&nbsp;</A>
+<H3>Exporting without inheriting from Exporter</H3>
+
+<A NAME="ixAAN"></A>
+By including Exporter in your <TT>@ISA</TT> you inherit an Exporter's <I>import()</I> method
+but you also inherit several other helper methods which you probably don't
+want. To avoid this you can do
+<P>
+
+
+
+<PRE>
+  package YourModule;
+  use Exporter qw( import );
+
+</PRE>
+
+
+<P>
+
+which will export Exporter's own <I>import()</I> method into YourModule.
+Everything will work as before but you won't need to include Exporter in
+<TT>@YourModule::ISA</TT>.
+<P>
+
+Note: This feature was introduced in version 5.57
+of Exporter, released with perl 5.8.3.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Module Version Checking</H3>
+
+<A NAME="ixAAO"></A>
+The Exporter module will convert an attempt to import a number from a
+module into a call to <TT>&quot;$module_name-&gt;require_version($value)&quot;</TT>. This can
+be used to validate that the version of the module being used is
+greater than or equal to the required version.
+<P>
+
+The Exporter module supplies a default <TT>&quot;require_version&quot;</TT> method which
+checks the value of <TT>$VERSION</TT> in the exporting module.
+<P>
+
+Since the default <TT>&quot;require_version&quot;</TT> method treats the <TT>$VERSION</TT> number as
+a simple numeric value it will regard version 1.10 as lower than
+1.9. For this reason it is strongly recommended that you use numbers
+with at least two decimal places, e.g., 1.09.
+<A NAME="lbAM">&nbsp;</A>
+<H3>Managing Unknown Symbols</H3>
+
+<A NAME="ixAAP"></A>
+In some situations you may want to prevent certain symbols from being
+exported. Typically this applies to extensions which have functions
+or constants that may not exist on some systems.
+<P>
+
+The names of any symbols that cannot be exported should be listed
+in the <TT>@EXPORT_FAIL</TT> array.
+<P>
+
+If a module attempts to import any of these symbols the Exporter
+will give the module an opportunity to handle the situation before
+generating an error. The Exporter will call an export_fail method
+with a list of the failed symbols:
+<P>
+
+
+
+<PRE>
+  @failed_symbols = $module_name-&gt;export_fail(@failed_symbols);
+
+</PRE>
+
+
+<P>
+
+If the <TT>&quot;export_fail&quot;</TT> method returns an empty list then no error is
+recorded and all the requested symbols are exported. If the returned
+list is not empty then an error is generated for each symbol and the
+export fails. The Exporter provides a default <TT>&quot;export_fail&quot;</TT> method which
+simply returns the list unchanged.
+<P>
+
+Uses for the <TT>&quot;export_fail&quot;</TT> method include giving better error messages
+for some symbols and performing lazy architectural checks (put more
+symbols into <TT>@EXPORT_FAIL</TT> by default and then take them out if someone
+actually tries to use them and an expensive check shows that they are
+usable on that platform).
+<A NAME="lbAN">&nbsp;</A>
+<H3>Tag Handling Utility Functions</H3>
+
+<A NAME="ixAAQ"></A>
+Since the symbols listed within <TT>%EXPORT_TAGS</TT> must also appear in either
+<TT>@EXPORT</TT> or <TT>@EXPORT_OK</TT>, two utility functions are provided which allow
+you to easily add tagged sets of symbols to <TT>@EXPORT</TT> or <TT>@EXPORT_OK</TT>:
+<P>
+
+
+
+<PRE>
+  %EXPORT_TAGS = (foo =&gt; [qw(aa bb cc)], bar =&gt; [qw(aa cc dd)]);
+
+  Exporter::export_tags('foo');     # add aa, bb and cc to @EXPORT
+  Exporter::export_ok_tags('bar');  # add aa, cc and dd to @EXPORT_OK
+
+</PRE>
+
+
+<P>
+
+Any names which are not tags are added to <TT>@EXPORT</TT> or <TT>@EXPORT_OK</TT>
+unchanged but will trigger a warning (with <TT>&quot;-w&quot;</TT>) to avoid misspelt tags
+names being silently added to <TT>@EXPORT</TT> or <TT>@EXPORT_OK</TT>. Future versions
+may make this a fatal error.
+<A NAME="lbAO">&nbsp;</A>
+<H3>Generating combined tags</H3>
+
+<A NAME="ixAAR"></A>
+If several symbol categories exist in <TT>%EXPORT_TAGS</TT>, it's usually
+useful to create the utility ``:all'' to simplify ``use'' statements.
+<P>
+
+The simplest way to do this is:
+<P>
+
+
+
+<PRE>
+  %EXPORT_TAGS = (foo =&gt; [qw(aa bb cc)], bar =&gt; [qw(aa cc dd)]);
+
+  # add all the other &quot;:class&quot; tags to the &quot;:all&quot; class,
+  # deleting duplicates
+  {
+    my %seen;
+
+    push @{$EXPORT_TAGS{all}},
+      grep {!$seen{$_}++} @{$EXPORT_TAGS{$_}} foreach keys %EXPORT_TAGS;
+  }
+
+</PRE>
+
+
+<P>
+
+<I></I><FONT SIZE="-1"><I>CGI</I></FONT><I>.pm</I> creates an ``:all'' tag which contains some (but not really
+all) of its categories.  That could be done with one small
+change:
+<P>
+
+
+
+<PRE>
+  # add some of the other &quot;:class&quot; tags to the &quot;:all&quot; class,
+  # deleting duplicates
+  {
+    my %seen;
+
+    push @{$EXPORT_TAGS{all}},
+      grep {!$seen{$_}++} @{$EXPORT_TAGS{$_}}
+        foreach qw/html2 html3 netscape form cgi internal/;
+  }
+
+</PRE>
+
+
+<P>
+
+Note that the tag names in <TT>%EXPORT_TAGS</TT> don't have the leading ':'.
+<A NAME="lbAP">&nbsp;</A>
+<H3>AUTOLOADed Constants</H3>
+
+
+
+<A NAME="ixAAS"></A>
+Many modules make use of <TT>&quot;AUTOLOAD&quot;</TT>ing for constant subroutines to
+avoid having to compile and waste memory on rarely used values (see
+perlsub for details on constant subroutines).  Calls to such
+constant subroutines are not optimized away at compile time because
+they can't be checked at compile time for constancy.
+<P>
+
+Even if a prototype is available at compile time, the body of the
+subroutine is not (it hasn't been <TT>&quot;AUTOLOAD&quot;</TT>ed yet). perl needs to
+examine both the <TT>&quot;()&quot;</TT> prototype and the body of a subroutine at
+compile time to detect that it can safely replace calls to that
+subroutine with the constant value.
+<P>
+
+A workaround for this is to call the constants once in a <TT>&quot;BEGIN&quot;</TT> block:
+<P>
+
+
+
+<PRE>
+   package My ;
+
+   use Socket ;
+
+   foo( SO_LINGER );     ## SO_LINGER NOT optimized away; called at runtime
+   BEGIN { SO_LINGER }
+   foo( SO_LINGER );     ## SO_LINGER optimized away at compile time.
+
+</PRE>
+
+
+<P>
+
+This forces the <TT>&quot;AUTOLOAD&quot;</TT> for <TT>&quot;SO_LINGER&quot;</TT> to take place before
+<FONT SIZE="-1">SO_LINGER</FONT> is encountered later in <TT>&quot;My&quot;</TT> package.
+<P>
+
+If you are writing a package that <TT>&quot;AUTOLOAD&quot;</TT>s, consider forcing
+an <TT>&quot;AUTOLOAD&quot;</TT> for any constants explicitly imported by other packages
+or which are usually used when your package is <TT>&quot;use&quot;</TT>d.
+<A NAME="lbAQ">&nbsp;</A>
+<H2>Good Practices</H2>
+
+<A NAME="ixAAT"></A>
+<A NAME="lbAR">&nbsp;</A>
+<H3>Declaring @EXPORT_OK and Friends</H3>
+
+
+
+<A NAME="ixAAU"></A>
+When using <TT>&quot;Exporter&quot;</TT> with the standard <TT>&quot;strict&quot;</TT> and <TT>&quot;warnings&quot;</TT>
+pragmas, the <TT>&quot;our&quot;</TT> keyword is needed to declare the package
+variables <TT>@EXPORT_OK</TT>, <TT>@EXPORT</TT>, <TT>@ISA</TT>, etc.
+<P>
+
+
+
+<PRE>
+  our @ISA = qw(Exporter);
+  our @EXPORT_OK = qw(munge frobnicate);
+
+</PRE>
+
+
+<P>
+
+If backward compatibility for Perls under 5.6 is important,
+one must write instead a <TT>&quot;use vars&quot;</TT> statement.
+<P>
+
+
+
+<PRE>
+  use vars qw(@ISA @EXPORT_OK);
+  @ISA = qw(Exporter);
+  @EXPORT_OK = qw(munge frobnicate);
+
+</PRE>
+
+
+<A NAME="lbAS">&nbsp;</A>
+<H3>Playing Safe</H3>
+
+<A NAME="ixAAV"></A>
+There are some caveats with the use of runtime statements
+like <TT>&quot;require Exporter&quot;</TT> and the assignment to package
+variables, which can very subtle for the unaware programmer.
+This may happen for instance with mutually recursive
+modules, which are affected by the time the relevant
+constructions are executed.
+<P>
+
+The ideal (but a bit ugly) way to never have to think
+about that is to use <TT>&quot;BEGIN&quot;</TT> blocks. So the first part
+of the ``<FONT SIZE="-1">SYNOPSIS</FONT>'' code could be rewritten as:
+<P>
+
+
+
+<PRE>
+  package YourModule;
+
+  use strict;
+  use warnings;
+
+  our (@ISA, @EXPORT_OK);
+  BEGIN {
+     require Exporter;
+     @ISA = qw(Exporter);
+     @EXPORT_OK = qw(munge frobnicate);  # symbols to export on request
+  }
+
+</PRE>
+
+
+<P>
+
+The <TT>&quot;BEGIN&quot;</TT> will assure that the loading of <I>Exporter.pm</I>
+and the assignments to <TT>@ISA</TT> and <TT>@EXPORT_OK</TT> happen
+immediately, leaving no room for something to get awry
+or just plain wrong.
+<P>
+
+With respect to loading <TT>&quot;Exporter&quot;</TT> and inheriting, there
+are alternatives with the use of modules like <TT>&quot;base&quot;</TT> and <TT>&quot;parent&quot;</TT>.
+<P>
+
+
+
+<PRE>
+  use base qw( Exporter );
+  # or
+  use parent qw( Exporter );
+
+</PRE>
+
+
+<P>
+
+Any of these statements are nice replacements for
+<TT>&quot;BEGIN { require Exporter; @ISA = qw(Exporter); }&quot;</TT>
+with the same compile-time effect. The basic difference
+is that <TT>&quot;base&quot;</TT> code interacts with declared <TT>&quot;fields&quot;</TT>
+while <TT>&quot;parent&quot;</TT> is a streamlined version of the older
+<TT>&quot;base&quot;</TT> code to just establish the IS-A relationship.
+<P>
+
+For more details, see the documentation and code of
+base and parent.
+<P>
+
+Another thorough remedy to that runtime vs. 
+compile-time trap is to use Exporter::Easy,
+which is a wrapper of Exporter that allows all
+boilerplate code at a single gulp in the
+use statement.
+<P>
+
+
+
+<PRE>
+   use Exporter::Easy (
+       OK =&gt; [ qw(munge frobnicate) ],
+   );
+   # @ISA setup is automatic
+   # all assignments happen at compile time
+
+</PRE>
+
+
+<A NAME="lbAT">&nbsp;</A>
+<H3>What not to Export</H3>
+
+<A NAME="ixAAW"></A>
+You have been warned already in ``Selecting What To Export''
+to not export:
+<DL COMPACT>
+<DT>*<DD>
+method names (because you don't need to
+and that's likely to not do what you want),
+<DT>*<DD>
+anything by default (because you don't want to surprise your users...
+badly)
+<DT>*<DD>
+anything you don't need to (because less is more)
+</DL>
+<P>
+
+There's one more item to add to this list. Do <B>not</B>
+export variable names. Just because <TT>&quot;Exporter&quot;</TT> lets you
+do that, it does not mean you should.
+<P>
+
+
+
+<PRE>
+  @EXPORT_OK = qw( $svar @avar %hvar ); # DON'T!
+
+</PRE>
+
+
+<P>
+
+Exporting variables is not a good idea. They can
+change under the hood, provoking horrible
+effects at-a-distance, that are too hard to track
+and to fix. Trust me: they are not worth it.
+<P>
+
+To provide the capability to set/get class-wide
+settings, it is best instead to provide accessors
+as subroutines or class methods instead.
+<A NAME="lbAU">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAX"></A>
+<TT>&quot;Exporter&quot;</TT> is definitely not the only module with
+symbol exporter capabilities. At <FONT SIZE="-1">CPAN</FONT>, you may find
+a bunch of them. Some are lighter. Some
+provide improved APIs and features. Peek the one
+that fits your needs. The following is
+a sample list of such modules.
+<P>
+
+
+
+<PRE>
+    Exporter::Easy
+    Exporter::Lite
+    Exporter::Renaming
+    Exporter::Tidy
+    Sub::Exporter / Sub::Installer
+    Perl6::Export / Perl6::Export::Attrs
+
+</PRE>
+
+
+<A NAME="lbAV">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixAAY"></A>
+This library is free software. You can redistribute it
+and/or modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">How to Export</A><DD>
+<DT><A HREF="#lbAF">Selecting What To Export</A><DD>
+<DT><A HREF="#lbAG">How to Import</A><DD>
+</DL>
+<DT><A HREF="#lbAH">Advanced features</A><DD>
+<DL>
+<DT><A HREF="#lbAI">Specialised Import Lists</A><DD>
+<DT><A HREF="#lbAJ">Exporting without using Exporter's import method</A><DD>
+<DT><A HREF="#lbAK">Exporting without inheriting from Exporter</A><DD>
+<DT><A HREF="#lbAL">Module Version Checking</A><DD>
+<DT><A HREF="#lbAM">Managing Unknown Symbols</A><DD>
+<DT><A HREF="#lbAN">Tag Handling Utility Functions</A><DD>
+<DT><A HREF="#lbAO">Generating combined tags</A><DD>
+<DT><A HREF="#lbAP">AUTOLOADed Constants</A><DD>
+</DL>
+<DT><A HREF="#lbAQ">Good Practices</A><DD>
+<DL>
+<DT><A HREF="#lbAR">Declaring @EXPORT_OK and Friends</A><DD>
+<DT><A HREF="#lbAS">Playing Safe</A><DD>
+<DT><A HREF="#lbAT">What not to Export</A><DD>
+</DL>
+<DT><A HREF="#lbAU">SEE ALSO</A><DD>
+<DT><A HREF="#lbAV">LICENSE</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:26 GMT, December 24, 2015
+</div></body>
+</HTML>

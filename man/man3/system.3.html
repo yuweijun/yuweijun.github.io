@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SYSTEM</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SYSTEM</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2004-12-20<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+system - execute a shell command
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;</B>
+
+<B>int system(const char *</B><I>command</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>system</B>()
+
+executes a command specified in
+<I>command</I>
+
+by calling
+<B>/bin/sh -c</B>
+
+<I>command</I>,
+
+and returns after the command has been completed.
+During execution of the command,
+<B>SIGCHLD</B>
+
+will be blocked, and
+<B>SIGINT</B>
+
+and
+<B>SIGQUIT</B>
+
+will be ignored.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+The value returned is -1 on error (e.g.
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2)
+
+failed),
+and the return status of the command otherwise.
+This latter return status is in the format
+specified in
+<B><A HREF="/man/index.html?2+wait">wait</A></B>(2).
+
+Thus, the exit code of the command will be
+<I>WEXITSTATUS(status)</I>.
+
+In case
+<I>/bin/sh</I>
+
+could not be executed, the exit status will be that of
+a command that does
+<I>exit(127)</I>.
+
+<P>
+
+If the value of
+<I>command</I>
+
+is NULL,
+<B>system</B>()
+
+returns non-zero if the shell is available, and zero if not.
+<P>
+
+<B>system</B>()
+
+does not affect the wait status of any other children.
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+C89, C99, POSIX.1-2001.
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+If the
+<B>_XOPEN_SOURCE</B>
+
+feature test macro is defined, then the macros described in
+<B><A HREF="/man/index.html?2+wait">wait</A></B>(2)
+
+(<B>WEXITSTATUS</B>(),
+
+etc.) are made available when including
+<I>&lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;</I>.
+
+<P>
+
+As mentioned,
+<B>system</B>()
+
+ignores
+<B>SIGINT</B>
+
+and
+<B>SIGQUIT</B>.
+
+This may make programs that call it
+from a loop uninterruptible, unless they take care themselves
+to check the exit status of the child.
+E.g.
+<BR>
+
+<PRE>
+
+    while (something) {
+        int ret = system(&quot;foo&quot;);
+
+        if (WIFSIGNALED(ret) &amp;&amp;
+            (WTERMSIG(ret) == SIGINT || WTERMSIG(ret) == SIGQUIT))
+                break;
+    }
+</PRE>
+
+<P>
+
+Do not use
+<B>system</B>()
+
+from a program with set-user-ID or set-group-ID privileges,
+because strange values for some environment variables
+might be used to subvert system integrity.
+Use the
+<B><A HREF="/man/index.html?3+exec">exec</A></B>(3)
+
+family of functions instead, but not
+<B><A HREF="/man/index.html?3+execlp">execlp</A></B>(3)
+
+or
+<B><A HREF="/man/index.html?3+execvp">execvp</A></B>(3).
+
+<B>system</B>()
+
+will not, in fact, work properly from programs with set-user-ID or
+set-group-ID privileges on systems on which
+<I>/bin/sh</I>
+
+is bash version 2, since bash 2 drops privileges on startup.
+(Debian uses a modified bash which does not do this when invoked as
+<B>sh</B>.)
+
+<P>
+
+In versions of glibc before 2.1.3, the check for the availability of
+<I>/bin/sh</I>
+
+was not actually performed if
+<I>command</I>
+
+was NULL; instead it was always assumed to be available, and
+<B>system</B>()
+
+always returned 1 in this case.
+Since glibc 2.1.3, this check is performed because, even though
+POSIX.1-2001 requires a conforming implementation to provide
+a shell, that shell may not be available or executable if
+the calling program has previously called
+<B><A HREF="/man/index.html?2+chroot">chroot</A></B>(2)
+
+(which is not specified by POSIX.1-2001).
+<P>
+
+It is possible for the shell command to return 127, so that code is not
+a sure indication that the
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2)
+
+call failed.
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?1+sh">sh</A></B>(1),
+
+<B><A HREF="/man/index.html?2+signal">signal</A></B>(2),
+
+<B><A HREF="/man/index.html?2+wait">wait</A></B>(2),
+
+<B><A HREF="/man/index.html?3+exec">exec</A></B>(3)
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:43 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SELECT</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SELECT</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+SELECT, TABLE, WITH - retrieve rows from a table or view
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+[ WITH [ RECURSIVE ] <I>with_query</I> [, ...] ]
+SELECT [ ALL | DISTINCT [ ON ( <I>expression</I> [, ...] ) ] ]
+    * | <I>expression</I> [ [ AS ] <I>output_name</I> ] [, ...]
+    [ FROM <I>from_item</I> [, ...] ]
+    [ WHERE <I>condition</I> ]
+    [ GROUP BY <I>expression</I> [, ...] ]
+    [ HAVING <I>condition</I> [, ...] ]
+    [ WINDOW <I>window_name</I> AS ( <I>window_definition</I> ) [, ...] ]
+    [ { UNION | INTERSECT | EXCEPT } [ ALL ] <I>select</I> ]
+    [ ORDER BY <I>expression</I> [ ASC | DESC | USING <I>operator</I> ] [ NULLS { FIRST | LAST } ] [, ...] ]
+    [ LIMIT { <I>count</I> | ALL } ]
+    [ OFFSET <I>start</I> [ ROW | ROWS ] ]
+    [ FETCH { FIRST | NEXT } [ <I>count</I> ] { ROW | ROWS } ONLY ]
+    [ FOR { UPDATE | SHARE } [ OF <I>table_name</I> [, ...] ] [ NOWAIT ] [...] ]
+
+where <I>from_item</I> can be one of:
+
+    [ ONLY ] <I>table_name</I> [ * ] [ [ AS ] <I>alias</I> [ ( <I>column_alias</I> [, ...] ) ] ]
+    ( <I>select</I> ) [ AS ] <I>alias</I> [ ( <I>column_alias</I> [, ...] ) ]
+    <I>with_query_name</I> [ [ AS ] <I>alias</I> [ ( <I>column_alias</I> [, ...] ) ] ]
+    <I>function_name</I> ( [ <I>argument</I> [, ...] ] ) [ AS ] <I>alias</I> [ ( <I>column_alias</I> [, ...] | <I>column_definition</I> [, ...] ) ]
+    <I>function_name</I> ( [ <I>argument</I> [, ...] ] ) AS ( <I>column_definition</I> [, ...] )
+    <I>from_item</I> [ NATURAL ] <I>join_type</I> <I>from_item</I> [ ON <I>join_condition</I> | USING ( <I>join_column</I> [, ...] ) ]
+
+and <I>with_query</I> is:
+
+    <I>with_query_name</I> [ ( <I>column_name</I> [, ...] ) ] AS ( <I>select</I> )
+
+TABLE { [ ONLY ] <I>table_name</I> [ * ] | <I>with_query_name</I> }
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>SELECT</B> retrieves rows from zero or more tables.
+The general processing of <B>SELECT</B> is as follows:
+<DL COMPACT>
+<DT>1.<DD>
+All queries in the WITH list are computed.
+These effectively serve as temporary tables that can be referenced
+in the FROM list. A WITH query
+that is referenced more than once in FROM is
+computed only once.
+(See WITH Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] below.)
+<DT>2.<DD>
+All elements in the FROM list are computed.
+(Each element in the FROM list is a real or
+virtual table.) If more than one element is specified in the
+FROM list, they are cross-joined together.
+(See FROM Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] below.)
+<DT>3.<DD>
+If the WHERE clause is specified, all rows
+that do not satisfy the condition are eliminated from the
+output. (See WHERE Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] below.)
+<DT>4.<DD>
+If the GROUP BY clause is specified, the
+output is divided into groups of rows that match on one or more
+values. If the HAVING clause is present, it
+eliminates groups that do not satisfy the given condition. (See
+GROUP BY Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] and
+HAVING Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] below.)
+<DT>5.<DD>
+The actual output rows are computed using the
+<B>SELECT</B> output expressions for each selected
+row. (See
+SELECT List [<B><A HREF="/man/index.html?7+select">select</A></B>(7)]
+below.)
+<DT>6.<DD>
+Using the operators UNION,
+INTERSECT, and EXCEPT, the
+output of more than one <B>SELECT</B> statement can
+be combined to form a single result set. The
+UNION operator returns all rows that are in
+one or both of the result sets. The
+INTERSECT operator returns all rows that are
+strictly in both result sets. The EXCEPT
+operator returns the rows that are in the first result set but
+not in the second. In all three cases, duplicate rows are
+eliminated unless ALL is specified. (See
+UNION Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)], INTERSECT Clause [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+select">select</A></B>(7)], and
+EXCEPT Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] below.)
+<DT>7.<DD>
+If the ORDER BY clause is specified, the
+returned rows are sorted in the specified order. If
+ORDER BY is not given, the rows are returned
+in whatever order the system finds fastest to produce. (See
+ORDER BY Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] below.)
+<DT>8.<DD>
+DISTINCT eliminates duplicate rows from the
+result. DISTINCT ON eliminates rows that
+match on all the specified expressions. ALL
+(the default) will return all candidate rows, including
+duplicates. (See DISTINCT Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] below.)
+<DT>9.<DD>
+If the LIMIT (or FETCH FIRST) or OFFSET
+clause is specified, the <B>SELECT</B> statement
+only returns a subset of the result rows. (See LIMIT Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] below.)
+<DT>10.<DD>
+If FOR UPDATE or FOR SHARE
+is specified, the
+<B>SELECT</B> statement locks the selected rows
+against concurrent updates. (See FOR UPDATE/FOR SHARE Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] below.)
+</DL>
+<P>
+
+<P>
+
+You must have SELECT privilege on each column used
+in a <B>SELECT</B> command. The use of FOR UPDATE
+or FOR SHARE requires
+UPDATE privilege as well (for at least one column
+of each table so selected).
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<A NAME="lbAF">&nbsp;</A>
+<H3>WITH CLAUSE</H3>
+
+<P>
+
+The WITH clause allows you to specify one or more
+subqueries that can be referenced by name in the primary query.
+The subqueries effectively act as temporary tables or views
+for the duration of the primary query.
+<P>
+
+A name (without schema qualification) must be specified for each
+WITH query. Optionally, a list of column names
+can be specified; if this is omitted,
+the column names are inferred from the subquery.
+<P>
+
+If RECURSIVE is specified, it allows a
+subquery to reference itself by name. Such a subquery must have
+the form
+<P>
+<PRE>
+<I>non_recursive_term</I> UNION [ ALL ] <I>recursive_term</I>
+
+</PRE>
+
+where the recursive self-reference must appear on the right-hand
+side of the UNION. Only one recursive self-reference
+is permitted per query.
+<P>
+
+Another effect of RECURSIVE is that
+WITH queries need not be ordered: a query
+can reference another one that is later in the list. (However,
+circular references, or mutual recursion, are not implemented.)
+Without RECURSIVE, WITH queries
+can only reference sibling WITH queries
+that are earlier in the WITH list.
+<P>
+
+A useful property of WITH queries is that they
+are evaluated only once per execution of the primary query,
+even if the primary query refers to them more than once.
+<P>
+
+See in the documentation for additional information.
+<A NAME="lbAG">&nbsp;</A>
+<H3>FROM CLAUSE</H3>
+
+<P>
+
+The FROM clause specifies one or more source
+tables for the <B>SELECT</B>. If multiple sources are
+specified, the result is the Cartesian product (cross join) of all
+the sources. But usually qualification conditions
+are added to restrict the returned rows to a small subset of the
+Cartesian product.
+<P>
+
+The FROM clause can contain the following
+elements:
+<DL COMPACT>
+<DT><B></B><I>table_name</I><B></B><DD>
+The name (optionally schema-qualified) of an existing table or
+view. If ONLY is specified, only that table is
+scanned. If ONLY is not specified, the table and
+any descendant tables are scanned.
+<DT><B></B><I>alias</I><B></B><DD>
+A substitute name for the FROM item containing the
+alias. An alias is used for brevity or to eliminate ambiguity
+for self-joins (where the same table is scanned multiple
+times). When an alias is provided, it completely hides the
+actual name of the table or function; for example given
+FROM foo AS f, the remainder of the
+<B>SELECT</B> must refer to this FROM
+item as f not foo. If an alias is
+written, a column alias list can also be written to provide
+substitute names for one or more columns of the table.
+<DT><B></B><I>select</I><B></B><DD>
+A sub-<B>SELECT</B> can appear in the
+FROM clause. This acts as though its
+output were created as a temporary table for the duration of
+this single <B>SELECT</B> command. Note that the
+sub-<B>SELECT</B> must be surrounded by
+parentheses, and an alias <B>must</B> be
+provided for it. A
+VALUES [<B><A HREF="/man/index.html?7+values">values</A></B>(7)] command
+can also be used here.
+<DT><B></B><I>with_query_name</I><B></B><DD>
+A WITH query is referenced by writing its name,
+just as though the query's name were a table name. (In fact,
+the WITH query hides any real table of the same name
+for the purposes of the primary query. If necessary, you can
+refer to a real table of the same name by schema-qualifying
+the table's name.)
+An alias can be provided in the same way as for a table.
+<DT><B></B><I>function_name</I><B></B><DD>
+Function calls can appear in the FROM
+clause. (This is especially useful for functions that return
+result sets, but any function can be used.) This acts as
+though its output were created as a temporary table for the
+duration of this single <B>SELECT</B> command. An
+alias can also be used. If an alias is written, a column alias
+list can also be written to provide substitute names for one
+or more attributes of the function's composite return type. If
+the function has been defined as returning the <B>record</B>
+data type, then an alias or the key word AS must
+be present, followed by a column definition list in the form
+( <I>column_name</I> <I>data_type</I> [, ... ]
+). The column definition list must match the actual
+number and types of columns returned by the function.
+<DT><B></B><I>join_type</I><B></B><DD>
+One of
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+[ INNER ] JOIN
+<DT>*<DD>
+LEFT [ OUTER ] JOIN
+<DT>*<DD>
+RIGHT [ OUTER ] JOIN
+<DT>*<DD>
+FULL [ OUTER ] JOIN
+<DT>*<DD>
+CROSS JOIN
+</DL>
+</DL>
+
+</DL>
+<P>
+
+For the INNER and OUTER join types, a
+join condition must be specified, namely exactly one of
+NATURAL, ON <I>join_condition</I>, or
+USING (<I>join_column</I> [, ...]).
+See below for the meaning. For CROSS JOIN,
+none of these clauses can appear.
+<P>
+A JOIN clause combines two
+FROM items. Use parentheses if necessary to
+determine the order of nesting. In the absence of parentheses,
+JOINs nest left-to-right. In any case
+JOIN binds more tightly than the commas
+separating FROM items.
+<P>
+CROSS JOIN and INNER JOIN
+produce a simple Cartesian product, the same result as you get from
+listing the two items at the top level of FROM,
+but restricted by the join condition (if any).
+CROSS JOIN is equivalent to INNER JOIN ON
+(TRUE), that is, no rows are removed by qualification.
+These join types are just a notational convenience, since they
+do nothing you couldn't do with plain FROM and
+WHERE.
+<P>
+LEFT OUTER JOIN returns all rows in the qualified
+Cartesian product (i.e., all combined rows that pass its join
+condition), plus one copy of each row in the left-hand table
+for which there was no right-hand row that passed the join
+condition. This left-hand row is extended to the full width
+of the joined table by inserting null values for the
+right-hand columns. Note that only the JOIN
+clause's own condition is considered while deciding which rows
+have matches. Outer conditions are applied afterwards.
+<P>
+Conversely, RIGHT OUTER JOIN returns all the
+joined rows, plus one row for each unmatched right-hand row
+(extended with nulls on the left). This is just a notational
+convenience, since you could convert it to a LEFT
+OUTER JOIN by switching the left and right inputs.
+<P>
+FULL OUTER JOIN returns all the joined rows, plus
+one row for each unmatched left-hand row (extended with nulls
+on the right), plus one row for each unmatched right-hand row
+(extended with nulls on the left).
+<DL COMPACT>
+<DT><B>ON </B><I>join_condition</I><B></B><DD>
+<I>join_condition</I> is
+an expression resulting in a value of type
+<B>boolean</B> (similar to a WHERE
+clause) that specifies which rows in a join are considered to
+match.
+<DT><B>USING ( </B><I>join_column</I><B> [, ...] )</B><DD>
+A clause of the form USING ( a, b, ... ) is
+shorthand for ON left_table.a = right_table.a AND
+left_table.b = right_table.b .... Also,
+USING implies that only one of each pair of
+equivalent columns will be included in the join output, not
+both.
+<DT><B>NATURAL</B><DD>
+NATURAL is shorthand for a
+USING list that mentions all columns in the two
+tables that have the same names.
+</DL>
+<P>
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>WHERE CLAUSE</H3>
+
+<P>
+
+The optional WHERE clause has the general form
+<P>
+<PRE>
+WHERE <I>condition</I>
+
+</PRE>
+
+where <I>condition</I> is
+any expression that evaluates to a result of type
+<B>boolean</B>. Any row that does not satisfy this
+condition will be eliminated from the output. A row satisfies the
+condition if it returns true when the actual row values are
+substituted for any variable references.
+<A NAME="lbAI">&nbsp;</A>
+<H3>GROUP BY CLAUSE</H3>
+
+<P>
+
+The optional GROUP BY clause has the general form
+<P>
+<PRE>
+GROUP BY <I>expression</I> [, ...]
+
+</PRE>
+
+<P>
+
+GROUP BY will condense into a single row all
+selected rows that share the same values for the grouped
+expressions. <I>expression</I> can be an input column
+name, or the name or ordinal number of an output column
+(<B>SELECT</B> list item), or an arbitrary
+expression formed from input-column values. In case of ambiguity,
+a GROUP BY name will be interpreted as an
+input-column name rather than an output column name.
+<P>
+
+Aggregate functions, if any are used, are computed across all rows
+making up each group, producing a separate value for each group
+(whereas without GROUP BY, an aggregate
+produces a single value computed across all the selected rows).
+When GROUP BY is present, it is not valid for
+the <B>SELECT</B> list expressions to refer to
+ungrouped columns except within aggregate functions, since there
+would be more than one possible value to return for an ungrouped
+column.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>HAVING CLAUSE</H3>
+
+<P>
+
+The optional HAVING clause has the general form
+<P>
+<PRE>
+HAVING <I>condition</I>
+
+</PRE>
+
+where <I>condition</I> is
+the same as specified for the WHERE clause.
+<P>
+
+HAVING eliminates group rows that do not
+satisfy the condition. HAVING is different
+from WHERE: WHERE filters
+individual rows before the application of GROUP
+BY, while HAVING filters group rows
+created by GROUP BY. Each column referenced in
+<I>condition</I> must
+unambiguously reference a grouping column, unless the reference
+appears within an aggregate function.
+<P>
+
+The presence of HAVING turns a query into a grouped
+query even if there is no GROUP BY clause. This is the
+same as what happens when the query contains aggregate functions but
+no GROUP BY clause. All the selected rows are considered to
+form a single group, and the <B>SELECT</B> list and
+HAVING clause can only reference table columns from
+within aggregate functions. Such a query will emit a single row if the
+HAVING condition is true, zero rows if it is not true.
+<A NAME="lbAK">&nbsp;</A>
+<H3>WINDOW CLAUSE</H3>
+
+<P>
+
+The optional WINDOW clause has the general form
+<P>
+<PRE>
+WINDOW <I>window_name</I> AS ( <I>window_definition</I> ) [, ...]
+
+</PRE>
+
+where <I>window_name</I> is
+a name that can be referenced from subsequent window definitions or
+OVER clauses, and
+<I>window_definition</I> is
+<P>
+<PRE>
+[ <I>existing_window_name</I> ]
+[ PARTITION BY <I>expression</I> [, ...] ]
+[ ORDER BY <I>expression</I> [ ASC | DESC | USING <I>operator</I> ] [ NULLS { FIRST | LAST } ] [, ...] ]
+[ <I>frame_clause</I> ]
+
+</PRE>
+
+<P>
+
+If an <I>existing_window_name</I>
+is specified it must refer to an earlier entry in the WINDOW
+list; the new window copies its partitioning clause from that entry,
+as well as its ordering clause if any. In this case the new window cannot
+specify its own PARTITION BY clause, and it can specify
+ORDER BY only if the copied window does not have one.
+The new window always uses its own frame clause; the copied window
+must not specify a frame clause.
+<P>
+
+The elements of the PARTITION BY list are interpreted in
+much the same fashion as elements of a
+GROUP BY Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)], except that
+they are always simple expressions and never the name or number of an
+output column.
+Another difference is that these expressions can contain aggregate
+function calls, which are not allowed in a regular GROUP BY
+clause. They are allowed here because windowing occurs after grouping
+and aggregation.
+<P>
+
+Similarly, the elements of the ORDER BY list are interpreted
+in much the same fashion as elements of an
+ORDER BY Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)], except that
+the expressions are always taken as simple expressions and never the name
+or number of an output column.
+<P>
+
+The optional <I>frame_clause</I> defines
+the <I>window frame</I> for window functions that depend on the
+frame (not all do). It can be one of
+<P>
+<PRE>
+RANGE UNBOUNDED PRECEDING
+RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+ROWS UNBOUNDED PRECEDING
+ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+
+</PRE>
+
+The first two are equivalent and are also the default: they set the
+frame to be all rows from the partition start up through the current row's
+last peer in the ORDER BY ordering (which means all rows if
+there is no ORDER BY). The options
+RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING and
+ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+are also equivalent: they always select all rows in the partition.
+Lastly, ROWS UNBOUNDED PRECEDING or its verbose equivalent
+ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW select
+all rows up through the current row (regardless of duplicates).
+Beware that this option can produce implementation-dependent results
+if the ORDER BY ordering does not order the rows uniquely.
+<P>
+
+The purpose of a WINDOW clause is to specify the
+behavior of <I>window functions</I> appearing in the query's
+SELECT List [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] or
+ORDER BY Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)]. These functions
+can reference the WINDOW clause entries by name
+in their OVER clauses. A WINDOW clause
+entry does not have to be referenced anywhere, however; if it is not
+used in the query it is simply ignored. It is possible to use window
+functions without any WINDOW clause at all, since
+a window function call can specify its window definition directly in
+its OVER clause. However, the WINDOW
+clause saves typing when the same window definition is needed for more
+than one window function.
+<P>
+
+Window functions are described in detail in
+in the documentation,
+in the documentation, and
+in the documentation.
+<A NAME="lbAL">&nbsp;</A>
+<H3>SELECT LIST</H3>
+
+<P>
+
+The <B>SELECT</B> list (between the key words
+SELECT and FROM) specifies expressions
+that form the output rows of the <B>SELECT</B>
+statement. The expressions can (and usually do) refer to columns
+computed in the FROM clause.
+<P>
+
+Just as in a table, every output column of a <B>SELECT</B>
+has a name. In a simple <B>SELECT</B> this name is just
+used to label the column for display, but when the <B>SELECT</B>
+is a sub-query of a larger query, the name is seen by the larger query
+as the column name of the virtual table produced by the sub-query.
+To specify the name to use for an output column, write
+AS <I>output_name</I>
+after the column's expression. (You can omit AS,
+but only if the desired output name does not match any
+PostgreSQL keyword (see in the documentation). For protection against possible
+future keyword additions, it is recommended that you always either
+write AS or double-quote the output name.)
+If you do not specify a column name, a name is chosen automatically
+by PostgreSQL. If the column's expression
+is a simple column reference then the chosen name is the same as that
+column's name; in more complex cases a generated name looking like
+?column<I>N</I>? is usually chosen.
+<P>
+
+An output column's name can be used to refer to the column's value in
+ORDER BY and GROUP BY clauses, but not in the
+WHERE or HAVING clauses; there you must write
+out the expression instead.
+<P>
+
+Instead of an expression, * can be written in
+the output list as a shorthand for all the columns of the selected
+rows. Also, you can write <I>table_name</I>.* as a
+shorthand for the columns coming from just that table. In these
+cases it is not possible to specify new names with AS;
+the output column names will be the same as the table columns' names.
+<A NAME="lbAM">&nbsp;</A>
+<H3>UNION CLAUSE</H3>
+
+<P>
+
+The UNION clause has this general form:
+<P>
+<PRE>
+<I>select_statement</I> UNION [ ALL ] <I>select_statement</I>
+
+</PRE>
+
+<I>select_statement</I> is
+any <B>SELECT</B> statement without an ORDER
+BY, LIMIT, FOR UPDATE, or
+FOR SHARE clause.
+(ORDER BY and LIMIT can be attached to a
+subexpression if it is enclosed in parentheses. Without
+parentheses, these clauses will be taken to apply to the result of
+the UNION, not to its right-hand input
+expression.)
+<P>
+
+The UNION operator computes the set union of
+the rows returned by the involved <B>SELECT</B>
+statements. A row is in the set union of two result sets if it
+appears in at least one of the result sets. The two
+<B>SELECT</B> statements that represent the direct
+operands of the UNION must produce the same
+number of columns, and corresponding columns must be of compatible
+data types.
+<P>
+
+The result of UNION does not contain any duplicate
+rows unless the ALL option is specified.
+ALL prevents elimination of duplicates. (Therefore,
+UNION ALL is usually significantly quicker than
+UNION; use ALL when you can.)
+<P>
+
+Multiple UNION operators in the same
+<B>SELECT</B> statement are evaluated left to right,
+unless otherwise indicated by parentheses.
+<P>
+
+Currently, FOR UPDATE and FOR SHARE cannot be
+specified either for a UNION result or for any input of a
+UNION.
+<A NAME="lbAN">&nbsp;</A>
+<H3>INTERSECT CLAUSE</H3>
+
+<P>
+
+The INTERSECT clause has this general form:
+<P>
+<PRE>
+<I>select_statement</I> INTERSECT [ ALL ] <I>select_statement</I>
+
+</PRE>
+
+<I>select_statement</I> is
+any <B>SELECT</B> statement without an ORDER
+BY, LIMIT, FOR UPDATE, or
+FOR SHARE clause.
+<P>
+
+The INTERSECT operator computes the set
+intersection of the rows returned by the involved
+<B>SELECT</B> statements. A row is in the
+intersection of two result sets if it appears in both result sets.
+<P>
+
+The result of INTERSECT does not contain any
+duplicate rows unless the ALL option is specified.
+With ALL, a row that has <I>m</I> duplicates in the
+left table and <I>n</I> duplicates in the right table will appear
+min(<I>m</I>,<I>n</I>) times in the result set.
+<P>
+
+Multiple INTERSECT operators in the same
+<B>SELECT</B> statement are evaluated left to right,
+unless parentheses dictate otherwise.
+INTERSECT binds more tightly than
+UNION. That is, A UNION B INTERSECT
+C will be read as A UNION (B INTERSECT
+C).
+<P>
+
+Currently, FOR UPDATE and FOR SHARE cannot be
+specified either for an INTERSECT result or for any input of
+an INTERSECT.
+<A NAME="lbAO">&nbsp;</A>
+<H3>EXCEPT CLAUSE</H3>
+
+<P>
+
+The EXCEPT clause has this general form:
+<P>
+<PRE>
+<I>select_statement</I> EXCEPT [ ALL ] <I>select_statement</I>
+
+</PRE>
+
+<I>select_statement</I> is
+any <B>SELECT</B> statement without an ORDER
+BY, LIMIT, FOR UPDATE, or
+FOR SHARE clause.
+<P>
+
+The EXCEPT operator computes the set of rows
+that are in the result of the left <B>SELECT</B>
+statement but not in the result of the right one.
+<P>
+
+The result of EXCEPT does not contain any
+duplicate rows unless the ALL option is specified.
+With ALL, a row that has <I>m</I> duplicates in the
+left table and <I>n</I> duplicates in the right table will appear
+max(<I>m</I>-<I>n</I>,0) times in the result set.
+<P>
+
+Multiple EXCEPT operators in the same
+<B>SELECT</B> statement are evaluated left to right,
+unless parentheses dictate otherwise. EXCEPT binds at
+the same level as UNION.
+<P>
+
+Currently, FOR UPDATE and FOR SHARE cannot be
+specified either for an EXCEPT result or for any input of
+an EXCEPT.
+<A NAME="lbAP">&nbsp;</A>
+<H3>ORDER BY CLAUSE</H3>
+
+<P>
+
+The optional ORDER BY clause has this general form:
+<P>
+<PRE>
+ORDER BY <I>expression</I> [ ASC | DESC | USING <I>operator</I> ] [ NULLS { FIRST | LAST } ] [, ...]
+
+</PRE>
+
+The ORDER BY clause causes the result rows to
+be sorted according to the specified expression(s). If two rows are
+equal according to the leftmost expression, they are compared
+according to the next expression and so on. If they are equal
+according to all specified expressions, they are returned in
+an implementation-dependent order.
+<P>
+
+Each <I>expression</I> can be the
+name or ordinal number of an output column
+(<B>SELECT</B> list item), or it can be an arbitrary
+expression formed from input-column values.
+<P>
+
+The ordinal number refers to the ordinal (left-to-right) position
+of the output column. This feature makes it possible to define an
+ordering on the basis of a column that does not have a unique
+name. This is never absolutely necessary because it is always
+possible to assign a name to an output column using the
+AS clause.
+<P>
+
+It is also possible to use arbitrary expressions in the
+ORDER BY clause, including columns that do not
+appear in the <B>SELECT</B> output list. Thus the
+following statement is valid:
+<P>
+<PRE>
+SELECT name FROM distributors ORDER BY code;
+
+</PRE>
+
+A limitation of this feature is that an ORDER BY
+clause applying to the result of a UNION,
+INTERSECT, or EXCEPT clause can only
+specify an output column name or number, not an expression.
+<P>
+
+If an ORDER BY expression is a simple name that
+matches both an output column name and an input column name,
+ORDER BY will interpret it as the output column name.
+This is the opposite of the choice that GROUP BY will
+make in the same situation. This inconsistency is made to be
+compatible with the SQL standard.
+<P>
+
+Optionally one can add the key word ASC (ascending) or
+DESC (descending) after any expression in the
+ORDER BY clause. If not specified, ASC is
+assumed by default. Alternatively, a specific ordering operator
+name can be specified in the USING clause.
+An ordering operator must be a less-than or greater-than
+member of some B-tree operator family.
+ASC is usually equivalent to USING &lt; and
+DESC is usually equivalent to USING &gt;.
+(But the creator of a user-defined data type can define exactly what the
+default sort ordering is, and it might correspond to operators with other
+names.)
+<P>
+
+If NULLS LAST is specified, null values sort after all
+non-null values; if NULLS FIRST is specified, null values
+sort before all non-null values. If neither is specified, the default
+behavior is NULLS LAST when ASC is specified
+or implied, and NULLS FIRST when DESC is specified
+(thus, the default is to act as though nulls are larger than non-nulls).
+When USING is specified, the default nulls ordering depends
+on whether the operator is a less-than or greater-than operator.
+<P>
+
+Note that ordering options apply only to the expression they follow;
+for example ORDER BY x, y DESC does not mean
+the same thing as ORDER BY x DESC, y DESC.
+<P>
+
+Character-string data is sorted according to the locale-specific
+collation order that was established when the database was created.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>DISTINCT CLAUSE</H3>
+
+<P>
+
+If DISTINCT is specified, all duplicate rows are
+removed from the result set (one row is kept from each group of
+duplicates). ALL specifies the opposite: all rows are
+kept; that is the default.
+<P>
+
+DISTINCT ON ( <I>expression</I> [, ...] )
+keeps only the first row of each set of rows where the given
+expressions evaluate to equal. The DISTINCT ON
+expressions are interpreted using the same rules as for
+ORDER BY (see above). Note that the ``first
+row'' of each set is unpredictable unless ORDER
+BY is used to ensure that the desired row appears first. For
+example:
+<P>
+<PRE>
+SELECT DISTINCT ON (location) location, time, report
+    FROM weather_reports
+    ORDER BY location, time DESC;
+
+</PRE>
+
+retrieves the most recent weather report for each location. But
+if we had not used ORDER BY to force descending order
+of time values for each location, we'd have gotten a report from
+an unpredictable time for each location.
+<P>
+
+The DISTINCT ON expression(s) must match the leftmost
+ORDER BY expression(s). The ORDER BY clause
+will normally contain additional expression(s) that determine the
+desired precedence of rows within each DISTINCT ON group.
+<A NAME="lbAR">&nbsp;</A>
+<H3>LIMIT CLAUSE</H3>
+
+<P>
+
+The LIMIT clause consists of two independent
+sub-clauses:
+<P>
+<PRE>
+LIMIT { <I>count</I> | ALL }
+OFFSET <I>start</I>
+
+</PRE>
+
+<I>count</I> specifies the
+maximum number of rows to return, while <I>start</I> specifies the number of rows
+to skip before starting to return rows. When both are specified,
+<I>start</I> rows are skipped
+before starting to count the <I>count</I> rows to be returned.
+<P>
+
+If the <I>count</I> expression
+evaluates to NULL, it is treated as LIMIT ALL, i.e., no
+limit. If <I>start</I> evaluates
+to NULL, it is treated the same as OFFSET 0.
+<P>
+
+SQL:2008 introduced a different syntax to achieve the same thing,
+which PostgreSQL also supports. It is:
+<P>
+<PRE>
+OFFSET <I>start</I> { ROW | ROWS }
+FETCH { FIRST | NEXT } [ <I>count</I> ] { ROW | ROWS } ONLY
+
+</PRE>
+
+Both clauses are optional, but if present
+the OFFSET clause must come before
+the FETCH clause. ROW
+and ROWS as well as FIRST
+and NEXT are noise words that don't influence
+the effects of these clauses. In this syntax, when using expressions
+other than simple constants for <I>start</I>
+or <I>count</I>, parentheses will be
+necessary in most cases. If <I>count</I> is
+omitted in FETCH, it defaults to 1.
+<P>
+
+When using LIMIT, it is a good idea to use an
+ORDER BY clause that constrains the result rows into a
+unique order. Otherwise you will get an unpredictable subset of
+the query's rows --- you might be asking for the tenth through
+twentieth rows, but tenth through twentieth in what ordering? You
+don't know what ordering unless you specify ORDER BY.
+<P>
+
+The query planner takes LIMIT into account when
+generating a query plan, so you are very likely to get different
+plans (yielding different row orders) depending on what you use
+for LIMIT and OFFSET. Thus, using
+different LIMIT/OFFSET values to select
+different subsets of a query result <B>will give
+inconsistent results</B> unless you enforce a predictable
+result ordering with ORDER BY. This is not a bug; it
+is an inherent consequence of the fact that SQL does not promise
+to deliver the results of a query in any particular order unless
+ORDER BY is used to constrain the order.
+<P>
+
+It is even possible for repeated executions of the same LIMIT
+query to return different subsets of the rows of a table, if there
+is not an ORDER BY to enforce selection of a deterministic
+subset. Again, this is not a bug; determinism of the results is
+simply not guaranteed in such a case.
+<A NAME="lbAS">&nbsp;</A>
+<H3>FOR UPDATE/FOR SHARE CLAUSE</H3>
+
+<P>
+
+The FOR UPDATE clause has this form:
+<P>
+<PRE>
+FOR UPDATE [ OF <I>table_name</I> [, ...] ] [ NOWAIT ]
+
+</PRE>
+
+<P>
+
+The closely related FOR SHARE clause has this form:
+<P>
+<PRE>
+FOR SHARE [ OF <I>table_name</I> [, ...] ] [ NOWAIT ]
+
+</PRE>
+
+<P>
+
+FOR UPDATE causes the rows retrieved by the
+<B>SELECT</B> statement to be locked as though for
+update. This prevents them from being modified or deleted by
+other transactions until the current transaction ends. That is,
+other transactions that attempt <B>UPDATE</B>,
+<B>DELETE</B>, or <B>SELECT FOR UPDATE</B>
+of these rows will be blocked until the current transaction ends.
+Also, if an <B>UPDATE</B>, <B>DELETE</B>,
+or <B>SELECT FOR UPDATE</B> from another transaction
+has already locked a selected row or rows, <B>SELECT FOR
+UPDATE</B> will wait for the other transaction to complete,
+and will then lock and return the updated row (or no row, if the
+row was deleted). For further discussion see in the documentation.
+<P>
+
+To prevent the operation from waiting for other transactions to commit,
+use the NOWAIT option. <B>SELECT FOR UPDATE
+NOWAIT</B> reports an error, rather than waiting, if a selected row
+cannot be locked immediately. Note that NOWAIT applies only
+to the row-level lock(s) --- the required ROW SHARE
+table-level lock is still taken in the ordinary way (see
+in the documentation). You can use the NOWAIT option of
+LOCK [<B><A HREF="/man/index.html?7+lock">lock</A></B>(7)]
+if you need to acquire the table-level lock without waiting.
+<P>
+
+FOR SHARE behaves similarly, except that it
+acquires a shared rather than exclusive lock on each retrieved
+row. A shared lock blocks other transactions from performing
+<B>UPDATE</B>, <B>DELETE</B>, or <B>SELECT
+FOR UPDATE</B> on these rows, but it does not prevent them
+from performing <B>SELECT FOR SHARE</B>.
+<P>
+
+If specific tables are named in FOR UPDATE
+or FOR SHARE,
+then only rows coming from those tables are locked; any other
+tables used in the <B>SELECT</B> are simply read as
+usual. A FOR UPDATE or FOR SHARE
+clause without a table list affects all tables used in the command.
+If FOR UPDATE or FOR SHARE is
+applied to a view or sub-query, it affects all tables used in
+the view or sub-query.
+However, FOR UPDATE/FOR SHARE
+do not apply to WITH queries referenced by the primary query.
+If you want row locking to occur within a WITH query, specify
+FOR UPDATE or FOR SHARE within the
+WITH query.
+<P>
+
+Multiple FOR UPDATE and FOR SHARE
+clauses can be written if it is necessary to specify different locking
+behavior for different tables. If the same table is mentioned (or
+implicitly affected) by both FOR UPDATE and
+FOR SHARE clauses, then it is processed as
+FOR UPDATE. Similarly, a table is processed
+as NOWAIT if that is specified in any of the clauses
+affecting it.
+<P>
+
+FOR UPDATE and FOR SHARE cannot be
+used in contexts where returned rows cannot be clearly identified with
+individual table rows; for example they cannot be used with aggregation.
+<P>
+<DL COMPACT><DT><DD>
+<B>Caution:</B>
+
+Avoid locking a row and then modifying it within a later savepoint or
+<B>PL/pgSQL</B> exception block. A subsequent
+rollback would cause the lock to be lost. For example:
+<P>
+<PRE>
+BEGIN;
+SELECT * FROM mytable WHERE key = 1 FOR UPDATE;
+SAVEPOINT s;
+UPDATE mytable SET ... WHERE key = 1;
+ROLLBACK TO s;
+
+</PRE>
+
+After the <B>ROLLBACK</B>, the row is effectively unlocked, rather
+than returned to its pre-savepoint state of being locked but not modified.
+This hazard occurs if a row locked in the current transaction is updated
+or deleted, or if a shared lock is upgraded to exclusive: in all these
+cases, the former lock state is forgotten. If the transaction is then
+rolled back to a state between the original locking command and the
+subsequent change, the row will appear not to be locked at all. This is
+an implementation deficiency which will be addressed in a future release
+of PostgreSQL.
+</DL>
+
+<P>
+<P>
+<DL COMPACT><DT><DD>
+<B>Caution:</B>
+
+It is possible for a <B>SELECT</B> command using both
+LIMIT and FOR UPDATE/SHARE
+clauses to return fewer rows than specified by LIMIT.
+This is because LIMIT is applied first. The command
+selects the specified number of rows,
+but might then block trying to obtain a lock on one or more of them.
+Once the SELECT unblocks, the row might have been deleted
+or updated so that it does not meet the query WHERE condition
+anymore, in which case it will not be returned.
+</DL>
+
+<P>
+<P>
+<DL COMPACT><DT><DD>
+<B>Caution:</B>
+
+Similarly, it is possible for a <B>SELECT</B> command
+using ORDER BY and FOR
+UPDATE/SHARE to return rows out of order. This is
+because ORDER BY is applied first. The command
+orders the result, but might then block trying to obtain a lock
+on one or more of the rows. Once the SELECT
+unblocks, one of the ordered columns might have been modified
+and be returned out of order. A workaround is to perform
+<B>SELECT ... FOR UPDATE/SHARE</B> and then <B>SELECT
+... ORDER BY</B>.
+</DL>
+
+<P>
+<A NAME="lbAT">&nbsp;</A>
+<H3>TABLE COMMAND</H3>
+
+<P>
+
+The command
+<P>
+<PRE>
+TABLE <I>name</I>
+
+</PRE>
+
+is completely equivalent to
+<P>
+<PRE>
+SELECT * FROM <I>name</I>
+
+</PRE>
+
+It can be used as a top-level command or as a space-saving syntax
+variant in parts of complex queries.
+<A NAME="lbAU">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+To join the table films with the table
+distributors:
+<P>
+<PRE>
+SELECT f.title, f.did, d.name, f.date_prod, f.kind
+    FROM distributors d, films f
+    WHERE f.did = d.did
+
+       title       | did |     name     | date_prod  |   kind
+-------------------+-----+--------------+------------+----------
+ The Third Man     | 101 | British Lion | 1949-12-23 | Drama
+ The African Queen | 101 | British Lion | 1951-08-11 | Romantic
+ ...
+
+</PRE>
+
+<P>
+
+To sum the column len of all films and group
+the results by kind:
+<P>
+<PRE>
+SELECT kind, sum(len) AS total FROM films GROUP BY kind;
+
+   kind   | total
+----------+-------
+ Action   | 07:34
+ Comedy   | 02:58
+ Drama    | 14:28
+ Musical  | 06:42
+ Romantic | 04:38
+
+</PRE>
+
+<P>
+
+To sum the column len of all films, group
+the results by kind and show those group totals
+that are less than 5 hours:
+<P>
+<PRE>
+SELECT kind, sum(len) AS total
+    FROM films
+    GROUP BY kind
+    HAVING sum(len) &lt; interval '5 hours';
+
+   kind   | total
+----------+-------
+ Comedy   | 02:58
+ Romantic | 04:38
+
+</PRE>
+
+<P>
+
+The following two examples are identical ways of sorting the individual
+results according to the contents of the second column
+(name):
+<P>
+<PRE>
+SELECT * FROM distributors ORDER BY name;
+SELECT * FROM distributors ORDER BY 2;
+
+ did |       name
+-----+------------------
+ 109 | 20th Century Fox
+ 110 | Bavaria Atelier
+ 101 | British Lion
+ 107 | Columbia
+ 102 | Jean Luc Godard
+ 113 | Luso films
+ 104 | Mosfilm
+ 103 | Paramount
+ 106 | Toho
+ 105 | United Artists
+ 111 | Walt Disney
+ 112 | Warner Bros.
+ 108 | Westward
+
+</PRE>
+
+<P>
+
+The next example shows how to obtain the union of the tables
+distributors and
+actors, restricting the results to those that begin
+with the letter W in each table. Only distinct rows are wanted, so the
+key word ALL is omitted.
+<P>
+<PRE>
+distributors:               actors:
+ did |     name              id |     name
+-----+--------------        ----+----------------
+ 108 | Westward               1 | Woody Allen
+ 111 | Walt Disney            2 | Warren Beatty
+ 112 | Warner Bros.           3 | Walter Matthau
+ ...                         ...
+
+SELECT distributors.name
+    FROM distributors
+    WHERE distributors.name LIKE 'W%'
+UNION
+SELECT actors.name
+    FROM actors
+    WHERE actors.name LIKE 'W%';
+
+      name
+----------------
+ Walt Disney
+ Walter Matthau
+ Warner Bros.
+ Warren Beatty
+ Westward
+ Woody Allen
+
+</PRE>
+
+<P>
+
+This example shows how to use a function in the FROM
+clause, both with and without a column definition list:
+<P>
+<PRE>
+CREATE FUNCTION distributors(int) RETURNS SETOF distributors AS $$
+    SELECT * FROM distributors WHERE did = $1;
+$$ LANGUAGE SQL;
+
+SELECT * FROM distributors(111);
+ did |    name
+-----+-------------
+ 111 | Walt Disney
+
+CREATE FUNCTION distributors_2(int) RETURNS SETOF record AS $$
+    SELECT * FROM distributors WHERE did = $1;
+$$ LANGUAGE SQL;
+
+SELECT * FROM distributors_2(111) AS (f1 int, f2 text);
+ f1  |     f2
+-----+-------------
+ 111 | Walt Disney
+
+</PRE>
+
+<P>
+
+This example shows how to use a simple WITH clause:
+<P>
+<PRE>
+WITH t AS (
+    SELECT random() as x FROM generate_series(1, 3)
+  )
+SELECT * FROM t
+UNION ALL
+SELECT * FROM t
+
+         x          
+--------------------
+  0.534150459803641
+  0.520092216785997
+ 0.0735620250925422
+  0.534150459803641
+  0.520092216785997
+ 0.0735620250925422
+
+</PRE>
+
+Notice that the WITH query was evaluated only once,
+so that we got two sets of the same three random values.
+<P>
+
+This example uses WITH RECURSIVE to find all
+subordinates (direct or indirect) of the employee Mary, and their
+level of indirectness, from a table that shows only direct
+subordinates:
+<P>
+<PRE>
+WITH RECURSIVE employee_recursive(distance, employee_name, manager_name) AS (
+    SELECT 1, employee_name, manager_name
+    FROM employee
+    WHERE manager_name = 'Mary'
+  UNION ALL
+    SELECT er.distance + 1, e.employee_name, e.manager_name
+    FROM employee_recursive er, employee e
+    WHERE er.employee_name = e.manager_name
+  )
+SELECT distance, employee_name FROM employee_recursive;
+
+</PRE>
+
+Notice the typical form of recursive queries:
+an initial condition, followed by UNION,
+followed by the recursive part of the query. Be sure that the
+recursive part of the query will eventually return no tuples, or
+else the query will loop indefinitely. (See in the documentation
+for more examples.)
+<A NAME="lbAV">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+Of course, the <B>SELECT</B> statement is compatible
+with the SQL standard. But there are some extensions and some
+missing features.
+<A NAME="lbAW">&nbsp;</A>
+<H3>OMITTED FROM CLAUSES</H3>
+
+<P>
+
+PostgreSQL allows one to omit the
+FROM clause. It has a straightforward use to
+compute the results of simple expressions:
+<P>
+<PRE>
+SELECT 2+2;
+
+ ?column?
+----------
+        4
+
+</PRE>
+
+Some other SQL databases cannot do this except
+by introducing a dummy one-row table from which to do the
+<B>SELECT</B>.
+<P>
+
+Note that if a FROM clause is not specified,
+the query cannot reference any database tables. For example, the
+following query is invalid:
+<P>
+<PRE>
+SELECT distributors.* WHERE distributors.name = 'Westward';
+
+</PRE>
+
+PostgreSQL releases prior to
+8.1 would accept queries of this form, and add an implicit entry
+to the query's FROM clause for each table
+referenced by the query. This is no longer the default behavior,
+because it does not comply with the SQL standard, and is
+considered by many to be error-prone. For compatibility with
+applications that rely on this behavior the add_missing_from configuration variable can be
+enabled.
+<A NAME="lbAX">&nbsp;</A>
+<H3>OMITTING THE AS KEY WORD</H3>
+
+<P>
+
+In the SQL standard, the optional key word AS can be
+omitted before an output column name whenever the new column name
+is a valid column name (that is, not the same as any reserved
+keyword). PostgreSQL is slightly more
+restrictive: AS is required if the new column name
+matches any keyword at all, reserved or not. Recommended practice is
+to use AS or double-quote output column names, to prevent
+any possible conflict against future keyword additions.
+<P>
+
+In FROM items, both the standard and
+PostgreSQL allow AS to
+be omitted before an alias that is an unreserved keyword. But
+this is impractical for output column names, because of syntactic
+ambiguities.
+<A NAME="lbAY">&nbsp;</A>
+<H3>ONLY AND PARENTHESES</H3>
+
+<P>
+
+The SQL standard requires parentheses around the table name
+after ONLY, as in SELECT * FROM ONLY
+(tab1), ONLY (tab2) WHERE .... PostgreSQL supports that
+as well, but the parentheses are optional. (This point applies
+equally to all SQL commands supporting the ONLY
+option.)
+<A NAME="lbAZ">&nbsp;</A>
+<H3>NAMESPACE AVAILABLE TO GROUP BY AND ORDER BY</H3>
+
+<P>
+
+In the SQL-92 standard, an ORDER BY clause can
+only use output column names or numbers, while a GROUP
+BY clause can only use expressions based on input column
+names. PostgreSQL extends each of
+these clauses to allow the other choice as well (but it uses the
+standard's interpretation if there is ambiguity).
+PostgreSQL also allows both clauses to
+specify arbitrary expressions. Note that names appearing in an
+expression will always be taken as input-column names, not as
+output-column names.
+<P>
+
+SQL:1999 and later use a slightly different definition which is not
+entirely upward compatible with SQL-92.
+In most cases, however, PostgreSQL
+will interpret an ORDER BY or GROUP
+BY expression the same way SQL:1999 does.
+<A NAME="lbBA">&nbsp;</A>
+<H3>WINDOW CLAUSE RESTRICTIONS</H3>
+
+<P>
+
+The SQL standard provides additional options for the window
+<I>frame_clause</I>.
+PostgreSQL currently supports only the
+options listed above.
+<A NAME="lbBB">&nbsp;</A>
+<H3>LIMIT AND OFFSET</H3>
+
+<P>
+
+The clauses LIMIT and OFFSET
+are PostgreSQL-specific syntax, also
+used by MySQL. The SQL:2008 standard
+has introduced the clauses OFFSET ... FETCH {FIRST|NEXT}
+... for the same functionality, as shown above
+in LIMIT Clause [<B><A HREF="/man/index.html?7+select">select</A></B>(7)], and this
+syntax is also used by IBM DB2.
+(Applications written for Oracle
+frequently use a workaround involving the automatically
+generated rownum column, not available in
+PostgreSQL, to implement the effects of these clauses.)
+<A NAME="lbBC">&nbsp;</A>
+<H3>NONSTANDARD CLAUSES</H3>
+
+<P>
+
+The clause DISTINCT ON is not defined in the
+SQL standard.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DL>
+<DT><A HREF="#lbAF">WITH CLAUSE</A><DD>
+<DT><A HREF="#lbAG">FROM CLAUSE</A><DD>
+<DT><A HREF="#lbAH">WHERE CLAUSE</A><DD>
+<DT><A HREF="#lbAI">GROUP BY CLAUSE</A><DD>
+<DT><A HREF="#lbAJ">HAVING CLAUSE</A><DD>
+<DT><A HREF="#lbAK">WINDOW CLAUSE</A><DD>
+<DT><A HREF="#lbAL">SELECT LIST</A><DD>
+<DT><A HREF="#lbAM">UNION CLAUSE</A><DD>
+<DT><A HREF="#lbAN">INTERSECT CLAUSE</A><DD>
+<DT><A HREF="#lbAO">EXCEPT CLAUSE</A><DD>
+<DT><A HREF="#lbAP">ORDER BY CLAUSE</A><DD>
+<DT><A HREF="#lbAQ">DISTINCT CLAUSE</A><DD>
+<DT><A HREF="#lbAR">LIMIT CLAUSE</A><DD>
+<DT><A HREF="#lbAS">FOR UPDATE/FOR SHARE CLAUSE</A><DD>
+<DT><A HREF="#lbAT">TABLE COMMAND</A><DD>
+</DL>
+<DT><A HREF="#lbAU">EXAMPLES</A><DD>
+<DT><A HREF="#lbAV">COMPATIBILITY</A><DD>
+<DL>
+<DT><A HREF="#lbAW">OMITTED FROM CLAUSES</A><DD>
+<DT><A HREF="#lbAX">OMITTING THE AS KEY WORD</A><DD>
+<DT><A HREF="#lbAY">ONLY AND PARENTHESES</A><DD>
+<DT><A HREF="#lbAZ">NAMESPACE AVAILABLE TO GROUP BY AND ORDER BY</A><DD>
+<DT><A HREF="#lbBA">WINDOW CLAUSE RESTRICTIONS</A><DD>
+<DT><A HREF="#lbBB">LIMIT AND OFFSET</A><DD>
+<DT><A HREF="#lbBC">NONSTANDARD CLAUSES</A><DD>
+</DL>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:16 GMT, December 24, 2015
+</div></body>
+</HTML>

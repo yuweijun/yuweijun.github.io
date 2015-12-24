@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of XINETD</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>XINETD</H1>
+Section: Maintenance Commands (8)<BR>Updated: 14 June 2001<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+xinetd - the extended Internet services daemon
+
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>xinetd</B>
+
+[<I>options</I>]
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>xinetd</B> performs the same function as <B>inetd</B>: it starts
+programs that provide Internet services.  Instead of having such
+servers started at system initialization time, and be dormant until a
+connection request arrives, <B>xinetd</B> is the only daemon process
+started and it listens on all service ports for the services listed in
+its configuration file. When a request comes in, <B>xinetd</B> starts
+the appropriate server.  Because of the way it operates, <B>xinetd</B>
+(as well as <B>inetd</B>) is also referred to as a super-server.
+<P>
+
+The services listed in <B>xinetd</B>'s configuration file can be
+separated into two groups.  Services in the first group are called
+<I>multi-threaded</I>
+
+and they require the forking of a new server process for each new
+connection request.  The new server then handles that connection.  For
+such services, <B>xinetd</B> keeps listening for new requests so that it
+can spawn new servers.  On the other hand, the second group includes
+services for which the service daemon is responsible for handling all
+new connection requests.  Such services are called
+<I>single-threaded</I>
+
+and <B>xinetd</B> will stop handling new requests for them until the
+server dies.  Services in this group are usually datagram-based.
+<P>
+
+So far, the only reason for the existence of a super-server was to
+conserve system resources by avoiding to fork a lot of processes which
+might be dormant for most of their lifetime.  While fulfilling this
+function, <B>xinetd</B> takes advantage of the idea of a super-server to
+provide features such as access control and logging.  Furthermore,
+<B>xinetd</B> is not limited to services listed in
+<I>/etc/services.</I>
+
+Therefore, anybody can use <B>xinetd</B> to start special-purpose
+servers.
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-d</B>
+
+<DD>
+Enables debug mode. This produces a lot of debugging output, and it
+makes it possible to use a debugger on <B>xinetd</B>.
+<DT><B>-syslog</B><I> syslog_facility</I>
+
+<DD>
+This option enables syslog logging of <B>xinetd</B>-produced messages
+using the specified syslog facility.
+The following facility names are supported:
+<I>daemon,</I>
+
+<I>auth,</I>
+
+<I>user,</I>
+
+<I>local[0-7]</I>
+
+(check <I><A HREF="/man/index.html?5+syslog.conf">syslog.conf</A>(5)</I> for their meanings).
+This option is ineffective in debug mode since all relevant messages are sent
+to the terminal.
+<DT><B>-filelog</B><I> logfile</I>
+
+<DD>
+<B>xinetd</B>-produced messages will be placed in the specified file.
+Messages are always appended to the file.
+If the file does not exist, it will be created.
+This option is ineffective in debug mode since all relevant messages are sent
+to the terminal.
+<DT><B>-f</B><I> config_file</I>
+
+<DD>
+Determines the file that <B>xinetd</B> uses for configuration. The
+default is <I>/etc/xinetd.conf</I>.
+<DT><B>-pidfile</B> pid_file
+
+<DD>
+<BR>
+
+The process ID is written to the file. This option is ineffective in debug mode. 
+<DT><B>-dontfork</B>
+
+<DD>
+Tells xinetd to stay in the foreground rather than detaching itself, to
+support being run from init or daemontools. This option automatically sets 
+<B>-stayalive</B>
+
+(see below).
+<DT><B>-stayalive</B>
+
+<DD>
+Tells xinetd to stay running even if no services are specified.
+<DT><B>-limit</B><I> proc_limit</I>
+
+<DD>
+This option places a limit on the number of concurrently running processes
+that can be started by
+<B>xinetd.</B>
+
+Its purpose is to prevent process table overflows.
+<DT><B>-logprocs</B><I> limit</I>
+
+<DD>
+This option places a limit on the number of concurrently running servers
+for remote userid acquisition.
+<DT><B>-version</B>
+
+<DD>
+This option causes xinetd to print out its version information.
+<DT><B>-inetd_compat</B>
+
+<DD>
+This option causes xinetd to read /etc/inetd.conf in addition to the
+standard xinetd config files.  /etc/inetd.conf is read after the
+standard xinetd config files.
+<DT><B>-cc</B><I> interval</I>
+
+<DD>
+This option instructs
+<B>xinetd</B>
+
+to perform periodic consistency checks on its internal state every
+<I>interval</I>
+
+seconds.
+</DL>
+<P>
+
+The <I>syslog</I> and <I>filelog</I> options are mutually exclusive.
+If none is specified, the default is syslog using the
+<I>daemon</I>
+
+facility.
+You should not confuse <B>xinetd</B> messages with messages related to
+service logging. The latter are logged only if this is specified
+via the configuration file.
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONTROLLING XINETD</H2>
+
+<P>
+
+<B>xinetd</B> performs certain actions when it receives certain signals.
+The actions associated with the specific signals can be redefined
+by editing <I>config.h</I> and recompiling.
+<DL COMPACT>
+<DT><B>SIGHUP</B>
+
+<DD>
+causes a hard reconfiguration, which means that <B>xinetd</B> re-reads 
+the configuration file and terminates the servers for services that 
+are no longer available. Access control is performed again on 
+running servers by checking the remote location, access times and 
+server instances. If the number of server instances is lowered, some 
+arbitrarily picked servers will be killed to satisfy the limit; this 
+will happen <I>after</I> any servers are terminated because of failing 
+the remote location or access time checks.
+Also, if the
+<B>INTERCEPT</B>
+
+flag was clear and is set, any running servers for that service will
+be terminated;
+<I>the purpose of this is to ensure that after a hard reconfiguration
+there will be no running servers that can accept packets from addresses
+that do not meet the access control criteria</I>.
+<DT><B>SIGQUIT</B>
+
+<DD>
+causes program termination.
+<DT><B>SIGTERM</B>
+
+<DD>
+terminates all running servers before terminating <B>xinetd</B>.
+<DT><B>SIGUSR1</B>
+
+<DD>
+causes an internal state dump (the default dump file is
+<I>/var/run/xinetd.dump</I>;
+to change the filename, edit <I>config.h</I> and recompile).
+<DT><B>SIGIOT</B>
+
+<DD>
+causes an internal consistency check to verify that the data structures
+used by the program have not been corrupted.
+When the check is completed
+<B>xinetd</B>
+
+will generate a message that says if the check was successful or not.
+</DL>
+<P>
+
+On reconfiguration the log files are closed and reopened. This allows
+removal of old log files.
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>FILES</H2>
+
+<P>
+
+
+<DL COMPACT>
+<DT><B>/etc/xinetd.conf</B>
+
+<DD>
+default configuration file
+<DT><B>/var/run/xinetd.dump</B>
+
+<DD>
+default dump file
+
+
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<I><A HREF="/man/index.html?8+inetd">inetd</A>(8),</I>
+
+<P>
+
+<I><A HREF="/man/index.html?5+xinetd.conf">xinetd.conf</A>(5),</I>
+
+<P>
+
+<I><A HREF="/man/index.html?5+xinetd.log">xinetd.log</A>(5)</I>
+
+<P>
+
+<I><A HREF="http://cr.yp.to/daemontools.html">http://cr.yp.to/daemontools.html</A></I>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Panos Tsirigotis, CS Dept, University of Colorado, Boulder
+Rob Braun
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>PRONUNCIATION</H2>
+
+zy-net-d
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">CONTROLLING XINETD</A><DD>
+<DT><A HREF="#lbAG">FILES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+<DT><A HREF="#lbAJ">PRONUNCIATION</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:31 GMT, December 24, 2015
+</div></body>
+</HTML>

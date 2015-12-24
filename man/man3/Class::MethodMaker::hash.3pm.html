@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Class::MethodMaker::hash</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Class::MethodMaker::hash</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2011-10-04<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Class::Method::hash - Create methods for handling a hash value.
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Class::MethodMaker
+    [ hash =&gt; [qw/ x /] ];
+
+  $instance-&gt;x;                 # empty
+  $instance-&gt;x(a =&gt; 1, b =&gt; 2, c =&gt; 3);
+  $instance-&gt;x_count == 3;      # true
+  $instance-&gt;x = (b =&gt; 5, d =&gt; 8); # Note this *replaces* the hash,
+                                   # not adds to it
+  $instance-&gt;x_index('b') == 5; # true
+  $instance-&gt;x_exists('c');     # false
+  $instance-&gt;x_exists('d');     # true
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Creates methods to handle hash values in an object.  For a component named
+<TT>&quot;x&quot;</TT>, by default creates methods <TT>&quot;x&quot;</TT>, <TT>&quot;x_reset&quot;</TT>, <TT>&quot;x_clear&quot;</TT>, <TT>&quot;x_isset&quot;</TT>,
+<TT>&quot;x_count&quot;</TT>, <TT>&quot;x_index&quot;</TT>, <TT>&quot;x_keys&quot;</TT>, <TT>&quot;x_values&quot;</TT>, <TT>&quot;x_each&quot;</TT>, <TT>&quot;x_exists&quot;</TT>,
+<TT>&quot;x_delete&quot;</TT>, <TT>&quot;x_set&quot;</TT>, <TT>&quot;x_get&quot;</TT>.
+<P>
+
+Methods available are:
+<P>
+
+<I></I>&quot;*&quot;<I></I>
+<A NAME="ixAAE"></A>
+<P>
+
+<I>Created by default</I>.  This method returns the list of keys and values stored
+in the slot (they are returned pairwise, i.e., key, value, key, value; as with
+perl hashes, no order of keys is guaranteed).  If any arguments are provided
+to this method, they <B>replace</B> the current hash contents.  In an array
+context it returns the keys, values as an array and in a scalar context as a
+hash-reference.  Note that this reference is no longer a direct reference to
+the storage, in contrast to Class::MethodMaker v1.  This is to protect
+encapsulation.  See x_ref if you need that functionality (and are prepared to
+take the associated risk.)
+<P>
+
+If a single argument is provided that is an arrayref or hashref, it is
+expanded and its contents used in place of the existing contents.  This is a
+more efficient passing mechanism for large numbers of values.
+<P>
+
+<I></I>*_reset<I></I>
+<A NAME="ixAAF"></A>
+<P>
+
+<I>Created by default</I>.  Called without an argument, this resets the component
+as a whole; deleting any associated storage, and returning the component to
+its default state.  Normally, this means that <I>*_isset</I> will return false,
+and <I>*</I> will return undef.  If <TT>&quot;-default&quot;</TT> is in effect, then the component
+will be set to the default value, and <I>*_isset</I> will return true.  If
+<TT>&quot;-default_ctor&quot;</TT> is in effect, then the default subr will be invoked, and its
+return value used to set the value of the component, and <I>*_isset</I> will
+return true.
+<P>
+
+If called with arguments, these arguments are treated as indexes into the
+component, and the individual elements thus referenced are reset (their
+storage deleted, so that <I>*<A HREF="/man/index.html?n+_isset">_isset</A>(n)</I> will return false for appropriate <I>n</I>,
+except where <TT>&quot;-default&quot;</TT> or <TT>&quot;-default_ctor&quot;</TT> are in force, as above).  As with
+perl arrays, resetting the highest set value implicitly decreases the count
+(but <A HREF="/man/index.html?n+x_reset">x_reset</A>(n) never unsets the aggregate itself, even if all the elements
+are not set).
+<P>
+
+<I></I>*_clear<I></I>
+<A NAME="ixAAG"></A>
+<P>
+
+<I>Created by default</I>.  Empty the component of all elements, but without
+deleting the storage itself.
+<P>
+
+If given a list of keys, then the elements <I>that exist</I> indexed by those keys
+are set to undef (but not deleted).
+<P>
+
+Note the very different semantics: <TT>&quot;$x-&gt;a_clear('b')&quot;</TT> sets the value of
+<TT>&quot;b&quot;</TT> in component 'a' to undef (if <TT>&quot;b&quot;</TT>) already exists (so <TT>&quot;$x-&gt;a_isset('b'))&quot;</TT> returns true), but <TT>&quot;$x-&gt;a_clear()&quot;</TT> deletes the
+element <TT>&quot;b&quot;</TT> from component 'a' (so <TT>&quot;$x-&gt;a_isset('b'))&quot;</TT> returns false).
+<P>
+
+<I></I>*_isset<I></I>
+<A NAME="ixAAH"></A>
+<P>
+
+<I>Created by default</I>.  Whether the component is currently set.  This is
+different from being defined; initially, the component is not set (and if
+read, will return undef); it can be set to undef (which is a set value, which
+also returns undef).  Having been set, the only way to unset the component is
+with <TT>*_reset</TT>.
+<P>
+
+If a default value is in effect, then <TT>*_isset</TT> will always return true.
+<P>
+
+<I>*_isset()</I> tests the component as a whole.  <I>*_isset(a)</I> tests the element
+indexed by <I>a</I>.  <I>*_isset(a,b)</I> tests the elements indexed by <I>a</I>, <I>b</I>,
+and returns the logical conjunction (<I>and</I>) of the tests.
+<P>
+
+<I></I>*_count<I></I>
+<A NAME="ixAAI"></A>
+<P>
+
+<I>Created by default</I>.  Returns the number of elements in this component.
+This is not affected by presence (or lack) of a <TT>&quot;default&quot;</TT> (or
+<TT>&quot;default_ctor&quot;</TT>).  Returns <TT>&quot;undef&quot;</TT> if whole component not set (as per
+<I>*_isset</I>).
+<P>
+
+<I></I>*_index<I></I>
+<A NAME="ixAAJ"></A>
+<P>
+
+<I>Created by default</I>.  Takes a list of indices, returns a list of the
+corresponding values.
+<P>
+
+If a default (or a default ctor) is in force, then a lookup by
+index will vivify &amp; set to the default the respective elements (and
+therefore the aggregate data-structure also, if it's not already).
+<P>
+
+<I></I>*_keys<I></I>
+<A NAME="ixAAK"></A>
+<P>
+
+<I>Created by default</I>.  The known keys, as a list in list context, as an
+arrayref in scalar context.
+<P>
+
+If you're expecting a count of the keys in scalar context, see <I>*_count</I>.
+<P>
+
+<I></I>*_values<I></I>
+<A NAME="ixAAL"></A>
+<P>
+
+<I>Created by default</I>.  The known values, as a list in list context, as an
+arrayref in scalar context.
+<P>
+
+<I></I>*_each<I></I>
+<A NAME="ixAAM"></A>
+<P>
+
+<I>Created by default</I>.  The next pair of key, value (as a list) from the hash.
+<P>
+
+<I></I>*_exists<I></I>
+<A NAME="ixAAN"></A>
+<P>
+
+<I>Created by default</I>.  Takes any number of arguments, considers each as a
+key, and determines whether the key exists in the has.  Returns the logical
+conjunction (<I>and</I>).
+<P>
+
+<I></I>*_delete<I></I>
+<A NAME="ixAAO"></A>
+<P>
+
+<I>Created by default</I>.  This operates exactly like <I>*_reset</I>, except that
+calling this with no args does nothing.  This is provided for orthogonality
+with the Perl <TT>&quot;delete&quot;</TT> operator, while <I>*_reset</I> is provided for
+orthogonality with other component types.
+<P>
+
+<I></I>*_set<I></I>
+<A NAME="ixAAP"></A>
+<P>
+
+
+
+<PRE>
+  %n = $x-&gt;h; # (a=&gt;1,b=&gt;2,c=&gt;3) (in some order)
+  $h-&gt;h_set(b=&gt;4,d=&gt;7);
+  %n = $h-&gt;a; # (a=&gt;1,b=&gt;4,c=&gt;3,d=&gt;7) (in some order)
+
+</PRE>
+
+
+<P>
+
+<I>Created by default</I>.  Takes a list, treated as pairs of index =&gt; value; each
+given index is set to the corresponding value.  No return.
+<P>
+
+If two arguments are given, of which the first is an arrayref, then it is
+treated as a list of indices of which the second argument (which must also be
+an arrayref) are the corresponding values.  Thus the following two commands
+are equivalent:
+<P>
+
+
+
+<PRE>
+  $x-&gt;a_set(b=&gt;4,d=&gt;7);
+  $x-&gt;a_set(['b','d'],[4,7]);
+
+</PRE>
+
+
+<P>
+
+<I></I>*_get<I></I>
+<A NAME="ixAAQ"></A>
+<P>
+
+<I>Created by default</I>.  Retrieves the value of the component without setting
+(ignores any arguments passed).
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:15 GMT, December 24, 2015
+</div></body>
+</HTML>

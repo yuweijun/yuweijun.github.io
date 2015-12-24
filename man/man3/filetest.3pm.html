@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of filetest</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>filetest</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+filetest - Perl pragma to control the filetest permission operators
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    $can_perhaps_read = -r &quot;file&quot;;      # use the mode bits
+    {
+        use filetest 'access';          # intuit harder
+        $can_really_read = -r &quot;file&quot;;
+    }
+    $can_perhaps_read = -r &quot;file&quot;;      # use the mode bits again
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This pragma tells the compiler to change the behaviour of the filetest
+permission operators, <TT>&quot;-r&quot;</TT> <TT>&quot;-w&quot;</TT> <TT>&quot;-x&quot;</TT> <TT>&quot;-R&quot;</TT> <TT>&quot;-W&quot;</TT> <TT>&quot;-X&quot;</TT>
+(see perlfunc).
+<P>
+
+The default behaviour of file test operators is to use the simple
+mode bits as returned by the <I>stat()</I> family of system calls.  However,
+many operating systems have additional features to define more complex
+access rights, for example ACLs (Access Control Lists).
+For such environments, <TT>&quot;use filetest&quot;</TT> may help the permission
+operators to return results more consistent with other tools.
+<P>
+
+The <TT>&quot;use filetest&quot;</TT> or <TT>&quot;no filetest&quot;</TT> statements affect file tests defined in
+their block, up to the end of the closest enclosing block (they are lexically
+block-scoped).
+<P>
+
+Currently, only the <TT>&quot;access&quot;</TT> sub-pragma is implemented.  It enables (or
+disables) the use of <I>access()</I> when available, that is, on most <FONT SIZE="-1">UNIX</FONT> systems and
+other <FONT SIZE="-1">POSIX</FONT> environments.  See details below.
+<A NAME="lbAE">&nbsp;</A>
+<H3>Consider this carefully</H3>
+
+<A NAME="ixAAE"></A>
+The <I>stat()</I> mode bits are probably right for most of the files and
+directories found on your system, because few people want to use the
+additional features offered by <I>access()</I>. But you may encounter surprises
+if your program runs on a system that uses ACLs, since the <I>stat()</I>
+information won't reflect the actual permissions.
+<P>
+
+There may be a slight performance decrease in the filetest operations
+when the filetest pragma is in effect, because checking bits is very
+cheap.
+<P>
+
+Also, note that using the file tests for security purposes is a lost cause
+from the start: there is a window open for race conditions (who is to
+say that the permissions will not change between the test and the real
+operation?).  Therefore if you are serious about security, just try
+the real operation and test for its success - think in terms of atomic
+operations.  Filetests are more useful for filesystem administrative
+tasks, when you have no need for the content of the elements on disk.
+<A NAME="lbAF">&nbsp;</A>
+<H3>The access sub-pragma</H3>
+
+
+
+<A NAME="ixAAF"></A>
+<FONT SIZE="-1">UNIX</FONT> and <FONT SIZE="-1">POSIX</FONT> systems provide an abstract <I>access()</I> operating system call,
+which should be used to query the read, write, and execute rights. This
+function hides various distinct approaches in additional operating system
+specific security features, like Access Control Lists (ACLs)
+<P>
+
+The extended filetest functionality is used by Perl only when the argument
+of the operators is a filename, not when it is a filehandle.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Limitation with regard to _</H3>
+
+
+
+<A NAME="ixAAG"></A>
+Because <I>access()</I> does not invoke <I>stat()</I> (at least not in a way visible
+to Perl), <B>the stat result cache ``_'' is not set</B>.  This means that the
+outcome of the following two tests is different.  The first has the stat
+bits of <TT>&quot;/etc/passwd&quot;</TT> in <TT>&quot;_&quot;</TT>, and in the second case this still
+contains the bits of <TT>&quot;/etc&quot;</TT>.
+<P>
+
+
+
+<PRE>
+ { -d '/etc';
+   -w '/etc/passwd';
+   print -f _ ? 'Yes' : 'No';   # Yes
+ }
+
+ { use filetest 'access';
+   -d '/etc';
+   -w '/etc/passwd';
+   print -f _ ? 'Yes' : 'No';   # No
+ }
+
+</PRE>
+
+
+<P>
+
+Of course, unless your <FONT SIZE="-1">OS</FONT> does not implement <I>access()</I>, in which case the
+pragma is simply ignored.  Best not to use <TT>&quot;_&quot;</TT> at all in a file where
+the filetest pragma is active!
+<P>
+
+As a side effect, as <TT>&quot;_&quot;</TT> doesn't work, stacked filetest operators
+(<TT>&quot;-f -w $file&quot;</TT>) won't work either.
+<P>
+
+This limitation might be removed in a future version of perl.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Consider this carefully</A><DD>
+<DT><A HREF="#lbAF">The access sub-pragma</A><DD>
+<DT><A HREF="#lbAG">Limitation with regard to _</A><DD>
+</DL>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:27 GMT, December 24, 2015
+</div></body>
+</HTML>

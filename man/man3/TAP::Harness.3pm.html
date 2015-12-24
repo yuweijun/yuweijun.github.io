@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of TAP::Harness</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>TAP::Harness</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-06-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+TAP::Harness - Run test scripts with statistics
+<A NAME="lbAC">&nbsp;</A>
+<H2>VERSION</H2>
+
+<A NAME="ixAAC"></A>
+Version 3.17
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This is a simple test harness which allows tests to be run and results
+automatically aggregated and output to <FONT SIZE="-1">STDOUT</FONT>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAE"></A>
+
+
+<PRE>
+ use TAP::Harness;
+ my $harness = TAP::Harness-&gt;new( \%args );
+ $harness-&gt;runtests(@tests);
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAF"></A>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Class Methods</H3>
+
+<A NAME="ixAAG"></A>
+<I></I>&quot;new&quot;<I></I>
+<A NAME="ixAAH"></A>
+<P>
+
+
+
+<PRE>
+ my %args = (
+    verbosity =&gt; 1,
+    lib     =&gt; [ 'lib', 'blib/lib', 'blib/arch' ],
+ )
+ my $harness = TAP::Harness-&gt;new( \%args );
+
+</PRE>
+
+
+<P>
+
+The constructor returns a new <TT>&quot;TAP::Harness&quot;</TT> object. It accepts an
+optional hashref whose allowed keys are:
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;verbosity&quot;</TT>
+
+
+<P>
+
+
+Set the verbosity level:
+
+
+<P>
+
+
+
+
+<PRE>
+     1   verbose        Print individual test results to STDOUT.
+     0   normal
+    -1   quiet          Suppress some test output (mostly failures 
+                        while tests are running).
+    -2   really quiet   Suppress everything but the tests summary.
+    -3   silent         Suppress everything.
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>&quot;timer&quot;</TT>
+
+
+<P>
+
+
+Append run time for each test to output. Uses Time::HiRes if
+available.
+<DT>*<DD>
+<TT>&quot;failures&quot;</TT>
+
+
+<P>
+
+
+Show test failures (this is a no-op if <TT>&quot;verbose&quot;</TT> is selected).
+<DT>*<DD>
+<TT>&quot;comments&quot;</TT>
+
+
+<P>
+
+
+Show test comments (this is a no-op if <TT>&quot;verbose&quot;</TT> is selected).
+<DT>*<DD>
+<TT>&quot;show_count&quot;</TT>
+
+
+<P>
+
+
+Update the running test count during testing.
+<DT>*<DD>
+<TT>&quot;normalize&quot;</TT>
+
+
+<P>
+
+
+Set to a true value to normalize the <FONT SIZE="-1">TAP</FONT> that is emitted in verbose modes.
+<DT>*<DD>
+<TT>&quot;lib&quot;</TT>
+
+
+<P>
+
+
+Accepts a scalar value or array ref of scalar values indicating which
+paths to allowed libraries should be included if Perl tests are
+executed. Naturally, this only makes sense in the context of tests
+written in Perl.
+<DT>*<DD>
+<TT>&quot;switches&quot;</TT>
+
+
+<P>
+
+
+Accepts a scalar value or array ref of scalar values indicating which
+switches should be included if Perl tests are executed. Naturally, this
+only makes sense in the context of tests written in Perl.
+<DT>*<DD>
+<TT>&quot;test_args&quot;</TT>
+
+
+<P>
+
+
+A reference to an <TT>@INC</TT> style array of arguments to be passed to each
+test program.
+<DT>*<DD>
+<TT>&quot;color&quot;</TT>
+
+
+<P>
+
+
+Attempt to produce color output.
+<DT>*<DD>
+<TT>&quot;exec&quot;</TT>
+
+
+<P>
+
+
+Typically, Perl tests are run through this. However, anything which
+spits out <FONT SIZE="-1">TAP</FONT> is fine. You can use this argument to specify the name of
+the program (and optional switches) to run your tests with:
+
+
+<P>
+
+
+
+
+<PRE>
+  exec =&gt; ['/usr/bin/ruby', '-w']
+
+</PRE>
+
+
+
+
+<P>
+
+
+You can also pass a subroutine reference in order to determine and
+return the proper program to run based on a given test script. The
+subroutine reference should expect the TAP::Harness object itself as the
+first argument, and the file name as the second argument. It should
+return an array reference containing the command to be run and including
+the test file name. It can also simply return <TT>&quot;undef&quot;</TT>, in which case
+TAP::Harness will fall back on executing the test script in Perl:
+
+
+<P>
+
+
+
+
+<PRE>
+    exec =&gt; sub {
+        my ( $harness, $test_file ) = @_;
+
+        # Let Perl tests run.
+        return undef if $test_file =~ /[.]t$/;
+        return [ qw( /usr/bin/ruby -w ), $test_file ]
+          if $test_file =~ /[.]rb$/;
+      }
+
+</PRE>
+
+
+
+
+<P>
+
+
+If the subroutine returns a scalar with a newline or a filehandle, it
+will be interpreted as raw <FONT SIZE="-1">TAP</FONT> or as a <FONT SIZE="-1">TAP</FONT> stream, respectively.
+<DT>*<DD>
+<TT>&quot;merge&quot;</TT>
+
+
+<P>
+
+
+If <TT>&quot;merge&quot;</TT> is true the harness will create parsers that merge <FONT SIZE="-1">STDOUT</FONT>
+and <FONT SIZE="-1">STDERR</FONT> together for any processes they start.
+<DT>*<DD>
+<TT>&quot;aggregator_class&quot;</TT>
+
+
+<P>
+
+
+The name of the class to use to aggregate test results. The default is
+TAP::Parser::Aggregator.
+<DT>*<DD>
+<TT>&quot;formatter_class&quot;</TT>
+
+
+<P>
+
+
+The name of the class to use to format output. The default is
+TAP::Formatter::Console, or TAP::Formatter::File if the output
+isn't a <FONT SIZE="-1">TTY</FONT>.
+<DT>*<DD>
+<TT>&quot;multiplexer_class&quot;</TT>
+
+
+<P>
+
+
+The name of the class to use to multiplex tests during parallel testing.
+The default is TAP::Parser::Multiplexer.
+<DT>*<DD>
+<TT>&quot;parser_class&quot;</TT>
+
+
+<P>
+
+
+The name of the class to use to parse <FONT SIZE="-1">TAP</FONT>. The default is
+TAP::Parser.
+<DT>*<DD>
+<TT>&quot;scheduler_class&quot;</TT>
+
+
+<P>
+
+
+The name of the class to use to schedule test execution. The default is
+TAP::Parser::Scheduler.
+<DT>*<DD>
+<TT>&quot;formatter&quot;</TT>
+
+
+<P>
+
+
+If set <TT>&quot;formatter&quot;</TT> must be an object that is capable of formatting the
+<FONT SIZE="-1">TAP</FONT> output. See TAP::Formatter::Console for an example.
+<DT>*<DD>
+<TT>&quot;errors&quot;</TT>
+
+
+<P>
+
+
+If parse errors are found in the <FONT SIZE="-1">TAP</FONT> output, a note of this will be
+made in the summary report. To see all of the parse errors, set this
+argument to true:
+
+
+<P>
+
+
+
+
+<PRE>
+  errors =&gt; 1
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>&quot;directives&quot;</TT>
+
+
+<P>
+
+
+If set to a true value, only test results with directives will be
+displayed. This overrides other settings such as <TT>&quot;verbose&quot;</TT> or
+<TT>&quot;failures&quot;</TT>.
+<DT>*<DD>
+<TT>&quot;ignore_exit&quot;</TT>
+
+
+<P>
+
+
+If set to a true value instruct <TT>&quot;TAP::Parser&quot;</TT> to ignore exit and wait
+status from test scripts.
+<DT>*<DD>
+<TT>&quot;jobs&quot;</TT>
+
+
+<P>
+
+
+The maximum number of parallel tests to run at any time.  Which tests
+can be run in parallel is controlled by <TT>&quot;rules&quot;</TT>.  The default is to
+run only one test at a time.
+<DT>*<DD>
+<TT>&quot;rules&quot;</TT>
+
+
+<P>
+
+
+A reference to a hash of rules that control which tests may be
+executed in parallel. This is an experimental feature and the
+interface may change.
+
+
+<P>
+
+
+
+
+<PRE>
+    $harness-&gt;rules(
+        {   par =&gt; [
+                { seq =&gt; '../ext/DB_File/t/*' },
+                { seq =&gt; '../ext/IO_Compress_Zlib/t/*' },
+                { seq =&gt; '../lib/CPANPLUS/*' },
+                { seq =&gt; '../lib/ExtUtils/t/*' },
+                '*'
+            ]
+        }
+    );
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>&quot;stdout&quot;</TT>
+
+
+<P>
+
+
+A filehandle for catching standard output.
+</DL>
+<P>
+
+Any keys for which the value is <TT>&quot;undef&quot;</TT> will be ignored.
+<A NAME="lbAH">&nbsp;</A>
+<H3>Instance Methods</H3>
+
+<A NAME="ixAAI"></A>
+<I></I>&quot;runtests&quot;<I></I>
+<A NAME="ixAAJ"></A>
+<P>
+
+
+
+<PRE>
+    $harness-&gt;runtests(@tests);
+
+</PRE>
+
+
+<P>
+
+Accepts and array of <TT>@tests</TT> to be run. This should generally be the
+names of test files, but this is not required. Each element in <TT>@tests</TT>
+will be passed to <TT>&quot;TAP::Parser::new()&quot;</TT> as a <TT>&quot;source&quot;</TT>. See
+TAP::Parser for more information.
+<P>
+
+It is possible to provide aliases that will be displayed in place of the
+test name by supplying the test as a reference to an array containing
+<TT>&quot;[ $test, $alias ]&quot;</TT>:
+<P>
+
+
+
+<PRE>
+    $harness-&gt;runtests( [ 't/foo.t', 'Foo Once' ],
+                        [ 't/foo.t', 'Foo Twice' ] );
+
+</PRE>
+
+
+<P>
+
+Normally it is an error to attempt to run the same test twice. Aliases
+allow you to overcome this limitation by giving each run of the test a
+unique name.
+<P>
+
+Tests will be run in the order found.
+<P>
+
+If the environment variable <TT>&quot;PERL_TEST_HARNESS_DUMP_TAP&quot;</TT> is defined it
+should name a directory into which a copy of the raw <FONT SIZE="-1">TAP</FONT> for each test
+will be written. <FONT SIZE="-1">TAP</FONT> is written to files named for each test.
+Subdirectories will be created as needed.
+<P>
+
+Returns a TAP::Parser::Aggregator containing the test results.
+<P>
+
+<I></I>&quot;summary&quot;<I></I>
+<A NAME="ixAAK"></A>
+<P>
+
+Output the summary for a TAP::Parser::Aggregator.
+<P>
+
+<I></I>&quot;aggregate_tests&quot;<I></I>
+<A NAME="ixAAL"></A>
+<P>
+
+
+
+<PRE>
+  $harness-&gt;aggregate_tests( $aggregate, @tests );
+
+</PRE>
+
+
+<P>
+
+Run the named tests and display a summary of result. Tests will be run
+in the order found.
+<P>
+
+Test results will be added to the supplied TAP::Parser::Aggregator.
+<TT>&quot;aggregate_tests&quot;</TT> may be called multiple times to run several sets of
+tests. Multiple <TT>&quot;Test::Harness&quot;</TT> instances may be used to pass results
+to a single aggregator so that different parts of a complex test suite
+may be run using different <TT>&quot;TAP::Harness&quot;</TT> settings. This is useful, for
+example, in the case where some tests should run in parallel but others
+are unsuitable for parallel execution.
+<P>
+
+
+
+<PRE>
+    my $formatter   = TAP::Formatter::Console-&gt;new;
+    my $ser_harness = TAP::Harness-&gt;new( { formatter =&gt; $formatter } );
+    my $par_harness = TAP::Harness-&gt;new(
+        {   formatter =&gt; $formatter,
+            jobs      =&gt; 9
+        }
+    );
+    my $aggregator = TAP::Parser::Aggregator-&gt;new;
+
+    $aggregator-&gt;start();
+    $ser_harness-&gt;aggregate_tests( $aggregator, @ser_tests );
+    $par_harness-&gt;aggregate_tests( $aggregator, @par_tests );
+    $aggregator-&gt;stop();
+    $formatter-&gt;summary($aggregator);
+
+</PRE>
+
+
+<P>
+
+Note that for simpler testing requirements it will often be possible to
+replace the above code with a single call to <TT>&quot;runtests&quot;</TT>.
+<P>
+
+Each elements of the <TT>@tests</TT> array is either
+<DL COMPACT>
+<DT>*<DD>
+the file name of a test script to run
+<DT>*<DD>
+a reference to a [ file name, display name ] array
+</DL>
+<P>
+
+When you supply a separate display name it becomes possible to run a
+test more than once; the display name is effectively the alias by which
+the test is known inside the harness. The harness doesn't care if it
+runs the same script more than once when each invocation uses a
+different name.
+<P>
+
+<I></I>&quot;make_scheduler&quot;<I></I>
+<A NAME="ixAAM"></A>
+<P>
+
+Called by the harness when it needs to create a
+TAP::Parser::Scheduler. Override in a subclass to provide an
+alternative scheduler. <TT>&quot;make_scheduler&quot;</TT> is passed the list of tests
+that was passed to <TT>&quot;aggregate_tests&quot;</TT>.
+<P>
+
+<I></I>&quot;jobs&quot;<I></I>
+<A NAME="ixAAN"></A>
+<P>
+
+Gets or sets the number of concurrent test runs the harness is
+handling.  By default, this value is 1 --- for parallel testing, this
+should be set higher.
+<A NAME="lbAI">&nbsp;</A>
+<H2>SUBCLASSING</H2>
+
+<A NAME="ixAAO"></A>
+<TT>&quot;TAP::Harness&quot;</TT> is designed to be (mostly) easy to subclass. If you
+don't like how a particular feature functions, just override the
+desired methods.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Methods</H3>
+
+<A NAME="ixAAP"></A>
+<FONT SIZE="-1">TODO:</FONT> This is out of date
+<P>
+
+The following methods are ones you may wish to override if you want to
+subclass <TT>&quot;TAP::Harness&quot;</TT>.
+<P>
+
+<I></I>&quot;summary&quot;<I></I>
+<A NAME="ixAAQ"></A>
+<P>
+
+
+
+<PRE>
+  $harness-&gt;summary( \%args );
+
+</PRE>
+
+
+<P>
+
+<TT>&quot;summary&quot;</TT> prints the summary report after all tests are run. The
+argument is a hashref with the following keys:
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;start&quot;</TT>
+
+
+<P>
+
+
+This is created with <TT>&quot;Benchmark-&gt;new&quot;</TT> and it the time the tests
+started. You can print a useful summary time, if desired, with:
+
+
+<P>
+
+
+
+
+<PRE>
+    $self-&gt;output(
+        timestr( timediff( Benchmark-&gt;new, $start_time ), 'nop' ) );
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>&quot;tests&quot;</TT>
+
+
+<P>
+
+
+This is an array reference of all test names. To get the TAP::Parser
+object for individual tests:
+
+
+<P>
+
+
+
+
+<PRE>
+ my $aggregate = $args-&gt;{aggregate};
+ my $tests     = $args-&gt;{tests};
+
+ for my $name ( @$tests ) {
+     my ($parser) = $aggregate-&gt;parsers($test);
+     ... do something with $parser
+ }
+
+</PRE>
+
+
+
+
+<P>
+
+
+This is a bit clunky and will be cleaned up in a later release.
+</DL>
+<P>
+
+<I></I>&quot;make_parser&quot;<I></I>
+<A NAME="ixAAR"></A>
+<P>
+
+Make a new parser and display formatter session. Typically used and/or
+overridden in subclasses.
+<P>
+
+
+
+<PRE>
+    my ( $parser, $session ) = $harness-&gt;make_parser;
+
+</PRE>
+
+
+<P>
+
+<I></I>&quot;finish_parser&quot;<I></I>
+<A NAME="ixAAS"></A>
+<P>
+
+Terminate use of a parser. Typically used and/or overridden in
+subclasses. The parser isn't destroyed as a result of this.
+<A NAME="lbAK">&nbsp;</A>
+<H2>REPLACING</H2>
+
+<A NAME="ixAAT"></A>
+If you like the <TT>&quot;prove&quot;</TT> utility and TAP::Parser but you want your
+own harness, all you need to do is write one and provide <TT>&quot;new&quot;</TT> and
+<TT>&quot;runtests&quot;</TT> methods. Then you can use the <TT>&quot;prove&quot;</TT> utility like so:
+<P>
+
+
+
+<PRE>
+ prove --harness My::Test::Harness
+
+</PRE>
+
+
+<P>
+
+Note that while <TT>&quot;prove&quot;</TT> accepts a list of tests (or things to be
+tested), <TT>&quot;new&quot;</TT> has a fairly rich set of arguments. You'll probably want
+to read over this code carefully to see how all of them are being used.
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAU"></A>
+Test::Harness
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">VERSION</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">Class Methods</A><DD>
+<DT><A HREF="#lbAH">Instance Methods</A><DD>
+</DL>
+<DT><A HREF="#lbAI">SUBCLASSING</A><DD>
+<DL>
+<DT><A HREF="#lbAJ">Methods</A><DD>
+</DL>
+<DT><A HREF="#lbAK">REPLACING</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:43 GMT, December 24, 2015
+</div></body>
+</HTML>

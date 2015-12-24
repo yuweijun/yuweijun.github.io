@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of IOPRIO_SET</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>IOPRIO_SET</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2008-07-09<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ioprio_get, ioprio_set - get/set I/O scheduling class and priority
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>int ioprio_get(int </B><I>which</I><B>, int </B><I>who</I><B>);</B>
+<B>int ioprio_set(int </B><I>which</I><B>, int </B><I>who</I><B>, int </B><I>ioprio</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>ioprio_get</B>()
+
+and
+<B>ioprio_set</B>()
+
+system calls respectively get and set the I/O scheduling class and
+priority of one or more processes.
+<P>
+The
+<I>which</I>
+
+and
+<I>who</I>
+
+arguments identify the process(es) on which the system
+calls operate.
+The
+<I>which</I>
+
+argument determines how
+<I>who</I>
+
+is interpreted, and has one of the following values:
+<DL COMPACT>
+<DT><B>IOPRIO_WHO_PROCESS</B>
+
+<DD>
+<I>who</I>
+
+is a process ID identifying a single process.
+<DT><B>IOPRIO_WHO_PGRP</B>
+
+<DD>
+<I>who</I>
+
+is a process group ID identifying all the members of a process group.
+<DT><B>IOPRIO_WHO_USER</B>
+
+<DD>
+<I>who</I>
+
+is a user ID identifying all of the processes that
+have a matching real UID.
+</DL>
+<P>
+
+If
+<I>which</I>
+
+is specified as
+<B>IOPRIO_WHO_PGRP</B>
+
+or
+<B>IOPRIO_WHO_USER</B>
+
+when calling
+<B>ioprio_get</B>(),
+
+and more than one process matches
+<I>who</I>,
+
+then the returned priority will be the highest one found among
+all of the matching processes.
+One priority is said to be
+higher than another one if it belongs to a higher priority
+class
+(<B>IOPRIO_CLASS_RT</B>
+
+is the highest priority class;
+<B>IOPRIO_CLASS_IDLE</B>
+
+is the lowest)
+or if it belongs to the same priority class as the other process but
+has a higher priority level (a lower priority number means a
+higher priority level).
+<P>
+The
+<I>ioprio</I>
+
+argument given to
+<B>ioprio_set</B>()
+
+is a bit mask that specifies both the scheduling class and the
+priority to be assigned to the target process(es).
+The following macros are used for assembling and dissecting
+<I>ioprio</I>
+
+values:
+<DL COMPACT>
+<DT><B>IOPRIO_PRIO_VALUE(</B><I>class</I><B>, </B><I>data</I><B>)</B>
+
+<DD>
+Given a scheduling
+<I>class</I>
+
+and priority
+(<I>data</I>),
+
+this macro combines the two values to produce an
+<I>ioprio</I>
+
+value, which is returned as the result of the macro.
+<DT><B>IOPRIO_PRIO_CLASS(</B><I>mask</I><B>)</B>
+
+<DD>
+Given
+<I>mask</I>
+
+(an
+<I>ioprio</I>
+
+value), this macro returns its I/O class component, that is,
+one of the values
+<B>IOPRIO_CLASS_RT</B>,
+
+<B>IOPRIO_CLASS_BE</B>,
+
+or
+<B>IOPRIO_CLASS_IDLE</B>.
+
+<DT><B>IOPRIO_PRIO_DATA(</B><I>mask</I><B>)</B>
+
+<DD>
+Given
+<I>mask</I>
+
+(an
+<I>ioprio</I>
+
+value), this macro returns its priority
+(<I>data</I>)
+
+component.
+</DL>
+<P>
+
+See the NOTES section for more
+information on scheduling classes and priorities.
+<P>
+I/O priorities are supported for reads and for synchronous
+(<B>O_DIRECT</B>,
+
+<B>O_SYNC</B>)
+
+writes.
+I/O priorities are not supported for asynchronous
+writes because they are issued outside the context of the program
+dirtying the memory, and thus program-specific priorities do not apply.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success,
+<B>ioprio_get</B>()
+
+returns the
+<I>ioprio</I>
+
+value of the process with highest I/O priority of any of the processes
+that match the criteria specified in
+<I>which</I>
+
+and
+<I>who</I>.
+
+On error, -1 is returned, and
+<I>errno</I>
+
+is set to indicate the error.
+<P>
+
+On success,
+<B>ioprio_set</B>()
+
+returns 0.
+On error, -1 is returned, and
+<I>errno</I>
+
+is set to indicate the error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EINVAL</B>
+
+<DD>
+Invalid value for
+<I>which</I>
+
+or
+<I>ioprio</I>.
+
+Refer to the NOTES section for available scheduler
+classes and priority levels for
+<I>ioprio</I>.
+
+<DT><B>EPERM</B>
+
+<DD>
+The calling process does not have the privilege needed to assign this
+<I>ioprio</I>
+
+to the specified process(es).
+See the NOTES section for more information on required
+privileges for
+<B>ioprio_set</B>().
+
+<DT><B>ESRCH</B>
+
+<DD>
+No process(es) could be found that matched the specification in
+<I>which</I>
+
+and
+<I>who</I>.
+
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+These system calls have been available on Linux since
+kernel 2.6.13.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+These system calls are Linux-specific.
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+Glibc does not provide wrapper for these system calls; call them using
+<B><A HREF="/man/index.html?2+syscall">syscall</A></B>(2).
+
+<P>
+These system calls only have an effect when used
+in conjunction with an I/O scheduler that supports I/O priorities.
+As at kernel 2.6.17 the only such scheduler is the Completely Fair Queuing
+(CFQ) I/O scheduler.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Selecting an I/O Scheduler</H3>
+
+I/O Schedulers are selected on a per-device basis via the special
+file
+<I>/sys/block/&lt;device&gt;/queue/scheduler</I>.
+
+<P>
+One can view the current I/O scheduler via the
+<I>/sys</I>
+
+file system.
+For example, the following command
+displays a list of all schedulers currently loaded in the kernel:
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+$<B> cat /sys/block/hda/queue/scheduler</B>
+noop anticipatory deadline [cfq]
+</PRE>
+
+</DL>
+
+<P>
+The scheduler surrounded by brackets is the one actually
+in use for the device
+(<I>hda</I>
+
+in the example).
+Setting another scheduler is done by writing the name of the
+new scheduler to this file.
+For example, the following command will set the
+scheduler for the
+<I>hda</I>
+
+device to
+<I>cfq</I>:
+
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+$<B> su</B>
+Password:
+#<B> echo cfq &gt; /sys/block/hda/queue/scheduler</B>
+</PRE>
+
+</DL>
+
+<A NAME="lbAK">&nbsp;</A>
+<H3>The Completely Fair Queuing (CFQ) I/O Scheduler</H3>
+
+Since v3 (aka CFQ Time Sliced) CFQ implements
+I/O nice levels similar to those
+of CPU scheduling.
+These nice levels are grouped in three scheduling classes
+each one containing one or more priority levels:
+<DL COMPACT>
+<DT><B>IOPRIO_CLASS_RT</B> (1)
+
+<DD>
+This is the real-time I/O class.
+This scheduling class is given
+higher priority than any other class:
+processes from this class are
+given first access to the disk every time.
+Thus this I/O class needs to be used with some
+care: one I/O real-time process can starve the entire system.
+Within the real-time class,
+there are 8 levels of class data (priority) that determine exactly
+how much time this process needs the disk for on each service.
+The highest real-time priority level is 0; the lowest is 7.
+In the future this might change to be more directly mappable to
+performance, by passing in a desired data rate instead.
+<DT><B>IOPRIO_CLASS_BE</B> (2)
+
+<DD>
+This is the best-effort scheduling class,
+which is the default for any process
+that hasn't set a specific I/O priority.
+The class data (priority) determines how much
+I/O bandwidth the process will get.
+Best-effort priority levels are analogous to CPU nice values
+(see
+<B><A HREF="/man/index.html?2+getpriority">getpriority</A></B>(2)).
+
+The priority level determines a priority relative
+to other processes in the best-effort scheduling class.
+Priority levels range from 0 (highest) to 7 (lowest).
+<DT><B>IOPRIO_CLASS_IDLE</B> (3)
+
+<DD>
+This is the idle scheduling class.
+Processes running at this level only get I/O
+time when no-one else needs the disk.
+The idle class has no class data.
+Attention is required when assigning this priority class to a process,
+since it may become starved if higher priority processes are
+constantly accessing the disk.
+</DL>
+<P>
+
+Refer to
+<I>Documentation/block/ioprio.txt</I>
+
+for more information on the CFQ I/O Scheduler and an example program.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Required permissions to set I/O priorities</H3>
+
+Permission to change a process's priority is granted or denied based
+on two assertions:
+<DL COMPACT>
+<DT><B>Process ownership</B>
+
+<DD>
+An unprivileged process may only set the I/O priority of a process
+whose real UID
+matches the real or effective UID of the calling process.
+A process which has the
+<B>CAP_SYS_NICE</B>
+
+capability can change the priority of any process.
+<DT><B>What is the desired priority</B>
+
+<DD>
+Attempts to set very high priorities
+(<B>IOPRIO_CLASS_RT</B>)
+
+require the
+<B>CAP_SYS_ADMIN</B>
+
+capability.
+Kernel versions up to 2.6.24 also required
+<B>CAP_SYS_ADMIN</B>
+
+to set a very low priority
+(<B>IOPRIO_CLASS_IDLE</B>),
+
+but since Linux 2.6.25, this is no longer required.
+</DL>
+<P>
+
+A call to
+<B>ioprio_set</B>()
+
+must follow both rules, or the call will fail with the error
+<B>EPERM</B>.
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>BUGS</H2>
+
+
+
+
+
+Glibc does not yet provide a suitable header file defining
+the function prototypes and macros described on this page.
+Suitable definitions can be found in
+<I>linux/ioprio.h</I>.
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+getpriority">getpriority</A></B>(2),
+
+<B><A HREF="/man/index.html?2+open">open</A></B>(2),
+
+<B><A HREF="/man/index.html?7+capabilities">capabilities</A></B>(7)
+
+<P>
+Documentation/block/ioprio.txt in the kernel source tree.
+<A NAME="lbAO">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">VERSIONS</A><DD>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DL>
+<DT><A HREF="#lbAJ">Selecting an I/O Scheduler</A><DD>
+<DT><A HREF="#lbAK">The Completely Fair Queuing (CFQ) I/O Scheduler</A><DD>
+<DT><A HREF="#lbAL">Required permissions to set I/O priorities</A><DD>
+</DL>
+<DT><A HREF="#lbAM">BUGS</A><DD>
+<DT><A HREF="#lbAN">SEE ALSO</A><DD>
+<DT><A HREF="#lbAO">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:04 GMT, December 24, 2015
+</div></body>
+</HTML>

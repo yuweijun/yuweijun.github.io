@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of AUTO.MASTER</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>AUTO.MASTER</H1>
+Section: File Formats (5)<BR>Updated: 11 Apr 2006<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+auto.master - Master Map for automounter
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>auto.master</B>
+
+map is consulted to set up automount managed mount points when the
+
+<B><A HREF="/man/index.html?8+autofs">autofs</A></B>(8)
+
+
+script is invoked or the
+
+<B><A HREF="/man/index.html?8+automount">automount</A></B>(8)
+
+
+program is run. Each line describes a mount point and refers to an
+autofs map describing file systems to be mounted under the mount
+point.
+
+The default location of the master map is
+
+<B>/etc/auto.master</B>
+
+
+but an alternate name may be given on the command line when running
+the automounter and the default master map may changed by setting the
+
+<B>MASTER_MAP_NAME</B>
+
+
+configuration variable in
+
+<B>/etc/sysconfig/autofs.</B>
+
+
+If the master map name has no path then the system Name Service Switch configuration
+will be consulted and each of the sources searched in line with the rules
+given in the Name Service Switch configuration.
+
+Access to mounts in maps is governed by a key.
+
+For direct maps the mount point is always specified as:
+
+/-
+
+and the key used within the direct map is the full path to the mount point.
+
+For indirect maps access is by using the path scheme:
+
+/<I>mount-point</I>/<I>key</I>
+
+
+where
+<I>mount-point</I>
+
+is one of the entries listed in the master map. The
+<I>key</I>
+
+is a single directory component and is matched against entries in the
+map given in the entry (See
+<B><A HREF="/man/index.html?5+autofs">autofs</A></B>(5)).
+
+
+Additionally, a map may be included from its source as if it were itself
+present in the master map by including a line of the form:
+<B>+&nbsp;[</B>maptype<B>,</B>format<B>:]</B>map<B>[</B>options<B>]</B>
+
+and 
+<B><A HREF="/man/index.html?8+automount">automount</A></B>(8)
+
+will process the map according to the specification described below for
+map entries.
+<A NAME="lbAD">&nbsp;</A>
+<H2>FORMAT</H2>
+
+Master map entries have three fields separated by an arbitrary number
+of spaces or tabs. Lines beginning with # are comments. The first field
+is the mount point described above and the second field is the name of
+the map to be consulted for the mount point followed by the third field
+which contains options to be applied to all entries in the map.
+
+The format of a master map entry is:
+<DL COMPACT>
+<DT><I>mount-point&nbsp;</I>[<I>map-type</I>[,<I>format</I>]:]<I>map&nbsp;</I>[<I>options</I>]
+
+<DD>
+<DT><B>mount-point</B><DD>
+Base location for the <B>autofs</B> filesystem to be mounted.  For
+indirect maps this directory will be created (as with <B>mkdir -p</B>)
+and is removed when the <B>autofs</B> filesystem is umounted.
+<DT><B>map-type</B><DD>
+Type of map used for this mount point.  The following are
+valid map types:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>file</B>
+
+<DD>
+The map is a regular text file.
+<DT><B>program</B>
+
+<DD>
+The map is an executable program, which is passed a key on the command
+line and returns an entry (everything besides the key) on stdout if successful.
+<DT><B>yp</B>
+
+<DD>
+The map is a NIS (YP) database.
+<DT><B>nisplus</B>
+
+<DD>
+The map is a NIS+ database.
+<DT><B>hesiod</B>
+
+<DD>
+The map is a hesiod database whose
+<B>filsys</B>
+
+entries are used for maps.
+<DT><B>ldap </B>or<B> ldaps</B>
+
+<DD>
+The map is stored in an LDAP directory. If <B>ldaps</B> is used the
+appropriate certificate must be configured in the LDAP client.
+<DT><B>multi</B>
+
+<DD>
+This map type allows the specification of multiple maps separated
+by &quot;--&quot;. These maps are searched in order to resolve key lookups.
+</DL>
+</DL>
+
+<DT><B>format</B><DD>
+Format of the map data; currently the only formats
+recognized are <B>sun</B>, which is a subset of the Sun automounter map
+format, and <B>hesiod</B>, for hesiod filesys entries.  If the format is
+left unspecified, it defaults to <B>sun</B> for all map types except
+<B>hesiod</B>.
+<DT><B>map</B><DD>
+Name of the map to use.  This is an absolute UNIX pathname
+for maps of types <B>file</B> or <B>program</B>, and the name of a database
+in the case for maps of type <B>yp</B>, <B>nisplus</B>, or <B>hesiod</B> or
+the <B>dn</B> of an LDAP entry for maps of type <B>ldap</B>.
+<DT><B>options</B><DD>
+Any remaining command line arguments without leading dashes (-) are
+taken as options (<I>-o</I>) to <B>mount</B>.  Arguments with leading
+dashes are considered options for the maps.
+<P>
+The <B>sun</B> format supports the following options:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><I>-Dvariable=value</I>
+
+<DD>
+Replace <I>variable</I> with <I>value</I> in map substitutions.
+<DT><I>-strict</I>
+
+<DD>
+Treat errors when mounting file systems as fatal. This is important when
+multiple file systems should be mounted (`multimounts'). If this option
+is given, no file system is mounted at all if at least one file system
+can't be mounted.
+<DT><I>nosymlink</I>
+
+<DD>
+This is an autofs specific option that is a pseudo mount option and
+so is given without a leading dash. Historically this option was used
+to prevent symlinking of local NFS mounts. Nowadays it can be used to
+prevent bind mounting of local NFS filesystems as well. If you need to
+prevent bind mounting for only specific entrys in a map then this
+can be done by adding the &quot;port=&quot; mount option to the given entries.
+<DT><I>-r, --random-multimount-selection</I>
+
+<DD>
+Enables the use of ramdom selection when choosing a host from a
+list of replicated servers. This option is applied to this mount
+only, overriding the global setting that may be specified on the
+command line.
+<DT><I>-w, --use-weight-only</I>
+
+<DD>
+Use only specified weights for server selection where more than one
+server is specified in the map entry. If no server weights are given
+then each available server will be tried in the order listed, within
+proximity.
+<DT><I>-n, --negative-timeout &lt;seconds&gt;</I>
+
+<DD>
+Set the timeout for caching failed key lookups. This option can be
+used to override the global default given either on the command line
+or in the configuration.
+</DL>
+</DL>
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>GENERAL SYSTEM DEFAULTS CONFIGURATION</H2>
+
+
+The default value of several general settings may be changed in the
+configuration file
+
+<B>/etc/sysconfig/autofs</B>.
+
+
+They are:
+<DL COMPACT>
+<DT><B>TIMEOUT</B>
+
+<DD>
+sets the default mount timeout (program default 600).
+<DT><B>NEGATIVE_TIMEOUT</B>
+
+<DD>
+Set the default timeout for caching failed key lookups (program default
+60). If the equivalent command line option is given it will override this
+setting.
+<DT><B>MOUNT_WAIT</B>
+
+<DD>
+Set the default time to wait for a response from a spawned <A HREF="/man/index.html?8+mount">mount</A>(8)
+before sending it a SIGTERM. Note that we still need to wait for the
+RPC layer to timeout before the sub-process exits so this isn't ideal
+but it is the best we can do. The default is to wait until <A HREF="/man/index.html?8+mount">mount</A>(8)
+returns without intervention.
+<DT><B>UMOUNT_WAIT</B>
+
+<DD>
+Set the default time to wait for a response from a spawned <A HREF="/man/index.html?8+umount">umount</A>(8)
+before sending it a SIGTERM. Note that we still need to wait for the
+RPC layer to timeout before the sub-process exits so this isn't ideal
+but it is the best we can do.
+<DT><B>BROWSE_MODE</B>
+
+<DD>
+Maps are browsable by default (program default &quot;yes&quot;).
+<DT><B>MOUNT_NFS_DEFAULT_PROTOCOL</B>
+
+<DD>
+Specify the default protocol used by <A HREF="/man/index.html?8+mount.nfs">mount.nfs</A>(8) (program default 3). Since
+we can't identify this default automatically we need to set it in the autofs
+configuration. This option will only make a difference for replicated map
+entries as availability probing isn't used for single host map entries.
+<DT><B>APPEND_OPTIONS</B>
+
+<DD>
+Determine whether global options, given on the command line or per mount
+in the master map, are appended to map entry options or if the map entry
+options replace the global options (program default &quot;yes&quot;, append options).
+<DT><B>LOGGING</B>
+
+<DD>
+set default log level &quot;none&quot;, &quot;verbose&quot; or &quot;debug&quot; (program default &quot;none&quot;).
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>BUILTIN MAP -hosts</H2>
+
+If &quot;-hosts&quot; is given as the map then accessing a key under the mount point
+which corresponds to a hostname will allow access to the exports of that
+host.
+
+For example, with an entry in the master map of
+
+<B>/net  -hosts</B>
+
+
+accessing /net/myserver will mount exports from myserver on directories below
+/net/myserver.
+
+NOTE: mounts done from a hosts map will be mounted with the &quot;nosuid,nodev,intr&quot; options
+unless overridden by explicily specifying the &quot;suid&quot;, &quot;dev&quot; or &quot;nointr&quot; options in the
+master map entry.
+<A NAME="lbAG">&nbsp;</A>
+<H2>LDAP MAPS</H2>
+
+If the map type <B>ldap</B> is specified the mapname is of the form
+<B>[//servername/]dn</B>, where the optional <B>servername</B> is
+the name of the LDAP server to query, and <B>dn</B> is the Distinguished
+Name of a subtree to search for map entries.
+The old style
+
+<B>ldap:servername:mapname</B>
+
+
+is also understood. Alternatively, the type can be obtained from the Name Service Switch
+configuration, in which case the map name alone must be given.
+
+If no schema is set in the autofs configuration then autofs will check
+each of the commonly used schema for a valid entry and if one is found
+it will used for subsequent lookups.
+
+There are three common schemas in use:
+<DL COMPACT>
+<DT><I>nisMap</I>
+
+<DD>
+Entries in the <B>nisMap</B> schema are <B>nisObject</B> objects in
+the specified subtree, where the <B>cn</B> attribute is the key
+(the wildcard key is &quot;/&quot;), and the <B>nisMapEntry</B> attribute
+contains the information used by the automounter.
+<DT><I>automountMap</I>
+
+<DD>
+The <B>automountMap</B> schema has two variations that differ in the attribute
+used for the map key. Entries in the automountMap schema are <B>automount</B>
+objects in the specified subtree, where the <B>cn</B> or <B>automountKey</B>
+attribute (depending on local usage) is the key (the wildcard key is &quot;/&quot;),
+and the <B>automountInformation</B> attribute contains the information used
+by the automounter. Note that the <B>cn</B> attribute is case insensitive.
+
+The object classes and attributes used for accessing automount maps in
+LDAP can be changed by setting entries in the autofs configuration
+located in
+
+<B>/etc/sysconfig/autofs</B>.
+
+
+<DT><B>NOTE:</B>
+
+<DD>
+If a schema is given in the configuration then all the schema configuration
+values must be set, any partial schema specification will be ignored.
+
+The configuration settings available are:
+<DT><B>LDAP_TIMEOUT</B>
+
+<DD>
+Set the network response timeout (default 8).
+Set timeout value for the synchronous API  calls. The default is the LDAP
+library default of an infinite timeout.
+<DT><B>LDAP_NETWORK_TIMEOUT</B>
+
+<DD>
+Set the network response timeout (default 8).
+<DT><B>LDAP_URI</B>
+
+<DD>
+A space seperated list of server uris of the form &lt;proto&gt;://&lt;server&gt;[/]
+where &lt;proto&gt; can be ldap or ldaps. The option can be given multiple times.
+Map entries that include a server name override this option and it is then
+not used. Default is an empty list in which case either the server given
+in a map entry or the LDAP configured default is used. This uri list is read at
+startup and whenever the daemon receives a HUP signal.
+
+This configuration option can also be used to request autofs lookup SRV RRs
+for a domain of the form &lt;proto&gt;:///[&lt;domain dn&gt;]. Note that a trailing
+&quot;/&quot; is not allowed when using this form. If the domain dn is not specified
+the dns domain name (if any) is used to construct the domain dn for the
+SRV RR lookup. The server list returned from an SRV RR lookup is refreshed
+according to the minimum ttl found in the SRV RR records or after one hour,
+whichever is less.
+<DT><B>SEARCH_BASE</B>
+
+<DD>
+The base dn to use when searching for amap base dn. This entry may be
+given multiple times and each will be checked for a map base dn in
+the order they occur in the configuration. The search base list is read
+at startup and whenever the daemon recieves a HUP signal.
+<DT><B>MAP_OBJECT_CLASS</B>
+
+<DD>
+The map object class. In the <B>nisMap</B> schema this corresponds to the class
+<B>nisMap</B> and in the <B>automountMap</B> schema it corresponds to the class
+<B>automountMap</B>.
+<DT><B>ENTRY_OBJECT_CLASS</B>
+
+<DD>
+The map entry object class. In the <B>nisMap</B> schema this corresponds
+to the class <B>nisObject</B> and in the <B>automountMap</B> schema it
+corresponds to the class <B>automount</B>.
+<DT><B>MAP_ATTRIBUTE</B>
+
+<DD>
+The attribute used to identify the name of the map to which this
+entry belongs.  In the <B>nisMap</B> schema this corresponds to the attribute
+<B>nisMapName</B> and in the <B>automountMap</B> schema it corresponds to the
+attribute <B>ou</B> or <B>automountMapName</B>.
+<DT><B>ENTRY_ATTRIBUTE</B>
+
+<DD>
+The attribute used to identify a map key. In the <B>nisMap</B> schema this
+corresponds to the attribute <B>cn</B> and in the <B>automountMap</B> schema
+it corresponds to the attribute <B>automountKey</B>.
+<DT><B>VALUE_ATTRIBUTE</B>
+
+<DD>
+The attribute used to identify the value of the map entry. In the <B>nisMap</B>
+schema this corresponds to the attribute <B>nisMapEntry</B> and in the <B>automountMap</B>
+schema it corresponds to the attribute <B>automountInformation</B>.
+<DT><B>NOTE:</B>
+
+<DD>
+It is essential that entries use class and attribute in a consistent
+manner for correct operation of autofs. For example mixing <B>cn</B> and
+<B>automountKey</B> attributes in <B>automount</B> schema map entries won't
+work as expected.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>LDAP AUTHENTICATION, ENCRYPTED AND CERTIFIED CONNECTIONS</H2>
+
+LDAP authenticated binds, TLS encrypted connections and certification
+may be used by setting appropriate values in the autofs authentication
+configuration file and configuring the LDAP client with appropriate
+settings.  The default location of this file is
+
+<B>/etc/autofs_ldap_auth.conf</B>.
+
+
+If this file exists it will be used to establish whether TLS or authentication
+should be used.
+
+An example of this file is:
+<P>
+<DL COMPACT><DT><DD>
+
+
+<PRE>
+&lt;?xml version=&quot;1.0&quot; ?&gt;
+&lt;autofs_ldap_sasl_conf
+        usetls=&quot;yes&quot;
+        tlsrequired=&quot;no&quot;
+        authrequired=&quot;no&quot;
+        authtype=&quot;DIGEST-MD5&quot;
+        user=&quot;xyz&quot;
+        secret=&quot;abc&quot;
+/&gt;
+</PRE>
+
+</DL>
+
+<P>
+If TLS encryption is to be used the location of the Certificate Authority
+certificate must be set within the LDAP client configuration in 
+order to validate the server certificate. If, in addition, a certified
+connection is to be used then the client certificate and private key file
+locations must also be configured within the LDAP client.
+
+In OpenLDAP these may be configured in the <B>ldap.conf</B> file or in the
+per-user configuration. For example it may be sensible to use the system
+wide configuration for the location of the Certificate Authority certificate
+and set the location of the client certificate and private key
+in the per-user configuration. The location of these files and the configuration
+entry requirements is system dependent so the documentation for your
+installation will need to be consulted to get further information.
+
+See <B><A HREF="/man/index.html?5+autofs_ldap_auth.conf">autofs_ldap_auth.conf</A></B>(5) for more information.
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<P>
+<DL COMPACT><DT><DD>
+
+
+<PRE>
+/-        auto.data
+/home     /etc/auto.home
+/mnt      yp:mnt.map
+</PRE>
+
+</DL>
+
+<P>
+This will generate two mountpoints for 
+<I>/home</I>
+
+and
+<I>/mnt</I>
+
+and install direct mount triggers for each entry in the direct mount map
+<I>auto.data</I>.
+
+All accesses to
+<I>/home</I>
+
+will lead to the consultation of the map in
+<I>/etc/auto.home</I>
+
+and all accesses to
+<I>/mnt</I>
+
+will consult the NIS map
+<I>mnt.map</I>.
+
+All accesses to paths in the map
+<I>auto.data</I>
+
+will trigger mounts when they are accessed and the Name Service Switch
+configuration will be used to locate the source of the map
+<I>auto.data</I>.
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?8+automount">automount</A></B>(8),
+
+<B><A HREF="/man/index.html?5+autofs">autofs</A></B>(5),
+
+<B><A HREF="/man/index.html?8+autofs">autofs</A></B>(8).
+
+<B><A HREF="/man/index.html?5+autofs_ldap_auth.conf">autofs_ldap_auth.conf</A></B>(5)
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+This manual page was written by Christoph Lameter &lt;<A HREF="mailto:chris@waterf.org">chris@waterf.org</A>&gt;,
+for the Dean GNU/Linux system.  Edited by &lt;<A HREF="mailto:hpa@transmeta.com">hpa@transmeta.com</A>&gt; and
+Ian Kent &lt;<A HREF="mailto:raven@themaw.net">raven@themaw.net</A>&gt; .
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">FORMAT</A><DD>
+<DT><A HREF="#lbAE">GENERAL SYSTEM DEFAULTS CONFIGURATION</A><DD>
+<DT><A HREF="#lbAF">BUILTIN MAP -hosts</A><DD>
+<DT><A HREF="#lbAG">LDAP MAPS</A><DD>
+<DT><A HREF="#lbAH">LDAP AUTHENTICATION, ENCRYPTED AND CERTIFIED CONNECTIONS</A><DD>
+<DT><A HREF="#lbAI">EXAMPLE</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:59 GMT, December 24, 2015
+</div></body>
+</HTML>

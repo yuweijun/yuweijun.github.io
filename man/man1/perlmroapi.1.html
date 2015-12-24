@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERLMROAPI</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERLMROAPI</H1>
+Section: Perl Programmers Reference Guide (1)<BR>Updated: 2009-06-27<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perlmroapi - Perl method resolution plugin interface
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+As of Perl 5.10.1 there is a new interface for plugging and using method
+resolution orders other than the default (linear depth first search).
+The C3 method resolution order added in 5.10.0 has been re-implemented as
+a plugin, without changing its Perl-space interface.
+<P>
+
+Each plugin should register itself with <TT>&quot;Perl_mro_register&quot;</TT> by providing
+the following structure
+<P>
+
+
+
+<PRE>
+    struct mro_alg {
+        AV *(*resolve)(pTHX_ HV *stash, U32 level);
+        const char *name;
+        U16 length;
+        U16 kflags;
+        U32 hash;
+    };
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>resolve<DD>
+<A NAME="ixAAD"></A>
+Pointer to the linearisation function, described below.
+<DT>name<DD>
+<A NAME="ixAAE"></A>
+Name of the <FONT SIZE="-1">MRO</FONT>, either in <FONT SIZE="-1">ISO-8859-1</FONT> or <FONT SIZE="-1">UTF-8</FONT>.
+<DT>length<DD>
+<A NAME="ixAAF"></A>
+Length of the name.
+<DT>kflags<DD>
+<A NAME="ixAAG"></A>
+If the name is given in <FONT SIZE="-1">UTF-8</FONT>, set this to <TT>&quot;HVhek_UTF8&quot;</TT>. The value is passed
+direct as the parameter <I>kflags</I> to <TT>&quot;hv_common()&quot;</TT>.
+<DT>hash<DD>
+<A NAME="ixAAH"></A>
+A precomputed hash value for the <FONT SIZE="-1">MRO</FONT>'s name, or 0.
+</DL>
+<A NAME="lbAD">&nbsp;</A>
+<H2>Callbacks</H2>
+
+<A NAME="ixAAI"></A>
+The <TT>&quot;resolve&quot;</TT> function is called to generate a linearised <FONT SIZE="-1">ISA</FONT> for the
+given stash, using this <FONT SIZE="-1">MRO</FONT>. It is called with a pointer to the stash, and
+a <I>level</I> of 0. The core always sets <I>level</I> to 0 when it calls your
+function - the parameter is provided to allow your implementation to track
+depth if it needs to recurse.
+<P>
+
+The function should return a reference to an array containing the parent
+classes in order. The caller is responsible for incrementing the reference
+count if it wants to keep the structure. Hence if you have created a
+temporary value that you keep no pointer to, <TT>&quot;sv_2mortal()&quot;</TT> to ensure that
+it is disposed of correctly. If you have cached your return value, then
+return a pointer to it without changing the reference count.
+<A NAME="lbAE">&nbsp;</A>
+<H2>Caching</H2>
+
+<A NAME="ixAAJ"></A>
+Computing MROs can be expensive. The implementation provides a cache, in
+which you can store a single <TT>&quot;SV *&quot;</TT>, or anything that can be cast to
+<TT>&quot;SV *&quot;</TT>, such as <TT>&quot;AV *&quot;</TT>. To read your private value, use the macro
+<TT>&quot;MRO_GET_PRIVATE_DATA()&quot;</TT>, passing it the <TT>&quot;mro_meta&quot;</TT> structure from the
+stash, and a pointer to your <TT>&quot;mro_alg&quot;</TT> structure:
+<P>
+
+
+
+<PRE>
+    meta = HvMROMETA(stash);
+    private_sv = MRO_GET_PRIVATE_DATA(meta, &amp;my_mro_alg);
+
+</PRE>
+
+
+<P>
+
+To set your private value, call <TT>&quot;Perl_mro_set_private_data()&quot;</TT>:
+<P>
+
+
+
+<PRE>
+    Perl_mro_set_private_data(aTHX_ meta, &amp;c3_alg, private_sv);
+
+</PRE>
+
+
+<P>
+
+The private data cache will take ownership of a reference to private_sv,
+much the same way that <TT>&quot;hv_store()&quot;</TT> takes ownership of a reference to the
+value that you pass it.
+<A NAME="lbAF">&nbsp;</A>
+<H2>Examples</H2>
+
+<A NAME="ixAAK"></A>
+For examples of <FONT SIZE="-1">MRO</FONT> implementations, see <TT>&quot;S_mro_get_linear_isa_c3()&quot;</TT>
+and the <TT>&quot;BOOT:&quot;</TT> section of <I>mro/mro.xs</I>, and <TT>&quot;S_mro_get_linear_isa_dfs()&quot;</TT>
+in <I>mro.c</I>
+<A NAME="lbAG">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<A NAME="ixAAL"></A>
+The implementation of the C3 <FONT SIZE="-1">MRO</FONT> and switchable MROs within the perl core was
+written by Brandon L Black. Nicholas Clark created the pluggable interface, 
+refactored Brandon's implementation to work with it, and wrote this document.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">Callbacks</A><DD>
+<DT><A HREF="#lbAE">Caching</A><DD>
+<DT><A HREF="#lbAF">Examples</A><DD>
+<DT><A HREF="#lbAG">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:08 GMT, December 24, 2015
+</div></body>
+</HTML>

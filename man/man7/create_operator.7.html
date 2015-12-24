@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CREATE OPERATOR</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CREATE OPERATOR</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+CREATE OPERATOR - define a new operator
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+CREATE OPERATOR <I>name</I> (
+    PROCEDURE = <I>funcname</I>
+    [, LEFTARG = <I>lefttype</I> ] [, RIGHTARG = <I>righttype</I> ]
+    [, COMMUTATOR = <I>com_op</I> ] [, NEGATOR = <I>neg_op</I> ]
+    [, RESTRICT = <I>res_proc</I> ] [, JOIN = <I>join_proc</I> ]
+    [, HASHES ] [, MERGES ]
+)
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>CREATE OPERATOR</B> defines a new operator,
+<I>name</I>. The user who
+defines an operator becomes its owner. If a schema name is given
+then the operator is created in the specified schema. Otherwise it
+is created in the current schema.
+<P>
+
+The operator name is a sequence of up to <B>NAMEDATALEN</B>-1
+(63 by default) characters from the following list:
+<P>
+<PRE>
++ - * / &lt; &gt; = ~ ! @ # % ^ &amp; | ` ?
+
+</PRE>
+
+There are a few restrictions on your choice of name:
+<DL COMPACT>
+<DT>*<DD>
+-- and /* cannot appear anywhere in an operator name,
+since they will be taken as the start of a comment.
+<DT>*<DD>
+A multicharacter operator name cannot end in + or
+-,
+unless the name also contains at least one of these characters:
+<P>
+<PRE>
+~ ! @ # % ^ &amp; | ` ?
+
+</PRE>
+
+For example, @- is an allowed operator name,
+but *- is not.
+This restriction allows PostgreSQL to
+parse SQL-compliant commands without requiring spaces between tokens.
+</DL>
+<P>
+
+<P>
+
+The operator != is mapped to
+&lt;&gt; on input, so these two names are always
+equivalent.
+<P>
+
+At least one of LEFTARG and RIGHTARG must be defined. For
+binary operators, both must be defined. For right unary
+operators, only LEFTARG should be defined, while for left
+unary operators only RIGHTARG should be defined.
+<P>
+
+The <I>funcname</I>
+procedure must have been previously defined using <B>CREATE
+FUNCTION</B> and must be defined to accept the correct number
+of arguments (either one or two) of the indicated types.
+<P>
+
+The other clauses specify optional operator optimization clauses.
+Their meaning is detailed in in the documentation.
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B></B><I>name</I><B></B><DD>
+The name of the operator to be defined. See above for allowable
+characters. The name can be schema-qualified, for example
+CREATE OPERATOR myschema.+ (...). If not, then
+the operator is created in the current schema. Two operators
+in the same schema can have the same name if they operate on
+different data types. This is called
+<I>overloading</I>.
+<DT><B></B><I>funcname</I><B></B><DD>
+The function used to implement this operator.
+<DT><B></B><I>lefttype</I><B></B><DD>
+The data type of the operator's left operand, if any.
+This option would be omitted for a left-unary operator.
+<DT><B></B><I>righttype</I><B></B><DD>
+The data type of the operator's right operand, if any.
+This option would be omitted for a right-unary operator.
+<DT><B></B><I>com_op</I><B></B><DD>
+The commutator of this operator.
+<DT><B></B><I>neg_op</I><B></B><DD>
+The negator of this operator.
+<DT><B></B><I>res_proc</I><B></B><DD>
+The restriction selectivity estimator function for this operator.
+<DT><B></B><I>join_proc</I><B></B><DD>
+The join selectivity estimator function for this operator.
+<DT><B>HASHES</B><DD>
+Indicates this operator can support a hash join.
+<DT><B>MERGES</B><DD>
+Indicates this operator can support a merge join.
+</DL>
+<P>
+
+To give a schema-qualified operator name in <I>com_op</I> or the other optional
+arguments, use the OPERATOR() syntax, for example:
+<P>
+<PRE>
+COMMUTATOR = OPERATOR(myschema.===) ,
+
+</PRE>
+
+<P>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+Refer to in the documentation for further information.
+<P>
+
+The obsolete options SORT1, SORT2,
+LTCMP, and GTCMP were formerly used to
+specify the names of sort operators associated with a merge-joinable
+operator. This is no longer necessary, since information about
+associated operators is found by looking at B-tree operator families
+instead. If one of these options is given, it is ignored except
+for implicitly setting MERGES true.
+<P>
+
+Use DROP OPERATOR [<B><A HREF="/man/index.html?7+drop_operator">drop_operator</A></B>(7)] to delete user-defined operators
+from a database. Use ALTER OPERATOR [<B><A HREF="/man/index.html?7+alter_operator">alter_operator</A></B>(7)] to modify operators in a
+database.
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+The following command defines a new operator, area-equality, for
+the data type <B>box</B>:
+<P>
+<PRE>
+CREATE OPERATOR === (
+    LEFTARG = box,
+    RIGHTARG = box,
+    PROCEDURE = area_equal_procedure,
+    COMMUTATOR = ===,
+    NEGATOR = !==,
+    RESTRICT = area_restriction_procedure,
+    JOIN = area_join_procedure,
+    HASHES, MERGES
+);
+
+</PRE>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+<B>CREATE OPERATOR</B> is a
+PostgreSQL extension. There are no
+provisions for user-defined operators in the SQL standard.
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+ALTER OPERATOR [<B><A HREF="/man/index.html?7+alter_operator">alter_operator</A></B>(7)], CREATE OPERATOR CLASS [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+create_operator_class">create_operator_class</A></B>(7)], DROP OPERATOR [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+drop_operator">drop_operator</A></B>(7)]
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">NOTES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">COMPATIBILITY</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:14 GMT, December 24, 2015
+</div></body>
+</HTML>

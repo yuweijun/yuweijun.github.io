@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CPANPLUS::Dist::Base</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CPANPLUS::Dist::Base</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-05-03<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+CPANPLUS::Dist::Base - Base class for custom distribution classes
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    package CPANPLUS::Dist::MY_IMPLEMENTATION
+
+    use base 'CPANPLUS::Dist::Base';
+
+    sub prepare {
+        my $dist = shift;
+        
+        ### do the 'standard' things
+        $dist-&gt;SUPER::prepare( @_ ) or return;
+    
+        ### do MY_IMPLEMENTATION specific things
+        ...
+        
+        ### don't forget to set the status!
+        return $dist-&gt;status-&gt;prepared( $SUCCESS ? 1 : 0 );
+    }
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+CPANPLUS::Dist::Base functions as a base class for all custom
+distribution implementations. It does all the mundane work 
+<FONT SIZE="-1">CPANPLUS</FONT> would have done without a custom distribution, so you
+can override just the parts you need to make your own implementation
+work.
+<A NAME="lbAE">&nbsp;</A>
+<H2>FLOW</H2>
+
+<A NAME="ixAAE"></A>
+Below is a brief outline when and in which order methods in this
+class are called:
+<P>
+
+
+
+<PRE>
+    $Class-&gt;format_available;   # can we use this class on this system?
+
+    $dist-&gt;init;                # set up custom accessors, etc
+    $dist-&gt;prepare;             # find/write meta information
+    $dist-&gt;create;              # write the distribution file
+    $dist-&gt;install;             # install the distribution file
+    
+    $dist-&gt;uninstall;           # remove the distribution (OPTIONAL)
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAF"></A>
+<A NAME="lbAG">&nbsp;</A>
+<H3>@subs = $Class-&gt;methods</H3>
+
+
+
+<A NAME="ixAAG"></A>
+Returns a list of methods that this class implements that you can
+override.
+<A NAME="lbAH">&nbsp;</A>
+<H3>$bool = $Class-&gt;format_available</H3>
+
+
+
+<A NAME="ixAAH"></A>
+This method is called when someone requests a module to be installed
+via the superclass. This gives you the opportunity to check if all
+the needed requirements to build and install this distribution have
+been met.
+<P>
+
+For example, you might need a command line program, or a certain perl
+module installed to do your job. Now is the time to check.
+<P>
+
+Simply return true if the request can proceed and false if it can not.
+<P>
+
+The <TT>&quot;CPANPLUS::Dist::Base&quot;</TT> implementation always returns true.
+<A NAME="lbAI">&nbsp;</A>
+<H3>$bool = $dist-&gt;init</H3>
+
+
+
+<A NAME="ixAAI"></A>
+This method is called just after the new dist object is set up and
+before the <TT>&quot;prepare&quot;</TT> method is called. This is the time to set up
+the object so it can be used with your class.
+<P>
+
+For example, you might want to add extra accessors to the <TT>&quot;status&quot;</TT>
+object, which you might do as follows:
+<P>
+
+
+
+<PRE>
+    $dist-&gt;status-&gt;mk_accessors( qw[my_implementation_accessor] );
+
+</PRE>
+
+
+<P>
+
+The <TT>&quot;status&quot;</TT> object is implemented as an instance of the 
+<TT>&quot;Object::Accessor&quot;</TT> class. Please refer to its documentation for 
+details.
+<P>
+
+Return true if the initialization was successul, and false if it was
+not.
+<P>
+
+The <TT>&quot;CPANPLUS::Dist::Base&quot;</TT> implementation does not alter your object 
+and always returns true.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>$bool = $dist-&gt;prepare</H3>
+
+
+
+<A NAME="ixAAJ"></A>
+This runs the preparation step of your distribution. This step is meant
+to set up the environment so the <TT>&quot;create&quot;</TT> step can create the actual
+distribution(file). 
+A <TT>&quot;prepare&quot;</TT> call in the standard <TT>&quot;ExtUtils::MakeMaker&quot;</TT> distribution 
+would, for example, run <TT>&quot;perl Makefile.PL&quot;</TT> to find the dependencies
+for a distribution. For a <TT>&quot;debian&quot;</TT> distribution, this is where you 
+would write all the metafiles required for the <TT>&quot;dpkg-*&quot;</TT> tools.
+<P>
+
+The <TT>&quot;CPANPLUS::Dist::Base&quot;</TT> implementation simply calls the underlying
+distribution class (Typically <TT>&quot;CPANPLUS::Dist::MM&quot;</TT> or 
+<TT>&quot;CPANPLUS::Dist::Build&quot;</TT>).
+<P>
+
+Sets <TT>&quot;$dist-&gt;status-&gt;prepared&quot;</TT> to the return value of this function.
+If you override this method, you should make sure to set this value.
+<A NAME="lbAK">&nbsp;</A>
+<H3>$bool = $dist-&gt;create</H3>
+
+
+
+<A NAME="ixAAK"></A>
+This runs the creation step of your distribution. This step is meant
+to follow up on the <TT>&quot;prepare&quot;</TT> call, that set up your environment so 
+the <TT>&quot;create&quot;</TT> step can create the actual distribution(file). 
+A <TT>&quot;create&quot;</TT> call in the standard <TT>&quot;ExtUtils::MakeMaker&quot;</TT> distribution 
+would, for example, run <TT>&quot;make&quot;</TT> and <TT>&quot;make test&quot;</TT> to build and test
+a distribution. For a <TT>&quot;debian&quot;</TT> distribution, this is where you 
+would create the actual <TT>&quot;.deb&quot;</TT> file using <TT>&quot;dpkg&quot;</TT>.
+<P>
+
+The <TT>&quot;CPANPLUS::Dist::Base&quot;</TT> implementation simply calls the underlying
+distribution class (Typically <TT>&quot;CPANPLUS::Dist::MM&quot;</TT> or 
+<TT>&quot;CPANPLUS::Dist::Build&quot;</TT>).
+<P>
+
+Sets <TT>&quot;$dist-&gt;status-&gt;dist&quot;</TT> to the location of the created 
+distribution.
+If you override this method, you should make sure to set this value.
+<P>
+
+Sets <TT>&quot;$dist-&gt;status-&gt;created&quot;</TT> to the return value of this function.
+If you override this method, you should make sure to set this value.
+<A NAME="lbAL">&nbsp;</A>
+<H3>$bool = $dist-&gt;install</H3>
+
+
+
+<A NAME="ixAAL"></A>
+This runs the install step of your distribution. This step is meant
+to follow up on the <TT>&quot;create&quot;</TT> call, which prepared a distribution(file)
+to install.
+A <TT>&quot;create&quot;</TT> call in the standard <TT>&quot;ExtUtils::MakeMaker&quot;</TT> distribution 
+would, for example, run <TT>&quot;make install&quot;</TT> to copy the distribution files
+to their final destination. For a <TT>&quot;debian&quot;</TT> distribution, this is where 
+you would run <TT>&quot;dpkg --install&quot;</TT> on the created <TT>&quot;.deb&quot;</TT> file.
+<P>
+
+The <TT>&quot;CPANPLUS::Dist::Base&quot;</TT> implementation simply calls the underlying
+distribution class (Typically <TT>&quot;CPANPLUS::Dist::MM&quot;</TT> or 
+<TT>&quot;CPANPLUS::Dist::Build&quot;</TT>).
+<P>
+
+Sets <TT>&quot;$dist-&gt;status-&gt;installed&quot;</TT> to the return value of this function.
+If you override this method, you should make sure to set this value.
+<A NAME="lbAM">&nbsp;</A>
+<H3>$bool = $dist-&gt;uninstall</H3>
+
+
+
+<A NAME="ixAAM"></A>
+This runs the uninstall step of your distribution. This step is meant
+to remove the distribution from the file system. 
+A <TT>&quot;uninstall&quot;</TT> call in the standard <TT>&quot;ExtUtils::MakeMaker&quot;</TT> distribution 
+would, for example, run <TT>&quot;make uninstall&quot;</TT> to remove the distribution 
+files the file system. For a <TT>&quot;debian&quot;</TT> distribution, this is where you 
+would run <TT>&quot;dpkg --uninstall PACKAGE&quot;</TT>.
+<P>
+
+The <TT>&quot;CPANPLUS::Dist::Base&quot;</TT> implementation simply calls the underlying
+distribution class (Typically <TT>&quot;CPANPLUS::Dist::MM&quot;</TT> or 
+<TT>&quot;CPANPLUS::Dist::Build&quot;</TT>).
+<P>
+
+Sets <TT>&quot;$dist-&gt;status-&gt;uninstalled&quot;</TT> to the return value of this function.
+If you override this method, you should make sure to set this value.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">FLOW</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">@subs = $Class-&gt;methods</A><DD>
+<DT><A HREF="#lbAH">$bool = $Class-&gt;format_available</A><DD>
+<DT><A HREF="#lbAI">$bool = $dist-&gt;init</A><DD>
+<DT><A HREF="#lbAJ">$bool = $dist-&gt;prepare</A><DD>
+<DT><A HREF="#lbAK">$bool = $dist-&gt;create</A><DD>
+<DT><A HREF="#lbAL">$bool = $dist-&gt;install</A><DD>
+<DT><A HREF="#lbAM">$bool = $dist-&gt;uninstall</A><DD>
+</DL>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:16 GMT, December 24, 2015
+</div></body>
+</HTML>

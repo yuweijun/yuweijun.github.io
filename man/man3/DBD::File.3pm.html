@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DBD::File</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DBD::File</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-06-05<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+DBD::File - Base class for writing DBI drivers
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ This module is a base class for writing other DBDs.
+ It is not intended to function as a DBD itself.
+ If you want to access flatfiles, use DBD::AnyData, or DBD::CSV,
+ (both of which are subclasses of DBD::File).
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The DBD::File module is not a true <FONT SIZE="-1">DBI</FONT> driver, but an abstract
+base class for deriving concrete <FONT SIZE="-1">DBI</FONT> drivers from it. The implication is,
+that these drivers work with plain files, for example <FONT SIZE="-1">CSV</FONT> files or
+<FONT SIZE="-1">INI</FONT> files. The module is based on the SQL::Statement module, a simple
+<FONT SIZE="-1">SQL</FONT> engine.
+<P>
+
+See <FONT SIZE="-1">DBI</FONT> for details on <FONT SIZE="-1">DBI</FONT>, SQL::Statement for details on
+SQL::Statement and <FONT SIZE="-1">DBD::CSV</FONT> or DBD::IniFile for example
+drivers.
+<A NAME="lbAE">&nbsp;</A>
+<H3>Metadata</H3>
+
+<A NAME="ixAAE"></A>
+The following attributes are handled by <FONT SIZE="-1">DBI</FONT> itself and not by DBD::File,
+thus they all work like expected:
+<P>
+
+
+
+<PRE>
+    Active
+    ActiveKids
+    CachedKids
+    CompatMode             (Not used)
+    InactiveDestroy
+    Kids
+    PrintError
+    RaiseError
+    Warn                   (Not used)
+
+</PRE>
+
+
+<P>
+
+The following <FONT SIZE="-1">DBI</FONT> attributes are handled by DBD::File:
+<DL COMPACT>
+<DT>AutoCommit<DD>
+<A NAME="ixAAF"></A>
+Always on
+<DT>ChopBlanks<DD>
+<A NAME="ixAAG"></A>
+Works
+<DT><FONT SIZE="-1">NUM_OF_FIELDS</FONT><DD>
+<A NAME="ixAAH"></A>
+Valid after <TT>&quot;$sth-&quot;</TT>execute&gt;
+<DT><FONT SIZE="-1">NUM_OF_PARAMS</FONT><DD>
+<A NAME="ixAAI"></A>
+Valid after <TT>&quot;$sth-&quot;</TT>prepare&gt;
+<DT><FONT SIZE="-1">NAME</FONT><DD>
+<A NAME="ixAAJ"></A>
+Valid after <TT>&quot;$sth-&quot;</TT>execute&gt;; undef for Non-Select statements.
+<DT><FONT SIZE="-1">NULLABLE</FONT><DD>
+<A NAME="ixAAK"></A>
+Not really working, always returns an array ref of one's, as <FONT SIZE="-1">DBD::CSV</FONT>
+doesn't verify input data. Valid after <TT>&quot;$sth-&quot;</TT>execute&gt;; undef for
+Non-Select statements.
+</DL>
+<P>
+
+These attributes and methods are not supported:
+<P>
+
+
+
+<PRE>
+    bind_param_inout
+    CursorName
+    LongReadLen
+    LongTruncOk
+
+</PRE>
+
+
+<P>
+
+Additional to the <FONT SIZE="-1">DBI</FONT> attributes, you can use the following dbh
+attribute:
+<DL COMPACT>
+<DT>f_dir<DD>
+<A NAME="ixAAL"></A>
+This attribute is used for setting the directory where <FONT SIZE="-1">CSV</FONT> files are
+opened. Usually you set it in the dbh, it defaults to the current
+directory (``.''). However, it is overwritable in the statement handles.
+<DT>f_ext<DD>
+<A NAME="ixAAM"></A>
+This attribute is used for setting the file extension where (<FONT SIZE="-1">CSV</FONT>) files are
+opened. There are several possibilities.
+
+
+<P>
+
+
+
+
+<PRE>
+    DBI:CSV:f_dir=data;f_ext=.csv
+
+</PRE>
+
+
+
+
+<P>
+
+
+In this case, DBD::File will open only <TT>&quot;table.csv&quot;</TT> if both <TT>&quot;table.csv&quot;</TT> and
+<TT>&quot;table&quot;</TT> exist in the datadir. The table will still be named <TT>&quot;table&quot;</TT>. If
+your datadir has files with extensions, and you do not pass this attribute,
+your table is named <TT>&quot;table.csv&quot;</TT>, which is probably not what you wanted. The
+extension is always case-insensitive. The table names are not.
+
+
+<P>
+
+
+
+
+<PRE>
+    DBI:CSV:f_dir=data;f_ext=.csv/r
+
+</PRE>
+
+
+
+
+<P>
+
+
+In this case the extension is required, and all filenames that do not match
+are ignored.
+<DT>f_schema<DD>
+<A NAME="ixAAN"></A>
+This will set the schema name. Default is the owner of the folder in which
+the table file resides.  <TT>&quot;undef&quot;</TT> is allowed.
+
+
+<P>
+
+
+
+
+<PRE>
+    my $dbh = DBI-&gt;connect (&quot;dbi:CSV:&quot;, &quot;&quot;, &quot;&quot;, {
+        f_schema =&gt; undef,
+        f_dir    =&gt; &quot;data&quot;,
+        f_ext    =&gt; &quot;.csv/r&quot;,
+        }) or die $DBI::errstr;
+
+</PRE>
+
+
+
+
+<P>
+
+
+The effect is that when you get table names from <FONT SIZE="-1">DBI</FONT>, you can force all
+tables into the same (or no) schema:
+
+
+<P>
+
+
+
+
+<PRE>
+    my @tables $dbh-&gt;tables ();
+
+    # no f_schema
+    &quot;merijn&quot;.foo
+    &quot;merijn&quot;.bar
+
+    # f_schema =&gt; &quot;dbi&quot;
+    &quot;dbi&quot;.foo
+    &quot;dbi&quot;.bar
+
+    # f_schema =&gt; undef
+    foo
+    bar
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Driver private methods</H3>
+
+<A NAME="ixAAO"></A>
+<DL COMPACT>
+<DT>data_sources<DD>
+<A NAME="ixAAP"></A>
+The <TT>&quot;data_sources&quot;</TT> method returns a list of subdirectories of the current
+directory in the form ``DBI:CSV:f_dir=$dirname''.
+
+
+<P>
+
+
+If you want to read the subdirectories of another directory, use
+
+
+<P>
+
+
+
+
+<PRE>
+    my ($drh) = DBI-&gt;install_driver (&quot;CSV&quot;);
+    my (@list) = $drh-&gt;data_sources (f_dir =&gt; &quot;/usr/local/csv_data&quot; );
+
+</PRE>
+
+
+<DT>list_tables<DD>
+<A NAME="ixAAQ"></A>
+This method returns a list of file names inside <TT>$dbh</TT>-&gt;{f_dir}.
+Example:
+
+
+<P>
+
+
+
+
+<PRE>
+    my ($dbh) = DBI-&gt;connect (&quot;DBI:CSV:f_dir=/usr/local/csv_data&quot;);
+    my (@list) = $dbh-&gt;func (&quot;list_tables&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that the list includes all files contained in the directory, even
+those that have non-valid table names, from the view of <FONT SIZE="-1">SQL</FONT>.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>KNOWN BUGS</H2>
+
+<A NAME="ixAAR"></A>
+<DL COMPACT>
+<DT>*<DD>
+The module is using flock () internally. However, this function is not
+available on all platforms. Using flock () is disabled on MacOS and
+Windows 95: There's no locking at all (perhaps not so important on
+MacOS and Windows 95, as there's a single user anyways).
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAS"></A>
+This module is currently maintained by
+<P>
+
+H.Merijn Brand &lt; h.m.brand at xs4all.nl &gt; and
+Jens Rehsack  &lt; rehsack at googlemail.com &gt;
+<P>
+
+The original author is Jochen Wiedmann.
+<A NAME="lbAI">&nbsp;</A>
+<H2>COPYRIGHT AND LICENSE</H2>
+
+<A NAME="ixAAT"></A>
+Copyright (C) 2009 by H.Merijn Brand &amp; Jens Rehsack
+Copyright (C) 2004 by Jeff Zucker
+Copyright (C) 1998 by Jochen Wiedmann
+<P>
+
+All rights reserved.
+<P>
+
+You may freely distribute and/or modify this module under the terms of
+either the <FONT SIZE="-1">GNU</FONT> General Public License (<FONT SIZE="-1">GPL</FONT>) or the Artistic License, as
+specified in the Perl <FONT SIZE="-1">README</FONT> file.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAU"></A>
+<FONT SIZE="-1">DBI</FONT>, Text::CSV, Text::CSV_XS, SQL::Statement
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Metadata</A><DD>
+<DT><A HREF="#lbAF">Driver private methods</A><DD>
+</DL>
+<DT><A HREF="#lbAG">KNOWN BUGS</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+<DT><A HREF="#lbAI">COPYRIGHT AND LICENSE</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:22 GMT, December 24, 2015
+</div></body>
+</HTML>

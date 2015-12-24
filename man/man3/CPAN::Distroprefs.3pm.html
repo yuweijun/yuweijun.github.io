@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CPAN::Distroprefs</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CPAN::Distroprefs</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-05-26<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+CPAN::Distroprefs -- read and match distroprefs
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use CPAN::Distroprefs;
+
+    my %info = (... distribution/environment info ...);
+
+    my $finder = CPAN::Distroprefs-&gt;find($prefs_dir, \%ext_map);
+
+    while (my $result = $finder-&gt;next) {
+
+        die $result-&gt;as_string if $result-&gt;is_fatal;
+
+        warn($result-&gt;as_string), next if $result-&gt;is_warning;
+
+        for my $pref (@{ $result-&gt;prefs }) {
+            if ($pref-&gt;matches(\%info)) {
+                return $pref;
+            }
+        }
+    }
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This module encapsulates reading Distroprefs and matching them against <FONT SIZE="-1">CPAN</FONT> distributions.
+<A NAME="lbAE">&nbsp;</A>
+<H2>INTERFACE</H2>
+
+<A NAME="ixAAE"></A>
+
+
+<PRE>
+    my $finder = CPAN::Distroprefs-&gt;find($dir, \%ext_map);
+
+    while (my $result = $finder-&gt;next) { ... }
+
+</PRE>
+
+
+<P>
+
+Build an iterator which finds distroprefs files in the given directory.
+<P>
+
+<TT>%ext_map</TT> is a hashref whose keys are file extensions and whose values are
+modules used to load matching files:
+<P>
+
+
+
+<PRE>
+    {
+        'yml' =&gt; 'YAML::Syck',
+        'dd'  =&gt; 'Data::Dumper',
+        ...
+    }
+
+</PRE>
+
+
+<P>
+
+Each time <TT>&quot;$finder-&gt;next&quot;</TT> is called, the iterator returns one of two
+possible values:
+<DL COMPACT>
+<DT>*<DD>
+a CPAN::Distroprefs::Result object
+<DT>*<DD>
+<TT>&quot;undef&quot;</TT>, indicating that no prefs files remain to be found
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>RESULTS</H2>
+
+<A NAME="ixAAF"></A>
+<TT>&quot;find()&quot;</TT> returns CPAN::Distroprefs::Result objects to
+indicate success or failure when reading a prefs file.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Common</H3>
+
+<A NAME="ixAAG"></A>
+All results share some common attributes:
+<P>
+
+<I>type</I>
+<A NAME="ixAAH"></A>
+<P>
+
+<TT>&quot;success&quot;</TT>, <TT>&quot;warning&quot;</TT>, or <TT>&quot;fatal&quot;</TT>
+<P>
+
+<I>file</I>
+<A NAME="ixAAI"></A>
+<P>
+
+the file from which these prefs were read, or to which this error refers (relative filename)
+<P>
+
+<I>ext</I>
+<A NAME="ixAAJ"></A>
+<P>
+
+the file's extension, which determines how to load it
+<P>
+
+<I>dir</I>
+<A NAME="ixAAK"></A>
+<P>
+
+the directory the file was read from
+<P>
+
+<I>abs</I>
+<A NAME="ixAAL"></A>
+<P>
+
+the absolute path to the file
+<A NAME="lbAH">&nbsp;</A>
+<H3>Errors</H3>
+
+<A NAME="ixAAM"></A>
+Error results (warning and fatal) contain:
+<P>
+
+<I>msg</I>
+<A NAME="ixAAN"></A>
+<P>
+
+the error message (usually either <TT>$!</TT> or a <FONT SIZE="-1">YAML</FONT> error)
+<A NAME="lbAI">&nbsp;</A>
+<H3>Successes</H3>
+
+<A NAME="ixAAO"></A>
+Success results contain:
+<P>
+
+<I>prefs</I>
+<A NAME="ixAAP"></A>
+<P>
+
+an arrayref of CPAN::Distroprefs::Pref objects
+<A NAME="lbAJ">&nbsp;</A>
+<H2>PREFS</H2>
+
+<A NAME="ixAAQ"></A>
+CPAN::Distroprefs::Pref objects represent individual distroprefs documents.
+They are constructed automatically as part of <TT>&quot;success&quot;</TT> results from <TT>&quot;find()&quot;</TT>.
+<P>
+
+<I>data</I>
+<A NAME="ixAAR"></A>
+<P>
+
+the pref information as a hashref, suitable for e.g. passing to Kwalify
+<P>
+
+<I>match_attributes</I>
+<A NAME="ixAAS"></A>
+<P>
+
+returns a list of the valid match attributes (see the Distroprefs section in <FONT SIZE="-1">CPAN</FONT>)
+<P>
+
+currently: <TT>&quot;env perl perlconfig distribution module&quot;</TT>
+<P>
+
+<I>has_any_match</I>
+<A NAME="ixAAT"></A>
+<P>
+
+true if this pref has a 'match' attribute at all
+<P>
+
+<I>has_valid_subkeys</I>
+<A NAME="ixAAU"></A>
+<P>
+
+true if this pref has a 'match' attribute and at least one valid match attribute
+<P>
+
+<I>matches</I>
+<A NAME="ixAAV"></A>
+<P>
+
+
+
+<PRE>
+  if ($pref-&gt;matches(\%arg)) { ... }
+
+</PRE>
+
+
+<P>
+
+true if this pref matches the passed-in hashref, which must have a value for
+each of the <TT>&quot;match_attributes&quot;</TT> (above)
+<A NAME="lbAK">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixAAW"></A>
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">INTERFACE</A><DD>
+<DT><A HREF="#lbAF">RESULTS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">Common</A><DD>
+<DT><A HREF="#lbAH">Errors</A><DD>
+<DT><A HREF="#lbAI">Successes</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">PREFS</A><DD>
+<DT><A HREF="#lbAK">LICENSE</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:16 GMT, December 24, 2015
+</div></body>
+</HTML>

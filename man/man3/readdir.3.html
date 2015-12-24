@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of READDIR</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>READDIR</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2009-07-04<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+readdir, readdir_r - read a directory
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/dirent.h">dirent.h</A>&gt;</B>
+
+<B>struct dirent *readdir(DIR *</B><I>dirp</I><B>);</B>
+
+<B>int readdir_r(DIR *</B><I>dirp</I><B>, struct dirent *</B><I>entry</I><B>, struct dirent **</B><I>result</I><B>);</B>
+</PRE>
+
+<P>
+
+Feature Test Macro Requirements for glibc (see
+<B><A HREF="/man/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)):
+
+
+
+<P>
+<B>readdir_r</B>():
+
+_POSIX_C_SOURCE&nbsp;&gt;=&nbsp;1 || _XOPEN_SOURCE || _BSD_SOURCE ||
+_SVID_SOURCE || _POSIX_SOURCE
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>readdir</B>()
+
+function returns a pointer to a <I>dirent</I> structure
+representing the next directory entry in the directory stream pointed
+to by <I>dirp</I>.
+It returns NULL on reaching the end of the directory stream or if
+an error occurred.
+<P>
+
+On Linux, the
+<I>dirent</I>
+
+structure is defined as follows:
+<P>
+
+
+<PRE>
+struct dirent {
+    ino_t          d_ino;       /* inode number */
+    off_t          d_off;       /* offset to the next dirent */
+    unsigned short d_reclen;    /* length of this record */
+    unsigned char  d_type;      /* type of file; not supported
+                                   by all file system types */
+    char           d_name[256]; /* filename */
+};
+</PRE>
+
+
+<P>
+
+The only fields in the
+<I>dirent</I>
+
+structure that are mandated by POSIX.1 are:
+<I>d_name</I>[],
+
+of unspecified size, with at most
+<B>NAME_MAX</B>
+
+characters preceding the terminating null byte;
+and (as an XSI extension)
+<I>d_ino</I>.
+
+The other fields are unstandardized, and not present on all systems;
+see NOTES below for some further details.
+<P>
+
+The data returned by
+<B>readdir</B>()
+
+may be overwritten by subsequent calls to
+<B>readdir</B>()
+
+for the same directory stream.
+<P>
+The
+<B>readdir_r</B>()
+
+function is a reentrant version of
+<B>readdir</B>().
+
+It reads the next directory entry from the directory stream
+<I>dirp</I>,
+
+and returns it in the caller-allocated buffer pointed to by
+<I>entry</I>.
+
+(See NOTES for information on allocating this buffer.)
+A pointer to the returned item is placed in
+<I>*result</I>;
+
+if the end of the directory stream was encountered,
+then NULL is instead returned in
+<I>*result</I>.
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success,
+<B>readdir</B>()
+
+returns a pointer to a
+<I>dirent</I>
+
+structure.
+(This structure may be statically allocated; do not attempt to
+<B><A HREF="/man/index.html?3+free">free</A></B>(3)
+
+it.)
+If the end of the directory stream is reached, NULL is returned and
+<I>errno</I>
+
+is not changed.
+If an error occurs, NULL is returned and
+<I>errno</I>
+
+is set appropriately.
+<P>
+The
+<B>readdir_r</B>()
+
+function returns 0 on success.
+On error, it returns a positive error number.
+If the end of the directory stream is reached,
+<B>readdir_r</B>()
+
+returns 0, and returns NULL in
+<I>*result</I>.
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EBADF</B>
+
+<DD>
+Invalid directory stream descriptor <I>dirp</I>.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+SVr4, 4.3BSD, POSIX.1-2001.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+Only the fields
+<I>d_name</I>
+
+and
+<I>d_ino</I>
+
+are specified in POSIX.1-2001.
+The remaining fields are available on many, but not all systems.
+Under glibc,
+programs can check for the availability of the fields not defined
+in POSIX.1 by testing whether the macros
+<B>_DIRENT_HAVE_D_NAMLEN</B>,
+
+<B>_DIRENT_HAVE_D_RECLEN</B>,
+
+<B>_DIRENT_HAVE_D_OFF</B>,
+
+or
+<B>_DIRENT_HAVE_D_TYPE</B>
+
+are defined.
+<P>
+Other than Linux, the
+<I>d_type</I>
+
+field is available mainly only on BSD systems.
+This field makes it possible to avoid the expense of calling
+<B><A HREF="/man/index.html?2+lstat">lstat</A></B>(2)
+
+if further actions depend on the type of the file.
+If the
+<B>_BSD_SOURCE</B>
+
+feature test macro is defined,
+then glibc defines the following macro constants
+for the value returned in
+<I>d_type</I>:
+
+<DL COMPACT>
+<DT><B>DT_BLK</B>
+
+<DD>
+This is a block device.
+<DT><B>DT_CHR</B>
+
+<DD>
+This is a character device.
+<DT><B>DT_DIR</B>
+
+<DD>
+This is a directory.
+<DT><B>DT_FIFO</B>
+
+<DD>
+This is a named pipe (FIFO).
+<DT><B>DT_LNK</B>
+
+<DD>
+This is a symbolic link.
+<DT><B>DT_REG</B>
+
+<DD>
+This is a regular file.
+<DT><B>DT_SOCK</B>
+
+<DD>
+This is a Unix domain socket.
+<DT><B>DT_UNKNOWN</B>
+
+<DD>
+The file type is unknown.
+
+
+</DL>
+<P>
+
+If the file type could not be determined, the value
+<B>DT_UNKNOWN</B>
+
+is returned in
+<I>d_type</I>.
+
+<P>
+Currently,
+
+
+only some file systems (among them: Btrfs, ext2, etx3, and ext4)
+have full support returning the file type in
+<I>d_type</I>.
+
+All applications must properly handle a return of
+<B>DT_UNKNOWN</B>.
+
+<P>
+Since POSIX.1 does not specify the size of the
+<I>d_name</I>
+
+field, and other non-standard fields may precede that field within the
+<I>dirent</I>
+
+structure, portable applications that use
+<B>readdir_r</B>()
+
+should allocate the buffer whose address is passed in
+<I>entry</I>
+
+as follows:
+
+<PRE>
+
+len = offsetof(struct dirent, d_name) +
+          pathconf(dirpath, _PC_NAME_MAX) + 1
+entryp = malloc(len);
+
+</PRE>
+
+
+(POSIX.1 requires that
+<I>d_name</I>
+
+is the last field in a
+<I>struct dirent</I>.)
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+getdents">getdents</A></B>(2),
+
+<B><A HREF="/man/index.html?2+read">read</A></B>(2),
+
+<B><A HREF="/man/index.html?3+closedir">closedir</A></B>(3),
+
+<B><A HREF="/man/index.html?3+dirfd">dirfd</A></B>(3),
+
+<B><A HREF="/man/index.html?3+ftw">ftw</A></B>(3),
+
+<B><A HREF="/man/index.html?3+offsetof">offsetof</A></B>(3),
+
+<B><A HREF="/man/index.html?3+opendir">opendir</A></B>(3),
+
+<B><A HREF="/man/index.html?3+rewinddir">rewinddir</A></B>(3),
+
+<B><A HREF="/man/index.html?3+scandir">scandir</A></B>(3),
+
+<B><A HREF="/man/index.html?3+seekdir">seekdir</A></B>(3),
+
+<B><A HREF="/man/index.html?3+telldir">telldir</A></B>(3),
+
+<B><A HREF="/man/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:38 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERL591DELTA</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERL591DELTA</H1>
+Section: Perl Programmers Reference Guide (1)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perl591delta - what is new for perl v5.9.1
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+This document describes differences between the 5.9.0 and the 5.9.1
+development releases. See perl590delta for the differences between
+5.8.0 and 5.9.0.
+<A NAME="lbAD">&nbsp;</A>
+<H2>Incompatible Changes</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3><I>substr()</I> lvalues are no longer fixed-length</H3>
+
+<A NAME="ixAAE"></A>
+The lvalues returned by the three argument form of <I>substr()</I> used to be a
+``fixed length window'' on the original string. In some cases this could
+cause surprising action at distance or other undefined behaviour. Now the
+length of the window adjusts itself to the length of the string assigned to
+it.
+<A NAME="lbAF">&nbsp;</A>
+<H3>The :unique attribute is only meaningful for globals</H3>
+
+
+
+<A NAME="ixAAF"></A>
+Now applying <TT>&quot;:unique&quot;</TT> to lexical variables and to subroutines will
+result in a compilation error.
+<A NAME="lbAG">&nbsp;</A>
+<H2>Core Enhancements</H2>
+
+<A NAME="ixAAG"></A>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Lexical $_</H3>
+
+
+
+<A NAME="ixAAH"></A>
+The default variable <TT>$_</TT> can now be lexicalized, by declaring it like
+any other lexical variable, with a simple
+<P>
+
+
+
+<PRE>
+    my $_;
+
+</PRE>
+
+
+<P>
+
+The operations that default on <TT>$_</TT> will use the lexically-scoped
+version of <TT>$_</TT> when it exists, instead of the global <TT>$_</TT>.
+<P>
+
+In a <TT>&quot;map&quot;</TT> or a <TT>&quot;grep&quot;</TT> block, if <TT>$_</TT> was previously my'ed, then the
+<TT>$_</TT> inside the block is lexical as well (and scoped to the block).
+<P>
+
+In a scope where <TT>$_</TT> has been lexicalized, you can still have access to
+the global version of <TT>$_</TT> by using <TT>$::_</TT>, or, more simply, by
+overriding the lexical declaration with <TT>&quot;our $_&quot;</TT>.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Tied hashes in scalar context</H3>
+
+<A NAME="ixAAI"></A>
+As of perl 5.8.2/5.9.0, tied hashes did not return anything useful in
+scalar context, for example when used as boolean tests:
+<P>
+
+
+
+<PRE>
+        if (%tied_hash) { ... }
+
+</PRE>
+
+
+<P>
+
+The old nonsensical behaviour was always to return false,
+regardless of whether the hash is empty or has elements.
+<P>
+
+There is now an interface for the implementors of tied hashes to implement
+the behaviour of a hash in scalar context, via the <FONT SIZE="-1">SCALAR</FONT> method (see
+perltie).  Without a <FONT SIZE="-1">SCALAR</FONT> method, perl will try to guess whether
+the hash is empty, by testing if it's inside an iteration (in this case
+it can't be empty) or by calling <FONT SIZE="-1">FIRSTKEY</FONT>.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Formats</H3>
+
+<A NAME="ixAAJ"></A>
+Formats were improved in several ways. A new field, <TT>&quot;^*&quot;</TT>, can be used for
+variable-width, one-line-at-a-time text. Null characters are now handled
+correctly in picture lines. Using <TT>&quot;@#&quot;</TT> and <TT>&quot;~~&quot;</TT> together will now
+produce a compile-time error, as those format fields are incompatible.
+perlform has been improved, and miscellaneous bugs fixed.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Stacked filetest operators</H3>
+
+<A NAME="ixAAK"></A>
+As a new form of syntactic sugar, it's now possible to stack up filetest
+operators. You can now write <TT>&quot;-f -w -x $file&quot;</TT> in a row to mean
+<TT>&quot;-x $file &amp;&amp; -w _ &amp;&amp; -f _&quot;</TT>. See ``-X'' in perlfunc.
+<A NAME="lbAL">&nbsp;</A>
+<H2>Modules and Pragmata</H2>
+
+<A NAME="ixAAL"></A>
+<DL COMPACT>
+<DT>Benchmark<DD>
+<A NAME="ixAAM"></A>
+In <TT>&quot;Benchmark&quot;</TT>, <I>cmpthese()</I> and <I>timestr()</I> now use the time statistics of
+children instead of parent when the selected style is 'nop'.
+<DT>Carp<DD>
+<A NAME="ixAAN"></A>
+The error messages produced by <TT>&quot;Carp&quot;</TT> now include spaces between the
+arguments in function argument lists: this makes long error messages
+appear more nicely in browsers and other tools.
+<DT>Exporter<DD>
+<A NAME="ixAAO"></A>
+<TT>&quot;Exporter&quot;</TT> will now recognize grouping tags (such as <TT>&quot;:name&quot;</TT>) anywhere
+in the import list, not only at the beginning.
+<DT>FindBin<DD>
+<A NAME="ixAAP"></A>
+A function <TT>&quot;again&quot;</TT> is provided to resolve problems where modules in different
+directories wish to use FindBin.
+<DT>List::Util<DD>
+<A NAME="ixAAQ"></A>
+You can now weaken references to read only values.
+<DT>threads::shared<DD>
+<A NAME="ixAAR"></A>
+<TT>&quot;cond_wait&quot;</TT> has a new two argument form. <TT>&quot;cond_timedwait&quot;</TT> has been added.
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H2>Utility Changes</H2>
+
+<A NAME="ixAAS"></A>
+<TT>&quot;find2perl&quot;</TT> now assumes <TT>&quot;-print&quot;</TT> as a default action. Previously, it
+needed to be specified explicitly.
+<P>
+
+A new utility, <TT>&quot;prove&quot;</TT>, makes it easy to run an individual regression test
+at the command line. <TT>&quot;prove&quot;</TT> is part of Test::Harness, which users of earlier
+Perl versions can install from <FONT SIZE="-1">CPAN</FONT>.
+<P>
+
+The perl debugger now supports a <TT>&quot;save&quot;</TT> command, to save the current
+history to a file, and an <TT>&quot;i&quot;</TT> command, which prints the inheritance tree
+of its argument (if the <TT>&quot;Class::ISA&quot;</TT> module is installed.)
+<A NAME="lbAN">&nbsp;</A>
+<H2>Documentation</H2>
+
+<A NAME="ixAAT"></A>
+The documentation has been revised in places to produce more standard manpages.
+<P>
+
+The long-existing feature of <TT>&quot;/(?{...})/&quot;</TT> regexps setting <TT>$_</TT> and <I>pos()</I>
+is now documented.
+<A NAME="lbAO">&nbsp;</A>
+<H2>Performance Enhancements</H2>
+
+<A NAME="ixAAU"></A>
+Sorting arrays in place (<TT>&quot;@a = sort @a&quot;</TT>) is now optimized to avoid
+making a temporary copy of the array.
+<P>
+
+The operations involving case mapping on <FONT SIZE="-1">UTF-8</FONT> strings (<I>uc()</I>, <I>lc()</I>,
+<TT>&quot;//i&quot;</TT>, etc.) have been greatly speeded up.
+<P>
+
+Access to elements of lexical arrays via a numeric constant between 0 and
+255 is now faster. (This used to be only the case for global arrays.)
+<A NAME="lbAP">&nbsp;</A>
+<H2>Selected Bug Fixes</H2>
+
+<A NAME="ixAAV"></A>
+<A NAME="lbAQ">&nbsp;</A>
+<H3><FONT SIZE="-1">UTF-8</FONT> bugs</H3>
+
+<A NAME="ixAAW"></A>
+Using <I>substr()</I> on a <FONT SIZE="-1">UTF-8</FONT> string could cause subsequent accesses on that
+string to return garbage. This was due to incorrect <FONT SIZE="-1">UTF-8</FONT> offsets being
+cached, and is now fixed.
+<P>
+
+<I>join()</I> could return garbage when the same <I>join()</I> statement was used to
+process 8 bit data having earlier processed <FONT SIZE="-1">UTF-8</FONT> data, due to the flags
+on that statement's temporary workspace not being reset correctly. This
+is now fixed.
+<P>
+
+Using Unicode keys with tied hashes should now work correctly.
+<P>
+
+<I>chop()</I> and <I>chomp()</I> used to mangle <FONT SIZE="-1">UTF-8</FONT> strings.  This has been fixed.
+<P>
+
+<I>sprintf()</I> used to misbehave when the format string was in <FONT SIZE="-1">UTF-8</FONT>. This is
+now fixed.
+<A NAME="lbAR">&nbsp;</A>
+<H3>Threading bugs</H3>
+
+<A NAME="ixAAX"></A>
+Hashes with the <TT>&quot;:unique&quot;</TT> attribute weren't made read-only in new
+threads. They are now.
+<A NAME="lbAS">&nbsp;</A>
+<H3>More bugs</H3>
+
+<A NAME="ixAAY"></A>
+<TT>&quot;$a .. $b&quot;</TT> will now work as expected when either <TT>$a</TT> or <TT>$b</TT> is <TT>&quot;undef&quot;</TT>.
+<P>
+
+Reading $^E now preserves $!. Previously, the C code implementing $^E
+did not preserve <TT>&quot;errno&quot;</TT>, so reading $^E could cause <TT>&quot;errno&quot;</TT> and therefore
+<TT>$!</TT> to change unexpectedly.
+<P>
+
+<TT>&quot;strict&quot;</TT> wasn't in effect in regexp-eval blocks (<TT>&quot;/(?{...})/&quot;</TT>).
+<A NAME="lbAT">&nbsp;</A>
+<H2>New or Changed Diagnostics</H2>
+
+<A NAME="ixAAZ"></A>
+A new deprecation warning, <I>Deprecated use of my() in false conditional</I>,
+has been added, to warn against the use of the dubious and deprecated
+construct
+<P>
+
+
+
+<PRE>
+    my $x if 0;
+
+</PRE>
+
+
+<P>
+
+See perldiag.
+<P>
+
+The fatal error <I></I><FONT SIZE="-1"><I>DESTROY</I></FONT><I> created new reference to dead object</I> is now
+documented in perldiag.
+<P>
+
+A new error, <I></I>%ENV<I> is aliased to </I>%s<I></I>, is produced when taint checks are
+enabled and when <TT>*ENV</TT> has been aliased (and thus doesn't reflect the
+program's environment anymore.)
+<A NAME="lbAU">&nbsp;</A>
+<H2>Changed Internals</H2>
+
+<A NAME="ixABA"></A>
+These news matter to you only if you either write <FONT SIZE="-1">XS</FONT> code or like to
+know about or hack Perl internals (using Devel::Peek or any of the
+<TT>&quot;B::&quot;</TT> modules counts), or like to run Perl with the <TT>&quot;-D&quot;</TT> option.
+<A NAME="lbAV">&nbsp;</A>
+<H3>Reordering of SVt_* constants</H3>
+
+<A NAME="ixABB"></A>
+The relative ordering of constants that define the various types of <TT>&quot;SV&quot;</TT>
+have changed; in particular, <TT>&quot;SVt_PVGV&quot;</TT> has been moved before <TT>&quot;SVt_PVLV&quot;</TT>,
+<TT>&quot;SVt_PVAV&quot;</TT>, <TT>&quot;SVt_PVHV&quot;</TT> and <TT>&quot;SVt_PVCV&quot;</TT>.  This is unlikely to make any
+difference unless you have code that explicitly makes assumptions about that
+ordering. (The inheritance hierarchy of <TT>&quot;B::*&quot;</TT> objects has been changed
+to reflect this.)
+<A NAME="lbAW">&nbsp;</A>
+<H3>Removal of <FONT SIZE="-1">CPP</FONT> symbols</H3>
+
+<A NAME="ixABC"></A>
+The C preprocessor symbols <TT>&quot;PERL_PM_APIVERSION&quot;</TT> and
+<TT>&quot;PERL_XS_APIVERSION&quot;</TT>, which were supposed to give the version number of
+the oldest perl binary-compatible (resp. source-compatible) with the
+present one, were not used, and sometimes had misleading values. They have
+been removed.
+<A NAME="lbAX">&nbsp;</A>
+<H3>Less space is used by ops</H3>
+
+<A NAME="ixABD"></A>
+The <TT>&quot;BASEOP&quot;</TT> structure now uses less space. The <TT>&quot;op_seq&quot;</TT> field has been
+removed and replaced by two one-bit fields, <TT>&quot;op_opt&quot;</TT> and <TT>&quot;op_static&quot;</TT>.
+<TT>&quot;opt_type&quot;</TT> is now 9 bits long. (Consequently, the <TT>&quot;B::OP&quot;</TT> class doesn't
+provide an <TT>&quot;seq&quot;</TT> method anymore.)
+<A NAME="lbAY">&nbsp;</A>
+<H3>New parser</H3>
+
+<A NAME="ixABE"></A>
+perl's parser is now generated by bison (it used to be generated by
+byacc.) As a result, it seems to be a bit more robust.
+<A NAME="lbAZ">&nbsp;</A>
+<H2>Configuration and Building</H2>
+
+<A NAME="ixABF"></A>
+<TT>&quot;Configure&quot;</TT> now invokes callbacks regardless of the value of the variable
+they are called for. Previously callbacks were only invoked in the
+<TT>&quot;case $variable $define)&quot;</TT> branch. This change should only affect platform
+maintainers writing configuration hints files.
+<P>
+
+The portability and cleanliness of the Win32 makefiles has been improved.
+<A NAME="lbBA">&nbsp;</A>
+<H2>Known Problems</H2>
+
+<A NAME="ixABG"></A>
+There are still a couple of problems in the implementation of the lexical
+<TT>$_</TT>: it doesn't work inside <TT>&quot;/(?{...})/&quot;</TT> blocks and with regard to the
+<I>reverse()</I> built-in used without arguments. (See the <FONT SIZE="-1">TODO</FONT> tests in
+<I>t/op/mydef.t</I>.)
+<A NAME="lbBB">&nbsp;</A>
+<H3>Platform Specific Problems</H3>
+
+<A NAME="ixABH"></A>
+The test <I>ext/IPC/SysV/t/ipcsysv.t</I> may fail on OpenBSD. This hasn't been
+diagnosed yet.
+<P>
+
+On some configurations on <FONT SIZE="-1">AIX</FONT> 5, one test in <I>lib/Time/Local.t</I> fails.
+When configured with long doubles, perl may fail tests 224-236 in
+<I>t/op/pow.t</I> on the same platform.
+<P>
+
+For threaded builds, <I>ext/threads/shared/t/wait.t</I> has been reported to
+fail some tests on HP-UX 10.20.
+<A NAME="lbBC">&nbsp;</A>
+<H2>To-do for perl 5.10.0</H2>
+
+<A NAME="ixABI"></A>
+This is a non-exhaustive, non-ordered, non-contractual and non-definitive
+list of things to do (or nice to have) for perl 5.10.0 :
+<P>
+
+Clean up and finish support for assertions. See assertions.
+<P>
+
+Reimplement the mechanism of lexical pragmas to be more extensible. Fix
+current pragmas that don't work well (or at all) with lexical scopes or in
+run-time eval(<FONT SIZE="-1">STRING</FONT>) (<TT>&quot;sort&quot;</TT>, <TT>&quot;re&quot;</TT>, <TT>&quot;encoding&quot;</TT> for example). <FONT SIZE="-1">MJD</FONT> has a
+preliminary patch that implements this.
+<P>
+
+Fix (or rewrite) the implementation of the <TT>&quot;/(?{...})/&quot;</TT> closures.
+<P>
+
+Conversions from byte strings to <FONT SIZE="-1">UTF-8</FONT> currently map high bit characters
+to Unicode without translation (or, depending on how you look at it, by
+implicitly assuming that the byte strings are in Latin-1). As perl assumes
+the C locale by default, upgrading a string to <FONT SIZE="-1">UTF-8</FONT> may change the
+meaning of its contents regarding character classes, case mapping, etc.
+This should probably emit a warning (at least).
+<P>
+
+Introduce a new special block, <FONT SIZE="-1">UNITCHECK</FONT>, which is run at the end of a
+compilation unit (module, file, eval(<FONT SIZE="-1">STRING</FONT>) block). This will correspond to
+the Perl 6 <FONT SIZE="-1">CHECK</FONT>. Perl 5's <FONT SIZE="-1">CHECK</FONT> cannot be changed or removed because the
+O.pm/B.pm backend framework depends on it.
+<P>
+
+Study the possibility of adding a new prototype character, <TT>&quot;_&quot;</TT>, meaning
+``this argument defaults to <TT>$_</TT>''.
+<P>
+
+Make the peephole optimizer optional.
+<P>
+
+Allow lexical aliases (maybe via the syntax <TT>&quot;my \$alias = \$foo&quot;</TT>.
+<P>
+
+Fix the bugs revealed by running the test suite with the <TT>&quot;-t&quot;</TT> switch (via
+<TT>&quot;make test.taintwarn&quot;</TT>).
+<P>
+
+Make threads more robust.
+<P>
+
+Make <TT>&quot;no 6&quot;</TT> and <TT>&quot;no v6&quot;</TT> work (opposite of <TT>&quot;use 5.005&quot;</TT>, etc.).
+<P>
+
+A test suite for the B module would be nice.
+<P>
+
+A ponie.
+<A NAME="lbBD">&nbsp;</A>
+<H2>Reporting Bugs</H2>
+
+<A NAME="ixABJ"></A>
+If you find what you think is a bug, you might check the articles
+recently posted to the comp.lang.perl.misc newsgroup and the perl
+bug database at <A HREF="http://bugs.perl.org/">http://bugs.perl.org/</A> .  There may also be
+information at <A HREF="http://www.perl.org/">http://www.perl.org/</A> , the Perl Home Page.
+<P>
+
+If you believe you have an unreported bug, please run the <B>perlbug</B>
+program included with your release.  Be sure to trim your bug down
+to a tiny but sufficient test case.  Your bug report, along with the
+output of <TT>&quot;perl -V&quot;</TT>, will be sent off to <A HREF="mailto:perlbug@perl.org">perlbug@perl.org</A> to be
+analysed by the Perl porting team.
+<A NAME="lbBE">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABK"></A>
+The <I>Changes</I> file for exhaustive details on what changed.
+<P>
+
+The <I></I><FONT SIZE="-1"><I>INSTALL</I></FONT><I></I> file for how to build Perl.
+<P>
+
+The <I></I><FONT SIZE="-1"><I>README</I></FONT><I></I> file for general stuff.
+<P>
+
+The <I>Artistic</I> and <I>Copying</I> files for copyright information.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">Incompatible Changes</A><DD>
+<DL>
+<DT><A HREF="#lbAE"><I>substr()</I> lvalues are no longer fixed-length</A><DD>
+<DT><A HREF="#lbAF">The :unique attribute is only meaningful for globals</A><DD>
+</DL>
+<DT><A HREF="#lbAG">Core Enhancements</A><DD>
+<DL>
+<DT><A HREF="#lbAH">Lexical $_</A><DD>
+<DT><A HREF="#lbAI">Tied hashes in scalar context</A><DD>
+<DT><A HREF="#lbAJ">Formats</A><DD>
+<DT><A HREF="#lbAK">Stacked filetest operators</A><DD>
+</DL>
+<DT><A HREF="#lbAL">Modules and Pragmata</A><DD>
+<DT><A HREF="#lbAM">Utility Changes</A><DD>
+<DT><A HREF="#lbAN">Documentation</A><DD>
+<DT><A HREF="#lbAO">Performance Enhancements</A><DD>
+<DT><A HREF="#lbAP">Selected Bug Fixes</A><DD>
+<DL>
+<DT><A HREF="#lbAQ"><FONT SIZE="-1">UTF-8</FONT> bugs</A><DD>
+<DT><A HREF="#lbAR">Threading bugs</A><DD>
+<DT><A HREF="#lbAS">More bugs</A><DD>
+</DL>
+<DT><A HREF="#lbAT">New or Changed Diagnostics</A><DD>
+<DT><A HREF="#lbAU">Changed Internals</A><DD>
+<DL>
+<DT><A HREF="#lbAV">Reordering of SVt_* constants</A><DD>
+<DT><A HREF="#lbAW">Removal of <FONT SIZE="-1">CPP</FONT> symbols</A><DD>
+<DT><A HREF="#lbAX">Less space is used by ops</A><DD>
+<DT><A HREF="#lbAY">New parser</A><DD>
+</DL>
+<DT><A HREF="#lbAZ">Configuration and Building</A><DD>
+<DT><A HREF="#lbBA">Known Problems</A><DD>
+<DL>
+<DT><A HREF="#lbBB">Platform Specific Problems</A><DD>
+</DL>
+<DT><A HREF="#lbBC">To-do for perl 5.10.0</A><DD>
+<DT><A HREF="#lbBD">Reporting Bugs</A><DD>
+<DT><A HREF="#lbBE">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:07 GMT, December 24, 2015
+</div></body>
+</HTML>

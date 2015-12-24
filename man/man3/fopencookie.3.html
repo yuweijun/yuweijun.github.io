@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of FOPENCOOKIE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>FOPENCOOKIE</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2008-12-05<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+fopencookie - opening a custom stream
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#define _GNU_SOURCE</B>
+<B>#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;</B>
+
+<B>FILE *fopencookie(void *</B><I>cookie</I><B>, const char *</B><I>mode</I><B>,</B>
+<B>                  cookie_io_functions_t </B><I>io_funcs</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>fopencookie</B>()
+
+function allows the programmer to create a custom implementation
+for a standard I/O stream.
+This implementation can store the stream's data at a location of
+its own choosing; for example,
+<B>fopencookie</B>()
+
+is used to implement
+<B><A HREF="/man/index.html?3+fmemopen">fmemopen</A></B>(3),
+
+which provides a steam interface to data that is stored in a
+buffer in memory.
+<P>
+In order to create a custom stream the programmer must:
+<DL COMPACT>
+<DT>*<DD>
+Implement four &quot;hook&quot; functions that are used internally by the
+standard I/O library when performing I/O on the stream.
+<DT>*<DD>
+Define a &quot;cookie&quot; data type,
+a structure that provides bookkeeping information
+(e.g., where to store data) used by the aforementioned hook functions.
+The standard I/O package knows nothing about the contents of this cookie
+(thus it is typed as
+<I>void&nbsp;*</I>
+
+when passed to
+<B>fopencookie</B>()),
+
+but automatically supplies the cookie
+as the first argument when calling the hook functions.
+<DT>*<DD>
+Call
+<B>fopencookie</B>()
+
+to open a new stream and associate the cookie and hook functions
+with that stream.
+</DL>
+<P>
+
+The
+<B>fopencookie</B>()
+
+function serves a purpose similar to
+<B><A HREF="/man/index.html?3+fopen">fopen</A></B>(3):
+
+it opens a new stream and returns a pointer to a
+<I>FILE</I>
+
+object that is used to operate on that stream.
+<P>
+The
+<I>cookie</I>
+
+argument is a pointer to the caller's cookie structure
+that is to be associated with the new stream.
+This pointer is supplied as the first argument when the standard I/O
+library invokes any of the hook functions described below.
+<P>
+The
+<I>mode</I>
+
+argument serves the same purpose as for
+<B><A HREF="/man/index.html?3+fopen">fopen</A></B>(3).
+
+The following modes are supported:
+<I>r</I>,
+
+<I>w</I>,
+
+<I>a</I>,
+
+<I>r+</I>,
+
+<I>w+</I>,
+
+and
+<I>a+</I>.
+
+See
+<B><A HREF="/man/index.html?3+fopen">fopen</A></B>(3)
+
+for details.
+<P>
+The
+<I>io_funcs</I>
+
+argument is a structure that contains four fields pointing to the
+programmer-defined hook functions that are used to implement this stream.
+The structure is defined as follows
+
+<PRE>
+
+struct cookie_io_functions_t {
+    cookie_read_function_t  *read;
+    cookie_write_function_t *write;
+    cookie_seek_function_t  *seek;
+    cookie_close_function_t *close;
+};
+
+</PRE>
+
+
+The four fields are as follows:
+<DL COMPACT>
+<DT><I>cookie_read_function_t *read</I>
+
+<DD>
+This function implements read operations for the stream.
+When called, it receives three arguments:
+<P>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;ssize_t&nbsp;read(void&nbsp;*cookie,&nbsp;char&nbsp;*buf,&nbsp;size_t&nbsp;size);
+<P>
+The
+<I>buf</I>
+
+and
+<I>size</I>
+
+arguments are, respectively,
+a buffer into which input data can be placed and the size of that buffer.
+As its function result, the
+<I>read</I>
+
+function should return the number of bytes copied into
+<I>buf</I>,
+
+0 on end of file, or -1 on error.
+The
+<I>read</I>
+
+function should update the stream offset appropriately.
+<P>
+If
+<I>*read</I>
+
+is a NULL pointer,
+then reads from the custom stream always return end of file.
+<DT><I>cookie_write_function_t *write</I>
+
+<DD>
+This function implements write operations for the stream.
+When called, it receives three arguments:
+<P>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;ssize_t&nbsp;write(void&nbsp;*cookie,&nbsp;const&nbsp;char&nbsp;*buf,&nbsp;size_t&nbsp;size);
+<P>
+The
+<I>buf</I>
+
+and
+<I>size</I>
+
+arguments are, respectively,
+a buffer of data to be output to the stream and the size of that buffer.
+As its function result, the
+<I>write</I>
+
+function should return the number of bytes copied from
+<I>buf</I>,
+
+or -1 on error.
+The
+<I>write</I>
+
+function should update the stream offset appropriately.
+<P>
+If
+<I>*write</I>
+
+is a NULL pointer,
+then output to the stream is discarded.
+<DT><I>cookie_seek_function_t *seek</I>
+
+<DD>
+This function implements seek operations on the stream.
+When called, it receives three arguments:
+<P>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;seek(void&nbsp;*cookie,&nbsp;off64_t&nbsp;*offset,&nbsp;int&nbsp;whence);
+<P>
+The
+<I>*offset</I>
+
+argument specifies the new file offset depending on which
+of the following three values is supplied in
+<I>whence</I>:
+
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>SEEK_SET</B>
+
+<DD>
+The stream offset should be set
+<I>*offset</I>
+
+bytes from the start of the stream.
+<DT><B>SEEK_CUR</B>
+
+<DD>
+<I>*offset</I>
+
+should be added to the current stream offset.
+<DT><B>SEEK_END</B>
+
+<DD>
+The stream offset should be set to the size of the stream plus
+<I>*offset</I>.
+
+</DL>
+</DL>
+
+<DT><DD>
+Before returning, the
+<I>seek</I>
+
+function should update
+<I>*offset</I>
+
+to indicate the new stream offset.
+<P>
+As its function result, the
+<I>seek</I>
+
+function should return 0 on success, and -1 on error.
+<P>
+If
+<I>*seek</I>
+
+is a NULL pointer,
+then it is not possible to perform seek operations on the stream.
+<DT><I>cookie_close_function_t *close</I>
+
+<DD>
+This function closes the stream.
+The hook function can do things such as freeing buffers allocated
+for the stream.
+When called, it receives one argument:
+<P>
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;int&nbsp;close(void&nbsp;*cookie);
+<P>
+The
+<I>cookie</I>
+
+argument is the cookie that the programmer supplied when calling
+<B>fopencookie</B>().
+
+<P>
+As its function result, the
+<I>close</I>
+
+function should return 0 on success, and
+<B>EOF</B>
+
+on error.
+<P>
+If
+<I>*close</I>
+
+is NULL, then no special action is performed when the stream is closed.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success
+<B>fopencookie</B>()
+
+returns a pointer to the new stream.
+On error, NULL is returned.
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+This function is a non-standard GNU extension.
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+The program below implements a custom stream whose functionality
+is similar (but not identical) to that available via
+<B><A HREF="/man/index.html?3+fmemopen">fmemopen</A></B>(3).
+
+It implements a stream whose data is stored in a memory buffer.
+The program writes its command-line arguments to the stream,
+and then seeks through the stream reading two out of every
+five characters and writing them to standard output.
+The following shell session demonstrates the use of the program:
+
+<PRE>
+
+$<B> ./a.out aqhello worldaq</B>
+/he/
+/ w/
+/d/
+Reached end of file
+
+</PRE>
+
+
+Note that a more general version of the program below
+could be improved to more robustly handle various error situations
+(e.g., opening a stream with a cookie that already has an open stream;
+closing a stream that has already been closed).
+<A NAME="lbAH">&nbsp;</A>
+<H3>Program source</H3>
+
+
+<PRE>
+#define _GNU_SOURCE
+#include &lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/string.h">string.h</A>&gt;
+
+#define INIT_BUF_SIZE 4
+
+struct memfile_cookie {
+    char   *buf;        /* Dynamically sized buffer for data */
+    size_t  allocated;  /* Size of buf */
+    size_t  endpos;     /* Number of characters in buf */
+    off_t   offset;     /* Current file offset in buf */
+};
+
+ssize_t
+memfile_write(void *c, const char *buf, size_t size)
+{
+    char *new_buff;
+    struct memfile_cookie *cookie = c;
+
+    /* Buffer too small? Keep doubling size until big enough */
+
+    while (size + cookie-&gt;offset &gt; cookie-&gt;allocated) {
+        new_buff = realloc(cookie-&gt;buf, cookie-&gt;allocated * 2);
+        if (new_buff == NULL) {
+            return -1;
+        } else {
+            cookie-&gt;allocated *= 2;
+            cookie-&gt;buf = new_buff;
+        }
+    }
+
+    memcpy(cookie-&gt;buf + cookie-&gt;offset, buf, size);
+
+    cookie-&gt;offset += size;
+    if (cookie-&gt;offset &gt; cookie-&gt;endpos)
+        cookie-&gt;endpos = cookie-&gt;offset;
+
+    return size;
+}
+
+ssize_t
+memfile_read(void *c, char *buf, size_t size)
+{
+    ssize_t xbytes;
+    struct memfile_cookie *cookie = c;
+
+    /* Fetch minimum of bytes requested and bytes available */
+
+    xbytes = size;
+    if (cookie-&gt;offset + size &gt; cookie-&gt;endpos)
+        xbytes = cookie-&gt;endpos - cookie-&gt;offset;
+    if (xbytes &lt; 0)     /* offset may be past endpos */
+       xbytes = 0;
+
+    memcpy(buf, cookie-&gt;buf + cookie-&gt;offset, xbytes);
+
+    cookie-&gt;offset += xbytes;
+    return xbytes;
+}
+
+int
+memfile_seek(void *c, off64_t *offset, int whence)
+{
+    off64_t new_offset;
+    struct memfile_cookie *cookie = c;
+
+    if (whence == SEEK_SET)
+        new_offset = *offset;
+    else if (whence == SEEK_END)
+        new_offset = cookie-&gt;endpos + *offset;
+    else if (whence == SEEK_CUR)
+        new_offset = cookie-&gt;offset + *offset;
+    else
+        return -1;
+
+    if (new_offset &lt; 0)
+        return -1;
+
+    cookie-&gt;offset = new_offset;
+    *offset = new_offset;
+    return 0;
+}
+
+int
+memfile_close(void *c)
+{
+    struct memfile_cookie *cookie = c;
+
+    free(cookie-&gt;buf);
+    cookie-&gt;allocated = 0;
+    cookie-&gt;buf = NULL;
+
+    return 0;
+}
+
+int
+main(int argc, char *argv[])
+{
+    cookie_io_functions_t  memfile_func = {
+        .read  = memfile_read,
+        .write = memfile_write,
+        .seek  = memfile_seek,
+        .close = memfile_close
+    };
+    FILE *fp;
+    struct memfile_cookie mycookie;
+    ssize_t nread;
+    long p;
+    int j;
+    char buf[1000];
+
+    /* Set up the cookie before calling fopencookie() */
+
+    mycookie.buf = malloc(INIT_BUF_SIZE);
+    if (mycookie.buf == NULL) {
+        perror(&quot;malloc&quot;);
+        exit(EXIT_FAILURE);
+    }
+
+    mycookie.allocated = INIT_BUF_SIZE;
+    mycookie.offset = 0;
+    mycookie.endpos = 0;
+
+    fp = fopencookie(&amp;mycookie,&quot;w+&quot;, memfile_func);
+    if (fp == NULL) {
+        perror(&quot;fopencookie&quot;);
+        exit(EXIT_FAILURE);
+    }
+
+    /* Write command-line arguments to our file */
+
+    for (j = 1; j &lt; argc; j++)
+        if (fputs(argv[j], fp) == EOF) {
+            perror(&quot;fputs&quot;);
+            exit(EXIT_FAILURE);
+        }
+
+    /* Read two bytes out of every five, until EOF */
+
+    for (p = 0; ; p += 5) {
+        if (fseek(fp, p, SEEK_SET) == -1) {
+            perror(&quot;fseek&quot;);
+            exit(EXIT_FAILURE);
+        }
+        nread = fread(buf, 1, 2, fp);
+        if (nread == -1) {
+            perror(&quot;fread&quot;);
+            exit(EXIT_FAILURE);
+        }
+        if (nread == 0) {
+            printf(&quot;Reached end of file\n&quot;);
+            break;
+        }
+
+        printf(&quot;/%.*s/\n&quot;, nread, buf);
+    }
+
+    exit(EXIT_SUCCESS);
+}
+</PRE>
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?3+fclose">fclose</A></B>(3),
+
+<B><A HREF="/man/index.html?3+fmemopen">fmemopen</A></B>(3),
+
+<B><A HREF="/man/index.html?3+fopen">fopen</A></B>(3),
+
+<B><A HREF="/man/index.html?3+fseek">fseek</A></B>(3),
+
+<B><A HREF="/man/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAG">EXAMPLE</A><DD>
+<DL>
+<DT><A HREF="#lbAH">Program source</A><DD>
+</DL>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:27 GMT, December 24, 2015
+</div></body>
+</HTML>

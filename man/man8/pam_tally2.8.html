@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PAM_TALLY2</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PAM_TALLY2</H1>
+Section: Linux\-PAM Manual (8)<BR>Updated: 06/16/2009<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pam_tally2 - The login counter (tallying) module
+<A NAME="lbAB">&nbsp;</A>
+<H2>Synopsis</H2>
+
+
+<DL COMPACT>
+<DT>
+<B>pam_tally2.so</B> [file=<I>/path/to/counter</I>] [onerr=[<I>fail</I>|<I>succeed</I>]] [magic_root] [even_deny_root] [deny=<I>n</I>] [lock_time=<I>n</I>] [unlock_time=<I>n</I>] [root_unlock_time=<I>n</I>] [serialize] [audit] [silent] [no_log_info]
+
+
+<DT>
+<B>pam_tally2</B> [--file&nbsp;<I>/path/to/counter</I>] [--user&nbsp;<I>username</I>] [--reset[=<I>n</I>]] [--quiet]
+
+</DL>
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<DD>This module maintains a count of attempted accesses, can reset count on success, can deny access if too many attempts fail.
+<P>
+
+pam_tally2 comes in two parts:
+<B>pam_tally2.so</B>
+and
+<B>pam_tally2</B>. The former is the PAM module and the latter, a stand-alone program.
+<B>pam_tally2</B>
+is an (optional) application which can be used to interrogate and manipulate the counter file. It can display users' counts, set individual counts, or clear all counts. Setting artificially high counts may be useful for blocking users without changing their passwords. For example, one might find it useful to clear all counts every midnight from a cron job.
+<P>
+
+Normally, failed attempts to access
+<I>root</I>
+will
+<B>not</B>
+cause the root account to become blocked, to prevent denial-of-service: if your users aren't given shell accounts and root may only login via
+<B>su</B>
+or at the machine console (not telnet/rsh, etc), this is safe.
+<A NAME="lbAD">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+
+GLOBAL OPTIONS
+<DL COMPACT><DT><DD>
+This can be used for
+<I>auth</I>
+and
+<I>account</I>
+module types.
+<P>
+
+<B>onerr=[</B><B></B><I>fail</I><B>|</B><B></B><I>succeed</I><B>]</B>
+<DL COMPACT><DT><DD>
+If something weird happens (like unable to open the file), return with
+<B>PAM_SUCCESS</B>
+if
+<B>onerr=</B><B></B><I>succeed</I>
+is given, else with the corresponding PAM error code.
+</DL>
+
+<P>
+
+<B>file=</B><B></B><I>/path/to/counter</I>
+<DL COMPACT><DT><DD>
+File where to keep counts. Default is
+FC/var/log/tallylogF[].
+</DL>
+
+<P>
+
+<B>audit</B>
+<DL COMPACT><DT><DD>
+Will log the user name into the system log if the user is not found.
+</DL>
+
+<P>
+
+<B>silent</B>
+<DL COMPACT><DT><DD>
+Don't print informative messages.
+</DL>
+
+<P>
+
+<B>no_log_info</B>
+<DL COMPACT><DT><DD>
+Don't log informative messages via
+<B><A HREF="/man/index.html?3+syslog">syslog</A></B>(3).
+</DL>
+
+</DL>
+
+<P>
+
+AUTH OPTIONS
+<DL COMPACT><DT><DD>
+Authentication phase first increments attempted login counter and checks if user should be denied access. If the user is authenticated and the login process continues on call to
+<B><A HREF="/man/index.html?3+pam_setcred">pam_setcred</A></B>(3)
+it resets the attempts counter.
+<P>
+
+<B>deny=</B><B></B><I>n</I>
+<DL COMPACT><DT><DD>
+Deny access if tally for this user exceeds
+<I>n</I>.
+</DL>
+
+<P>
+
+<B>lock_time=</B><B></B><I>n</I>
+<DL COMPACT><DT><DD>
+Always deny for
+<I>n</I>
+seconds after failed attempt.
+</DL>
+
+<P>
+
+<B>unlock_time=</B><B></B><I>n</I>
+<DL COMPACT><DT><DD>
+Allow access after
+<I>n</I>
+seconds after failed attempt. If this option is used the user will be locked out for the specified amount of time after he exceeded his maximum allowed attempts. Otherwise the account is locked until the lock is removed by a manual intervention of the system administrator.
+</DL>
+
+<P>
+
+<B>magic_root</B>
+<DL COMPACT><DT><DD>
+If the module is invoked by a user with uid=0 the counter is not incremented. The sysadmin should use this for user launched services, like
+<B>su</B>, otherwise this argument should be omitted.
+</DL>
+
+<P>
+
+<B>no_lock_time</B>
+<DL COMPACT><DT><DD>
+Do not use the .fail_locktime field in
+FC/var/log/faillogF[]
+for this user.
+</DL>
+
+<P>
+
+<B>even_deny_root</B>
+<DL COMPACT><DT><DD>
+Root account can become unavailable.
+</DL>
+
+<P>
+
+<B>root_unlock_time=</B><B></B><I>n</I>
+<DL COMPACT><DT><DD>
+This option implies
+<B>even_deny_root</B>
+option. Allow access after
+<I>n</I>
+seconds to root account after failed attempt. If this option is used the root user will be locked out for the specified amount of time after he exceeded his maximum allowed attempts.
+</DL>
+
+<P>
+
+<B>serialize</B>
+<DL COMPACT><DT><DD>
+Serialize access to the tally file using locks. This option might be used only for non-multithreaded services because it depends on the fcntl locking of the tally file. Also it is a good idea to use this option only in such configurations where the time between auth phase and account or setcred phase is not dependent on the authenticating client. Otherwise the authenticating client will be able to prevent simultaneous authentications by the same user by simply artificially prolonging the time the file record lock is held.
+</DL>
+
+</DL>
+
+<P>
+
+ACCOUNT OPTIONS
+<DL COMPACT><DT><DD>
+Account phase resets attempts counter if the user is
+<B>not</B>
+magic root. This phase can be used optionally for services which don't call
+<B><A HREF="/man/index.html?3+pam_setcred">pam_setcred</A></B>(3)
+correctly or if the reset should be done regardless of the failure of the account phase of other modules.
+<P>
+
+<B>magic_root</B>
+<DL COMPACT><DT><DD>
+If the module is invoked by a user with uid=0 the counter is not changed. The sysadmin should use this for user launched services, like
+<B>su</B>, otherwise this argument should be omitted.
+</DL>
+
+</DL>
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>MODULE TYPES PROVIDED</H2>
+
+<P>
+
+The
+<B>auth</B>
+and
+<B>account</B>
+module types are provided.
+<A NAME="lbAF">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<P>
+
+PAM_AUTH_ERR
+<DL COMPACT><DT><DD>
+A invalid option was given, the module was not able to retrieve the user name, no valid counter file was found, or too many failed logins.
+</DL>
+
+<P>
+
+PAM_SUCCESS
+<DL COMPACT><DT><DD>
+Everything was successful.
+</DL>
+
+<P>
+
+PAM_USER_UNKNOWN
+<DL COMPACT><DT><DD>
+User not known.
+</DL>
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+pam_tally2 is not compatible with the old pam_tally faillog file format. This is caused by requirement of compatibility of the tallylog file format between 32bit and 64bit architectures on multiarch systems.
+<P>
+
+There is no setuid wrapper for access to the data file such as when the
+<B>pam_tally2.so</B>
+module is called from xscreensaver. As this would make it impossible to share PAM configuration with such services the following workaround is used: If the data file cannot be opened because of insufficient permissions (<B>EACCES</B>) the module returns
+<B>PAM_IGNORE</B>.
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+Add the following line to
+FC/etc/pam.d/loginF[]
+to lock the account after 4 failed logins. Root account will be locked as well. The accounts will be automatically unlocked after 20 minutes. The module does not have to be called in the account phase because the
+<B>login</B>
+calls
+<B><A HREF="/man/index.html?3+pam_setcred">pam_setcred</A></B>(3)
+correctly.
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+
+<FONT SIZE="-1">
+</FONT><PRE>
+
+
+auth     required       pam_securetty.so
+auth     required       pam_tally2.so deny=4 even_deny_root unlock_time=1200
+auth     required       pam_env.so
+auth     required       pam_unix.so
+auth     required       pam_nologin.so
+account  required       pam_unix.so
+password required       pam_unix.so
+session  required       pam_limits.so
+session  required       pam_unix.so
+session  required       pam_lastlog.so nowtmp
+session  optional       pam_mail.so standard
+    
+</PRE>
+
+
+<FONT SIZE="+1">
+</DL>
+
+
+
+
+</FONT><A NAME="lbAI">&nbsp;</A>
+<H2>FILES</H2>
+
+<P>
+
+FC/var/log/tallylogF[]
+<DL COMPACT><DT><DD>
+failure count logging file
+</DL>
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<P>
+<B><A HREF="/man/index.html?5+pam.conf">pam.conf</A></B>(5),
+<B><A HREF="/man/index.html?5+pam.d">pam.d</A></B>(5),
+<B><A HREF="/man/index.html?8+pam">pam</A></B>(8)
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<P>
+
+pam_tally2 was written by Tim Baverstock and Tomas Mraz.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">Synopsis</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">OPTIONS</A><DD>
+<DT><A HREF="#lbAE">MODULE TYPES PROVIDED</A><DD>
+<DT><A HREF="#lbAF">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">EXAMPLES</A><DD>
+<DT><A HREF="#lbAI">FILES</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:28 GMT, December 24, 2015
+</div></body>
+</HTML>

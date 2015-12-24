@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of guestfs-testing</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>guestfs-testing</H1>
+Section: Virtualization Support (1)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+guestfs-testing - manual testing of libguestfs, you can help!
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+This page has manual tests you can try on libguestfs.  Everyone has a
+slightly different combination of platform, hardware and guests, so
+this testing is very valuable.  Thanks for helping out!
+<P>
+
+These tests require libguestfs ≥ 1.14.
+<P>
+
+Tests marked with a <B>*</B> (asterisk) can <B>destroy data</B> if you're not
+careful.  The others are safe and won't modify anything.
+<P>
+
+You can report bugs you find through this link:
+<P>
+
+<A HREF="https://bugzilla.redhat.com/enter_bug.cgi?component=libguestfs">https://bugzilla.redhat.com/enter_bug.cgi?component=libguestfs</A>&amp;product=Virtualization+Tools
+<P>
+
+or post on the mailing list (registration is <B>not</B> required, but if
+you're not registered then you'll have to wait for a moderator to
+manually approve your message):
+<P>
+
+<A HREF="https://www.redhat.com/mailman/listinfo/libguestfs">https://www.redhat.com/mailman/listinfo/libguestfs</A>
+<A NAME="lbAD">&nbsp;</A>
+<H2>TESTS</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Check <FONT SIZE="-1">KVM</FONT> acceleration is being used.</H3>
+
+<A NAME="ixAAE"></A>
+If your host has hardware virt acceleration, then with a hot cache
+libguestfs should be able to start up in a few seconds.  Run the
+following command a few times:
+<P>
+
+
+
+<PRE>
+ time guestfish -a /dev/null run
+
+</PRE>
+
+
+<P>
+
+After a few runs, the time should settle down to a few seconds (under
+5 seconds on fast 64 bit hardware).
+<P>
+
+How to check for hardware virt:
+<P>
+
+<A HREF="http://virt-tools.org/learning/check-hardware-virt/">http://virt-tools.org/learning/check-hardware-virt/</A>
+<P>
+
+If the command above does not work at all, use
+<I><A HREF="/man/index.html?1+libguestfs-test-tool">libguestfs-test-tool</A></I>(1).
+<A NAME="lbAF">&nbsp;</A>
+<H3>Run virt-alignment-scan on all your guests.</H3>
+
+<A NAME="ixAAF"></A>
+Run <I><A HREF="/man/index.html?1+virt-alignment-scan">virt-alignment-scan</A></I>(1) on guests or disk images:
+<P>
+
+
+
+<PRE>
+ virt-alignment-scan -a /path/to/disk.img
+
+</PRE>
+
+
+<P>
+
+or:
+<P>
+
+
+
+<PRE>
+ virt-alignment-scan -d Guest
+
+</PRE>
+
+
+<P>
+
+Does the alignment report match how the guest partitions are aligned?
+<A NAME="lbAG">&nbsp;</A>
+<H3>Run virt-cat on some files in guests.</H3>
+
+<A NAME="ixAAG"></A>
+<I><A HREF="/man/index.html?1+virt-cat">virt-cat</A></I>(1) can display files from guests.  For a Linux guest, try:
+<P>
+
+
+
+<PRE>
+ virt-cat LinuxGuest /etc/passwd
+
+</PRE>
+
+
+<P>
+
+A recent feature is support for Windows paths, for example:
+<P>
+
+
+
+<PRE>
+ virt-cat WindowsGuest 'c:\windows\win.ini'
+
+</PRE>
+
+
+<P>
+
+An even better test is if you have a Windows guest with multiple
+drives.  Do <TT>&quot;D:&quot;</TT>, <TT>&quot;E:&quot;</TT> etc paths work correctly?
+<A NAME="lbAH">&nbsp;</A>
+<H3><B>*</B> Copy some files into a <B>shut off</B> guest.</H3>
+
+<A NAME="ixAAH"></A>
+<I><A HREF="/man/index.html?1+virt-copy-in">virt-copy-in</A></I>(1) can recursively copy files and directories
+into a guest or disk image.
+<P>
+
+
+
+<PRE>
+ virt-copy-in -d Guest /etc /tmp
+
+</PRE>
+
+
+<P>
+
+This should copy local directory <TT>&quot;/etc&quot;</TT> to <TT>&quot;/tmp/etc&quot;</TT> in the guest
+(recursively).  If you boot the guest, can you see all of the copied
+files and directories?
+<P>
+
+Shut the guest down and try copying multiple files and directories:
+<P>
+
+
+
+<PRE>
+ virt-copy-in -d Guest /home /etc/issue /tmp
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Copy some files out of a guest.</H3>
+
+<A NAME="ixAAI"></A>
+<I><A HREF="/man/index.html?1+virt-copy-out">virt-copy-out</A></I>(1) can recursively copy files and directories
+out of a guest or disk image.
+<P>
+
+
+
+<PRE>
+ virt-copy-out -d Guest /home .
+
+</PRE>
+
+
+<P>
+
+Note the final space and period in the command is not a typo.
+<P>
+
+This should copy <TT>&quot;/home&quot;</TT> from the guest into the current directory.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Run virt-df.</H3>
+
+<A NAME="ixAAJ"></A>
+<I><A HREF="/man/index.html?1+virt-df">virt-df</A></I>(1) lists disk space.  Run:
+<P>
+
+
+
+<PRE>
+ virt-df
+
+</PRE>
+
+
+<P>
+
+You can try comparing this to the results from <I><A HREF="/man/index.html?1+df">df</A></I>(1) inside the
+guest, but there are some provisos:
+<DL COMPACT>
+<DT>*<DD>
+The guest must be idle.
+<DT>*<DD>
+The guest disks must be synched using <I><A HREF="/man/index.html?1+sync">sync</A></I>(1).
+<DT>*<DD>
+Any action such as booting the guest will write log files causing the
+numbers to change.
+</DL>
+<P>
+
+We don't guarantee that the numbers will be identical even under these
+circumstances.  They should be similar.  It would indicate a bug if
+you saw greatly differing numbers.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Try importing virt-df <FONT SIZE="-1">CSV</FONT> output into a spreadsheet or database.</H3>
+
+<A NAME="ixAAK"></A>
+Run:
+<P>
+
+
+
+<PRE>
+ virt-df --csv &gt; /tmp/report.csv
+
+</PRE>
+
+
+<P>
+
+Now try to load this into your favorite spreadsheet or database.  Are
+the results reproduced faithfully in the spreadsheet/database?
+<P>
+
+<A HREF="http://www.postgresql.org/docs/8.1/static/sql-copy.html">http://www.postgresql.org/docs/8.1/static/sql-copy.html</A>
+<A HREF="http://dev.mysql.com/doc/refman/5.1/en/load-data.html">http://dev.mysql.com/doc/refman/5.1/en/load-data.html</A>
+<A NAME="lbAL">&nbsp;</A>
+<H3><B>*</B> Edit a file in a <B>shut off</B> guest.</H3>
+
+<A NAME="ixAAL"></A>
+<I><A HREF="/man/index.html?1+virt-edit">virt-edit</A></I>(1) can edit files in guests.  Try this command on
+a <FONT SIZE="-1">RHEL</FONT> or Fedora guest:
+<P>
+
+
+
+<PRE>
+ virt-edit LinuxGuest /etc/sysconfig/network
+
+</PRE>
+
+
+<P>
+
+On other Linux guests try editing other files such as:
+<P>
+
+
+
+<PRE>
+ virt-edit LinuxGuest /etc/motd
+
+</PRE>
+
+
+<P>
+
+Are the changes seen inside the guest when it is booted?
+<A NAME="lbAM">&nbsp;</A>
+<H3>Display the filesystems / partitions / LVs in a guest.</H3>
+
+<A NAME="ixAAM"></A>
+<I><A HREF="/man/index.html?1+virt-filesystems">virt-filesystems</A></I>(1) can be used to display filesystems in
+a guest.  Try this command on any disk image or guest:
+<P>
+
+
+
+<PRE>
+ virt-filesystems -a /path/to/disk.img --all --long -h
+
+</PRE>
+
+
+<P>
+
+or:
+<P>
+
+
+
+<PRE>
+ virt-filesystems -d Guest --all --long -h
+
+</PRE>
+
+
+<P>
+
+Do the results match what is seen in the guest?
+<A NAME="lbAN">&nbsp;</A>
+<H3>Run virt-inspector on all your guests.</H3>
+
+<A NAME="ixAAN"></A>
+Use <I><A HREF="/man/index.html?1+virt-inspector">virt-inspector</A></I>(1) to get a report on all of your guests or disk
+images:
+<P>
+
+
+
+<PRE>
+ virt-inspector -a /path/to/disk.img | less
+
+</PRE>
+
+
+<P>
+
+or:
+<P>
+
+
+
+<PRE>
+ virt-inspector -d Guest | less
+
+</PRE>
+
+
+<P>
+
+Do the results match what is actually in the guest?
+<A NAME="lbAO">&nbsp;</A>
+<H3>Try the auditing features of virt-ls on all your guests.</H3>
+
+<A NAME="ixAAO"></A>
+List all setuid or setgid programs in a Linux virtual machine:
+<P>
+
+
+
+<PRE>
+ virt-ls -lR -d Guest / | grep '^- [42]'
+
+</PRE>
+
+
+<P>
+
+List all public-writable directories in a Linux virtual machine:
+<P>
+
+
+
+<PRE>
+ virt-ls -lR -d Guest / | grep '^d ...7'
+
+</PRE>
+
+
+<P>
+
+List all Unix domain sockets in a Linux virtual machine:
+<P>
+
+
+
+<PRE>
+ virt-ls -lR -d Guest / | grep '^s'
+
+</PRE>
+
+
+<P>
+
+List all regular files with filenames ending in '.png':
+<P>
+
+
+
+<PRE>
+ virt-ls -lR -d Guest / | grep -i '^-.*\.png$'
+
+</PRE>
+
+
+<P>
+
+Display files larger than 10MB in home directories:
+<P>
+
+
+
+<PRE>
+ virt-ls -lR -d Guest /home | awk '$3 &gt; 10*1024*1024'
+
+</PRE>
+
+
+<P>
+
+Find everything modified in the last 7 days:
+<P>
+
+
+
+<PRE>
+ virt-ls -lR -d Guest --time-days / | awk '$6 &lt;= 7'
+
+</PRE>
+
+
+<P>
+
+Find regular files modified in the last 24 hours:
+<P>
+
+
+
+<PRE>
+ virt-ls -lR -d Guest --time-days / | grep '^-' | awk '$6 &lt; 1'
+
+</PRE>
+
+
+<P>
+
+Do the results match what is in the guest?
+<A NAME="lbAP">&nbsp;</A>
+<H3>Create a disk image from a tarball.</H3>
+
+<A NAME="ixAAP"></A>
+Use <I><A HREF="/man/index.html?1+virt-make-fs">virt-make-fs</A></I>(1) to create a disk image from any tarball
+that you happen to have:
+<P>
+
+
+
+<PRE>
+ virt-make-fs --partition=mbr --type=vfat /any/tarball.tar.gz output.img
+
+</PRE>
+
+
+<P>
+
+Add 'output.img' as a raw disk to an existing guest.  Check the guest
+can see the files.  This test is particularly useful if you try it
+with a Windows guest.
+<P>
+
+Try other partitioning schemes, eg. <I>--partition=gpt</I>.
+<P>
+
+Try other filesystem formats, eg. <I>--type=ntfs</I>, <I>--type=ext2</I>.
+<A NAME="lbAQ">&nbsp;</A>
+<H3><B>*</B> Run virt-rescue on a <B>shut off</B> disk image or guest.</H3>
+
+<A NAME="ixAAQ"></A>
+Use <I><A HREF="/man/index.html?1+virt-rescue">virt-rescue</A></I>(1) to examine, rescue or repair a <B>shut off</B> guest
+or disk image:
+<P>
+
+
+
+<PRE>
+ virt-rescue -a /path/to/disk.img
+
+</PRE>
+
+
+<P>
+
+or:
+<P>
+
+
+
+<PRE>
+ virt-rescue -d Guest
+
+</PRE>
+
+
+<P>
+
+Can you use ordinary shell commands to examine the guest?
+<A NAME="lbAR">&nbsp;</A>
+<H3><B>*</B> Resize your guests.</H3>
+
+<A NAME="ixAAR"></A>
+Use <I><A HREF="/man/index.html?1+virt-resize">virt-resize</A></I>(1) to give a guest some more disk space.  For
+example, if you have a disk image that is smaller than 30G, increase
+it to 30G by doing:
+<P>
+
+
+
+<PRE>
+ truncate -s 30G newdisk.img
+ virt-filesystems -a /path/to/olddisk.img --all --long -h
+ virt-resize /path/to/olddisk.img newdisk.img --expand /dev/sda1
+ qemu-kvm -m 1024 -hda newdisk.img
+
+</PRE>
+
+
+<P>
+
+Does the guest still boot?  Try expanding other partitions.
+<A NAME="lbAS">&nbsp;</A>
+<H3><B>*</B> Sparsify a guest disk.</H3>
+
+<A NAME="ixAAS"></A>
+Using <I><A HREF="/man/index.html?1+virt-sparsify">virt-sparsify</A></I>(1), make a disk image more sparse:
+<P>
+
+
+
+<PRE>
+ virt-sparsify /path/to/olddisk.img newdisk.img
+
+</PRE>
+
+
+<P>
+
+Is <TT>&quot;newdisk.img&quot;</TT> still bootable after sparsifying?  Is the resulting
+disk image smaller (use <TT>&quot;du&quot;</TT> to check)?
+<A NAME="lbAT">&nbsp;</A>
+<H3><B>*</B> sysprep a <B>shut off</B> Linux guest.</H3>
+
+
+
+<A NAME="ixAAT"></A>
+Note that this really will mess up an existing guest, so it's better
+to clone the guest before trying this.
+<P>
+
+
+
+<PRE>
+ virt-sysprep --hostname newhost.example.com -a /path/to/disk.img
+
+</PRE>
+
+
+<P>
+
+Was the sysprep successful?  After booting, what changes were made and
+were they successful?
+<A NAME="lbAU">&nbsp;</A>
+<H3>Dump the Windows Registry from your Windows guests.</H3>
+
+<A NAME="ixAAU"></A>
+Use <I><A HREF="/man/index.html?1+virt-win-reg">virt-win-reg</A></I>(1) to dump out the Windows Registry from
+any Windows guests that you have.
+<P>
+
+
+
+<PRE>
+ virt-win-reg --unsafe-printable-strings WindowsGuest 'HKLM\Software' |
+   less
+
+ virt-win-reg --unsafe-printable-strings WindowsGuest 'HKLM\System' |
+   less
+
+</PRE>
+
+
+<P>
+
+Does the output match running <TT>&quot;regedit&quot;</TT> inside the guest?
+<P>
+
+A recent feature is the ability to dump user registries, so try this,
+replacing <I>username</I> with the name of a local user in the guest:
+<P>
+
+
+
+<PRE>
+ virt-win-reg --unsafe-printable-strings WindowsGuest 'HKEY_USERS\username' |
+   less
+
+</PRE>
+
+
+<A NAME="lbAV">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAV"></A>
+<I><A HREF="/man/index.html?3+guestfs">guestfs</A></I>(3),
+<I><A HREF="/man/index.html?1+guestfish">guestfish</A></I>(1),
+<I><A HREF="/man/index.html?3+guestfs-examples">guestfs-examples</A></I>(3),
+&lt;<A HREF="http://libguestfs.org/">http://libguestfs.org/</A>&gt;.
+<A NAME="lbAW">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<A NAME="ixAAW"></A>
+Richard W.M. Jones (<TT>&quot;rjones at redhat dot com&quot;</TT>)
+<A NAME="lbAX">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAX"></A>
+Copyright (C) 2011 Red Hat Inc. &lt;<A HREF="http://libguestfs.org/">http://libguestfs.org/</A>&gt;
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the <FONT SIZE="-1">GNU</FONT> Lesser General Public
+License as published by the Free Software Foundation; either
+version 2 of the License, or (at your option) any later version.
+<P>
+
+This library is distributed in the hope that it will be useful,
+but <FONT SIZE="-1">WITHOUT</FONT> <FONT SIZE="-1">ANY</FONT> <FONT SIZE="-1">WARRANTY</FONT>; without even the implied warranty of
+<FONT SIZE="-1">MERCHANTABILITY</FONT> or <FONT SIZE="-1">FITNESS</FONT> <FONT SIZE="-1">FOR</FONT> A <FONT SIZE="-1">PARTICULAR</FONT> <FONT SIZE="-1">PURPOSE</FONT>.  See the <FONT SIZE="-1">GNU</FONT>
+Lesser General Public License for more details.
+<P>
+
+You should have received a copy of the <FONT SIZE="-1">GNU</FONT> Lesser General Public
+License along with this library; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, <FONT SIZE="-1">MA</FONT> 02110-1301 <FONT SIZE="-1">USA</FONT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">TESTS</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Check <FONT SIZE="-1">KVM</FONT> acceleration is being used.</A><DD>
+<DT><A HREF="#lbAF">Run virt-alignment-scan on all your guests.</A><DD>
+<DT><A HREF="#lbAG">Run virt-cat on some files in guests.</A><DD>
+<DT><A HREF="#lbAH"><B>*</B> Copy some files into a <B>shut off</B> guest.</A><DD>
+<DT><A HREF="#lbAI">Copy some files out of a guest.</A><DD>
+<DT><A HREF="#lbAJ">Run virt-df.</A><DD>
+<DT><A HREF="#lbAK">Try importing virt-df <FONT SIZE="-1">CSV</FONT> output into a spreadsheet or database.</A><DD>
+<DT><A HREF="#lbAL"><B>*</B> Edit a file in a <B>shut off</B> guest.</A><DD>
+<DT><A HREF="#lbAM">Display the filesystems / partitions / LVs in a guest.</A><DD>
+<DT><A HREF="#lbAN">Run virt-inspector on all your guests.</A><DD>
+<DT><A HREF="#lbAO">Try the auditing features of virt-ls on all your guests.</A><DD>
+<DT><A HREF="#lbAP">Create a disk image from a tarball.</A><DD>
+<DT><A HREF="#lbAQ"><B>*</B> Run virt-rescue on a <B>shut off</B> disk image or guest.</A><DD>
+<DT><A HREF="#lbAR"><B>*</B> Resize your guests.</A><DD>
+<DT><A HREF="#lbAS"><B>*</B> Sparsify a guest disk.</A><DD>
+<DT><A HREF="#lbAT"><B>*</B> sysprep a <B>shut off</B> Linux guest.</A><DD>
+<DT><A HREF="#lbAU">Dump the Windows Registry from your Windows guests.</A><DD>
+</DL>
+<DT><A HREF="#lbAV">SEE ALSO</A><DD>
+<DT><A HREF="#lbAW">AUTHORS</A><DD>
+<DT><A HREF="#lbAX">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:04 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Locale::libintlFAQ</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Locale::libintlFAQ</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2010-08-21<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Locale::TextDomain::FAQ - Frequently asked questions for libintl-perl
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+This <FONT SIZE="-1">FAQ</FONT>
+<A NAME="lbAD">&nbsp;</A>
+<H2>QUESTIONS AND ANSWERS</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Why is libintl-perl so big?  Why don't you use <I><A HREF="/man/index.html?3pm+Encode">Encode</A></I>(3pm) for character set conversion instead of rolling your own version?</H3>
+
+<A NAME="ixAAE"></A>
+<I><A HREF="/man/index.html?3pm+Encode">Encode</A></I>(3pm) requires at least Perl 5.7.x, whereas libintl-perl needs
+to be operational on Perl 5.004.  Internally, libintl-perl uses <I><A HREF="/man/index.html?3pm+Encode">Encode</A></I>(3pm)
+if it is available.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Why do the gettext functions always unset the utf-8 flag on the strings it returns?</H3>
+
+<A NAME="ixAAF"></A>
+Because the gettext functions do not know whether the string is encoded 
+in utf-8 or not.  Instead of taking guesses, it rather unsets the flag.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Can I set the utf-8 flag on strings returned by the gettext family of functions?</H3>
+
+<A NAME="ixAAG"></A>
+Yes, but it is not recommended.  If you absolutely want to do it,
+use the function bind_textdomain_filter in Locale::Messages for it.
+<P>
+
+The strings returned by gettext and friends are by default encoded in
+the preferred charset for the user's locale, but there is no portable
+way to find out, whether this is utf-8 or not.  That means, you either
+have to enforce utf-8 as the output character set (by means of 
+<I>bind_textdomain_codeset()</I> and/or the environment variable
+<FONT SIZE="-1">OUTPUT_CHARSET</FONT>) and override the user preference, or you run the risk
+of marking strings as utf-8 which really aren't utf-8.
+<P>
+
+The whole concept behind that utf-8 flag introduced in Perl 5.6 is
+seriously broken, and the above described dilemma is a proof for that.
+The best thing you can do with that flag is get rid of it, and turn
+it off.  Your code will benefit from it and become less error prone,
+more portable and faster.
+<A NAME="lbAH">&nbsp;</A>
+<H3>Why do non-ASCII characters in my Gtk2 application look messed up?</H3>
+
+<A NAME="ixAAH"></A>
+The Perl binding of Gtk2 has a design flaw.  It expects all <FONT SIZE="-1">UI</FONT> messages
+to be in <FONT SIZE="-1">UTF-8</FONT> and it also expects messages to be flagged as utf-8.  The
+only solution for you is to enforce all your po files to be encoded
+in utf-8 (convert them manually, if you need to), and also enforce that
+charset in your application, regardless of the user's locale settings.
+Assumed that your textdomain is ``org.bar.foo'', you have to code the
+following into your main module or script:
+<P>
+
+
+
+<PRE>
+  BEGIN {
+      bind_textdomain_filter 'org.bar.foo', \&amp;turn_utf_8_on;
+      bind_textdomain_codeset 'org.bar.foo', 'utf-8';
+  }
+
+</PRE>
+
+
+<P>
+
+See the File GTestRunner.pm of <I><A HREF="/man/index.html?3pm+Test::Unit::GTestRunner">Test::Unit::GTestRunner</A></I>(3pm) for details.
+<A NAME="lbAI">&nbsp;</A>
+<H3>How do I interface Glade2 <FONT SIZE="-1">UI</FONT> definitions with libintl-perl?</H3>
+
+<A NAME="ixAAI"></A>
+<I><A HREF="/man/index.html?3pm+Gtk2::GladeXML">Gtk2::GladeXML</A></I>(3pm) seems to ignore calls to <I>bind_textdomain()</I>.
+See the File GTestRunner.pm of <I><A HREF="/man/index.html?3pm+Test::Unit::GTestRunner">Test::Unit::GTestRunner</A></I>(3pm) for a
+possible solution.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Why does Locale::TextDomain use a double underscore?  I am used to a single underscore from C or other languages.</H3>
+
+<A NAME="ixAAJ"></A>
+Function names that consist of exactly one non-alphanumerical character
+make the function automatically global in Perl.  Besides, in Perl
+6 the concatenation operator will be the underscore instead of the
+dot.
+<A NAME="lbAK">&nbsp;</A>
+<H3>How do I switch languages or force a certain language independently from user settings read from the environment?</H3>
+
+<A NAME="ixAAK"></A>
+The simple answer is:
+<P>
+
+
+
+<PRE>
+    use POSIX qw (setlocale LC_ALL);
+    
+    my $language = 'fr';
+    my $country = 'FR';
+    my $charset = 'iso-8859-1';
+
+    setlocale LC_ALL, &quot;${language}_$country.$charset&quot;;
+
+</PRE>
+
+
+<P>
+
+Sadly enough, this will fail in many cases.  The problem is that locale
+identifiers are not standardized and are completely system-dependent.  Not
+only their overall format, but also other details like case-sensitivity.
+Some systems are very forgiving about the system - for example normalizing
+charset descriptions - others very strict.  In order to be reasonably
+platform independent, you should try a list of possible locale identifiers
+for your desired settings.  This is about what I would try for achieving the
+above:
+<P>
+
+
+
+<PRE>
+   my @tries = qw (
+        fr_FR.iso-8859-1 fr_FR.iso8859-1 fr_FR.iso88591
+        fr_FR.ISO-8859-1 fr_FR.ISO8859-1 fr_FR.ISO88591
+        fr.iso-8859-1 fr.iso8859-1 fr.iso88591
+        fr.ISO-8859-1 fr.ISO8859-1 fr.ISO88591
+        fr_FR
+        French_France.iso-8859-1 French_France.iso8859-1 French_France.iso88591
+        French_France.ISO-8859-1 French_France.ISO8859-1 French_France.ISO88591
+        French.iso-8859-1 French.iso8859-1 French.iso88591
+        French.ISO-8859-1 French.ISO8859-1 French.ISO88591
+   );
+   foreach my $try (@tries) {
+        last if setlocale LC_ALL, $try;
+   }
+
+</PRE>
+
+
+<P>
+
+Set <I><A HREF="/man/index.html?3pm+Locale::Util">Locale::Util</A></I>(3pm) for functions that help you with this.
+<P>
+
+Alternatively, you can force a certain language by setting the environment
+variables <FONT SIZE="-1">LANGUAGE</FONT>, <FONT SIZE="-1">LANG</FONT> and <FONT SIZE="-1">OUTPUT_CHARSET</FONT>, but this is only guaranteed
+to work, if you use the pure Perl implementation of gettext (see the
+documentation for <I>select_package()</I> in <I><A HREF="/man/index.html?3pm+Locale::Messages">Locale::Messages</A></I>(3pm)). You would
+do the above like this:
+<P>
+
+
+
+<PRE>
+    use Locale::Messages qw (nl_putenv);
+
+    # LANGUAGE is a colon separated list of languages.
+    nl_putenv(&quot;LANGUAGE=fr_FR&quot;);
+
+    # If LANGUAGE is set, LANG should be set to the primary language.
+    # This is not needed for gettext, but for other parts of the system
+    # it is.
+    nl_putenv(&quot;LANG=fr_FR&quot;);
+
+    # Force an output charset like this:
+    nl_putenv(&quot;OUTPUT_CHARSET=iso-8859-1&quot;);
+
+    setlocale (LC_MESSAGES, 'C');
+
+</PRE>
+
+
+<P>
+
+These environment variables are <FONT SIZE="-1">GNU</FONT> extensions, and they are also
+honored by libintl-perl.  Still, you should always try to set the
+locale with setlocale for the catch-all category <FONT SIZE="-1">LC_ALL</FONT>.  If you miss
+to do so, your program's output maybe cluttered, mixing languages
+and charsets, if the system runs in a locale that is not compatible
+with your own language settings.
+<P>
+
+Remember that these environment variables are not guaranteed to
+work, if you use an <FONT SIZE="-1">XS</FONT> version of gettext.  In order to force usage
+of the pure Perl implementation, do the following:
+<P>
+
+
+
+<PRE>
+    Locale::Messages-&gt;select_package ('gettext_pp');
+
+</PRE>
+
+
+<P>
+
+If you think, this is brain-damaged, you are right, but I cannot help
+you.  Actually there should be a more flexible <FONT SIZE="-1">API</FONT> than setlocale,
+but at the time of this writing there isn't.  Until then, the recommentation
+goes like this:
+<P>
+
+
+
+<PRE>
+        1) Try setting LC_ALL with Locale::Util.
+        2) If that does not succeed, either give up or ...
+        3) Reset LC_MESSAGES to C/POSIX.
+        4) Switch to pure Perl for gettext.
+        5) Set the environment variables LANGUAGE, LANG,
+           and OUTPUT_CHARSET to your desired values.
+
+</PRE>
+
+
+<A NAME="lbAL">&nbsp;</A>
+<H3>What is the advantage of libintl-perl over Locale::Maketext?</H3>
+
+<A NAME="ixAAL"></A>
+Of course, I can only give my personal opinion as an answer.
+<P>
+
+Locale::Maketext claims to fix design flaws in gettext.  These alleged
+design flaws, however, boil down to one pathological case which always
+has a workaround.  But both programmers and translators pay this
+fix with an unnecessarily complicated interface.
+<P>
+
+The paramount advantage of libintl-perl is that it uses an approved
+technology and concept.  Except for Java(tm) programs, this is the
+state-of-the-art concept for localizing Un*x software.  Programmers
+that have already localized software in C, C<FONT SIZE="-2">++</FONT>, C#, Python, <FONT SIZE="-1">PHP</FONT>,
+or a number of other languages will feel instantly at home, when
+localizing software written in Perl with libintl-perl.  The same
+holds true for the translators, because the files they deal with
+have exactly the same format as those for other programming languages.
+They can use the same set of tools, and even the commands they have
+to execute are the same.
+<P>
+
+With libintl-perl refactoring of the software is painless, even if
+you modify, add or delete translatable strings.  The gettext tools
+are powerful enough to reduce the effort of the translators to the
+bare minimum.  Maintaining the message catalogs of Locale::Maketext
+in larger scale projects, is <FONT SIZE="-1">IMHO</FONT> unfeasible.
+<P>
+
+Editing the message catalogs of Locale::Maketext - they are really
+Perl modules - asks too much from most translators, unless
+they are programmers.  The portable object (po) files used by
+libintl-perl have a simple syntax, and there are a bunch of specialized
+<FONT SIZE="-1">GUI</FONT> editors for these files, that facilitate the translation process
+and hide most complexity from the user.
+<P>
+
+Furthermore, libintl-perl makes it possible to mix programming
+languages without a paradigm shift in localization.  Without any special
+efforts, you can write a localized software that has modules written
+in C, modules in Perl, and builds a Gtk user interface with Glade.
+All translatable strings end up in one single message catalog.
+<P>
+
+Last but not least, the interface used by libintl-perl is plain
+simple:  Prepend translatable strings with a double underscore,
+and you are done in most cases.
+<A NAME="lbAM">&nbsp;</A>
+<H3>Why do single-quoted strings not work?</H3>
+
+<A NAME="ixAAM"></A>
+You probably write something like this:
+<P>
+
+
+
+<PRE>
+    print __'Hello';
+
+</PRE>
+
+
+<P>
+
+And you get an error message like ``Can't find string terminator '''`` anywhere
+before <FONT SIZE="-1">EOF</FONT> at ...'', or even ``Bareword found where operator expected at
+... Might be a runaway multi-line '' string starting on''.  The above line
+is (really!) essentially the same as writing:
+<P>
+
+
+
+<PRE>
+    print __::Hello';
+
+</PRE>
+
+
+<P>
+
+A lesser know feature of Perl is that you can use a single quote (``''') as 
+the separator in packages instead of the double colon (``:'').  What the
+Perl parser sees in the first example is a valid package name (``__'')
+followed by the separator (``'''), then another valid package name (``Hello'')
+followed by a lone single quote.  It is therefore not a problem in 
+libintl-perl but simple wrong Perl syntax.  You have to correct alternatives:
+<P>
+
+
+
+<PRE>
+    print __ 'Hello';   # Insert a space to disambiguate.
+
+</PRE>
+
+
+<P>
+
+Or use double-quotes:
+<P>
+
+
+
+<PRE>
+    print __&quot;Hello&quot;;
+
+</PRE>
+
+
+<P>
+
+Thanks to Slavi Agafonkin for pointing me to the solution of this mystery.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">QUESTIONS AND ANSWERS</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Why is libintl-perl so big?  Why don't you use <I>Encode</I>(3pm) for character set conversion instead of rolling your own version?</A><DD>
+<DT><A HREF="#lbAF">Why do the gettext functions always unset the utf-8 flag on the strings it returns?</A><DD>
+<DT><A HREF="#lbAG">Can I set the utf-8 flag on strings returned by the gettext family of functions?</A><DD>
+<DT><A HREF="#lbAH">Why do non-ASCII characters in my Gtk2 application look messed up?</A><DD>
+<DT><A HREF="#lbAI">How do I interface Glade2 <FONT SIZE="-1">UI</FONT> definitions with libintl-perl?</A><DD>
+<DT><A HREF="#lbAJ">Why does Locale::TextDomain use a double underscore?  I am used to a single underscore from C or other languages.</A><DD>
+<DT><A HREF="#lbAK">How do I switch languages or force a certain language independently from user settings read from the environment?</A><DD>
+<DT><A HREF="#lbAL">What is the advantage of libintl-perl over Locale::Maketext?</A><DD>
+<DT><A HREF="#lbAM">Why do single-quoted strings not work?</A><DD>
+</DL>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:32 GMT, December 24, 2015
+</div></body>
+</HTML>

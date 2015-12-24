@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of IO::Select</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>IO::Select</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+IO::Select - OO interface to the select system call
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use IO::Select;
+
+    $s = IO::Select-&gt;new();
+
+    $s-&gt;add(\*STDIN);
+    $s-&gt;add($some_handle);
+
+    @ready = $s-&gt;can_read($timeout);
+
+    @ready = IO::Select-&gt;new(@handles)-&gt;can_read(0);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <TT>&quot;IO::Select&quot;</TT> package implements an object approach to the system <TT>&quot;select&quot;</TT>
+function call. It allows the user to see what <FONT SIZE="-1">IO</FONT> handles, see IO::Handle,
+are ready for reading, writing or have an exception pending.
+<A NAME="lbAE">&nbsp;</A>
+<H2>CONSTRUCTOR</H2>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT>new ( [ <FONT SIZE="-1">HANDLES</FONT> ] )<DD>
+<A NAME="ixAAF"></A>
+The constructor creates a new object and optionally initialises it with a set
+of handles.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAG"></A>
+<DL COMPACT>
+<DT>add ( <FONT SIZE="-1">HANDLES</FONT> )<DD>
+<A NAME="ixAAH"></A>
+Add the list of handles to the <TT>&quot;IO::Select&quot;</TT> object. It is these values that
+will be returned when an event occurs. <TT>&quot;IO::Select&quot;</TT> keeps these values in a
+cache which is indexed by the <TT>&quot;fileno&quot;</TT> of the handle, so if more than one
+handle with the same <TT>&quot;fileno&quot;</TT> is specified then only the last one is cached.
+
+
+<P>
+
+
+Each handle can be an <TT>&quot;IO::Handle&quot;</TT> object, an integer or an array
+reference where the first element is an <TT>&quot;IO::Handle&quot;</TT> or an integer.
+<DT>remove ( <FONT SIZE="-1">HANDLES</FONT> )<DD>
+<A NAME="ixAAI"></A>
+Remove all the given handles from the object. This method also works
+by the <TT>&quot;fileno&quot;</TT> of the handles. So the exact handles that were added
+need not be passed, just handles that have an equivalent <TT>&quot;fileno&quot;</TT>
+<DT>exists ( <FONT SIZE="-1">HANDLE</FONT> )<DD>
+<A NAME="ixAAJ"></A>
+Returns a true value (actually the handle itself) if it is present.
+Returns undef otherwise.
+<DT>handles<DD>
+<A NAME="ixAAK"></A>
+Return an array of all registered handles.
+<DT>can_read ( [ <FONT SIZE="-1">TIMEOUT</FONT> ] )<DD>
+<A NAME="ixAAL"></A>
+Return an array of handles that are ready for reading. <TT>&quot;TIMEOUT&quot;</TT> is
+the maximum amount of time to wait before returning an empty list, in
+seconds, possibly fractional. If <TT>&quot;TIMEOUT&quot;</TT> is not given and any
+handles are registered then the call will block.
+<DT>can_write ( [ <FONT SIZE="-1">TIMEOUT</FONT> ] )<DD>
+<A NAME="ixAAM"></A>
+Same as <TT>&quot;can_read&quot;</TT> except check for handles that can be written to.
+<DT>has_exception ( [ <FONT SIZE="-1">TIMEOUT</FONT> ] )<DD>
+<A NAME="ixAAN"></A>
+Same as <TT>&quot;can_read&quot;</TT> except check for handles that have an exception
+condition, for example pending out-of-band data.
+<DT>count ()<DD>
+<A NAME="ixAAO"></A>
+Returns the number of handles that the object will check for when
+one of the <TT>&quot;can_&quot;</TT> methods is called or the object is passed to
+the <TT>&quot;select&quot;</TT> static method.
+<DT><I>bits()</I><DD>
+<A NAME="ixAAP"></A>
+Return the bit string suitable as argument to the core <I>select()</I> call.
+<DT>select ( <FONT SIZE="-1">READ</FONT>, <FONT SIZE="-1">WRITE</FONT>, <FONT SIZE="-1">EXCEPTION</FONT> [, <FONT SIZE="-1">TIMEOUT</FONT> ] )<DD>
+<A NAME="ixAAQ"></A>
+<TT>&quot;select&quot;</TT> is a static method, that is you call it with the package name
+like <TT>&quot;new&quot;</TT>. <TT>&quot;READ&quot;</TT>, <TT>&quot;WRITE&quot;</TT> and <TT>&quot;EXCEPTION&quot;</TT> are either <TT>&quot;undef&quot;</TT> or
+<TT>&quot;IO::Select&quot;</TT> objects. <TT>&quot;TIMEOUT&quot;</TT> is optional and has the same effect as
+for the core select call.
+
+
+<P>
+
+
+The result will be an array of 3 elements, each a reference to an array
+which will hold the handles that are ready for reading, writing and have
+exceptions respectively. Upon error an empty list is returned.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<A NAME="ixAAR"></A>
+Here is a short example which shows how <TT>&quot;IO::Select&quot;</TT> could be used
+to write a server which communicates with several sockets while also
+listening for more connections on a listen socket
+<P>
+
+
+
+<PRE>
+    use IO::Select;
+    use IO::Socket;
+
+    $lsn = new IO::Socket::INET(Listen =&gt; 1, LocalPort =&gt; 8080);
+    $sel = new IO::Select( $lsn );
+
+    while(@ready = $sel-&gt;can_read) {
+        foreach $fh (@ready) {
+            if($fh == $lsn) {
+                # Create a new socket
+                $new = $lsn-&gt;accept;
+                $sel-&gt;add($new);
+            }
+            else {
+                # Process socket
+
+                # Maybe we have finished with the socket
+                $sel-&gt;remove($fh);
+                $fh-&gt;close;
+            }
+        }
+    }
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAS"></A>
+Graham Barr. Currently maintained by the Perl Porters.  Please report all
+bugs to &lt;<A HREF="mailto:perl5-porters@perl.org">perl5-porters@perl.org</A>&gt;.
+<A NAME="lbAI">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAT"></A>
+Copyright (c) 1997-8 Graham Barr &lt;<A HREF="mailto:gbarr@pobox.com">gbarr@pobox.com</A>&gt;. All rights reserved.
+This program is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">CONSTRUCTOR</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DT><A HREF="#lbAG">EXAMPLE</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+<DT><A HREF="#lbAI">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:30 GMT, December 24, 2015
+</div></body>
+</HTML>

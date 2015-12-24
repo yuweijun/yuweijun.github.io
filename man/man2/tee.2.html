@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of TEE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>TEE</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2006-04-28<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+tee - duplicating pipe content
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#define _GNU_SOURCE</B>
+<B>#include &lt;<A HREF="file:/usr/include/fcntl.h">fcntl.h</A>&gt;</B>
+
+<B>long tee(int </B><I>fd_in</I><B>, int </B><I>fd_out</I><B>, size_t </B><I>len</I><B>, unsigned int </B><I>flags</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+
+
+
+
+<B>tee</B>()
+
+duplicates up to
+<I>len</I>
+
+bytes of data from the pipe referred to by the file descriptor
+<I>fd_in</I>
+
+to the pipe referred to by the file descriptor
+<I>fd_out</I>.
+
+It does not consume the data that is duplicated from
+<I>fd_in</I>;
+
+therefore, that data can be copied by a subsequent
+<B><A HREF="/man/index.html?2+splice">splice</A></B>(2).
+
+<P>
+<I>flags</I>
+
+is a series of modifier flags, which share the name space with
+<B><A HREF="/man/index.html?2+splice">splice</A></B>(2)
+
+and
+<B><A HREF="/man/index.html?2+vmsplice">vmsplice</A></B>(2):
+
+<DL COMPACT>
+<DT><B>SPLICE_F_MOVE</B>
+
+<DD>
+Currently has no effect for
+<B>tee</B>();
+
+see
+<B><A HREF="/man/index.html?2+splice">splice</A></B>(2).
+
+<DT><B>SPLICE_F_NONBLOCK</B>
+
+<DD>
+Do not block on I/O; see
+<B><A HREF="/man/index.html?2+splice">splice</A></B>(2)
+
+for further details.
+<DT><B>SPLICE_F_MORE</B>
+
+<DD>
+Currently has no effect for
+<B>tee</B>(),
+
+but may be implemented in the future; see
+<B><A HREF="/man/index.html?2+splice">splice</A></B>(2).
+
+<DT><B>SPLICE_F_GIFT</B>
+
+<DD>
+Unused for
+<B>tee</B>();
+
+see
+<B><A HREF="/man/index.html?2+vmsplice">vmsplice</A></B>(2).
+
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+Upon successful completion,
+<B>tee</B>()
+
+returns the number of bytes that were duplicated between the input
+and output.
+A return value of 0 means that there was no data to transfer,
+and it would not make sense to block, because there are no
+writers connected to the write end of the pipe referred to by
+<I>fd_in</I>.
+
+<P>
+On error,
+<B>tee</B>()
+
+returns -1 and
+<I>errno</I>
+
+is set to indicate the error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EINVAL</B>
+
+<DD>
+<I>fd_in</I>
+
+or
+<I>fd_out</I>
+
+does not refer to a pipe; or
+<I>fd_in</I>
+
+and
+<I>fd_out</I>
+
+refer to the same pipe.
+<DT><B>ENOMEM</B>
+
+<DD>
+Out of memory.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+The
+<B>tee</B>()
+
+system call first appeared in Linux 2.6.17.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+This system call is Linux-specific.
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+Conceptually,
+<B>tee</B>()
+
+copies the data between the two pipes.
+In reality no real data copying takes place though:
+under the covers,
+<B>tee</B>()
+
+assigns data in the output by merely grabbing
+a reference to the input.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+The following example implements a basic
+<B><A HREF="/man/index.html?1+tee">tee</A></B>(1)
+
+program using the
+<B>tee</B>()
+
+system call.
+<PRE>
+
+#define _GNU_SOURCE
+#include &lt;<A HREF="file:/usr/include/fcntl.h">fcntl.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/assert.h">assert.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/errno.h">errno.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/limits.h">limits.h</A>&gt;
+
+int
+main(int argc, char *argv[])
+{
+    int fd;
+    int len, slen;
+
+    assert(argc == 2);
+
+    fd = open(argv[1], O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd == -1) {
+        perror(&quot;open&quot;);
+        exit(EXIT_FAILURE);
+    }
+
+    do {
+        /*
+         * tee stdin to stdout.
+         */
+        len = tee(STDIN_FILENO, STDOUT_FILENO,
+                  INT_MAX, SPLICE_F_NONBLOCK);
+
+        if (len &lt; 0) {
+            if (errno == EAGAIN)
+                continue;
+            perror(&quot;tee&quot;);
+            exit(EXIT_FAILURE);
+        } else
+            if (len == 0)
+                break;
+
+        /*
+         * Consume stdin by splicing it to a file.
+         */
+        while (len &gt; 0) {
+            slen = splice(STDIN_FILENO, NULL, fd, NULL,
+                          len, SPLICE_F_MOVE);
+            if (slen &lt; 0) {
+                perror(&quot;splice&quot;);
+                break;
+            }
+            len -= slen;
+        }
+    } while (1);
+
+    close(fd);
+    exit(EXIT_SUCCESS);
+}
+</PRE>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+splice">splice</A></B>(2),
+
+<B><A HREF="/man/index.html?2+vmsplice">vmsplice</A></B>(2),
+
+<B><A HREF="/man/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">VERSIONS</A><DD>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DT><A HREF="#lbAJ">EXAMPLE</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:05 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of TLSMGR</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>TLSMGR</H1>
+Section: Maintenance Commands (8)<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+tlsmgr
+-
+Postfix TLS session cache and PRNG manager
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+
+<PRE>
+<B>tlsmgr</B> [generic Postfix daemon options]
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+The <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) manages the Postfix TLS session caches.
+It stores and retrieves cache entries on request by
+<B><A HREF="/man/index.html?8+smtpd">smtpd</A></B>(8) and <B><A HREF="http://localhost/cgi-bin/man/man2html?8+smtp">smtp</A></B>(8) processes, and periodically
+removes entries that have expired.
+<P>
+The <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) also manages the PRNG (pseudo random number
+generator) pool. It answers queries by the <B><A HREF="/man/index.html?8+smtpd">smtpd</A></B>(8)
+and <B><A HREF="/man/index.html?8+smtp">smtp</A></B>(8)
+processes to seed their internal PRNG pools.
+<P>
+The <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8)'s PRNG pool is initially seeded from
+an external source (EGD, /dev/urandom, or regular file).
+It is updated at configurable pseudo-random intervals with
+data from the external source. It is updated periodically
+with data from TLS session cache entries and with the time
+of day, and is updated with the time of day whenever a
+process requests <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) service.
+<P>
+The <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) saves the PRNG state to an exchange file
+periodically and when the process terminates, and reads
+the exchange file when initializing its PRNG.
+<A NAME="lbAE">&nbsp;</A>
+<H2>SECURITY</H2>
+
+
+<PRE>
+</PRE>
+
+The <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) is not security-sensitive. The code that maintains
+the external and internal PRNG pools does not &quot;trust&quot; the
+data that it manipulates, and the code that maintains the
+TLS session cache does not touch the contents of the cached
+entries, except for seeding its internal PRNG pool.
+<P>
+The <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) can be run chrooted and with reduced privileges.
+At process startup it connects to the entropy source and
+exchange file, and creates or truncates the optional TLS
+session cache files.
+<P>
+With Postfix version 2.5 and later, the <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) no
+longer uses root privileges when opening cache files. These
+files should now be stored under the Postfix-owned
+<B>data_directory</B>.  As a migration aid, an attempt to
+open a cache file under a non-Postfix directory is redirected
+to the Postfix-owned <B>data_directory</B>, and a warning
+is logged.
+<A NAME="lbAF">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+
+
+Problems and transactions are logged to the syslog daemon.
+<A NAME="lbAG">&nbsp;</A>
+<H2>BUGS</H2>
+
+
+
+There is no automatic means to limit the number of entries in the
+TLS session caches and/or the size of the TLS cache files.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFIGURATION PARAMETERS</H2>
+
+
+<PRE>
+</PRE>
+
+Changes to <B>main.cf</B> are not picked up automatically,
+because <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) is a persistent processes.  Use the
+command &quot;<B>postfix reload</B>&quot; after a configuration change.
+<P>
+The text below provides only a parameter summary. See
+<B><A HREF="/man/index.html?5+postconf">postconf</A></B>(5) for more details including examples.
+<A NAME="lbAI">&nbsp;</A>
+<H2>TLS SESSION CACHE</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT><B>lmtp_tls_loglevel (0)</B><DD>
+The LMTP-specific version of the smtp_tls_loglevel
+configuration parameter.
+<DT><B>lmtp_tls_session_cache_database (empty)</B><DD>
+The LMTP-specific version of the smtp_tls_session_cache_database
+configuration parameter.
+<DT><B>lmtp_tls_session_cache_timeout (3600s)</B><DD>
+The LMTP-specific version of the smtp_tls_session_cache_timeout
+configuration parameter.
+<DT><B>smtp_tls_loglevel (0)</B><DD>
+Enable additional Postfix SMTP client logging of TLS activity.
+<DT><B>smtp_tls_session_cache_database (empty)</B><DD>
+Name of the file containing the optional Postfix SMTP client
+TLS session cache.
+<DT><B>smtp_tls_session_cache_timeout (3600s)</B><DD>
+The expiration time of Postfix SMTP client TLS session cache
+information.
+<DT><B>smtpd_tls_loglevel (0)</B><DD>
+Enable additional Postfix SMTP server logging of TLS activity.
+<DT><B>smtpd_tls_session_cache_database (empty)</B><DD>
+Name of the file containing the optional Postfix SMTP server
+TLS session cache.
+<DT><B>smtpd_tls_session_cache_timeout (3600s)</B><DD>
+The expiration time of Postfix SMTP server TLS session cache
+information.
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>PSEUDO RANDOM NUMBER GENERATOR</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT><B>tls_random_source (see 'postconf -d' output)</B><DD>
+The external entropy source for the in-memory <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) pseudo
+random number generator (PRNG) pool.
+<DT><B>tls_random_bytes (32)</B><DD>
+The number of bytes that <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) reads from $tls_random_source
+when (re)seeding the in-memory pseudo random number generator (PRNG)
+pool.
+<DT><B>tls_random_exchange_name (see 'postconf -d' output)</B><DD>
+Name of the pseudo random number generator (PRNG) state file
+that is maintained by <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8).
+<DT><B>tls_random_prng_update_period (3600s)</B><DD>
+The time between attempts by <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) to save the state of
+the pseudo random number generator (PRNG) to the file specified
+with $tls_random_exchange_name.
+<DT><B>tls_random_reseed_period (3600s)</B><DD>
+The maximal time between attempts by <B><A HREF="/man/index.html?8+tlsmgr">tlsmgr</A></B>(8) to re-seed the
+in-memory pseudo random number generator (PRNG) pool from external
+sources.
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H2>MISCELLANEOUS CONTROLS</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT><B>config_directory (see 'postconf -d' output)</B><DD>
+The default location of the Postfix main.cf and master.cf
+configuration files.
+<DT><B>data_directory (see 'postconf -d' output)</B><DD>
+The directory with Postfix-writable data files (for example:
+caches, pseudo-random numbers).
+<DT><B>daemon_timeout (18000s)</B><DD>
+How much time a Postfix daemon process may take to handle a
+request before it is terminated by a built-in watchdog timer.
+<DT><B>process_id (read-only)</B><DD>
+The process ID of a Postfix command or daemon process.
+<DT><B>process_name (read-only)</B><DD>
+The process name of a Postfix command or daemon process.
+<DT><B>syslog_facility (mail)</B><DD>
+The syslog facility of Postfix logging.
+<DT><B>syslog_name (see 'postconf -d' output)</B><DD>
+The mail system name that is prepended to the process name in syslog
+records, so that &quot;smtpd&quot; becomes, for example, &quot;postfix/smtpd&quot;.
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/man/index.html?8+smtp">smtp</A>(8), Postfix SMTP client
+<A HREF="/man/index.html?8+smtpd">smtpd</A>(8), Postfix SMTP server
+<A HREF="/man/index.html?5+postconf">postconf</A>(5), configuration parameters
+<A HREF="/man/index.html?5+master">master</A>(5), generic daemon options
+<A HREF="/man/index.html?8+master">master</A>(8), process manager
+<A HREF="/man/index.html?8+syslogd">syslogd</A>(8), system logging
+</PRE><A NAME="lbAM">&nbsp;</A>
+<H2>README FILES</H2>
+
+
+<PRE>
+</PRE>
+
+Use &quot;<B>postconf readme_directory</B>&quot; or
+&quot;<B>postconf html_directory</B>&quot; to locate this information.
+
+<PRE>
+TLS_README, Postfix TLS configuration and operation
+</PRE><A NAME="lbAN">&nbsp;</A>
+<H2>LICENSE</H2>
+
+
+<PRE>
+</PRE>
+
+The Secure Mailer license must be distributed with this software.
+<A NAME="lbAO">&nbsp;</A>
+<H2>AUTHOR(S)</H2>
+
+
+<PRE>
+Lutz Jaenicke
+BTU Cottbus
+Allgemeine Elektrotechnik
+Universitaetsplatz 3-4
+D-03044 Cottbus, Germany
+
+Adapted by:
+Wietse Venema
+IBM T.J. Watson Research
+P.O. Box 704
+Yorktown Heights, NY 10598, USA
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">SECURITY</A><DD>
+<DT><A HREF="#lbAF">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAG">BUGS</A><DD>
+<DT><A HREF="#lbAH">CONFIGURATION PARAMETERS</A><DD>
+<DT><A HREF="#lbAI">TLS SESSION CACHE</A><DD>
+<DT><A HREF="#lbAJ">PSEUDO RANDOM NUMBER GENERATOR</A><DD>
+<DT><A HREF="#lbAK">MISCELLANEOUS CONTROLS</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+<DT><A HREF="#lbAM">README FILES</A><DD>
+<DT><A HREF="#lbAN">LICENSE</A><DD>
+<DT><A HREF="#lbAO">AUTHOR(S)</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:30 GMT, December 24, 2015
+</div></body>
+</HTML>

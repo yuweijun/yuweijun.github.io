@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Net::netent</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Net::netent</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Net::netent - by-name interface to Perl's built-in getnet*() functions
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ use Net::netent qw(:FIELDS);
+ getnetbyname(&quot;loopback&quot;)               or die &quot;bad net&quot;;
+ printf &quot;%s is %08X\n&quot;, $n_name, $n_net;
+
+ use Net::netent;
+
+ $n = getnetbyname(&quot;loopback&quot;)          or die &quot;bad net&quot;;
+ { # there's gotta be a better way, eh?
+     @bytes = unpack(&quot;C4&quot;, pack(&quot;N&quot;, $n-&gt;net));
+     shift @bytes while @bytes &amp;&amp; $bytes[0] == 0;
+ }
+ printf &quot;%s is %08X [%d.%d.%d.%d]\n&quot;, $n-&gt;name, $n-&gt;net, @bytes;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This module's default exports override the core <I>getnetbyname()</I> and
+<I>getnetbyaddr()</I> functions, replacing them with versions that return
+``Net::netent'' objects.  This object has methods that return the similarly
+named structure field name from the C's netent structure from <I>netdb.h</I>;
+namely name, aliases, addrtype, and net.  The aliases 
+method returns an array reference, the rest scalars.
+<P>
+
+You may also import all the structure fields directly into your namespace
+as regular variables using the :FIELDS import tag.  (Note that this still
+overrides your core functions.)  Access these fields as variables named
+with a preceding <TT>&quot;n_&quot;</TT>.  Thus, <TT>&quot;$net_obj-&gt;name()&quot;</TT> corresponds to
+<TT>$n_name</TT> if you import the fields.  Array references are available as
+regular array variables, so for example <TT>&quot;@{ $net_obj-&gt;aliases()
+}&quot;</TT> would be simply <TT>@n_aliases</TT>.
+<P>
+
+The <I>getnet()</I> function is a simple front-end that forwards a numeric
+argument to <I>getnetbyaddr()</I>, and the rest
+to <I>getnetbyname()</I>.
+<P>
+
+To access this functionality without the core overrides,
+pass the <TT>&quot;use&quot;</TT> an empty import list, and then access
+function functions with their full qualified names.
+On the other hand, the built-ins are still available
+via the <TT>&quot;CORE::&quot;</TT> pseudo-package.
+<A NAME="lbAE">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAE"></A>
+The <I>getnet()</I> functions do this in the Perl core:
+<P>
+
+
+
+<PRE>
+    sv_setiv(sv, (I32)nent-&gt;n_net);
+
+</PRE>
+
+
+<P>
+
+The <I>gethost()</I> functions do this in the Perl core:
+<P>
+
+
+
+<PRE>
+    sv_setpvn(sv, hent-&gt;h_addr, len);
+
+</PRE>
+
+
+<P>
+
+That means that the address comes back in binary for the
+host functions, and as a regular perl integer for the net ones.
+This seems a bug, but here's how to deal with it:
+<P>
+
+
+
+<PRE>
+ use strict;
+ use Socket;
+ use Net::netent;
+
+ @ARGV = ('loopback') unless @ARGV;
+
+ my($n, $net);
+
+ for $net ( @ARGV ) {
+
+     unless ($n = getnetbyname($net)) {
+        warn &quot;$0: no such net: $net\n&quot;;
+        next;
+     }
+
+     printf &quot;\n%s is %s%s\n&quot;, 
+            $net, 
+            lc($n-&gt;name) eq lc($net) ? &quot;&quot; : &quot;*really* &quot;,
+            $n-&gt;name;
+
+     print &quot;\taliases are &quot;, join(&quot;, &quot;, @{$n-&gt;aliases}), &quot;\n&quot;
+                if @{$n-&gt;aliases};     
+
+     # this is stupid; first, why is this not in binary?
+     # second, why am i going through these convolutions
+     # to make it looks right
+     {
+        my @a = unpack(&quot;C4&quot;, pack(&quot;N&quot;, $n-&gt;net));
+        shift @a while @a &amp;&amp; $a[0] == 0;
+        printf &quot;\taddr is %s [%d.%d.%d.%d]\n&quot;, $n-&gt;net, @a;
+     }
+
+     if ($n = getnetbyaddr($n-&gt;net)) {
+        if (lc($n-&gt;name) ne lc($net)) {
+            printf &quot;\tThat addr reverses to net %s!\n&quot;, $n-&gt;name;
+            $net = $n-&gt;name;
+            redo;
+        } 
+     }
+ }
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTE</H2>
+
+<A NAME="ixAAF"></A>
+While this class is currently implemented using the Class::Struct
+module to build a struct-like class, you shouldn't rely upon this.
+<A NAME="lbAG">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAG"></A>
+Tom Christiansen
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">EXAMPLES</A><DD>
+<DT><A HREF="#lbAF">NOTE</A><DD>
+<DT><A HREF="#lbAG">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:35 GMT, December 24, 2015
+</div></body>
+</HTML>

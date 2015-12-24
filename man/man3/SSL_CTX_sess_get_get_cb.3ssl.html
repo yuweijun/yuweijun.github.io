@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SSL_CTX_sess_set_get_cb</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SSL_CTX_sess_set_get_cb</H1>
+Section: OpenSSL (3)<BR>Updated: 2003-03-27<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+SSL_CTX_sess_set_new_cb, SSL_CTX_sess_set_remove_cb, SSL_CTX_sess_set_get_cb, SSL_CTX_sess_get_new_cb, SSL_CTX_sess_get_remove_cb, SSL_CTX_sess_get_get_cb - provide callback functions for server side external session caching
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/ssl.h">openssl/ssl.h</A>&gt;
+
+ void SSL_CTX_sess_set_new_cb(SSL_CTX *ctx,
+                              int (*new_session_cb)(SSL *, SSL_SESSION *));
+ void SSL_CTX_sess_set_remove_cb(SSL_CTX *ctx,
+           void (*remove_session_cb)(SSL_CTX *ctx, SSL_SESSION *));
+ void SSL_CTX_sess_set_get_cb(SSL_CTX *ctx,
+           SSL_SESSION (*get_session_cb)(SSL *, unsigned char *, int, int *));
+
+ int (*SSL_CTX_sess_get_new_cb(SSL_CTX *ctx))(struct ssl_st *ssl, SSL_SESSION *sess);
+ void (*SSL_CTX_sess_get_remove_cb(SSL_CTX *ctx))(struct ssl_ctx_st *ctx, SSL_SESSION *sess);
+ SSL_SESSION *(*SSL_CTX_sess_get_get_cb(SSL_CTX *ctx))(struct ssl_st *ssl, unsigned char *data, int len, int *copy);
+
+ int (*new_session_cb)(struct ssl_st *ssl, SSL_SESSION *sess);
+ void (*remove_session_cb)(struct ssl_ctx_st *ctx, SSL_SESSION *sess);
+ SSL_SESSION *(*get_session_cb)(struct ssl_st *ssl, unsigned char *data,
+               int len, int *copy);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<I>SSL_CTX_sess_set_new_cb()</I> sets the callback function, which is automatically
+called whenever a new session was negotiated.
+<P>
+
+<I>SSL_CTX_sess_set_remove_cb()</I> sets the callback function, which is
+automatically called whenever a session is removed by the <FONT SIZE="-1">SSL</FONT> engine,
+because it is considered faulty or the session has become obsolete because
+of exceeding the timeout value.
+<P>
+
+<I>SSL_CTX_sess_set_get_cb()</I> sets the callback function which is called,
+whenever a <FONT SIZE="-1">SSL/TLS</FONT> client proposed to resume a session but the session
+could not be found in the internal session cache (see
+<I><A HREF="/man/index.html?3+SSL_CTX_set_session_cache_mode">SSL_CTX_set_session_cache_mode</A></I>(3)).
+(<FONT SIZE="-1">SSL/TLS</FONT> server only.)
+<P>
+
+<I>SSL_CTX_sess_get_new_cb()</I>, <I>SSL_CTX_sess_get_remove_cb()</I>, and
+<I>SSL_CTX_sess_get_get_cb()</I> allow to retrieve the function pointers of the
+provided callback functions. If a callback function has not been set,
+the <FONT SIZE="-1">NULL</FONT> pointer is returned.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+In order to allow external session caching, synchronization with the internal
+session cache is realized via callback functions. Inside these callback
+functions, session can be saved to disk or put into a database using the
+<I><A HREF="/man/index.html?3+d2i_SSL_SESSION">d2i_SSL_SESSION</A></I>(3) interface.
+<P>
+
+The <I>new_session_cb()</I> is called, whenever a new session has been negotiated
+and session caching is enabled (see
+<I><A HREF="/man/index.html?3+SSL_CTX_set_session_cache_mode">SSL_CTX_set_session_cache_mode</A></I>(3)).
+The <I>new_session_cb()</I> is passed the <B>ssl</B> connection and the ssl session
+<B>sess</B>. If the callback returns <B>0</B>, the session will be immediately
+removed again.
+<P>
+
+The <I>remove_session_cb()</I> is called, whenever the <FONT SIZE="-1">SSL</FONT> engine removes a session
+from the internal cache. This happens when the session is removed because
+it is expired or when a connection was not shutdown cleanly. It also happens
+for all sessions in the internal session cache when
+<I><A HREF="/man/index.html?3+SSL_CTX_free">SSL_CTX_free</A></I>(3) is called. The <I>remove_session_cb()</I> is passed
+the <B>ctx</B> and the ssl session <B>sess</B>. It does not provide any feedback.
+<P>
+
+The <I>get_session_cb()</I> is only called on <FONT SIZE="-1">SSL/TLS</FONT> servers with the session id
+proposed by the client. The <I>get_session_cb()</I> is always called, also when
+session caching was disabled. The <I>get_session_cb()</I> is passed the
+<B>ssl</B> connection, the session id of length <B>length</B> at the memory location
+<B>data</B>. With the parameter <B>copy</B> the callback can require the
+<FONT SIZE="-1">SSL</FONT> engine to increment the reference count of the <FONT SIZE="-1">SSL_SESSION</FONT> object,
+Normally the reference count is not incremented and therefore the
+session must not be explicitly freed with
+<I><A HREF="/man/index.html?3+SSL_SESSION_free">SSL_SESSION_free</A></I>(3).
+<A NAME="lbAF">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAF"></A>
+<I><A HREF="/man/index.html?3+ssl">ssl</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+d2i_SSL_SESSION">d2i_SSL_SESSION</A></I>(3),
+<I><A HREF="/man/index.html?3+SSL_CTX_set_session_cache_mode">SSL_CTX_set_session_cache_mode</A></I>(3),
+<I><A HREF="/man/index.html?3+SSL_CTX_flush_sessions">SSL_CTX_flush_sessions</A></I>(3),
+<I><A HREF="/man/index.html?3+SSL_SESSION_free">SSL_SESSION_free</A></I>(3),
+<I><A HREF="/man/index.html?3+SSL_CTX_free">SSL_CTX_free</A></I>(3)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:41 GMT, December 24, 2015
+</div></body>
+</HTML>

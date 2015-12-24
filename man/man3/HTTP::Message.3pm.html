@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of HTTP::Message</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>HTTP::Message</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-10-03<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+HTTP::Message - HTTP style message (base class)
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ use base 'HTTP::Message';
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+An <TT>&quot;HTTP::Message&quot;</TT> object contains some headers and a content body.
+The following methods are available:
+<DL COMPACT>
+<DT>$mess = HTTP::Message-&gt;new<DD>
+
+
+<A NAME="ixAAE"></A>
+
+<DT>$mess = HTTP::Message-&gt;new( $headers )<DD>
+
+
+<A NAME="ixAAF"></A>
+<DT>$mess = HTTP::Message-&gt;new( $headers, $content )<DD>
+
+
+<A NAME="ixAAG"></A>
+
+This constructs a new message object.  Normally you would want
+construct <TT>&quot;HTTP::Request&quot;</TT> or <TT>&quot;HTTP::Response&quot;</TT> objects instead.
+
+
+<P>
+
+
+The optional <TT>$header</TT> argument should be a reference to an
+<TT>&quot;HTTP::Headers&quot;</TT> object or a plain array reference of key/value pairs.
+If an <TT>&quot;HTTP::Headers&quot;</TT> object is provided then a copy of it will be
+embedded into the constructed message, i.e. it will not be owned and
+can be modified afterwards without affecting the message.
+
+
+<P>
+
+
+The optional <TT>$content</TT> argument should be a string of bytes.
+<DT>$mess = HTTP::Message-&gt;parse( $str )<DD>
+
+
+<A NAME="ixAAH"></A>
+This constructs a new message object by parsing the given string.
+<DT>$mess-&gt;headers<DD>
+
+
+<A NAME="ixAAI"></A>
+Returns the embedded <TT>&quot;HTTP::Headers&quot;</TT> object.
+<DT>$mess-&gt;headers_as_string<DD>
+
+
+<A NAME="ixAAJ"></A>
+
+<DT>$mess-&gt;headers_as_string( $eol )<DD>
+
+
+<A NAME="ixAAK"></A>
+
+Call the <I>as_string()</I> method for the headers in the
+message.  This will be the same as
+
+
+<P>
+
+
+
+
+<PRE>
+    $mess-&gt;headers-&gt;as_string
+
+</PRE>
+
+
+
+
+<P>
+
+
+but it will make your program a whole character shorter :-)
+<DT>$mess-&gt;content<DD>
+
+
+<A NAME="ixAAL"></A>
+
+<DT>$mess-&gt;content( $bytes )<DD>
+
+
+<A NAME="ixAAM"></A>
+
+The <I>content()</I> method sets the raw content if an argument is given.  If no
+argument is given the content is not touched.  In either case the
+original raw content is returned.
+
+
+<P>
+
+
+Note that the content should be a string of bytes.  Strings in perl
+can contain characters outside the range of a byte.  The <TT>&quot;Encode&quot;</TT>
+module can be used to turn such strings into a string of bytes.
+<DT>$mess-&gt;add_content( $bytes )<DD>
+
+
+<A NAME="ixAAN"></A>
+The <I>add_content()</I> methods appends more data bytes to the end of the
+current content buffer.
+<DT>$mess-&gt;add_content_utf8( $string )<DD>
+
+
+<A NAME="ixAAO"></A>
+The <I>add_content_utf8()</I> method appends the <FONT SIZE="-1">UTF-8</FONT> bytes representing the
+string to the end of the current content buffer.
+<DT>$mess-&gt;content_ref<DD>
+
+
+<A NAME="ixAAP"></A>
+
+<DT>$mess-&gt;content_ref( \$bytes )<DD>
+
+
+<A NAME="ixAAQ"></A>
+
+The <I>content_ref()</I> method will return a reference to content buffer string.
+It can be more efficient to access the content this way if the content
+is huge, and it can even be used for direct manipulation of the content,
+for instance:
+
+
+<P>
+
+
+
+
+<PRE>
+  ${$res-&gt;content_ref} =~ s/\bfoo\b/bar/g;
+
+</PRE>
+
+
+
+
+<P>
+
+
+This example would modify the content buffer in-place.
+
+
+<P>
+
+
+If an argument is passed it will setup the content to reference some
+external source.  The <I>content()</I> and <I>add_content()</I> methods
+will automatically dereference scalar references passed this way.  For
+other references <I>content()</I> will return the reference itself and
+<I>add_content()</I> will refuse to do anything.
+<DT>$mess-&gt;content_charset<DD>
+
+
+<A NAME="ixAAR"></A>
+This returns the charset used by the content in the message.  The
+charset is either found as the charset attribute of the
+<TT>&quot;Content-Type&quot;</TT> header or by guessing.
+
+
+<P>
+
+
+See &lt;<A HREF="http://www.w3.org/TR/REC-html40/charset.html#spec-char-encoding">http://www.w3.org/TR/REC-html40/charset.html#spec-char-encoding</A>&gt;
+for details about how charset is determined.
+<DT>$mess-&gt;decoded_content( %options )<DD>
+
+
+<A NAME="ixAAS"></A>
+Returns the content with any <TT>&quot;Content-Encoding&quot;</TT> undone and the raw
+content encoded to perl's Unicode strings.  If the <TT>&quot;Content-Encoding&quot;</TT>
+or <TT>&quot;charset&quot;</TT> of the message is unknown this method will fail by
+returning <TT>&quot;undef&quot;</TT>.
+
+
+<P>
+
+
+The following options can be specified.
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>charset<DD>
+
+
+<A NAME="ixAAT"></A>
+This override the charset parameter for text content.  The value
+<TT>&quot;none&quot;</TT> can used to suppress decoding of the charset.
+<DT>default_charset<DD>
+
+
+<A NAME="ixAAU"></A>
+This override the default charset guessed by <I>content_charset()</I> or
+if that fails ``<FONT SIZE="-1">ISO-8859-1</FONT>''.
+<DT>charset_strict<DD>
+
+
+<A NAME="ixAAV"></A>
+Abort decoding if malformed characters is found in the content.  By
+default you get the substitution character (``\x{<FONT SIZE="-1">FFFD</FONT>}'') in place of
+malformed characters.
+<DT>raise_error<DD>
+
+
+<A NAME="ixAAW"></A>
+If <FONT SIZE="-1">TRUE</FONT> then raise an exception if not able to decode content.  Reason
+might be that the specified <TT>&quot;Content-Encoding&quot;</TT> or <TT>&quot;charset&quot;</TT> is not
+supported.  If this option is <FONT SIZE="-1">FALSE</FONT>, then <I>decoded_content()</I> will return
+<TT>&quot;undef&quot;</TT> on errors, but will still set $@.
+<DT>ref<DD>
+
+
+<A NAME="ixAAX"></A>
+If <FONT SIZE="-1">TRUE</FONT> then a reference to decoded content is returned.  This might
+be more efficient in cases where the decoded content is identical to
+the raw content as no data copying is required in this case.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>$mess-&gt;decodable<DD>
+
+
+<A NAME="ixAAY"></A>
+
+<DT><I>HTTP::Message::decodable()</I><DD>
+<A NAME="ixAAZ"></A>
+
+This returns the encoding identifiers that <I>decoded_content()</I> can
+process.  In scalar context returns a comma separated string of
+identifiers.
+
+
+<P>
+
+
+This value is suitable for initializing the <TT>&quot;Accept-Encoding&quot;</TT> request
+header field.
+<DT>$mess-&gt;decode<DD>
+
+
+<A NAME="ixABA"></A>
+This method tries to replace the content of the message with the
+decoded version and removes the <TT>&quot;Content-Encoding&quot;</TT> header.  Returns
+<FONT SIZE="-1">TRUE</FONT> if successful and <FONT SIZE="-1">FALSE</FONT> if not.
+
+
+<P>
+
+
+If the message does not have a <TT>&quot;Content-Encoding&quot;</TT> header this method
+does nothing and returns <FONT SIZE="-1">TRUE</FONT>.
+
+
+<P>
+
+
+Note that the content of the message is still bytes after this method
+has been called and you still need to call <I>decoded_content()</I> if you
+want to process its content as a string.
+<DT>$mess-&gt;encode( $encoding, ... )<DD>
+
+
+<A NAME="ixABB"></A>
+Apply the given encodings to the content of the message.  Returns <FONT SIZE="-1">TRUE</FONT>
+if successful. The ``identity'' (non-)encoding is always supported; other
+currently supported encodings, subject to availability of required
+additional modules, are ``gzip'', ``deflate'', ``x-bzip2'' and ``base64''.
+
+
+<P>
+
+
+A successful call to this function will set the <TT>&quot;Content-Encoding&quot;</TT>
+header.
+
+
+<P>
+
+
+Note that <TT>&quot;multipart/*&quot;</TT> or <TT>&quot;message/*&quot;</TT> messages can't be encoded and
+this method will croak if you try.
+<DT>$mess-&gt;parts<DD>
+
+
+<A NAME="ixABC"></A>
+
+<DT>$mess-&gt;parts( @parts )<DD>
+
+
+<A NAME="ixABD"></A>
+<DT>$mess-&gt;parts( \@parts )<DD>
+
+
+<A NAME="ixABE"></A>
+
+Messages can be composite, i.e. contain other messages.  The composite
+messages have a content type of <TT>&quot;multipart/*&quot;</TT> or <TT>&quot;message/*&quot;</TT>.  This
+method give access to the contained messages.
+
+
+<P>
+
+
+The argumentless form will return a list of <TT>&quot;HTTP::Message&quot;</TT> objects.
+If the content type of <TT>$msg</TT> is not <TT>&quot;multipart/*&quot;</TT> or <TT>&quot;message/*&quot;</TT> then
+this will return the empty list.  In scalar context only the first
+object is returned.  The returned message parts should be regarded as
+read-only (future versions of this library might make it possible
+to modify the parent by modifying the parts).
+
+
+<P>
+
+
+If the content type of <TT>$msg</TT> is <TT>&quot;message/*&quot;</TT> then there will only be
+one part returned.
+
+
+<P>
+
+
+If the content type is <TT>&quot;message/http&quot;</TT>, then the return value will be
+either an <TT>&quot;HTTP::Request&quot;</TT> or an <TT>&quot;HTTP::Response&quot;</TT> object.
+
+
+<P>
+
+
+If an <TT>@parts</TT> argument is given, then the content of the message will be
+modified. The array reference form is provided so that an empty list
+can be provided.  The <TT>@parts</TT> array should contain <TT>&quot;HTTP::Message&quot;</TT>
+objects.  The <TT>@parts</TT> objects are owned by <TT>$mess</TT> after this call and
+should not be modified or made part of other messages.
+
+
+<P>
+
+
+When updating the message with this method and the old content type of
+<TT>$mess</TT> is not <TT>&quot;multipart/*&quot;</TT> or <TT>&quot;message/*&quot;</TT>, then the content type is
+set to <TT>&quot;multipart/mixed&quot;</TT> and all other content headers are cleared.
+
+
+<P>
+
+
+This method will croak if the content type is <TT>&quot;message/*&quot;</TT> and more
+than one part is provided.
+<DT>$mess-&gt;add_part( $part )<DD>
+
+
+<A NAME="ixABF"></A>
+This will add a part to a message.  The <TT>$part</TT> argument should be
+another <TT>&quot;HTTP::Message&quot;</TT> object.  If the previous content type of
+<TT>$mess</TT> is not <TT>&quot;multipart/*&quot;</TT> then the old content (together with all
+content headers) will be made part #1 and the content type made
+<TT>&quot;multipart/mixed&quot;</TT> before the new part is added.  The <TT>$part</TT> object is
+owned by <TT>$mess</TT> after this call and should not be modified or made part
+of other messages.
+
+
+<P>
+
+
+There is no return value.
+<DT>$mess-&gt;clear<DD>
+
+
+<A NAME="ixABG"></A>
+Will clear the headers and set the content to the empty string.  There
+is no return value
+<DT>$mess-&gt;protocol<DD>
+
+
+<A NAME="ixABH"></A>
+
+<DT>$mess-&gt;protocol( $proto )<DD>
+
+
+<A NAME="ixABI"></A>
+
+Sets the <FONT SIZE="-1">HTTP</FONT> protocol used for the message.  The <I>protocol()</I> is a string
+like <TT>&quot;HTTP/1.0&quot;</TT> or <TT>&quot;HTTP/1.1&quot;</TT>.
+<DT>$mess-&gt;clone<DD>
+
+
+<A NAME="ixABJ"></A>
+Returns a copy of the message object.
+<DT>$mess-&gt;as_string<DD>
+
+
+<A NAME="ixABK"></A>
+
+<DT>$mess-&gt;as_string( $eol )<DD>
+
+
+<A NAME="ixABL"></A>
+
+Returns the message formatted as a single string.
+
+
+<P>
+
+
+The optional <TT>$eol</TT> parameter specifies the line ending sequence to use.
+The default is ``\n''.  If no <TT>$eol</TT> is given then as_string will ensure
+that the returned string is newline terminated (even when the message
+content is not).  No extra newline is appended if an explicit <TT>$eol</TT> is
+passed.
+<DT>$mess-&gt;dump( %opt )<DD>
+
+
+<A NAME="ixABM"></A>
+Returns the message formatted as a string.  In void context print the string.
+
+
+<P>
+
+
+This differs from <TT>&quot;$mess-&gt;as_string&quot;</TT> in that it escapes the bytes
+of the content so that it's safe to print them and it limits how much
+content to print.  The escapes syntax used is the same as for Perl's
+double quoted strings.  If there is no content the string ``(no
+content)'' is shown in its place.
+
+
+<P>
+
+
+Options to influence the output can be passed as key/value pairs. The
+following options are recognized:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>maxlength =&gt; $num<DD>
+
+
+<A NAME="ixABN"></A>
+How much of the content to show.  The default is 512.  Set this to 0
+for unlimited.
+
+
+<P>
+
+
+If the content is longer then the string is chopped at the limit and
+the string ``...\n(### more bytes not shown)'' appended.
+<DT>prefix =&gt; $str<DD>
+
+
+<A NAME="ixABO"></A>
+A string that will be prefixed to each line of the dump.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+</DL>
+<P>
+
+All methods unknown to <TT>&quot;HTTP::Message&quot;</TT> itself are delegated to the
+<TT>&quot;HTTP::Headers&quot;</TT> object that is part of every message.  This allows
+convenient access to these methods.  Refer to HTTP::Headers for
+details of these methods:
+<P>
+
+
+
+<PRE>
+    $mess-&gt;header( $field =&gt; $val )
+    $mess-&gt;push_header( $field =&gt; $val )
+    $mess-&gt;init_header( $field =&gt; $val )
+    $mess-&gt;remove_header( $field )
+    $mess-&gt;remove_content_headers
+    $mess-&gt;header_field_names
+    $mess-&gt;scan( \&amp;doit )
+
+    $mess-&gt;date
+    $mess-&gt;expires
+    $mess-&gt;if_modified_since
+    $mess-&gt;if_unmodified_since
+    $mess-&gt;last_modified
+    $mess-&gt;content_type
+    $mess-&gt;content_encoding
+    $mess-&gt;content_length
+    $mess-&gt;content_language
+    $mess-&gt;title
+    $mess-&gt;user_agent
+    $mess-&gt;server
+    $mess-&gt;from
+    $mess-&gt;referer
+    $mess-&gt;www_authenticate
+    $mess-&gt;authorization
+    $mess-&gt;proxy_authorization
+    $mess-&gt;authorization_basic
+    $mess-&gt;proxy_authorization_basic
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABP"></A>
+Copyright 1995-2004 Gisle Aas.
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:29 GMT, December 24, 2015
+</div></body>
+</HTML>

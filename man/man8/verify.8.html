@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of VERIFY</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>VERIFY</H1>
+Section: Maintenance Commands (8)<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+verify
+-
+Postfix address verification server
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+
+<PRE>
+<B>verify</B> [generic Postfix daemon options]
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+The <B><A HREF="/man/index.html?8+verify">verify</A></B>(8) address verification server maintains a record
+of what recipient addresses are known to be deliverable or
+undeliverable.
+<P>
+Addresses are verified by injecting probe messages into the
+Postfix queue. Probe messages are run through all the routing
+and rewriting machinery except for final delivery, and are
+discarded rather than being deferred or bounced.
+<P>
+Address verification relies on the answer from the nearest
+MTA for the specified address, and will therefore not detect
+all undeliverable addresses.
+<P>
+The <B><A HREF="/man/index.html?8+verify">verify</A></B>(8) server is designed to run under control
+by the Postfix
+master server. It maintains an optional persistent database.
+To avoid being interrupted by &quot;postfix stop&quot; in the middle
+of a database update, the process runs in a separate process
+group.
+<P>
+The <B><A HREF="/man/index.html?8+verify">verify</A></B>(8) server implements the following requests:
+<DL COMPACT>
+<DT><B>update</B><I> address status text</I><DD>
+Update the status and text of the specified address.
+<DT><B>query</B><I> address</I><DD>
+Look up the <I>status</I> and <I>text</I> for the specified address.
+If the status is unknown, a probe is sent and an &quot;in progress&quot;
+status is returned.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>SECURITY</H2>
+
+
+<PRE>
+</PRE>
+
+The address verification server is not security-sensitive. It does
+not talk to the network, and it does not talk to local users.
+The verify server can run chrooted at fixed low privilege.
+<P>
+The address verification server can be coerced to store
+unlimited amounts of garbage. Limiting the cache size
+trades one problem (disk space exhaustion) for another
+one (poor response time to client requests).
+<P>
+With Postfix version 2.5 and later, the <B><A HREF="/man/index.html?8+verify">verify</A></B>(8)
+server no longer uses root privileges when opening the
+<B>address_verify_map</B> cache file. The file should now
+be stored under the Postfix-owned <B>data_directory</B>.  As
+a migration aid, an attempt to open a cache file under a
+non-Postfix directory is redirected to the Postfix-owned
+<B>data_directory</B>, and a warning is logged.
+<A NAME="lbAF">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+
+
+Problems and transactions are logged to <B><A HREF="/man/index.html?8+syslogd">syslogd</A></B>(8).
+<A NAME="lbAG">&nbsp;</A>
+<H2>BUGS</H2>
+
+
+
+The address verification service is suitable only for sites that
+handle a low mail volume. Verification probes add additional
+traffic to the mail queue and perform poorly under high load.
+Servers may blacklist sites that probe excessively, or that
+probe excessively for non-existent recipient addresses.
+<P>
+If the persistent database ever gets corrupted then the world
+comes to an end and human intervention is needed. This violates
+a basic Postfix principle.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFIGURATION PARAMETERS</H2>
+
+
+<PRE>
+</PRE>
+
+Changes to <B>main.cf</B> are not picked up automatically,
+as <B><A HREF="/man/index.html?8+verify">verify</A></B>(8)
+processes are persistent. Use the command &quot;<B>postfix reload</B>&quot; after
+a configuration change.
+<P>
+The text below provides only a parameter summary. See
+<B><A HREF="/man/index.html?5+postconf">postconf</A></B>(5) for more details including examples.
+<A NAME="lbAI">&nbsp;</A>
+<H2>CACHE CONTROLS</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT><B>address_verify_map (empty)</B><DD>
+Optional lookup table for persistent address verification status
+storage.
+<DT><B>address_verify_sender ($double_bounce_sender)</B><DD>
+The sender address to use in address verification probes; prior
+to Postfix 2.5 the default was &quot;postmaster&quot;.
+<DT><B>address_verify_positive_expire_time (31d)</B><DD>
+The time after which a successful probe expires from the address
+verification cache.
+<DT><B>address_verify_positive_refresh_time (7d)</B><DD>
+The time after which a successful address verification probe needs
+to be refreshed.
+<DT><B>address_verify_negative_cache (yes)</B><DD>
+Enable caching of failed address verification probe results.
+<DT><B>address_verify_negative_expire_time (3d)</B><DD>
+The time after which a failed probe expires from the address
+verification cache.
+<DT><B>address_verify_negative_refresh_time (3h)</B><DD>
+The time after which a failed address verification probe needs to
+be refreshed.
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>PROBE MESSAGE ROUTING CONTROLS</H2>
+
+
+<PRE>
+</PRE>
+
+By default, probe messages are delivered via the same route
+as regular messages.  The following parameters can be used to
+override specific message routing mechanisms.
+<DL COMPACT>
+<DT><B>address_verify_relayhost ($relayhost)</B><DD>
+Overrides the relayhost parameter setting for address verification
+probes.
+<DT><B>address_verify_transport_maps ($transport_maps)</B><DD>
+Overrides the transport_maps parameter setting for address verification
+probes.
+<DT><B>address_verify_local_transport ($local_transport)</B><DD>
+Overrides the local_transport parameter setting for address
+verification probes.
+<DT><B>address_verify_virtual_transport ($virtual_transport)</B><DD>
+Overrides the virtual_transport parameter setting for address
+verification probes.
+<DT><B>address_verify_relay_transport ($relay_transport)</B><DD>
+Overrides the relay_transport parameter setting for address
+verification probes.
+<DT><B>address_verify_default_transport ($default_transport)</B><DD>
+Overrides the default_transport parameter setting for address
+verification probes.
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H2>MISCELLANEOUS CONTROLS</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT><B>config_directory (see 'postconf -d' output)</B><DD>
+The default location of the Postfix main.cf and master.cf
+configuration files.
+<DT><B>daemon_timeout (18000s)</B><DD>
+How much time a Postfix daemon process may take to handle a
+request before it is terminated by a built-in watchdog timer.
+<DT><B>ipc_timeout (3600s)</B><DD>
+The time limit for sending or receiving information over an internal
+communication channel.
+<DT><B>process_id (read-only)</B><DD>
+The process ID of a Postfix command or daemon process.
+<DT><B>process_name (read-only)</B><DD>
+The process name of a Postfix command or daemon process.
+<DT><B>queue_directory (see 'postconf -d' output)</B><DD>
+The location of the Postfix top-level queue directory.
+<DT><B>syslog_facility (mail)</B><DD>
+The syslog facility of Postfix logging.
+<DT><B>syslog_name (see 'postconf -d' output)</B><DD>
+The mail system name that is prepended to the process name in syslog
+records, so that &quot;smtpd&quot; becomes, for example, &quot;postfix/smtpd&quot;.
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/man/index.html?8+smtpd">smtpd</A>(8), Postfix SMTP server
+<A HREF="/man/index.html?8+cleanup">cleanup</A>(8), enqueue Postfix message
+<A HREF="/man/index.html?5+postconf">postconf</A>(5), configuration parameters
+<A HREF="/man/index.html?5+syslogd">syslogd</A>(5), system logging
+</PRE><A NAME="lbAM">&nbsp;</A>
+<H2>README FILES</H2>
+
+
+<PRE>
+</PRE>
+
+Use &quot;<B>postconf readme_directory</B>&quot; or
+&quot;<B>postconf html_directory</B>&quot; to locate this information.
+
+<PRE>
+ADDRESS_VERIFICATION_README, address verification howto
+</PRE><A NAME="lbAN">&nbsp;</A>
+<H2>LICENSE</H2>
+
+
+<PRE>
+</PRE>
+
+The Secure Mailer license must be distributed with this software.
+<A NAME="lbAO">&nbsp;</A>
+<H2>HISTORY</H2>
+
+
+<PRE>
+</PRE>
+
+This service was introduced with Postfix version 2.1.
+<A NAME="lbAP">&nbsp;</A>
+<H2>AUTHOR(S)</H2>
+
+
+<PRE>
+Wietse Venema
+IBM T.J. Watson Research
+P.O. Box 704
+Yorktown Heights, NY 10598, USA
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">SECURITY</A><DD>
+<DT><A HREF="#lbAF">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAG">BUGS</A><DD>
+<DT><A HREF="#lbAH">CONFIGURATION PARAMETERS</A><DD>
+<DT><A HREF="#lbAI">CACHE CONTROLS</A><DD>
+<DT><A HREF="#lbAJ">PROBE MESSAGE ROUTING CONTROLS</A><DD>
+<DT><A HREF="#lbAK">MISCELLANEOUS CONTROLS</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+<DT><A HREF="#lbAM">README FILES</A><DD>
+<DT><A HREF="#lbAN">LICENSE</A><DD>
+<DT><A HREF="#lbAO">HISTORY</A><DD>
+<DT><A HREF="#lbAP">AUTHOR(S)</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:31 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PTHREAD_ATTR_INIT</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PTHREAD_ATTR_INIT</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2008-11-11<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+pthread_attr_init, pthread_attr_destroy - initialize and destroy
+thread attributes object
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/pthread.h">pthread.h</A>&gt;</B>
+
+<B>int pthread_attr_init(pthread_attr_t *</B><I>attr</I><B>);</B>
+<B>int pthread_attr_destroy(pthread_attr_t *</B><I>attr</I><B>);</B>
+
+Compile and link with <I>-pthread</I>.
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>pthread_attr_init</B>()
+
+function initializes the thread attributes object pointed to by
+<I>attr</I>
+
+with default attribute values.
+After this call, individual attributes of the object can be set
+using various related functions (listed under SEE ALSO),
+and then the object can be used in one or more
+<B><A HREF="/man/index.html?3+pthread_create">pthread_create</A></B>(3)
+
+calls that create threads.
+<P>
+Calling
+<B>pthread_attr_init</B>()
+
+on a thread attributes object that has already been initialized
+results in undefined behavior.
+<P>
+When a thread attributes object is no longer required,
+it should be destroyed using the
+<B>pthread_attr_destroy</B>()
+
+function.
+Destroying a thread attributes object has no effect
+on threads that were created using that object.
+<P>
+Once a thread attributes object has been destroyed,
+it can be reinitialized using
+<B>pthread_attr_init</B>().
+
+Any other use of a destroyed thread attributes object
+has undefined results.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success, these functions return 0;
+on error, they return a non-zero error number.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+POSIX.1-2001 documents an
+<B>ENOMEM</B>
+
+error for
+<B>pthread_attr_init</B>();
+
+on Linux these functions always succeed
+(but portable and future-proof applications should nevertheless
+handle a possible error return).
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+POSIX.1-2001.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+The
+<I>pthread_attr_t</I>
+
+type should be treated as opaque:
+any access to the object other than via pthreads functions
+is non-portable and produces undefined results.
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+The program below optionally makes use of
+<B>pthread_attr_init</B>()
+
+and various related functions to initialize a thread attributes
+object that is used to create a single thread.
+Once created, the thread uses the
+<B>pthread_getattr_np</B>()
+
+function (a non-standard GNU extension) to retrieve the thread's
+attributes, and then displays those attributes.
+<P>
+If the program is run with no command-line argument,
+then it passes NULL as the
+<I>attr</I>
+
+argument of
+<B><A HREF="/man/index.html?3+pthread_create">pthread_create</A></B>(3),
+
+so that the thread is created with default attributes.
+Running the program on Linux/x86-32 with the NPTL threading implementation,
+we see the following:
+<P>
+
+<PRE>
+$<B> ulimit -s</B>       # No stack imit ==&gt; default stack size is 2MB
+unlimited
+$<B> ./a.out</B>
+Thread attributes:
+        Detach state        = PTHREAD_CREATE_JOINABLE
+        Scope               = PTHREAD_SCOPE_SYSTEM
+        Inherit scheduler   = PTHREAD_INHERIT_SCHED
+        Scheduling policy   = SCHED_OTHER
+        Scheduling priority = 0
+        Guard size          = 4096 bytes
+        Stack address       = 0x40196000
+        Stack size          = 0x201000 bytes
+</PRE>
+
+
+<P>
+When we supply a stack size as a command-line argument,
+the program initializes a thread attributes object,
+sets various attributes in that object,
+and passes a pointer to the object in the call to
+<B><A HREF="/man/index.html?3+pthread_create">pthread_create</A></B>(3).
+
+Running the program on Linux/x86-32 with the NPTL threading implementation,
+we see the following:
+<P>
+
+<PRE>
+$<B> ./a.out 0x3000000</B>
+posix_memalign() allocated at 0x40197000
+Thread attributes:
+        Detach state        = PTHREAD_CREATE_DETACHED
+        Scope               = PTHREAD_SCOPE_SYSTEM
+        Inherit scheduler   = PTHREAD_EXPLICIT_SCHED
+        Scheduling policy   = SCHED_OTHER
+        Scheduling priority = 0
+        Guard size          = 0 bytes
+        Stack address       = 0x40197000
+        Stack size          = 0x3000000 bytes
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Program source</H3>
+
+
+<PRE>
+#define _GNU_SOURCE     /* To get pthread_getattr_np() declaration */
+#include &lt;<A HREF="file:/usr/include/pthread.h">pthread.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/errno.h">errno.h</A>&gt;
+
+#define handle_error_en(en, msg) \
+        do { errno = en; perror(msg); exit(EXIT_FAILURE); } while (0)
+
+static void
+display_pthread_attr(pthread_attr_t *attr, char *prefix)
+{
+    int s, i;
+    size_t v;
+    void *stkaddr;
+    struct sched_param sp;
+
+    s = pthread_attr_getdetachstate(attr, &amp;i);
+    if (s != 0)
+        handle_error_en(s, &quot;pthread_attr_getdetachstate&quot;);
+    printf(&quot;%sDetach state        = %s\n&quot;, prefix,
+            (i == PTHREAD_CREATE_DETACHED) ? &quot;PTHREAD_CREATE_DETACHED&quot; :
+            (i == PTHREAD_CREATE_JOINABLE) ? &quot;PTHREAD_CREATE_JOINABLE&quot; :
+            &quot;???&quot;);
+
+    s = pthread_attr_getscope(attr, &amp;i);
+    if (s != 0)
+        handle_error_en(s, &quot;pthread_attr_getscope&quot;);
+    printf(&quot;%sScope               = %s\n&quot;, prefix,
+            (i == PTHREAD_SCOPE_SYSTEM)  ? &quot;PTHREAD_SCOPE_SYSTEM&quot; :
+            (i == PTHREAD_SCOPE_PROCESS) ? &quot;PTHREAD_SCOPE_PROCESS&quot; :
+            &quot;???&quot;);
+
+    s = pthread_attr_getinheritsched(attr, &amp;i);
+    if (s != 0)
+        handle_error_en(s, &quot;pthread_attr_getinheritsched&quot;);
+    printf(&quot;%sInherit scheduler   = %s\n&quot;, prefix,
+            (i == PTHREAD_INHERIT_SCHED)  ? &quot;PTHREAD_INHERIT_SCHED&quot; :
+            (i == PTHREAD_EXPLICIT_SCHED) ? &quot;PTHREAD_EXPLICIT_SCHED&quot; :
+            &quot;???&quot;);
+
+    s = pthread_attr_getschedpolicy(attr, &amp;i);
+    if (s != 0)
+        handle_error_en(s, &quot;pthread_attr_getschedpolicy&quot;);
+    printf(&quot;%sScheduling policy   = %s\n&quot;, prefix,
+            (i == SCHED_OTHER) ? &quot;SCHED_OTHER&quot; :
+            (i == SCHED_FIFO)  ? &quot;SCHED_FIFO&quot; :
+            (i == SCHED_RR)    ? &quot;SCHED_RR&quot; :
+            &quot;???&quot;);
+
+    s = pthread_attr_getschedparam(attr, &amp;sp);
+    if (s != 0)
+        handle_error_en(s, &quot;pthread_attr_getschedparam&quot;);
+    printf(&quot;%sScheduling priority = %d\n&quot;, prefix, sp.sched_priority);
+
+    s = pthread_attr_getguardsize(attr, &amp;v);
+    if (s != 0)
+        handle_error_en(s, &quot;pthread_attr_getguardsize&quot;);
+    printf(&quot;%sGuard size          = %d bytes\n&quot;, prefix, v);
+
+    s = pthread_attr_getstack(attr, &amp;stkaddr, &amp;v);
+    if (s != 0)
+        handle_error_en(s, &quot;pthread_attr_getstack&quot;);
+    printf(&quot;%sStack address       = %p\n&quot;, prefix, stkaddr);
+    printf(&quot;%sStack size          = 0x%x bytes\n&quot;, prefix, v);
+}
+
+static void *
+thread_start(void *arg)
+{
+    int s;
+    pthread_attr_t gattr;
+
+    /* pthread_getattr_np() is a non-standard GNU extension that
+       retrieves the attributes of the thread specified in its
+       first argument */
+
+    s = pthread_getattr_np(pthread_self(), &amp;gattr);
+    if (s != 0)
+        handle_error_en(s, &quot;pthread_getattr_np&quot;);
+
+    printf(&quot;Thread attributes:\n&quot;);
+    display_pthread_attr(&amp;gattr, &quot;\t&quot;);
+
+    exit(EXIT_SUCCESS);         /* Terminate all threads */
+}
+
+int
+main(int argc, char *argv[])
+{
+    pthread_t thr;
+    pthread_attr_t attr;
+    pthread_attr_t *attrp;      /* NULL or &amp;attr */
+    int s;
+
+    attrp = NULL;
+
+    /* If a command-line argument was supplied, use it to set the
+       stack-size attribute and set a few other thread attributes,
+       and set attrp pointing to thread attributes object */
+
+    if (argc &gt; 1) {
+        int stack_size;
+        void *sp;
+
+        attrp = &amp;attr;
+
+        s = pthread_attr_init(&amp;attr);
+        if (s != 0)
+            handle_error_en(s, &quot;pthread_attr_init&quot;);
+
+        s = pthread_attr_setdetachstate(&amp;attr, PTHREAD_CREATE_DETACHED);
+        if (s != 0)
+            handle_error_en(s, &quot;pthread_attr_setdetachstate&quot;);
+
+        s = pthread_attr_setinheritsched(&amp;attr, PTHREAD_EXPLICIT_SCHED);
+        if (s != 0)
+            handle_error_en(s, &quot;pthread_attr_setinheritsched&quot;);
+
+        stack_size = strtoul(argv[1], NULL, 0);
+
+        s = posix_memalign(&amp;sp, sysconf(_SC_PAGESIZE), stack_size);
+        if (s != 0)
+            handle_error_en(s, &quot;posix_memalign&quot;);
+
+        printf(&quot;posix_memalign() allocated at %p\n&quot;, sp);
+
+        s = pthread_attr_setstack(&amp;attr, sp, stack_size);
+        if (s != 0)
+            handle_error_en(s, &quot;pthread_attr_setstack&quot;);
+    }
+
+    s = pthread_create(&amp;thr, attrp, &amp;thread_start, NULL);
+    if (s != 0)
+        handle_error_en(s, &quot;pthread_create&quot;);
+
+    if (attrp != NULL) {
+        s = pthread_attr_destroy(attrp);
+        if (s != 0)
+            handle_error_en(s, &quot;pthread_attr_destroy&quot;);
+    }
+
+    pause();    /* Terminates when other thread calls exit() */
+}
+</PRE>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?3+pthread_attr_setaffinity_np">pthread_attr_setaffinity_np</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setdetachstate">pthread_attr_setdetachstate</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setguardsize">pthread_attr_setguardsize</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setinheritsched">pthread_attr_setinheritsched</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setschedparam">pthread_attr_setschedparam</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setschedpolicy">pthread_attr_setschedpolicy</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setscope">pthread_attr_setscope</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setstack">pthread_attr_setstack</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setstackaddr">pthread_attr_setstackaddr</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_attr_setstacksize">pthread_attr_setstacksize</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_create">pthread_create</A></B>(3),
+
+<B><A HREF="/man/index.html?3+pthread_getattr_np">pthread_getattr_np</A></B>(3),
+
+<B><A HREF="/man/index.html?7+pthreads">pthreads</A></B>(7)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">EXAMPLE</A><DD>
+<DL>
+<DT><A HREF="#lbAJ">Program source</A><DD>
+</DL>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:37 GMT, December 24, 2015
+</div></body>
+</HTML>

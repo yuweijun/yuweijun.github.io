@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of COPY</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>COPY</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+COPY - copy data between a file and a table
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+COPY <I>tablename</I> [ ( <I>column</I> [, ...] ) ]
+    FROM { '<I>filename</I>' | STDIN }
+    [ [ WITH ] 
+          [ BINARY ]
+          [ OIDS ]
+          [ DELIMITER [ AS ] '<I>delimiter</I>' ]
+          [ NULL [ AS ] '<I>null string</I>' ]
+          [ CSV [ HEADER ]
+                [ QUOTE [ AS ] '<I>quote</I>' ] 
+                [ ESCAPE [ AS ] '<I>escape</I>' ]
+                [ FORCE NOT NULL <I>column</I> [, ...] ]
+
+COPY { <I>tablename</I> [ ( <I>column</I> [, ...] ) ] | ( <I>query</I> ) }
+    TO { '<I>filename</I>' | STDOUT }
+    [ [ WITH ] 
+          [ BINARY ]
+          [ OIDS ]
+          [ DELIMITER [ AS ] '<I>delimiter</I>' ]
+          [ NULL [ AS ] '<I>null string</I>' ]
+          [ CSV [ HEADER ]
+                [ QUOTE [ AS ] '<I>quote</I>' ] 
+                [ ESCAPE [ AS ] '<I>escape</I>' ]
+                [ FORCE QUOTE <I>column</I> [, ...] ]
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>COPY</B> moves data between
+PostgreSQL tables and standard file-system
+files. <B>COPY TO</B> copies the contents of a table
+<B>to</B> a file, while <B>COPY FROM</B> copies
+data <B>from</B> a file to a table (appending the data to
+whatever is in the table already). <B>COPY TO</B>
+can also copy the results of a <B>SELECT</B> query.
+<P>
+
+If a list of columns is specified, <B>COPY</B> will
+only copy the data in the specified columns to or from the file.
+If there are any columns in the table that are not in the column list,
+<B>COPY FROM</B> will insert the default values for
+those columns.
+<P>
+
+<B>COPY</B> with a file name instructs the
+PostgreSQL server to directly read from
+or write to a file. The file must be accessible to the server and
+the name must be specified from the viewpoint of the server. When
+STDIN or STDOUT is
+specified, data is transmitted via the connection between the
+client and the server.
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B></B><I>tablename</I><B></B><DD>
+The name (optionally schema-qualified) of an existing table.
+<DT><B></B><I>column</I><B></B><DD>
+An optional list of columns to be copied. If no column list is
+specified, all columns of the table will be copied.
+<DT><B></B><I>query</I><B></B><DD>
+A SELECT [<B><A HREF="/man/index.html?7+select">select</A></B>(7)] or
+VALUES [<B><A HREF="/man/index.html?7+values">values</A></B>(7)] command
+whose results are to be copied.
+Note that parentheses are required around the query.
+<DT><B></B><I>filename</I><B></B><DD>
+The absolute path name of the input or output file. Windows users
+might need to use an E'' string and double backslashes
+used as path separators.
+<DT><B>STDIN</B><DD>
+Specifies that input comes from the client application.
+<DT><B>STDOUT</B><DD>
+Specifies that output goes to the client application.
+<DT><B>BINARY</B><DD>
+Causes all data to be stored or read in binary format rather
+than as text. You cannot specify the <B>DELIMITER</B>,
+<B>NULL</B>, or <B>CSV</B> options in binary mode.
+<DT><B>OIDS</B><DD>
+Specifies copying the OID for each row. (An error is raised if
+OIDS is specified for a table that does not
+have OIDs, or in the case of copying a <I>query</I>.)
+<DT><B></B><I>delimiter</I><B></B><DD>
+The single ASCII character that separates columns within each row
+(line) of the file. The default is a tab character in text mode,
+a comma in CSV mode.
+<DT><B></B><I>null string</I><B></B><DD>
+The string that represents a null value. The default is
+\N (backslash-N) in text mode, and an unquoted empty
+string in CSV mode. You might prefer an
+empty string even in text mode for cases where you don't want to
+distinguish nulls from empty strings.
+<P>
+<DL COMPACT><DT><DD>
+<B>Note:</B>
+
+When using <B>COPY FROM</B>, any data item that matches
+this string will be stored as a null value, so you should make
+sure that you use the same string as you used with
+<B>COPY TO</B>.
+</DL>
+
+<P>
+<DT><B>CSV</B><DD>
+Selects Comma Separated Value (CSV) mode.
+<DT><B>HEADER</B><DD>
+Specifies that the file contains a header line with the names of each
+column in the file. On output, the first line contains the column 
+names from the table, and on input, the first line is ignored.
+<DT><B></B><I>quote</I><B></B><DD>
+Specifies the ASCII quotation character in CSV mode.
+The default is double-quote.
+<DT><B></B><I>escape</I><B></B><DD>
+Specifies the ASCII character that should appear before a
+QUOTE data character value in CSV mode.
+The default is the QUOTE value (usually double-quote).
+<DT><B>FORCE QUOTE</B><DD>
+In CSV <B>COPY TO</B> mode, forces quoting to be
+used for all non-NULL values in each specified column.
+NULL output is never quoted.
+<DT><B>FORCE NOT NULL</B><DD>
+In CSV <B>COPY FROM</B> mode, process each
+specified column as though it were quoted and hence not a
+NULL value. For the default null string in
+CSV mode (''), this causes missing
+values to be input as zero-length strings.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>OUTPUTS</H2>
+
+<P>
+
+On successful completion, a <B>COPY</B> command returns a command
+tag of the form
+<P>
+<PRE>
+COPY <I>count</I>
+
+</PRE>
+
+The <I>count</I> is the number
+of rows copied.
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+<B>COPY</B> can only be used with plain tables, not
+with views. However, you can write COPY (SELECT * FROM
+<I>viewname</I>) TO ....
+<P>
+
+The BINARY key word causes all data to be
+stored/read as binary format rather than as text. It is
+somewhat faster than the normal text mode, but a binary-format
+file is less portable across machine architectures and
+PostgreSQL versions.
+Also, the binary format is very data type specific; for example
+it will not work to output binary data from a <B>smallint</B> column
+and read it into an <B>integer</B> column, even though that would work
+fine in text format.
+<P>
+
+You must have select privilege on the table
+whose values are read by <B>COPY TO</B>, and
+insert privilege on the table into which values
+are inserted by <B>COPY FROM</B>. It is sufficient
+to have column privileges on the column(s) listed in the command.
+<P>
+
+Files named in a <B>COPY</B> command are read or written
+directly by the server, not by the client application. Therefore,
+they must reside on or be accessible to the database server machine,
+not the client. They must be accessible to and readable or writable
+by the PostgreSQL user (the user ID the
+server runs as), not the client. <B>COPY</B> naming a
+file is only allowed to database superusers, since it allows reading
+or writing any file that the server has privileges to access.
+<P>
+
+Do not confuse <B>COPY</B> with the
+<B>psql</B> instruction
+<B>\copy</B>. <B>\copy</B> invokes
+<B>COPY FROM STDIN</B> or <B>COPY TO
+STDOUT</B>, and then fetches/stores the data in a file
+accessible to the <B>psql</B> client. Thus,
+file accessibility and access rights depend on the client rather
+than the server when <B>\copy</B> is used.
+<P>
+
+It is recommended that the file name used in <B>COPY</B>
+always be specified as an absolute path. This is enforced by the
+server in the case of <B>COPY TO</B>, but for
+<B>COPY FROM</B> you do have the option of reading from
+a file specified by a relative path. The path will be interpreted
+relative to the working directory of the server process (normally
+the cluster's data directory), not the client's working directory.
+<P>
+
+<B>COPY FROM</B> will invoke any triggers and check
+constraints on the destination table. However, it will not invoke rules.
+<P>
+
+<B>COPY</B> input and output is affected by
+DateStyle. To ensure portability to other
+PostgreSQL installations that might use
+non-default DateStyle settings,
+DateStyle should be set to ISO before
+using <B>COPY TO</B>. It is also a good idea to avoid dumping
+data with IntervalStyle set to
+sql_standard, because negative interval values might be
+misinterpreted by a server that has a different setting for
+IntervalStyle.
+<P>
+
+Input data is interpreted according to the current client encoding,
+and output data is encoded in the the current client encoding, even
+if the data does not pass through the client but is read from or
+written to a file.
+<P>
+
+<B>COPY</B> stops operation at the first error. This
+should not lead to problems in the event of a <B>COPY
+TO</B>, but the target table will already have received
+earlier rows in a <B>COPY FROM</B>. These rows will not
+be visible or accessible, but they still occupy disk space. This might
+amount to a considerable amount of wasted disk space if the failure
+happened well into a large copy operation. You might wish to invoke
+<B>VACUUM</B> to recover the wasted space.
+<A NAME="lbAH">&nbsp;</A>
+<H2>FILE FORMATS</H2>
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>TEXT FORMAT</H3>
+
+<P>
+
+When <B>COPY</B> is used without the BINARY
+or CSV options,
+the data read or written is a text file with one line per table row.
+Columns in a row are separated by the delimiter character.
+The column values themselves are strings generated by the
+output function, or acceptable to the input function, of each
+attribute's data type. The specified null string is used in
+place of columns that are null.
+<B>COPY FROM</B> will raise an error if any line of the
+input file contains more or fewer columns than are expected.
+If OIDS is specified, the OID is read or written as the first column,
+preceding the user data columns.
+<P>
+
+End of data can be represented by a single line containing just
+backslash-period (\.). An end-of-data marker is
+not necessary when reading from a file, since the end of file
+serves perfectly well; it is needed only when copying data to or from
+client applications using pre-3.0 client protocol.
+<P>
+
+Backslash characters (\) can be used in the
+<B>COPY</B> data to quote data characters that might
+otherwise be taken as row or column delimiters. In particular, the
+following characters <B>must</B> be preceded by a backslash if
+they appear as part of a column value: backslash itself,
+newline, carriage return, and the current delimiter character.
+<P>
+
+The specified null string is sent by <B>COPY TO</B> without
+adding any backslashes; conversely, <B>COPY FROM</B> matches
+the input against the null string before removing backslashes. Therefore,
+a null string such as \N cannot be confused with
+the actual data value \N (which would be represented
+as \\N).
+<P>
+
+The following special backslash sequences are recognized by
+<B>COPY FROM</B>:
+SequenceRepresents\bBackspace (ASCII 8)\fForm feed (ASCII 12)\nNewline (ASCII 10)\rCarriage return (ASCII 13)\tTab (ASCII 9)\vVertical tab (ASCII 11)\<I>digits</I>Backslash followed by one to three octal digits specifies
+the character with that numeric code\x<I>digits</I>Backslash x followed by one or two hex digits specifies
+the character with that numeric code
+Presently, <B>COPY TO</B> will never emit an octal or 
+hex-digits backslash sequence, but it does use the other sequences
+listed above for those control characters.
+<P>
+
+Any other backslashed character that is not mentioned in the above table
+will be taken to represent itself. However, beware of adding backslashes
+unnecessarily, since that might accidentally produce a string matching the
+end-of-data marker (\.) or the null string (\N by
+default). These strings will be recognized before any other backslash
+processing is done.
+<P>
+
+It is strongly recommended that applications generating <B>COPY</B> data convert
+data newlines and carriage returns to the \n and
+\r sequences respectively. At present it is
+possible to represent a data carriage return by a backslash and carriage
+return, and to represent a data newline by a backslash and newline. 
+However, these representations might not be accepted in future releases.
+They are also highly vulnerable to corruption if the <B>COPY</B> file is
+transferred across different machines (for example, from Unix to Windows
+or vice versa).
+<P>
+
+<B>COPY TO</B> will terminate each row with a Unix-style 
+newline (``\n''). Servers running on Microsoft Windows instead
+output carriage return/newline (``\r\n''), but only for
+<B>COPY</B> to a server file; for consistency across platforms,
+<B>COPY TO STDOUT</B> always sends ``\n''
+regardless of server platform.
+<B>COPY FROM</B> can handle lines ending with newlines,
+carriage returns, or carriage return/newlines. To reduce the risk of
+error due to un-backslashed newlines or carriage returns that were
+meant as data, <B>COPY FROM</B> will complain if the line
+endings in the input are not all alike.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>CSV FORMAT</H3>
+
+<P>
+
+This format is used for importing and exporting the Comma
+Separated Value (CSV) file format used by many other
+programs, such as spreadsheets. Instead of the escaping used by
+PostgreSQL's standard text mode, it
+produces and recognizes the common CSV escaping mechanism.
+<P>
+
+The values in each record are separated by the DELIMITER
+character. If the value contains the delimiter character, the
+QUOTE character, the NULL string, a carriage
+return, or line feed character, then the whole value is prefixed and
+suffixed by the QUOTE character, and any occurrence
+within the value of a QUOTE character or the
+ESCAPE character is preceded by the escape character.
+You can also use FORCE QUOTE to force quotes when outputting
+non-NULL values in specific columns.
+<P>
+
+The CSV format has no standard way to distinguish a
+NULL value from an empty string.
+PostgreSQL's <B>COPY</B> handles this by quoting.
+A NULL is output as the NULL parameter string
+and is not quoted, while a non-NULL value matching the
+NULL parameter string is quoted. For example, with the
+default settings, a NULL is written as an unquoted empty
+string, while an empty string data value is written with double quotes
+(&quot;&quot;). Reading values follows similar rules. You can
+use FORCE NOT NULL to prevent NULL input
+comparisons for specific columns.
+<P>
+
+Because backslash is not a special character in the CSV
+format, \., the end-of-data marker, could also appear
+as a data value. To avoid any misinterpretation, a \.
+data value appearing as a lone entry on a line is automatically 
+quoted on output, and on input, if quoted, is not interpreted as the 
+end-of-data marker. If you are loading a file created by another
+application that has a single unquoted column and might have a 
+value of \., you might need to quote that value in the 
+input file.
+<P>
+<DL COMPACT><DT><DD>
+<B>Note:</B>
+
+In CSV mode, all characters are significant. A quoted value 
+surrounded by white space, or any characters other than 
+DELIMITER, will include those characters. This can cause 
+errors if you import data from a system that pads CSV 
+lines with white space out to some fixed width. If such a situation 
+arises you might need to preprocess the CSV file to remove 
+the trailing white space, before importing the data into 
+PostgreSQL. 
+</DL>
+
+<P>
+<P>
+<DL COMPACT><DT><DD>
+<B>Note:</B>
+
+CSV mode will both recognize and produce CSV files with quoted
+values containing embedded carriage returns and line feeds. Thus
+the files are not strictly one line per table row like text-mode
+files.
+</DL>
+
+<P>
+<P>
+<DL COMPACT><DT><DD>
+<B>Note:</B>
+
+Many programs produce strange and occasionally perverse CSV files,
+so the file format is more a convention than a standard. Thus you
+might encounter some files that cannot be imported using this
+mechanism, and <B>COPY</B> might produce files that other
+programs cannot process.
+</DL>
+
+<P>
+<A NAME="lbAK">&nbsp;</A>
+<H3>BINARY FORMAT</H3>
+
+<P>
+
+The file format used for <B>COPY BINARY</B> changed in
+PostgreSQL 7.4. The new format consists
+of a file header, zero or more tuples containing the row data, and
+a file trailer. Headers and data are now in network byte order.
+<A NAME="lbAL">&nbsp;</A>
+<H3>FILE HEADER</H3>
+
+<P>
+
+The file header consists of 15 bytes of fixed fields, followed
+by a variable-length header extension area. The fixed fields are:
+<DL COMPACT>
+<DT><B>Signature</B><DD>
+11-byte sequence PGCOPY\n\377\r\n\0 --- note that the zero byte
+is a required part of the signature. (The signature is designed to allow
+easy identification of files that have been munged by a non-8-bit-clean
+transfer. This signature will be changed by end-of-line-translation
+filters, dropped zero bytes, dropped high bits, or parity changes.)
+<DT><B>Flags field</B><DD>
+32-bit integer bit mask to denote important aspects of the file format. Bits
+are numbered from 0 (LSB) to 31 (MSB). Note that
+this field is stored in network byte order (most significant byte first),
+as are all the integer fields used in the file format. Bits
+16-31 are reserved to denote critical file format issues; a reader
+should abort if it finds an unexpected bit set in this range. Bits 0-15
+are reserved to signal backwards-compatible format issues; a reader
+should simply ignore any unexpected bits set in this range. Currently
+only one flag bit is defined, and the rest must be zero:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>Bit 16</B><DD>
+if 1, OIDs are included in the data; if 0, not
+</DL>
+</DL>
+
+</DL>
+<P>
+
+<DL COMPACT>
+<DT><B>Header extension area length</B><DD>
+32-bit integer, length in bytes of remainder of header, not including self.
+Currently, this is zero, and the first tuple follows
+immediately. Future changes to the format might allow additional data
+to be present in the header. A reader should silently skip over any header
+extension data it does not know what to do with.
+</DL>
+<P>
+
+<P>
+
+The header extension area is envisioned to contain a sequence of
+self-identifying chunks. The flags field is not intended to tell readers
+what is in the extension area. Specific design of header extension contents
+is left for a later release.
+<P>
+
+This design allows for both backwards-compatible header additions (add
+header extension chunks, or set low-order flag bits) and
+non-backwards-compatible changes (set high-order flag bits to signal such
+changes, and add supporting data to the extension area if needed).
+<A NAME="lbAM">&nbsp;</A>
+<H3>TUPLES</H3>
+
+<P>
+
+Each tuple begins with a 16-bit integer count of the number of fields in the
+tuple. (Presently, all tuples in a table will have the same count, but that
+might not always be true.) Then, repeated for each field in the tuple, there
+is a 32-bit length word followed by that many bytes of field data. (The
+length word does not include itself, and can be zero.) As a special case,
+-1 indicates a NULL field value. No value bytes follow in the NULL case.
+<P>
+
+There is no alignment padding or any other extra data between fields.
+<P>
+
+Presently, all data values in a <B>COPY BINARY</B> file are
+assumed to be in binary format (format code one). It is anticipated that a
+future extension might add a header field that allows per-column format codes
+to be specified.
+<P>
+
+To determine the appropriate binary format for the actual tuple data you
+should consult the PostgreSQL source, in
+particular the <B>*send</B> and <B>*recv</B> functions for
+each column's data type (typically these functions are found in the
+<I>src/backend/utils/adt/</I> directory of the source
+distribution).
+<P>
+
+If OIDs are included in the file, the OID field immediately follows the
+field-count word. It is a normal field except that it's not included
+in the field-count. In particular it has a length word --- this will allow
+handling of 4-byte vs. 8-byte OIDs without too much pain, and will allow
+OIDs to be shown as null if that ever proves desirable.
+<A NAME="lbAN">&nbsp;</A>
+<H3>FILE TRAILER</H3>
+
+<P>
+
+The file trailer consists of a 16-bit integer word containing -1. This
+is easily distinguished from a tuple's field-count word.
+<P>
+
+A reader should report an error if a field-count word is neither -1
+nor the expected number of columns. This provides an extra
+check against somehow getting out of sync with the data.
+<A NAME="lbAO">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+The following example copies a table to the client
+using the vertical bar (|) as the field delimiter:
+<P>
+<PRE>
+COPY country TO STDOUT WITH DELIMITER '|';
+
+</PRE>
+
+<P>
+
+To copy data from a file into the country table:
+<P>
+<PRE>
+COPY country FROM '/usr1/proj/bray/sql/country_data';
+
+</PRE>
+
+<P>
+
+To copy into a file just the countries whose names start with 'A':
+<P>
+<PRE>
+COPY (SELECT * FROM country WHERE country_name LIKE 'A%') TO '/usr1/proj/bray/sql/a_list_countries.copy';
+
+</PRE>
+
+<P>
+
+Here is a sample of data suitable for copying into a table from
+STDIN:
+<P>
+<PRE>
+AF      AFGHANISTAN
+AL      ALBANIA
+DZ      ALGERIA
+ZM      ZAMBIA
+ZW      ZIMBABWE
+
+</PRE>
+
+Note that the white space on each line is actually a tab character.
+<P>
+
+The following is the same data, output in binary format.
+The data is shown after filtering through the
+Unix utility <B>od -c</B>. The table has three columns;
+the first has type <B><A HREF="/man/index.html?2+char">char</A>(2)</B>, the second has type <B>text</B>,
+and the third has type <B>integer</B>. All the rows have a null value
+in the third column.
+<P>
+<PRE>
+0000000   P   G   C   O   P   Y  \n 377  \r  \n  \0  \0  \0  \0  \0  \0
+0000020  \0  \0  \0  \0 003  \0  \0  \0 002   A   F  \0  \0  \0 013   A
+0000040   F   G   H   A   N   I   S   T   A   N 377 377 377 377  \0 003
+0000060  \0  \0  \0 002   A   L  \0  \0  \0 007   A   L   B   A   N   I
+0000100   A 377 377 377 377  \0 003  \0  \0  \0 002   D   Z  \0  \0  \0
+0000120 007   A   L   G   E   R   I   A 377 377 377 377  \0 003  \0  \0
+0000140  \0 002   Z   M  \0  \0  \0 006   Z   A   M   B   I   A 377 377
+0000160 377 377  \0 003  \0  \0  \0 002   Z   W  \0  \0  \0  \b   Z   I
+0000200   M   B   A   B   W   E 377 377 377 377 377 377
+
+</PRE>
+
+<A NAME="lbAP">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+There is no <B>COPY</B> statement in the SQL standard.
+<P>
+
+The following syntax was used before PostgreSQL
+version 7.3 and is still supported:
+<P>
+<PRE>
+COPY [ BINARY ] <I>tablename</I> [ WITH OIDS ]
+    FROM { '<I>filename</I>' | STDIN }
+    [ [USING] DELIMITERS '<I>delimiter</I>' ]
+    [ WITH NULL AS '<I>null string</I>' ]
+
+COPY [ BINARY ] <I>tablename</I> [ WITH OIDS ]
+    TO { '<I>filename</I>' | STDOUT }
+    [ [USING] DELIMITERS '<I>delimiter</I>' ]
+    [ WITH NULL AS '<I>null string</I>' ]
+
+</PRE>
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">OUTPUTS</A><DD>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">FILE FORMATS</A><DD>
+<DL>
+<DT><A HREF="#lbAI">TEXT FORMAT</A><DD>
+<DT><A HREF="#lbAJ">CSV FORMAT</A><DD>
+<DT><A HREF="#lbAK">BINARY FORMAT</A><DD>
+<DT><A HREF="#lbAL">FILE HEADER</A><DD>
+<DT><A HREF="#lbAM">TUPLES</A><DD>
+<DT><A HREF="#lbAN">FILE TRAILER</A><DD>
+</DL>
+<DT><A HREF="#lbAO">EXAMPLES</A><DD>
+<DT><A HREF="#lbAP">COMPATIBILITY</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:14 GMT, December 24, 2015
+</div></body>
+</HTML>

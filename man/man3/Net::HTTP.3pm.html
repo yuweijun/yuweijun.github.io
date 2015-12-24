@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Net::HTTP</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Net::HTTP</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-10-06<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Net::HTTP - Low-level HTTP connection (client)
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ use Net::HTTP;
+ my $s = Net::HTTP-&gt;new(Host =&gt; &quot;<A HREF="http://www.perl.com">www.perl.com</A>&quot;) || die $@;
+ $s-&gt;write_request(GET =&gt; &quot;/&quot;, 'User-Agent' =&gt; &quot;Mozilla/5.0&quot;);
+ my($code, $mess, %h) = $s-&gt;read_response_headers;
+
+ while (1) {
+    my $buf;
+    my $n = $s-&gt;read_entity_body($buf, 1024);
+    die &quot;read failed: $!&quot; unless defined $n;
+    last unless $n;
+    print $buf;
+ }
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <TT>&quot;Net::HTTP&quot;</TT> class is a low-level <FONT SIZE="-1">HTTP</FONT> client.  An instance of the
+<TT>&quot;Net::HTTP&quot;</TT> class represents a connection to an <FONT SIZE="-1">HTTP</FONT> server.  The
+<FONT SIZE="-1">HTTP</FONT> protocol is described in <FONT SIZE="-1">RFC</FONT> 2616.  The <TT>&quot;Net::HTTP&quot;</TT> class
+supports <TT>&quot;HTTP/1.0&quot;</TT> and <TT>&quot;HTTP/1.1&quot;</TT>.
+<P>
+
+<TT>&quot;Net::HTTP&quot;</TT> is a sub-class of <TT>&quot;IO::Socket::INET&quot;</TT>.  You can mix the
+methods described below with reading and writing from the socket
+directly.  This is not necessary a good idea, unless you know what you
+are doing.
+<P>
+
+The following methods are provided (in addition to those of
+<TT>&quot;IO::Socket::INET&quot;</TT>):
+<DL COMPACT>
+<DT>$s = Net::HTTP-&gt;new( %options )<DD>
+
+
+<A NAME="ixAAE"></A>
+The <TT>&quot;Net::HTTP&quot;</TT> constructor method takes the same options as
+<TT>&quot;IO::Socket::INET&quot;</TT>'s as well as these:
+
+
+<P>
+
+
+
+
+<PRE>
+  Host:            Initial host attribute value
+  KeepAlive:       Initial keep_alive attribute value
+  SendTE:          Initial send_te attribute_value
+  HTTPVersion:     Initial http_version attribute value
+  PeerHTTPVersion: Initial peer_http_version attribute value
+  MaxLineLength:   Initial max_line_length attribute value
+  MaxHeaderLines:  Initial max_header_lines attribute value
+
+</PRE>
+
+
+
+
+<P>
+
+
+The <TT>&quot;Host&quot;</TT> option is also the default for <TT>&quot;IO::Socket::INET&quot;</TT>'s
+<TT>&quot;PeerAddr&quot;</TT>.  The <TT>&quot;PeerPort&quot;</TT> defaults to 80 if not provided.
+
+
+<P>
+
+
+The <TT>&quot;Listen&quot;</TT> option provided by <TT>&quot;IO::Socket::INET&quot;</TT>'s constructor
+method is not allowed.
+
+
+<P>
+
+
+If unable to connect to the given <FONT SIZE="-1">HTTP</FONT> server then the constructor
+returns <TT>&quot;undef&quot;</TT> and $@ contains the reason.  After a successful
+connect, a <TT>&quot;Net:HTTP&quot;</TT> object is returned.
+<DT>$s-&gt;host<DD>
+
+
+<A NAME="ixAAF"></A>
+Get/set the default value of the <TT>&quot;Host&quot;</TT> header to send.  The <TT>$host</TT>
+must not be set to an empty string (or <TT>&quot;undef&quot;</TT>) for <FONT SIZE="-1">HTTP/1</FONT>.1.
+<DT>$s-&gt;keep_alive<DD>
+
+
+<A NAME="ixAAG"></A>
+Get/set the <I>keep-alive</I> value.  If this value is <FONT SIZE="-1">TRUE</FONT> then the
+request will be sent with headers indicating that the server should try
+to keep the connection open so that multiple requests can be sent.
+
+
+<P>
+
+
+The actual headers set will depend on the value of the <TT>&quot;http_version&quot;</TT>
+and <TT>&quot;peer_http_version&quot;</TT> attributes.
+<DT>$s-&gt;send_te<DD>
+
+
+<A NAME="ixAAH"></A>
+Get/set the a value indicating if the request will be sent with a ``<FONT SIZE="-1">TE</FONT>''
+header to indicate the transfer encodings that the server can choose to
+use.  If the <TT>&quot;Compress::Zlib&quot;</TT> module is installed then this will
+announce that this client accepts both the <I>deflate</I> and <I>gzip</I>
+encodings.
+<DT>$s-&gt;http_version<DD>
+
+
+<A NAME="ixAAI"></A>
+Get/set the <FONT SIZE="-1">HTTP</FONT> version number that this client should announce.
+This value can only be set to ``1.0'' or ``1.1''.  The default is ``1.1''.
+<DT>$s-&gt;peer_http_version<DD>
+
+
+<A NAME="ixAAJ"></A>
+Get/set the protocol version number of our peer.  This value will
+initially be ``1.0'', but will be updated by a successful
+<I>read_response_headers()</I> method call.
+<DT>$s-&gt;max_line_length<DD>
+
+
+<A NAME="ixAAK"></A>
+Get/set a limit on the length of response line and response header
+lines.  The default is 8192.  A value of 0 means no limit.
+<DT>$s-&gt;max_header_length<DD>
+
+
+<A NAME="ixAAL"></A>
+Get/set a limit on the number of header lines that a response can
+have.  The default is 128.  A value of 0 means no limit.
+<DT>$s-&gt;format_request($method, $uri, %headers, [$content])<DD>
+
+
+<A NAME="ixAAM"></A>
+Format a request message and return it as a string.  If the headers do
+not include a <TT>&quot;Host&quot;</TT> header, then a header is inserted with the value
+of the <TT>&quot;host&quot;</TT> attribute.  Headers like <TT>&quot;Connection&quot;</TT> and
+<TT>&quot;Keep-Alive&quot;</TT> might also be added depending on the status of the
+<TT>&quot;keep_alive&quot;</TT> attribute.
+
+
+<P>
+
+
+If <TT>$content</TT> is given (and it is non-empty), then a <TT>&quot;Content-Length&quot;</TT>
+header is automatically added unless it was already present.
+<DT>$s-&gt;write_request($method, $uri, %headers, [$content])<DD>
+
+
+<A NAME="ixAAN"></A>
+Format and send a request message.  Arguments are the same as for
+<I>format_request()</I>.  Returns true if successful.
+<DT>$s-&gt;format_chunk( $data )<DD>
+
+
+<A NAME="ixAAO"></A>
+Returns the string to be written for the given chunk of data.
+<DT>$s-&gt;write_chunk($data)<DD>
+
+
+<A NAME="ixAAP"></A>
+Will write a new chunk of request entity body data.  This method
+should only be used if the <TT>&quot;Transfer-Encoding&quot;</TT> header with a value of
+<TT>&quot;chunked&quot;</TT> was sent in the request.  Note, writing zero-length data is
+a no-op.  Use the <I>write_chunk_eof()</I> method to signal end of entity
+body data.
+
+
+<P>
+
+
+Returns true if successful.
+<DT>$s-&gt;format_chunk_eof( %trailers )<DD>
+
+
+<A NAME="ixAAQ"></A>
+Returns the string to be written for signaling <FONT SIZE="-1">EOF</FONT> when a
+<TT>&quot;Transfer-Encoding&quot;</TT> of <TT>&quot;chunked&quot;</TT> is used.
+<DT>$s-&gt;write_chunk_eof( %trailers )<DD>
+
+
+<A NAME="ixAAR"></A>
+Will write eof marker for chunked data and optional trailers.  Note
+that trailers should not really be used unless is was signaled
+with a <TT>&quot;Trailer&quot;</TT> header.
+
+
+<P>
+
+
+Returns true if successful.
+<DT>($code, $mess, %headers) = $s-&gt;read_response_headers( %opts )<DD>
+
+
+<A NAME="ixAAS"></A>
+Read response headers from server and return it.  The <TT>$code</TT> is the 3
+digit <FONT SIZE="-1">HTTP</FONT> status code (see HTTP::Status) and <TT>$mess</TT> is the textual
+message that came with it.  Headers are then returned as key/value
+pairs.  Since key letter casing is not normalized and the same key can
+even occur multiple times, assigning these values directly to a hash
+is not wise.  Only the <TT>$code</TT> is returned if this method is called in
+scalar context.
+
+
+<P>
+
+
+As a side effect this method updates the 'peer_http_version'
+attribute.
+
+
+<P>
+
+
+Options might be passed in as key/value pairs.  There are currently
+only two options supported; <TT>&quot;laxed&quot;</TT> and <TT>&quot;junk_out&quot;</TT>.
+
+
+<P>
+
+
+The <TT>&quot;laxed&quot;</TT> option will make <I>read_response_headers()</I> more forgiving
+towards servers that have not learned how to speak <FONT SIZE="-1">HTTP</FONT> properly.  The
+<TT>&quot;laxed&quot;</TT> option is a boolean flag, and is enabled by passing in a <FONT SIZE="-1">TRUE</FONT>
+value.  The <TT>&quot;junk_out&quot;</TT> option can be used to capture bad header lines
+when <TT>&quot;laxed&quot;</TT> is enabled.  The value should be an array reference.
+Bad header lines will be pushed onto the array.
+
+
+<P>
+
+
+The <TT>&quot;laxed&quot;</TT> option must be specified in order to communicate with
+pre-HTTP/1.0 servers that don't describe the response outcome or the
+data they send back with a header block.  For these servers
+peer_http_version is set to ``0.9'' and this method returns (200,
+``Assumed <FONT SIZE="-1">OK</FONT>'').
+
+
+<P>
+
+
+The method will raise an exception (die) if the server does not speak
+proper <FONT SIZE="-1">HTTP</FONT> or if the <TT>&quot;max_line_length&quot;</TT> or <TT>&quot;max_header_length&quot;</TT>
+limits are reached.  If the <TT>&quot;laxed&quot;</TT> option is turned on and
+<TT>&quot;max_line_length&quot;</TT> and <TT>&quot;max_header_length&quot;</TT> checks are turned off,
+then no exception will be raised and this method will always
+return a response code.
+<DT>$n = $s-&gt;read_entity_body($buf, $size);<DD>
+
+
+<A NAME="ixAAT"></A>
+Reads chunks of the entity body content.  Basically the same interface
+as for <I>read()</I> and <I>sysread()</I>, but the buffer offset argument is not
+supported yet.  This method should only be called after a successful
+<I>read_response_headers()</I> call.
+
+
+<P>
+
+
+The return value will be <TT>&quot;undef&quot;</TT> on read errors, 0 on <FONT SIZE="-1">EOF</FONT>, -1 if no data
+could be returned this time, otherwise the number of bytes assigned
+to <TT>$buf</TT>.  The <TT>$buf</TT> is set to &quot;&quot; when the return value is -1.
+
+
+<P>
+
+
+You normally want to retry this call if this function returns either
+-1 or <TT>&quot;undef&quot;</TT> with <TT>$!</TT> as <FONT SIZE="-1">EINTR</FONT> or <FONT SIZE="-1">EAGAIN</FONT> (see Errno).  <FONT SIZE="-1">EINTR</FONT>
+can happen if the application catches signals and <FONT SIZE="-1">EAGAIN</FONT> can happen if
+you made the socket non-blocking.
+
+
+<P>
+
+
+This method will raise exceptions (die) if the server does not speak
+proper <FONT SIZE="-1">HTTP</FONT>.  This can only happen when reading chunked data.
+<DT>%headers = $s-&gt;get_trailers<DD>
+
+
+<A NAME="ixAAU"></A>
+After <I>read_entity_body()</I> has returned 0 to indicate end of the entity
+body, you might call this method to pick up any trailers.
+<DT>$s-&gt;_rbuf<DD>
+
+
+<A NAME="ixAAV"></A>
+Get/set the read buffer content.  The <I>read_response_headers()</I> and
+<I>read_entity_body()</I> methods use an internal buffer which they will look
+for data before they actually sysread more from the socket itself.  If
+they read too much, the remaining data will be left in this buffer.
+<DT>$s-&gt;_rbuf_length<DD>
+
+
+<A NAME="ixAAW"></A>
+Returns the number of bytes in the read buffer.  This should always be
+the same as:
+
+
+<P>
+
+
+
+
+<PRE>
+    length($s-&gt;_rbuf)
+
+</PRE>
+
+
+
+
+<P>
+
+
+but might be more efficient.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>SUBCLASSING</H2>
+
+<A NAME="ixAAX"></A>
+The <I>read_response_headers()</I> and <I>read_entity_body()</I> will invoke the
+<I>sysread()</I> method when they need more data.  Subclasses might want to
+override this method to control how reading takes place.
+<P>
+
+The object itself is a glob.  Subclasses should avoid using hash key
+names prefixed with <TT>&quot;http_&quot;</TT> and <TT>&quot;io_&quot;</TT>.
+<A NAME="lbAF">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAY"></A>
+<FONT SIZE="-1">LWP</FONT>, IO::Socket::INET, Net::HTTP::NB
+<A NAME="lbAG">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAZ"></A>
+Copyright 2001-2003 Gisle Aas.
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">SUBCLASSING</A><DD>
+<DT><A HREF="#lbAF">SEE ALSO</A><DD>
+<DT><A HREF="#lbAG">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:35 GMT, December 24, 2015
+</div></body>
+</HTML>

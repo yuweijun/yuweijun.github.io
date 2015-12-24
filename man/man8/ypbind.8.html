@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of YPBIND</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>YPBIND</H1>
+Section: ypbind\-mt (8)<BR>Updated: 10/04/2006<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ypbind - NIS binding process
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<DL COMPACT>
+<DT>
+<B>ypbind</B> [-c] [-d | -debug] [-verbose] [-broadcast] [-broken-server] [-ypset] [-ypsetme] [-no-ping] [-p <I>port</I>] [-f&nbsp;<I>configfile</I>] [-local-only] [-ping-interval&nbsp;<I>ping-interval</I>] [-no-dbus]
+<DT>
+<B>ypbind</B> --version
+</DL>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<P>
+<B>ypbind</B>
+<DD>finds the server for NIS domains and maintains the NIS binding information. The client (normaly the NIS routines in the standard C library) could get the information over RPC from
+<B>ypbind</B>
+or read the binding files. The binding files resides in the directory
+<I>/var/yp/binding</I>
+and are conventionally named
+<B>[domainname].[version]</B>. The supported versions are 1 and 2. There could be several such files since it is possible for an NIS client to be bound to more than one domain.
+<P>
+
+After a binding has been established,
+<B>ypbind</B>
+will send YPPROC_DOMAIN requests to the current NIS server at 20 seconds intervals. If it doesn't get an response or the NIS server reports that he doesn't have this domain any longer,
+<B>ypbind</B>
+will search for a new NIS server. All 15 minutes
+<B>ypbind</B>
+will check to see if the current NIS server is the fastest. If it find a server which answers faster, it will switch to this server. You could tell
+<B>ypbind</B>
+to use network broadcasts to find a new server, what is insecure, or you could give it a list of known secure servers. In this case
+<B>ypbind</B>
+will send a ping to all servers and binds to first one which answers.
+<P>
+
+Unless the option
+<B>-debug</B>
+is used, ypbind detaches itself from the controlling terminal and puts itself into background.
+<B>ypbind</B>
+uses
+<B><A HREF="/man/index.html?3+syslog">syslog</A></B>(3)
+for logging errors and warnings. At startup or when receiving signal SIGHUP,
+<B>ypbind</B>
+parses the file
+<I>/etc/yp.conf</I>
+and tries to use the entries for its initial binding.
+<P>
+
+A broadcast entry in the configuration file will overwrite a ypserver/server entry and a ypserver/server entry broadcast. If all given server are down,
+<B>ypbind</B>
+will
+<B>not</B>
+switch to use broadcast.
+<B>ypbind</B>
+will try at first
+<I>/etc/hosts</I>
+and then
+<B>DNS</B>
+for resolving the hosts names from
+<I>/etc/yp.conf</I>. If
+<B>ypbind</B>
+couldn't reconfigure the search order, it will use only
+<B>DNS</B>. If
+<B>DNS</B>
+isn't available, you could only use IP-addresses in
+<I>/etc/hosts</I>.
+<B>ypbind</B>
+could only reconfigure the search order with glibc 2.x. If the
+<B>-broadcast</B>
+option is specified,
+<B>ypbind</B>
+will ignore the configuration file. If the file does not exist or if there are no valid entries,
+<B>ypbind</B>
+exit.
+<P>
+
+This
+<B>ypbind</B>
+version listens for DBUS messages from NetworkManager. If no NetworkManager is running at startup,
+<B>ypbind</B>
+will behave as usual and assumes there is a working network connection. If NetworkManager is running on the system, ypbind will only search and providde NIS informations, if NetworkManager tells that a network connection is available. If NetworkManager establishes a connection,
+<B>ypbind</B>
+will reread all configuration files, registers at the local portmapper and try to search NIS servers. If NetworkManager drops a connection,
+<B>ypbind</B>
+will unregister from portmapper.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-broadcast</B><DD>
+Send a broadcast to request the information needed to bind to a specific NIS server. With this option,
+<I>/etc/yp.conf</I>
+will be ignored.
+<DT><B>-ypset</B><DD>
+Allow
+<B>root</B>
+from any remote machine to change the binding for a domain via the
+<B><A HREF="/man/index.html?8+ypset">ypset</A></B>(8)
+command. By default, no one can change the binding. This option is really insecure. If you change a binding for a domain, all the current known servers for this domain will be forgotten. If the new server goes down,
+<B>ypbind</B>
+will use the old searchlist.
+<DT><B>-ypsetme</B><DD>
+The same as
+<B>-ypset</B>, but only
+<B>root</B>
+on the local machine is allowed to chang the binding. Such requests are only allowd from
+<B>loopback</B>.
+<DT><B>-c</B><DD>
+<B>ypbind</B>
+only checks if the config file has syntax errors and exits.
+<DT><B>-debug</B><DD>
+starts
+<B>ypbind</B>
+in debug mode.
+<B>ypbind</B>
+will not put itself into background, and error messages and debug output are written to standard error.
+<DT><B>-verbose</B><DD>
+Causes
+<B>ypbind</B>
+to <A HREF="/man/index.html?2+syslog">syslog</A>(2) any and all changes in the server its bound to.
+<DT><B>-broken-server</B><DD>
+lets
+<B>ypbind</B>
+accept answers from servers running on an illegal port number. This should usually be avoided, but is required by some
+<B><A HREF="/man/index.html?8+ypserv">ypserv</A></B>(8)
+versions.
+<DT><B>-no-ping</B><DD>
+<B>ypbind</B>
+will not check if the binding is alive. This option is for use with dialup connections to prevent
+<B>ypbind</B>
+from keeping the connection unnessecarily open or causing autodials.
+<DT><B>-p</B> port<DD>
+<B>ypbind</B>
+will bind itself to this port.
+This makes it possible to have a router filter packets
+to the NIS ports, so that access to this service from
+hosts on the Internet can be restricted.
+<DT><B>-f</B> configfile<DD>
+<B>ypbind</B>
+will use
+<B>configfile</B>
+and not
+<I>/etc/yp.conf</I>
+<DT><B>-local-only</B><DD>
+<B>ypbind</B>
+will only bind to the loopback device and is not reacheable from a remote network.
+<DT><B>-ping-interval</B> ping-interval<DD>
+The default value for
+<B>ypbind</B>
+to check, if a NIS server is still reacheable, is 20 seconds. With this options another frequency in seconds can be specified.
+<DT><B>-no-dbus</B><DD>
+Disables DBUS support if compiled in.
+<DT><B>--version</B><DD>
+Prints the version number
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>FILES</H2>
+
+<DL COMPACT>
+<DT><I>/etc/yp.conf</I><DD>
+configuration file.
+<DT><I>/var/yp/binding/[domainname].[version]</I><DD>
+binding file containing information about each NIS domain.
+<DT><I>/var/run/ypbind.pid</I><DD>
+contains the process id of the currently running
+<B>ypbind</B>
+master process.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<P>
+<B><A HREF="/man/index.html?3+syslog">syslog</A></B>(3),
+<B><A HREF="/man/index.html?1+domainname">domainname</A></B>(1),
+<B><A HREF="/man/index.html?5+yp.conf">yp.conf</A></B>(5),
+<B><A HREF="/man/index.html?8+ypdomainname">ypdomainname</A></B>(8),
+<B><A HREF="/man/index.html?1+ypwhich">ypwhich</A></B>(1),
+<B><A HREF="/man/index.html?8+ypserv">ypserv</A></B>(8),
+<B><A HREF="/man/index.html?8+ypset">ypset</A></B>(8)
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<P>
+
+<P>
+<B>ypbind-mt</B>
+was written by Thorsten Kukuk &lt;<A HREF="mailto:kukuk@thkukuk.de">kukuk@thkukuk.de</A>&gt;.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">FILES</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:31 GMT, December 24, 2015
+</div></body>
+</HTML>

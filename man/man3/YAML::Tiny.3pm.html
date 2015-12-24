@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of YAML::Tiny</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>YAML::Tiny</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-07-31<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+YAML::Tiny - Read/Write YAML files with as little code as possible
+<A NAME="lbAC">&nbsp;</A>
+<H2>PREAMBLE</H2>
+
+<A NAME="ixAAC"></A>
+The <FONT SIZE="-1">YAML</FONT> specification is huge. Really, <B>really</B> huge. It contains all the
+functionality of <FONT SIZE="-1">XML</FONT>, except with flexibility and choice, which makes it
+easier to read, but with a formal specification that is more complex than
+<FONT SIZE="-1">XML</FONT>.
+<P>
+
+The original pure-Perl implementation <FONT SIZE="-1">YAML</FONT> costs just over 4 megabytes of
+memory to load. Just like with Windows .ini files (3 meg to load) and <FONT SIZE="-1">CSS</FONT>
+(3.5 meg to load) the situation is just asking for a <B>YAML::Tiny</B> module, an
+incomplete but correct and usable subset of the functionality, in as little
+code as possible.
+<P>
+
+Like the other <TT>&quot;::Tiny&quot;</TT> modules, YAML::Tiny will have no non-core
+dependencies, not require a compiler, and be back-compatible to at least
+perl 5.005_03, and ideally 5.004.
+<A NAME="lbAD">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAD"></A>
+
+
+<PRE>
+    #############################################
+    # In your file
+    
+    ---
+    rootproperty: blah
+    section:
+      one: two
+      three: four
+      Foo: Bar
+      empty: ~
+    
+    
+    
+    #############################################
+    # In your program
+    
+    use YAML::Tiny;
+    
+    # Create a YAML file
+    my $yaml = YAML::Tiny-&gt;new;
+    
+    # Open the config
+    $yaml = YAML::Tiny-&gt;read( 'file.yml' );
+    
+    # Reading properties
+    my $root = $yaml-&gt;[0]-&gt;{rootproperty};
+    my $one  = $yaml-&gt;[0]-&gt;{section}-&gt;{one};
+    my $Foo  = $yaml-&gt;[0]-&gt;{section}-&gt;{Foo};
+    
+    # Changing data
+    $yaml-&gt;[0]-&gt;{newsection} = { this =&gt; 'that' }; # Add a section
+    $yaml-&gt;[0]-&gt;{section}-&gt;{Foo} = 'Not Bar!';     # Change a value
+    delete $yaml-&gt;[0]-&gt;{section};                  # Delete a value or section
+    
+    # Add an entire document
+    $yaml-&gt;[1] = [ 'foo', 'bar', 'baz' ];
+    
+    # Save the file
+    $yaml-&gt;write( 'file.conf' );
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAE"></A>
+<B>YAML::Tiny</B> is a perl class for reading and writing YAML-style files,
+written with as little code as possible, reducing load time and memory
+overhead.
+<P>
+
+Most of the time it is accepted that Perl applications use a lot
+of memory and modules. The <B>::Tiny</B> family of modules is specifically
+intended to provide an ultralight and zero-dependency alternative to
+many more-thorough standard modules.
+<P>
+
+This module is primarily for reading human-written files (like simple
+config files) and generating very simple human-readable files. Note that
+I said <B>human-readable</B> and not <B>geek-readable</B>. The sort of files that
+your average manager or secretary should be able to look at and make
+sense of.
+<P>
+
+YAML::Tiny does not generate comments, it won't necesarily preserve the
+order of your hashes, and it will normalise if reading in and writing out
+again.
+<P>
+
+It only supports a very basic subset of the full <FONT SIZE="-1">YAML</FONT> specification.
+<P>
+
+Usage is targetted at files like Perl's <FONT SIZE="-1">META</FONT>.yml, for which a small and
+easily-embeddable module is extremely attractive.
+<P>
+
+Features will only be added if they are human readable, and can be written
+in a few lines of code. Please don't be offended if your request is
+refused. Someone has to draw the line, and for YAML::Tiny that someone is me.
+<P>
+
+If you need something with more power move up to <FONT SIZE="-1">YAML</FONT> (4 megabytes of
+memory overhead) or YAML::Syck (275k, but requires libsyck and a C
+compiler).
+<P>
+
+To restate, YAML::Tiny does <B>not</B> preserve your comments, whitespace, or
+the order of your <FONT SIZE="-1">YAML</FONT> data. But it should round-trip from Perl structure
+to file and back again just fine.
+<A NAME="lbAF">&nbsp;</A>
+<H2>YAML TINY SPECIFICATION</H2>
+
+<A NAME="ixAAF"></A>
+This section of the documentation provides a specification for ``<FONT SIZE="-1">YAML</FONT> Tiny'',
+a subset of the <FONT SIZE="-1">YAML</FONT> specification.
+<P>
+
+It is based on and described comparatively to the <FONT SIZE="-1">YAML</FONT> 1.1  Working Draft
+2004-12-28 specification, located at &lt;<A HREF="http://yaml.org/spec/current.html">http://yaml.org/spec/current.html</A>&gt;.
+<P>
+
+Terminology and chapter numbers are based on that specification.
+<A NAME="lbAG">&nbsp;</A>
+<H3>1. Introduction and Goals</H3>
+
+<A NAME="ixAAG"></A>
+The purpose of the <FONT SIZE="-1">YAML</FONT> Tiny specification is to describe a useful subset of
+the <FONT SIZE="-1">YAML</FONT> specification that can be used for typical document-oriented
+uses such as configuration files and simple data structure dumps.
+<P>
+
+Many specification elements that add flexibility or extensibility are
+intentionally removed, as is support for complex datastructures, class
+and object-orientation.
+<P>
+
+In general, <FONT SIZE="-1">YAML</FONT> Tiny targets only those data structures available in
+<FONT SIZE="-1">JSON</FONT>, with the additional limitation that only simple keys are supported.
+<P>
+
+As a result, all possible <FONT SIZE="-1">YAML</FONT> Tiny documents should be able to be
+transformed into an equivalent <FONT SIZE="-1">JSON</FONT> document, although the reverse is
+not necesarily true (but will be true in simple cases).
+<P>
+
+As a result of these simplifications the <FONT SIZE="-1">YAML</FONT> Tiny specification should
+be implementable in a relatively small amount of code in any language
+that supports Perl Compatible Regular Expressions (<FONT SIZE="-1">PCRE</FONT>).
+<A NAME="lbAH">&nbsp;</A>
+<H3>2. Introduction</H3>
+
+<A NAME="ixAAH"></A>
+<FONT SIZE="-1">YAML</FONT> Tiny supports three data structures. These are scalars (in a variety
+of forms), block-form sequences and block-form mappings. Flow-style
+sequences and mappings are not supported, with some minor exceptions
+detailed later.
+<P>
+
+The use of three dashes ``---'' to indicate the start of a new document is
+supported, and multiple documents per file/stream is allowed.
+<P>
+
+Both line and inline comments are supported.
+<P>
+
+Scalars are supported via the plain style, single quote and double quote,
+as well as literal-style and folded-style multi-line scalars.
+<P>
+
+The use of tags is not supported.
+<P>
+
+The use of anchors and aliases is not supported.
+<P>
+
+The use of directives is supported only for the <TT>%YAML</TT> directive.
+<A NAME="lbAI">&nbsp;</A>
+<H3>3. Processing <FONT SIZE="-1">YAML</FONT> Tiny Information</H3>
+
+<A NAME="ixAAI"></A>
+<B>Processes</B>
+<P>
+
+The <FONT SIZE="-1">YAML</FONT> specification dictates three-phase serialization and three-phase
+deserialization.
+<P>
+
+The <FONT SIZE="-1">YAML</FONT> Tiny specification does not mandate any particular methodology
+or mechanism for parsing.
+<P>
+
+Any compliant parser is only required to parse a single document at a
+time. The ability to support streaming documents is optional and most
+likely non-typical.
+<P>
+
+Because anchors and aliases are not supported, the resulting representation
+graph is thus directed but (unlike the main <FONT SIZE="-1">YAML</FONT> specification) <B>acyclic</B>.
+<P>
+
+Circular references/pointers are not possible, and any <FONT SIZE="-1">YAML</FONT> Tiny serializer
+detecting a circulars should error with an appropriate message.
+<P>
+
+<B>Presentation Stream</B>
+<P>
+
+<FONT SIZE="-1">YAML</FONT> Tiny is notionally unicode, but support for unicode is required if the
+underlying language or system being used to implement a parser does not
+support Unicode. If unicode is encountered in this case an error should be
+returned.
+<P>
+
+<B>Loading Failure Points</B>
+<P>
+
+<FONT SIZE="-1">YAML</FONT> Tiny parsers and emitters are not expected to recover from adapt to
+errors. The specific error modality of any implementation is not dictated
+(return codes, exceptions, etc) but is expected to be consistant.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>4. Syntax</H3>
+
+<A NAME="ixAAJ"></A>
+<B>Character Set</B>
+<P>
+
+<FONT SIZE="-1">YAML</FONT> Tiny streams are implemented primarily using the <FONT SIZE="-1">ASCII</FONT> character set,
+although the use of Unicode inside strings is allowed if support by the
+implementation.
+<P>
+
+Specific <FONT SIZE="-1">YAML</FONT> Tiny encoded document types aiming for maximum compatibility
+should restrict themselves to <FONT SIZE="-1">ASCII</FONT>.
+<P>
+
+The escaping and unescaping of the 8-bit <FONT SIZE="-1">YAML</FONT> escapes is required.
+<P>
+
+The escaping and unescaping of 16-bit and 32-bit <FONT SIZE="-1">YAML</FONT> escapes is not
+required.
+<P>
+
+<B>Indicator Characters</B>
+<P>
+
+Support for the ``~'' null/undefined indicator is required.
+<P>
+
+Implementations may represent this as appropriate for the underlying
+language.
+<P>
+
+Support for the ``-'' block sequence indicator is required.
+<P>
+
+Support for the ``?'' mapping key indicator is <B>not</B> required.
+<P>
+
+Support for the ``:'' mapping value indicator is required.
+<P>
+
+Support for the ``,'' flow collection indicator is <B>not</B> required.
+<P>
+
+Support for the ``['' flow sequence indicator is <B>not</B> required, with
+one exception (detailed below).
+<P>
+
+Support for the ``]'' flow sequence indicator is <B>not</B> required, with
+one exception (detailed below).
+<P>
+
+Support for the ``{'' flow mapping indicator is <B>not</B> required, with
+one exception (detailed below).
+<P>
+
+Support for the ``}'' flow mapping indicator is <B>not</B> required, with
+one exception (detailed below).
+<P>
+
+Support for the ``#'' comment indicator is required.
+<P>
+
+Support for the ``&amp;'' anchor indicator is <B>not</B> required.
+<P>
+
+Support for the ``*'' alias indicator is <B>not</B> required.
+<P>
+
+Support for the ``!'' tag indicator is <B>not</B> required.
+<P>
+
+Support for the ``|'' literal block indicator is required.
+<P>
+
+Support for the ``&gt;'' folded block indicator is required.
+<P>
+
+Support for the ``''' single quote indicator is required.
+<P>
+
+Support for the &quot;&quot;&quot; double quote indicator is required.
+<P>
+
+Support for the ``%'' directive indicator is required, but only
+for the special case of a <TT>%YAML</TT> version directive before the
+``---'' document header, or on the same line as the document header.
+<P>
+
+For example:
+<P>
+
+
+
+<PRE>
+  %YAML 1.1
+  ---
+  - A sequence with a single element
+
+</PRE>
+
+
+<P>
+
+Special Exception:
+<P>
+
+To provide the ability to support empty sequences
+and mappings, support for the constructs [] (empty sequence) and {}
+(empty mapping) are required.
+<P>
+
+For example,
+<P>
+
+
+
+<PRE>
+  %YAML 1.1
+  # A document consisting of only an empty mapping
+  --- {}
+  # A document consisting of only an empty sequence
+  --- []
+  # A document consisting of an empty mapping within a sequence
+  - foo
+  - {}
+  - bar
+
+</PRE>
+
+
+<P>
+
+<B>Syntax Primitives</B>
+<P>
+
+Other than the empty sequence and mapping cases described above, <FONT SIZE="-1">YAML</FONT> Tiny
+supports only the indentation-based block-style group of contexts.
+<P>
+
+All five scalar contexts are supported.
+<P>
+
+Indentation spaces work as per the <FONT SIZE="-1">YAML</FONT> specification in all cases.
+<P>
+
+Comments work as per the <FONT SIZE="-1">YAML</FONT> specification in all simple cases.
+Support for indented multi-line comments is <B>not</B> required.
+<P>
+
+Seperation spaces work as per the <FONT SIZE="-1">YAML</FONT> specification in all cases.
+<P>
+
+<B></B><FONT SIZE="-1"><B>YAML</B></FONT><B> Tiny Character Stream</B>
+<P>
+
+The only directive supported by the <FONT SIZE="-1">YAML</FONT> Tiny specification is the
+<TT>%YAML</TT> language/version identifier. Although detected, this directive
+will have no control over the parsing itself.
+<P>
+
+The parser must recognise both the <FONT SIZE="-1">YAML</FONT> 1.0 and <FONT SIZE="-1">YAML</FONT> 1.1+ formatting
+of this directive (as well as the commented form, although no explicit
+code should be needed to deal with this case, being a comment anyway)
+<P>
+
+That is, all of the following should be supported.
+<P>
+
+
+
+<PRE>
+  --- #YAML:1.0
+  - foo
+
+  %YAML:1.0
+  ---
+  - foo
+
+  % YAML 1.1
+  ---
+  - foo
+
+</PRE>
+
+
+<P>
+
+Support for the <TT>%TAG</TT> directive is <B>not</B> required.
+<P>
+
+Support for additional directives is <B>not</B> required.
+<P>
+
+Support for the document boundary marker ``---'' is required.
+<P>
+
+Support for the document boundary market ``...'' is <B>not</B> required.
+<P>
+
+If necesary, a document boundary should simply by indicated with a
+``---'' marker, with not preceding ``...'' marker.
+<P>
+
+Support for empty streams (containing no documents) is required.
+<P>
+
+Support for implicit document starts is required.
+<P>
+
+That is, the following must be equivalent.
+<P>
+
+
+
+<PRE>
+ # Full form
+ %YAML 1.1
+ ---
+ foo: bar
+
+ # Implicit form
+ foo: bar
+
+</PRE>
+
+
+<P>
+
+<B>Nodes</B>
+<P>
+
+Support for nodes optional anchor and tag properties are <B>not</B> required.
+<P>
+
+Support for node anchors is <B>not</B> required.
+<P>
+
+Supprot for node tags is <B>not</B> required.
+<P>
+
+Support for alias nodes is <B>not</B> required.
+<P>
+
+Support for flow nodes is <B>not</B> required.
+<P>
+
+Support for block nodes is required.
+<P>
+
+<B>Scalar Styles</B>
+<P>
+
+Support for all five scalar styles are required as per the <FONT SIZE="-1">YAML</FONT>
+specification, although support for quoted scalars spanning more
+than one line is <B>not</B> required.
+<P>
+
+Support for the chomping indicators on multi-line scalar styles
+is required.
+<P>
+
+<B>Collection Styles</B>
+<P>
+
+Support for block-style sequences is required.
+<P>
+
+Support for flow-style sequences is <B>not</B> required.
+<P>
+
+Support for block-style mappings is required.
+<P>
+
+Support for flow-style mappings is <B>not</B> required.
+<P>
+
+Both sequences and mappings should be able to be arbitrarily
+nested.
+<P>
+
+Support for plain-style mapping keys is required.
+<P>
+
+Support for quoted keys in mappings is <B>not</B> required.
+<P>
+
+Support for ``?''-indicated explicit keys is <B>not</B> required.
+<P>
+
+Here endeth the specification.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Additional Perl-Specific Notes</H3>
+
+<A NAME="ixAAK"></A>
+For some Perl applications, it's important to know if you really have a
+number and not a string.
+<P>
+
+That is, in some contexts is important that 3 the number is distinctive
+from ``3'' the string.
+<P>
+
+Because even Perl itself is not trivially able to understand the difference
+(certainly without XS-based modules) Perl implementations of the <FONT SIZE="-1">YAML</FONT> Tiny
+specification are not required to retain the distinctiveness of 3 vs ``3''.
+<A NAME="lbAL">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAL"></A>
+<A NAME="lbAM">&nbsp;</A>
+<H3>new</H3>
+
+<A NAME="ixAAM"></A>
+The constructor <TT>&quot;new&quot;</TT> creates and returns an empty <TT>&quot;YAML::Tiny&quot;</TT> object.
+<A NAME="lbAN">&nbsp;</A>
+<H3>read $filename</H3>
+
+
+
+<A NAME="ixAAN"></A>
+The <TT>&quot;read&quot;</TT> constructor reads a <FONT SIZE="-1">YAML</FONT> file, and returns a new
+<TT>&quot;YAML::Tiny&quot;</TT> object containing the contents of the file.
+<P>
+
+Returns the object on success, or <TT>&quot;undef&quot;</TT> on error.
+<P>
+
+When <TT>&quot;read&quot;</TT> fails, <TT>&quot;YAML::Tiny&quot;</TT> sets an error message internally
+you can recover via <TT>&quot;YAML::Tiny-&gt;errstr&quot;</TT>. Although in <B>some</B>
+cases a failed <TT>&quot;read&quot;</TT> will also set the operating system error
+variable <TT>$!</TT>, not all errors do and you should not rely on using
+the <TT>$!</TT> variable.
+<A NAME="lbAO">&nbsp;</A>
+<H3>read_string $string;</H3>
+
+
+
+<A NAME="ixAAO"></A>
+The <TT>&quot;read_string&quot;</TT> method takes as argument the contents of a <FONT SIZE="-1">YAML</FONT> file
+(a <FONT SIZE="-1">YAML</FONT> document) as a string and returns the <TT>&quot;YAML::Tiny&quot;</TT> object for
+it.
+<A NAME="lbAP">&nbsp;</A>
+<H3>write $filename</H3>
+
+
+
+<A NAME="ixAAP"></A>
+The <TT>&quot;write&quot;</TT> method generates the file content for the properties, and
+writes it to disk to the filename specified.
+<P>
+
+Returns true on success or <TT>&quot;undef&quot;</TT> on error.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>write_string</H3>
+
+<A NAME="ixAAQ"></A>
+Generates the file content for the object and returns it as a string.
+<A NAME="lbAR">&nbsp;</A>
+<H3>errstr</H3>
+
+<A NAME="ixAAR"></A>
+When an error occurs, you can retrieve the error message either from the
+<TT>$YAML::Tiny::errstr</TT> variable, or using the <TT>&quot;errstr()&quot;</TT> method.
+<A NAME="lbAS">&nbsp;</A>
+<H2>FUNCTIONS</H2>
+
+<A NAME="ixAAS"></A>
+YAML::Tiny implements a number of functions to add compatibility with
+the <FONT SIZE="-1">YAML</FONT> <FONT SIZE="-1">API</FONT>. These should be a drop-in replacement, except that
+YAML::Tiny will <B>not</B> export functions by default, and so you will need
+to explicitly import the functions.
+<A NAME="lbAT">&nbsp;</A>
+<H3>Dump</H3>
+
+<A NAME="ixAAT"></A>
+
+
+<PRE>
+  my $string = Dump(list-of-Perl-data-structures);
+
+</PRE>
+
+
+<P>
+
+Turn Perl data into <FONT SIZE="-1">YAML</FONT>. This function works very much like <I>Data::Dumper::Dumper()</I>.
+<P>
+
+It takes a list of Perl data strucures and dumps them into a serialized form.
+<P>
+
+It returns a string containing the <FONT SIZE="-1">YAML</FONT> stream.
+<P>
+
+The structures can be references or plain scalars.
+<A NAME="lbAU">&nbsp;</A>
+<H3>Load</H3>
+
+<A NAME="ixAAU"></A>
+
+
+<PRE>
+  my @documents = Load(string-containing-a-YAML-stream);
+
+</PRE>
+
+
+<P>
+
+Turn <FONT SIZE="-1">YAML</FONT> into Perl data. This is the opposite of Dump.
+<P>
+
+Just like Storable's <I>thaw()</I> function or the <I>eval()</I> function in relation
+to Data::Dumper.
+<P>
+
+It parses a string containing a valid <FONT SIZE="-1">YAML</FONT> stream into a list of Perl data
+structures.
+<A NAME="lbAV">&nbsp;</A>
+<H3><I>freeze()</I> and <I>thaw()</I></H3>
+
+<A NAME="ixAAV"></A>
+Aliases to <I>Dump()</I> and <I>Load()</I> for Storable fans. This will also allow
+YAML::Tiny to be plugged directly into modules like <FONT SIZE="-1">POE</FONT>.pm, that use the
+freeze/thaw <FONT SIZE="-1">API</FONT> for internal serialization.
+<A NAME="lbAW">&nbsp;</A>
+<H3>DumpFile(filepath, list)</H3>
+
+<A NAME="ixAAW"></A>
+Writes the <FONT SIZE="-1">YAML</FONT> stream to a file instead of just returning a string.
+<A NAME="lbAX">&nbsp;</A>
+<H3>LoadFile(filepath)</H3>
+
+<A NAME="ixAAX"></A>
+Reads the <FONT SIZE="-1">YAML</FONT> stream from a file instead of a string.
+<A NAME="lbAY">&nbsp;</A>
+<H2>SUPPORT</H2>
+
+<A NAME="ixAAY"></A>
+Bugs should be reported via the <FONT SIZE="-1">CPAN</FONT> bug tracker at
+<P>
+
+&lt;<A HREF="http://rt.cpan.org/NoAuth/ReportBug.html?Queue=YAML-Tiny">http://rt.cpan.org/NoAuth/ReportBug.html?Queue=YAML-Tiny</A>&gt;
+<A NAME="lbAZ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAZ"></A>
+Adam Kennedy &lt;<A HREF="mailto:adamk@cpan.org">adamk@cpan.org</A>&gt;
+<A NAME="lbBA">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABA"></A>
+<FONT SIZE="-1">YAML</FONT>, YAML::Syck, Config::Tiny, CSS::Tiny,
+&lt;<A HREF="http://use.perl.org/~Alias/journal/29427">http://use.perl.org/~Alias/journal/29427</A>&gt;, &lt;<A HREF="http://ali.as/">http://ali.as/</A>&gt;
+<A NAME="lbBB">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABB"></A>
+Copyright 2006 - 2009 Adam Kennedy.
+<P>
+
+This program is free software; you can redistribute
+it and/or modify it under the same terms as Perl itself.
+<P>
+
+The full text of the license can be found in the
+<FONT SIZE="-1">LICENSE</FONT> file included with this module.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">PREAMBLE</A><DD>
+<DT><A HREF="#lbAD">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAE">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAF">YAML TINY SPECIFICATION</A><DD>
+<DL>
+<DT><A HREF="#lbAG">1. Introduction and Goals</A><DD>
+<DT><A HREF="#lbAH">2. Introduction</A><DD>
+<DT><A HREF="#lbAI">3. Processing <FONT SIZE="-1">YAML</FONT> Tiny Information</A><DD>
+<DT><A HREF="#lbAJ">4. Syntax</A><DD>
+<DT><A HREF="#lbAK">Additional Perl-Specific Notes</A><DD>
+</DL>
+<DT><A HREF="#lbAL">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAM">new</A><DD>
+<DT><A HREF="#lbAN">read $filename</A><DD>
+<DT><A HREF="#lbAO">read_string $string;</A><DD>
+<DT><A HREF="#lbAP">write $filename</A><DD>
+<DT><A HREF="#lbAQ">write_string</A><DD>
+<DT><A HREF="#lbAR">errstr</A><DD>
+</DL>
+<DT><A HREF="#lbAS">FUNCTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAT">Dump</A><DD>
+<DT><A HREF="#lbAU">Load</A><DD>
+<DT><A HREF="#lbAV"><I>freeze()</I> and <I>thaw()</I></A><DD>
+<DT><A HREF="#lbAW">DumpFile(filepath, list)</A><DD>
+<DT><A HREF="#lbAX">LoadFile(filepath)</A><DD>
+</DL>
+<DT><A HREF="#lbAY">SUPPORT</A><DD>
+<DT><A HREF="#lbAZ">AUTHOR</A><DD>
+<DT><A HREF="#lbBA">SEE ALSO</A><DD>
+<DT><A HREF="#lbBB">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:46 GMT, December 24, 2015
+</div></body>
+</HTML>

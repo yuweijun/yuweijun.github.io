@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SSSD\&.CONF</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SSSD\&.CONF</H1>
+Section: File Formats and Conventions (5)<BR>Updated: 06/22/2012<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+sssd.conf - the configuration file for SSSD
+<A NAME="lbAC">&nbsp;</A>
+<H2>FILE FORMAT</H2>
+
+<P>
+
+The file has an ini-style syntax and consists of sections and parameters. A section begins with the name of the section in square brackets and continues until the next section begins. An example of section with single and multi-valued parameters:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+                <I>[section]</I>
+                <I>key</I> = <I>value</I>
+                <I>key2</I> = <I>value2,value3</I>
+            
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+
+The data types used are string (no quotes needed), integer and bool (with values of
+lqTRUE/FALSErq).
+<P>
+
+A line comment starts with a hash sign (lq#rq) or a semicolon (lq;rq)
+<P>
+
+All sections can have an optional
+<I>description</I>
+parameter. Its function is only as a label for the section.
+<P>
+
+<P>
+sssd.conf
+must be a regular file, owned by root and only root may read from or write to the file.
+<A NAME="lbAD">&nbsp;</A>
+<H2>SPECIAL SECTIONS</H2>
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>The [sssd] section</H3>
+
+<P>
+
+Individual pieces of SSSD functionality are provided by special SSSD services that are started and stopped together with SSSD. The services are managed by a special service frequently called
+lqmonitorrq. The
+lq[sssd]rq
+section is used to configure the monitor as well as some other important options like the identity domains.
+<P>
+
+<B>Section parameters</B>
+<P>
+
+config_file_version (integer)
+<DL COMPACT><DT><DD>
+Indicates what is the syntax of the config file. SSSD 0.6.0 and later use version 2.
+</DL>
+
+<P>
+
+services
+<DL COMPACT><DT><DD>
+Comma separated list of services that are started when sssd itself starts.
+<P>
+Supported services: nss, pam
+</DL>
+
+<P>
+
+reconnection_retries (integer)
+<DL COMPACT><DT><DD>
+Number of times services should attempt to reconnect in the event of a Data Provider crash or restart before they give up
+<P>
+Default: 3
+</DL>
+
+<P>
+
+domains
+<DL COMPACT><DT><DD>
+A domain is a database containing user information. SSSD can use more domains at the same time, but at least one must be configured or SSSD won't start. This parameter described the list of domains in the order you want them to be queried.
+</DL>
+
+<P>
+
+re_expression (string)
+<DL COMPACT><DT><DD>
+Regular expression that describes how to parse the string containing user name and domain into these components.
+<P>
+Default:
+lq(?P&lt;name&gt;[^@]+)@?(?P&lt;domain&gt;[^@]*$)rq
+which translates to &quot;the name is everything up to the
+lq@rq
+sign, the domain everything after that&quot;
+<P>
+PLEASE NOTE: the support for non-unique named subpatterns is not available on all platforms (e.g. RHEL5 and SLES10). Only platforms with libpcre version 7 or higher can support non-unique named subpatterns.
+<P>
+PLEASE NOTE ALSO: older version of libpcre only support the Python syntax (?P&lt;name&gt;) to label subpatterns.
+</DL>
+
+<P>
+
+full_name_format (string)
+<DL COMPACT><DT><DD>
+A
+<B><A HREF="/man/index.html?3+printf">printf</A></B>(3)-compatible format that describes how to translate a (name, domain) tuple into a fully qualified name.
+<P>
+Default:
+lq%1$s@%2$srq.
+</DL>
+
+<P>
+
+try_inotify (boolean)
+<DL COMPACT><DT><DD>
+SSSD monitors the state of resolv.conf to identify when it needs to update its internal DNS resolver. By default, we will attempt to use inotify for this, and will fall back to polling resolv.conf every five seconds if inotify cannot be used.
+<P>
+There are some limited situations where it is preferred that we should skip even trying to use inotify. In these rare cases, this option should be set to 'false'
+<P>
+Default: true on platforms where inotify is supported. False on other platforms.
+<P>
+Note: this option will have no effect on platforms where inotify is unavailable. On these platforms, polling will always be used.
+</DL>
+
+<P>
+
+krb5_rcache_dir (string)
+<DL COMPACT><DT><DD>
+Directory on the filesystem where SSSD should store Kerberos replay cache files.
+<P>
+This option accepts a special value __LIBKRB5_DEFAULTS__ that will instruct SSSD to let libkrb5 decide the appropriate location for the replay cache.
+<P>
+Default: Distribution-specific and specified at build-time. (__LIBKRB5_DEFAULTS__ if not configured)
+</DL>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>SERVICES SECTIONS</H2>
+
+<P>
+
+Settings that can be used to configure different services are described in this section. They should reside in the [<I>$NAME</I>] section, for example, for NSS service, the section would be
+lq[nss]rq
+<A NAME="lbAG">&nbsp;</A>
+<H3>General service configuration options</H3>
+
+<P>
+
+These options can be used to configure any service.
+<P>
+
+debug_level (integer)
+<DL COMPACT><DT><DD>
+Bit mask that indicates which debug levels will be visible. 0x0010 is the default value as well as the lowest allowed value, 0xFFF0 is the most verbose mode. This setting overrides the settings from config file.
+<P>
+Currently supported debug levels:
+<P>
+<P>
+<I>0x0010</I>: Fatal failures. Anything that would prevent SSSD from starting up or causes it to cease running.
+<P>
+<P>
+<I>0x0020</I>: Critical failures. An error that doesn't kill the SSSD, but one that indicates that at least one major feature is not going to work properly.
+<P>
+<P>
+<I>0x0040</I>: Serious failures. An error announcing that a particular request or operation has failed.
+<P>
+<P>
+<I>0x0080</I>: Minor failures. These are the errors that would percolate down to cause the operation failure of 2.
+<P>
+<P>
+<I>0x0100</I>: Configuration settings.
+<P>
+<P>
+<I>0x0200</I>: Function data.
+<P>
+<P>
+<I>0x0400</I>: Trace messages for operation functions.
+<P>
+<P>
+<I>0x1000</I>: Trace messages for internal control functions.
+<P>
+<P>
+<I>0x2000</I>: Contents of function-internal variables that may be interesting.
+<P>
+<P>
+<I>0x4000</I>: Extremely low-level tracing information.
+<P>
+To log required debug levels, simply add their numbers together as shown in following examples:
+<P>
+<P>
+<I>Example</I>: To log fatal failures, critical failures, serious failures and function data use 0x0270.
+<P>
+<P>
+<I>Example</I>: To log fatal failures, configuration settings, function data, trace messages for internal control functions use 0x1310.
+<P>
+<P>
+<I>Note</I>: This is new format of debug levels introduced in 1.7.0. Older format (numbers from 0-10) is compatible but deprecated.
+</DL>
+
+<P>
+
+debug_timestamps (bool)
+<DL COMPACT><DT><DD>
+Add a timestamp to the debug messages
+<P>
+Default: true
+</DL>
+
+<P>
+
+debug_microseconds (bool)
+<DL COMPACT><DT><DD>
+Add microseconds to the timestamp in debug messages
+<P>
+Default: false
+</DL>
+
+<P>
+
+reconnection_retries (integer)
+<DL COMPACT><DT><DD>
+Number of times services should attempt to reconnect in the event of a Data Provider crash or restart before they give up
+<P>
+Default: 3
+</DL>
+
+<P>
+
+command (string)
+<DL COMPACT><DT><DD>
+By default, the executable representing this service is called
+<B>sssd_${service_name}</B>. This directive allows to change the executable name for the service. In the vast majority of configurations, the default values should suffice.
+<P>
+Default:
+<B>sssd_${service_name}</B>
+</DL>
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>NSS configuration options</H3>
+
+<P>
+
+These options can be used to configure the Name Service Switch (NSS) service.
+<P>
+
+enum_cache_timeout (integer)
+<DL COMPACT><DT><DD>
+How many seconds should nss_sss cache enumerations (requests for info about all users)
+<P>
+Default: 120
+</DL>
+
+<P>
+
+entry_cache_nowait_percentage (integer)
+<DL COMPACT><DT><DD>
+The entry cache can be set to automatically update entries in the background if they are requested beyond a percentage of the entry_cache_timeout value for the domain.
+<P>
+For example, if the domain's entry_cache_timeout is set to 30s and entry_cache_nowait_percentage is set to 50 (percent), entries that come in after 15 seconds past the last cache update will be returned immediately, but the SSSD will go and update the cache on its own, so that future requests will not need to block waiting for a cache update.
+<P>
+Valid values for this option are 0-99 and represent a percentage of the entry_cache_timeout for each domain. For performance reasons, this percentage will never reduce the nowait timeout to less than 10 seconds. (0 disables this feature)
+<P>
+Default: 50
+</DL>
+
+<P>
+
+entry_negative_timeout (integer)
+<DL COMPACT><DT><DD>
+Specifies for how many seconds nss_sss should cache negative cache hits (that is, queries for invalid database entries, like nonexistent ones) before asking the back end again.
+<P>
+Default: 15
+</DL>
+
+<P>
+
+filter_users, filter_groups (string)
+<DL COMPACT><DT><DD>
+Exclude certain users from being fetched from the sss NSS database. This is particularly useful for system accounts. This option can also be set per-domain or include fully-qualified names to filter only users from the particular domain.
+<P>
+Default: root
+</DL>
+
+<P>
+
+filter_users_in_groups (bool)
+<DL COMPACT><DT><DD>
+If you want filtered user still be group members set this option to false.
+<P>
+Default: true
+</DL>
+
+<P>
+
+override_homedir (string)
+<DL COMPACT><DT><DD>
+Override the user's home directory. You can either provide an absolute value or a template. In the template, the following sequences are substituted:
+<P>
+
+%u
+<DL COMPACT><DT><DD>
+login name
+</DL>
+
+<P>
+
+%U
+<DL COMPACT><DT><DD>
+UID number
+</DL>
+
+<P>
+
+%d
+<DL COMPACT><DT><DD>
+domain name
+</DL>
+
+<P>
+
+%f
+<DL COMPACT><DT><DD>
+fully qualified user name (<A HREF="mailto:user@domain">user@domain</A>)
+</DL>
+
+<P>
+
+%%
+<DL COMPACT><DT><DD>
+a literal '%'
+</DL>
+
+<P>
+This option can also be set per-domain.
+</DL>
+
+<P>
+
+allowed_shells (string)
+<DL COMPACT><DT><DD>
+Restrict user shell to one of the listed values. The order of evaluation is:
+<P>
+1. If the shell is present in
+lq/etc/shellsrq, it is used.
+<P>
+2. If the shell is in the allowed_shells list but not in
+lq/etc/shellsrq, use the value of the shell_fallback parameter.
+<P>
+3. If the shell is not in the allowed_shells list and not in
+lq/etc/shellsrq, a nologin shell is used.
+<P>
+An empty string for shell is passed as-is to libc.
+<P>
+The
+lq/etc/shellsrq
+is only read on SSSD start up, which means that a restart of the SSSD is required in case a new shell is installed.
+<P>
+Default: Not set. The user shell is automatically used.
+</DL>
+
+<P>
+
+vetoed_shells (string)
+<DL COMPACT><DT><DD>
+Replace any instance of these shells with the shell_fallback
+</DL>
+
+<P>
+
+shell_fallback (string)
+<DL COMPACT><DT><DD>
+The default shell to use if an allowed shell is not installed on the machine.
+<P>
+Default: /bin/sh
+</DL>
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>PAM configuration options</H3>
+
+<P>
+
+These options can be used to configure the Pluggable Authentication Module (PAM) service.
+<P>
+
+offline_credentials_expiration (integer)
+<DL COMPACT><DT><DD>
+If the authentication provider is offline, how long should we allow cached logins (in days since the last successful online login).
+<P>
+Default: 0 (No limit)
+</DL>
+
+<P>
+
+offline_failed_login_attempts (integer)
+<DL COMPACT><DT><DD>
+If the authentication provider is offline, how many failed login attempts are allowed.
+<P>
+Default: 0 (No limit)
+</DL>
+
+<P>
+
+offline_failed_login_delay (integer)
+<DL COMPACT><DT><DD>
+The time in minutes which has to pass after offline_failed_login_attempts has been reached before a new login attempt is possible.
+<P>
+If set to 0 the user cannot authenticate offline if offline_failed_login_attempts has been reached. Only a successful online authentication can enable offline authentication again.
+<P>
+Default: 5
+</DL>
+
+<P>
+
+pam_verbosity (integer)
+<DL COMPACT><DT><DD>
+Controls what kind of messages are shown to the user during authentication. The higher the number to more messages are displayed.
+<P>
+Currently sssd supports the following values:
+<P>
+<P>
+<I>0</I>: do not show any message
+<P>
+<P>
+<I>1</I>: show only important messages
+<P>
+<P>
+<I>2</I>: show informational messages
+<P>
+<P>
+<I>3</I>: show all messages and debug information
+<P>
+Default: 1
+</DL>
+
+<P>
+
+pam_id_timeout (integer)
+<DL COMPACT><DT><DD>
+For any PAM request while SSSD is online, the SSSD will attempt to immediately update the cached identity information for the user in order to ensure that authentication takes place with the latest information.
+<P>
+A complete PAM conversation may perform multiple PAM requests, such as account management and session opening. This option controls (on a per-client-application basis) how long (in seconds) we can cache the identity information to avoid excessive round-trips to the identity provider.
+<P>
+Default: 5
+</DL>
+
+<P>
+
+pam_pwd_expiration_warning (integer)
+<DL COMPACT><DT><DD>
+Display a warning N days before the password expires.
+<P>
+Please note that the backend server has to provide information about the expiration time of the password. If this information is missing, sssd cannot display a warning.
+<P>
+Default: 7
+</DL>
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>AUTOFS configuration options</H3>
+
+<P>
+
+These options can be used to configure the autofs service.
+<P>
+
+<P>
+<I> This is an experimental feature, please use <A HREF="http://fedorahosted.org/sssd">http://fedorahosted.org/sssd</A> to report any issues. </I>
+<P>
+
+autofs_negative_timeout (integer)
+<DL COMPACT><DT><DD>
+Specifies for how many seconds should the autofs responder negative cache hits (that is, queries for invalid map entries, like nonexistent ones) before asking the back end again.
+<P>
+Default: 15
+</DL>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>DOMAIN SECTIONS</H2>
+
+<P>
+
+These configuration options can be present in a domain configuration section, that is, in a section called
+lq[domain/<I>NAME</I>]rq
+<P>
+
+min_id,max_id (integer)
+<DL COMPACT><DT><DD>
+UID and GID limits for the domain. If a domain contains an entry that is outside these limits, it is ignored.
+<P>
+For users, this affects the primary GID limit. The user will not be returned to NSS if either the UID or the primary GID is outside the range. For non-primary group memberships, those that are in range will be reported as expected.
+<P>
+Default: 1 for min_id, 0 (no limit) for max_id
+</DL>
+
+<P>
+
+timeout (integer)
+<DL COMPACT><DT><DD>
+Timeout in seconds between heartbeats for this domain. This is used to ensure that the backend process is alive and capable of answering requests.
+<P>
+Default: 10
+</DL>
+
+<P>
+
+enumerate (bool)
+<DL COMPACT><DT><DD>
+Determines if a domain can be enumerated. This parameter can have one of the following values:
+<P>
+TRUE = Users and groups are enumerated
+<P>
+FALSE = No enumerations for this domain
+<P>
+Default: FALSE
+<P>
+Note: Enabling enumeration has a moderate performance impact on SSSD while enumeration is running. It may take up to several minutes after SSSD startup to fully complete enumerations. During this time, individual requests for information will go directly to LDAP, though it may be slow, due to the heavy enumeration processing.
+<P>
+While the first enumeration is running, requests for the complete user or group lists may return no results until it completes.
+<P>
+Further, enabling enumeration may increase the time necessary to detect network disconnection, as longer timeouts are required to ensure that enumeration lookups are completed successfully. For more information, refer to the man pages for the specific id_provider in use.
+</DL>
+
+<P>
+
+entry_cache_timeout (integer)
+<DL COMPACT><DT><DD>
+How many seconds should nss_sss consider entries valid before asking the backend again
+<P>
+Default: 5400
+</DL>
+
+<P>
+
+entry_cache_user_timeout (integer)
+<DL COMPACT><DT><DD>
+How many seconds should nss_sss consider user entries valid before asking the backend again
+<P>
+Default: entry_cache_timeout
+</DL>
+
+<P>
+
+entry_cache_group_timeout (integer)
+<DL COMPACT><DT><DD>
+How many seconds should nss_sss consider group entries valid before asking the backend again
+<P>
+Default: entry_cache_timeout
+</DL>
+
+<P>
+
+entry_cache_netgroup_timeout (integer)
+<DL COMPACT><DT><DD>
+How many seconds should nss_sss consider netgroup entries valid before asking the backend again
+<P>
+Default: entry_cache_timeout
+</DL>
+
+<P>
+
+entry_cache_service_timeout (integer)
+<DL COMPACT><DT><DD>
+How many seconds should nss_sss consider service entries valid before asking the backend again
+<P>
+Default: entry_cache_timeout
+</DL>
+
+<P>
+
+cache_credentials (bool)
+<DL COMPACT><DT><DD>
+Determines if user credentials are also cached in the local LDB cache
+<P>
+User credentials are stored in a SHA512 hash, not in plaintext
+<P>
+Default: FALSE
+</DL>
+
+<P>
+
+account_cache_expiration (integer)
+<DL COMPACT><DT><DD>
+Number of days entries are left in cache after last successful login before being removed during a cleanup of the cache. 0 means keep forever. The value of this parameter must be greater than or equal to offline_credentials_expiration.
+<P>
+Default: 0 (unlimited)
+</DL>
+
+<P>
+
+id_provider (string)
+<DL COMPACT><DT><DD>
+The Data Provider identity backend to use for this domain.
+<P>
+Supported backends:
+<P>
+proxy: Support a legacy NSS provider
+<P>
+local: SSSD internal local provider
+<P>
+ldap: LDAP provider
+</DL>
+
+<P>
+
+use_fully_qualified_names (bool)
+<DL COMPACT><DT><DD>
+If set to TRUE, all requests to this domain must use fully qualified names. For example, if used in LOCAL domain that contains a &quot;test&quot; user,
+<B>getent passwd test</B>
+wouldn't find the user while
+<B>getent passwd <A HREF="mailto:test@LOCAL">test@LOCAL</A></B>
+would.
+<P>
+Default: FALSE
+</DL>
+
+<P>
+
+auth_provider (string)
+<DL COMPACT><DT><DD>
+The authentication provider used for the domain. Supported auth providers are:
+<P>
+<P>
+lqldaprq
+for native LDAP authentication. See
+<B><A HREF="/man/index.html?5+sssd-ldap">sssd-ldap</A></B>(5)
+for more information on configuring LDAP.
+<P>
+<P>
+lqkrb5rq
+for Kerberos authentication. See
+<B><A HREF="/man/index.html?5+sssd-krb5">sssd-krb5</A></B>(5)
+for more information on configuring Kerberos.
+<P>
+<P>
+lqproxyrq
+for relaying authentication to some other PAM target.
+<P>
+<P>
+lqnonerq
+disables authentication explicitly.
+<P>
+Default:
+lqid_providerrq
+is used if it is set and can handle authentication requests.
+</DL>
+
+<P>
+
+access_provider (string)
+<DL COMPACT><DT><DD>
+The access control provider used for the domain. There are two built-in access providers (in addition to any included in installed backends) Internal special providers are:
+<P>
+<P>
+lqpermitrq
+always allow access.
+<P>
+<P>
+lqdenyrq
+always deny access.
+<P>
+<P>
+lqsimplerq
+access control based on access or deny lists. See
+<B><A HREF="/man/index.html?5+sssd-simple">sssd-simple</A></B>(5)
+for more information on configuring the simple access module.
+<P>
+Default:
+lqpermitrq
+</DL>
+
+<P>
+
+chpass_provider (string)
+<DL COMPACT><DT><DD>
+The provider which should handle change password operations for the domain. Supported change password providers are:
+<P>
+<P>
+lqiparq
+to change a password stored in an IPA server. See
+<B><A HREF="/man/index.html?5+sssd-ipa">sssd-ipa</A></B>(5)
+for more information on configuring IPA.
+<P>
+<P>
+lqldaprq
+to change a password stored in a LDAP server. See
+<B><A HREF="/man/index.html?5+sssd-ldap">sssd-ldap</A></B>(5)
+for more information on configuring LDAP.
+<P>
+<P>
+lqkrb5rq
+to change the Kerberos password. See
+<B><A HREF="/man/index.html?5+sssd-krb5">sssd-krb5</A></B>(5)
+for more information on configuring Kerberos.
+<P>
+<P>
+lqproxyrq
+for relaying password changes to some other PAM target.
+<P>
+<P>
+lqnonerq
+disallows password changes explicitly.
+<P>
+Default:
+lqauth_providerrq
+is used if it is set and can handle change password requests.
+</DL>
+
+<P>
+
+session_provider (string)
+<DL COMPACT><DT><DD>
+The provider which should handle loading of session settings. Supported session providers are:
+<P>
+<P>
+lqiparq
+to load session settings from an IPA server. See
+<B><A HREF="/man/index.html?5+sssd-ipa">sssd-ipa</A></B>(5)
+for more information on configuring IPA.
+<P>
+<P>
+lqnonerq
+disallows fetching session settings explicitly.
+<P>
+Default:
+lqid_providerrq
+is used if it is set and can handle session loading requests.
+</DL>
+
+<P>
+
+lookup_family_order (string)
+<DL COMPACT><DT><DD>
+Provides the ability to select preferred address family to use when performing DNS lookups.
+<P>
+Supported values:
+<P>
+ipv4_first: Try looking up IPv4 address, if that fails, try IPv6
+<P>
+ipv4_only: Only attempt to resolve hostnames to IPv4 addresses.
+<P>
+ipv6_first: Try looking up IPv6 address, if that fails, try IPv4
+<P>
+ipv6_only: Only attempt to resolve hostnames to IPv6 addresses.
+<P>
+Default: ipv4_first
+</DL>
+
+<P>
+
+dns_resolver_timeout (integer)
+<DL COMPACT><DT><DD>
+Defines the amount of time (in seconds) to wait for a reply from the DNS resolver before assuming that it is unreachable. If this timeout is reached, the domain will continue to operate in offline mode.
+<P>
+Default: 5
+</DL>
+
+<P>
+
+dns_discovery_domain (string)
+<DL COMPACT><DT><DD>
+If service discovery is used in the back end, specifies the domain part of the service discovery DNS query.
+<P>
+Default: Use the domain part of machine's hostname
+</DL>
+
+<P>
+
+override_gid (integer)
+<DL COMPACT><DT><DD>
+Override the primary GID value with the one specified.
+</DL>
+
+<P>
+
+case_sensitive (boolean)
+<DL COMPACT><DT><DD>
+Treat user and group names as case sensitive. At the moment, this option is not supported in the local provider.
+<P>
+Default: True
+</DL>
+
+<P>
+
+Options valid for proxy domains.
+<P>
+
+proxy_pam_target (string)
+<DL COMPACT><DT><DD>
+The proxy target PAM proxies to.
+<P>
+Default: not set by default, you have to take an existing pam configuration or create a new one and add the service name here.
+</DL>
+
+<P>
+
+proxy_lib_name (string)
+<DL COMPACT><DT><DD>
+The name of the NSS library to use in proxy domains. The NSS functions searched for in the library are in the form of _nss_$(libName)_$(function), for example _nss_files_getpwent.
+</DL>
+
+<A NAME="lbAL">&nbsp;</A>
+<H3>The local domain section</H3>
+
+<P>
+
+This section contains settings for domain that stores users and groups in SSSD native database, that is, a domain that uses
+<I>id_provider=local</I>.
+<P>
+
+<B>Section parameters</B>
+<P>
+
+default_shell (string)
+<DL COMPACT><DT><DD>
+The default shell for users created with SSSD userspace tools.
+<P>
+Default:
+/bin/bash
+</DL>
+
+<P>
+
+base_directory (string)
+<DL COMPACT><DT><DD>
+The tools append the login name to
+<I>base_directory</I>
+and use that as the home directory.
+<P>
+Default:
+/home
+</DL>
+
+<P>
+
+create_homedir (bool)
+<DL COMPACT><DT><DD>
+Indicate if a home directory should be created by default for new users. Can be overridden on command line.
+<P>
+Default: TRUE
+</DL>
+
+<P>
+
+remove_homedir (bool)
+<DL COMPACT><DT><DD>
+Indicate if a home directory should be removed by default for deleted users. Can be overridden on command line.
+<P>
+Default: TRUE
+</DL>
+
+<P>
+
+homedir_umask (integer)
+<DL COMPACT><DT><DD>
+Used by
+<B><A HREF="/man/index.html?8+sss_useradd">sss_useradd</A></B>(8)
+to specify the default permissions on a newly created home directory.
+<P>
+Default: 077
+</DL>
+
+<P>
+
+skel_dir (string)
+<DL COMPACT><DT><DD>
+The skeleton directory, which contains files and directories to be copied in the user's home directory, when the home directory is created by
+<B><A HREF="/man/index.html?8+sss_useradd">sss_useradd</A></B>(8)
+<P>
+Default:
+/etc/skel
+</DL>
+
+<P>
+
+mail_dir (string)
+<DL COMPACT><DT><DD>
+The mail spool directory. This is needed to manipulate the mailbox when its corresponding user account is modified or deleted. If not specified, a default value is used.
+<P>
+Default:
+/var/mail
+</DL>
+
+<P>
+
+userdel_cmd (string)
+<DL COMPACT><DT><DD>
+The command that is run after a user is removed. The command us passed the username of the user being removed as the first and only parameter. The return code of the command is not taken into account.
+<P>
+Default: None, no command is run
+</DL>
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<P>
+
+The following example shows a typical SSSD config. It does not describe configuration of the domains themselves - refer to documentation on configuring domains for more details.
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+[sssd]
+domains = LDAP
+services = nss, pam
+config_file_version = 2
+
+[nss]
+filter_groups = root
+filter_users = root
+
+[pam]
+
+[domain/LDAP]
+id_provider = ldap
+ldap_uri = <A HREF="ldap://ldap.example.com">ldap://ldap.example.com</A>
+ldap_search_base = dc=example,dc=com
+
+auth_provider = krb5
+krb5_server = kerberos.example.com
+krb5_realm = EXAMPLE.COM
+cache_credentials = true
+
+min_id = 10000
+max_id = 20000
+enumerate = False
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+<A NAME="lbAN">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<P>
+<B><A HREF="/man/index.html?5+sssd-ldap">sssd-ldap</A></B>(5),
+<B><A HREF="/man/index.html?5+sssd-krb5">sssd-krb5</A></B>(5),
+<B><A HREF="/man/index.html?8+sss_groupadd">sss_groupadd</A></B>(8),
+<B><A HREF="/man/index.html?8+sss_groupdel">sss_groupdel</A></B>(8),
+<B><A HREF="/man/index.html?8+sss_groupmod">sss_groupmod</A></B>(8),
+<B><A HREF="/man/index.html?8+sss_useradd">sss_useradd</A></B>(8),
+<B><A HREF="/man/index.html?8+sss_userdel">sss_userdel</A></B>(8),
+<B><A HREF="/man/index.html?8+sss_usermod">sss_usermod</A></B>(8),
+<B><A HREF="/man/index.html?8+pam_sss">pam_sss</A></B>(8).
+<A NAME="lbAO">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<P>
+
+<B>The SSSD upstream - <A HREF="http://fedorahosted.org/sssd">http://fedorahosted.org/sssd</A></B>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">FILE FORMAT</A><DD>
+<DT><A HREF="#lbAD">SPECIAL SECTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAE">The [sssd] section</A><DD>
+</DL>
+<DT><A HREF="#lbAF">SERVICES SECTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">General service configuration options</A><DD>
+<DT><A HREF="#lbAH">NSS configuration options</A><DD>
+<DT><A HREF="#lbAI">PAM configuration options</A><DD>
+<DT><A HREF="#lbAJ">AUTOFS configuration options</A><DD>
+</DL>
+<DT><A HREF="#lbAK">DOMAIN SECTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAL">The local domain section</A><DD>
+</DL>
+<DT><A HREF="#lbAM">EXAMPLE</A><DD>
+<DT><A HREF="#lbAN">SEE ALSO</A><DD>
+<DT><A HREF="#lbAO">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

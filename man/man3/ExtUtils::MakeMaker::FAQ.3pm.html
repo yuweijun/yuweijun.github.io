@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of ExtUtils::MakeMaker::FAQ</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>ExtUtils::MakeMaker::FAQ</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-07-07<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ExtUtils::MakeMaker::FAQ - Frequently Asked Questions About MakeMaker
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+FAQs, tricks and tips for <TT>&quot;ExtUtils::MakeMaker&quot;</TT>.
+<A NAME="lbAD">&nbsp;</A>
+<H3>Module Installation</H3>
+
+<A NAME="ixAAD"></A>
+<DL COMPACT>
+<DT>How do I install a module into my home directory?<DD>
+<A NAME="ixAAE"></A>
+If you're not the Perl administrator you probably don't have
+permission to install a module to its default location.  Then you
+should install it for your own use into your home directory like so:
+
+
+<P>
+
+
+
+
+<PRE>
+    # Non-unix folks, replace ~ with /path/to/your/home/dir
+    perl Makefile.PL INSTALL_BASE=~
+
+</PRE>
+
+
+
+
+<P>
+
+
+This will put modules into <I>~/lib/perl5</I>, man pages into <I>~/man</I> and
+programs into <I>~/bin</I>.
+
+
+<P>
+
+
+To ensure your Perl programs can see these newly installed modules,
+set your <TT>&quot;PERL5LIB&quot;</TT> environment variable to <I>~/lib/perl5</I> or tell
+each of your programs to look in that directory with the following:
+
+
+<P>
+
+
+
+
+<PRE>
+    use lib &quot;$ENV{HOME}/lib/perl5&quot;;
+
+</PRE>
+
+
+
+
+<P>
+
+
+or if <TT>$ENV</TT>{<FONT SIZE="-1">HOME</FONT>} isn't set and you don't want to set it for some
+reason, do it the long way.
+
+
+<P>
+
+
+
+
+<PRE>
+    use lib &quot;/path/to/your/home/dir/lib/perl5&quot;;
+
+</PRE>
+
+
+<DT>How do I get MakeMaker and Module::Build to install to the same place?<DD>
+<A NAME="ixAAF"></A>
+Module::Build, as of 0.28, supports two ways to install to the same
+location as MakeMaker.
+
+
+<P>
+
+
+1) Use <FONT SIZE="-1">INSTALL_BASE</FONT> / <TT>&quot;--install_base&quot;</TT>
+
+
+<P>
+
+
+MakeMaker (as of 6.31) and Module::Build (as of 0.28) both can install
+to the same locations using the ``install_base'' concept.  See
+``<FONT SIZE="-1">INSTALL_BASE</FONT>'' in ExtUtils::MakeMaker for details.  To get <FONT SIZE="-1">MM</FONT> and <FONT SIZE="-1">MB</FONT> to
+install to the same location simply set <FONT SIZE="-1">INSTALL_BASE</FONT> in <FONT SIZE="-1">MM</FONT> and
+<TT>&quot;--install_base&quot;</TT> in <FONT SIZE="-1">MB</FONT> to the same location.
+
+
+<P>
+
+
+
+
+<PRE>
+    perl Makefile.PL INSTALL_BASE=/whatever
+    perl Build.PL    --install_base /whatever
+
+</PRE>
+
+
+
+
+<P>
+
+
+2) Use <FONT SIZE="-1">PREFIX</FONT> / <TT>&quot;--prefix&quot;</TT>
+
+
+<P>
+
+
+Module::Build 0.28 added support for <TT>&quot;--prefix&quot;</TT> which works like
+MakeMaker's <FONT SIZE="-1">PREFIX</FONT>.
+
+
+<P>
+
+
+
+
+<PRE>
+    perl Makefile.PL PREFIX=/whatever
+    perl Build.PL    --prefix /whatever
+
+</PRE>
+
+
+<DT>How do I keep from installing man pages?<DD>
+<A NAME="ixAAG"></A>
+Recent versions of MakeMaker will only install man pages on Unix like
+operating systems.
+
+
+<P>
+
+
+For an individual module:
+
+
+<P>
+
+
+
+
+<PRE>
+        perl Makefile.PL INSTALLMAN1DIR=none INSTALLMAN3DIR=none
+
+</PRE>
+
+
+
+
+<P>
+
+
+If you want to suppress man page installation for all modules you have
+to reconfigure Perl and tell it 'none' when it asks where to install
+man pages.
+<DT>How do I use a module without installing it?<DD>
+<A NAME="ixAAH"></A>
+Two ways.  One is to build the module normally...
+
+
+<P>
+
+
+
+
+<PRE>
+        perl Makefile.PL
+        make
+        make test
+
+</PRE>
+
+
+
+
+<P>
+
+
+...and then set the <FONT SIZE="-1">PERL5LIB</FONT> environment variable to point at the
+blib/lib and blib/arch directories.
+
+
+<P>
+
+
+The other is to install the module in a temporary location.
+
+
+<P>
+
+
+
+
+<PRE>
+        perl Makefile.PL INSTALL_BASE=~/tmp
+        make
+        make test
+        make install
+
+</PRE>
+
+
+
+
+<P>
+
+
+And then set <FONT SIZE="-1">PERL5LIB</FONT> to <I>~/tmp/lib/perl5</I>.  This works well when you
+have multiple modules to work with.  It also ensures that the module
+goes through its full installation process which may modify it.
+<DT><FONT SIZE="-1">PREFIX</FONT> vs <FONT SIZE="-1">INSTALL_BASE</FONT> from Module::Build::Cookbook<DD>
+<A NAME="ixAAI"></A>
+The behavior of <FONT SIZE="-1">PREFIX</FONT> is complicated and depends closely on how your
+Perl is configured. The resulting installation locations will vary from
+machine to machine and even different installations of Perl on the same machine.
+Because of this, its difficult to document where prefix will place your modules.
+
+
+<P>
+
+
+In contrast, <FONT SIZE="-1">INSTALL_BASE</FONT> has predictable, easy to explain installation locations.
+Now that Module::Build and MakeMaker both have <FONT SIZE="-1">INSTALL_BASE</FONT> there is little reason
+to use <FONT SIZE="-1">PREFIX</FONT> other than to preserve your existing installation locations. If you
+are starting a fresh Perl installation we encourage you to use <FONT SIZE="-1">INSTALL_BASE</FONT>. If
+you have an existing installation installed via <FONT SIZE="-1">PREFIX</FONT>, consider moving it to an
+installation structure matching <FONT SIZE="-1">INSTALL_BASE</FONT> and using that instead.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Philosophy and History</H3>
+
+<A NAME="ixAAJ"></A>
+<DL COMPACT>
+<DT>Why not just use &lt;insert other build config tool here&gt;?<DD>
+<A NAME="ixAAK"></A>
+Why did MakeMaker reinvent the build configuration wheel?  Why not
+just use autoconf or automake or ppm or Ant or ...
+
+
+<P>
+
+
+There are many reasons, but the major one is cross-platform
+compatibility.
+
+
+<P>
+
+
+Perl is one of the most ported pieces of software ever.  It works on
+operating systems I've never even heard of (see perlport for details).
+It needs a build tool that can work on all those platforms and with
+any wacky C compilers and linkers they might have.
+
+
+<P>
+
+
+No such build tool exists.  Even make itself has wildly different
+dialects.  So we have to build our own.
+<DT>What is Module::Build and how does it relate to MakeMaker?<DD>
+<A NAME="ixAAL"></A>
+Module::Build is a project by Ken Williams to supplant MakeMaker.
+Its primary advantages are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+pure perl.  no make, no shell commands
+<DT>*<DD>
+easier to customize
+<DT>*<DD>
+cleaner internals
+<DT>*<DD>
+less cruft
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+Module::Build is the official heir apparent to MakeMaker and we
+encourage people to work on M::B rather than spending time adding features
+to MakeMaker.
+</DL>
+
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Module Writing</H3>
+
+<A NAME="ixAAM"></A>
+<DL COMPACT>
+<DT>How do I keep my $VERSION up to date without resetting it manually?<DD>
+
+
+<A NAME="ixAAN"></A>
+Often you want to manually set the <TT>$VERSION</TT> in the main module
+distribution because this is the version that everybody sees on <FONT SIZE="-1">CPAN</FONT>
+and maybe you want to customize it a bit.  But for all the other
+modules in your dist, <TT>$VERSION</TT> is really just bookkeeping and all that's
+important is it goes up every time the module is changed.  Doing this
+by hand is a pain and you often forget.
+
+
+<P>
+
+
+Simplest way to do it automatically is to use your version control
+system's revision number (you are using version control, right?).
+
+
+<P>
+
+
+In <FONT SIZE="-1">CVS</FONT>, <FONT SIZE="-1">RCS</FONT> and <FONT SIZE="-1">SVN</FONT> you use <TT>$Revision</TT>$ (see the documentation of your
+version control system for details).  Every time the file is checked
+in the <TT>$Revision</TT>$ will be updated, updating your <TT>$VERSION</TT>.
+
+
+<P>
+
+
+<FONT SIZE="-1">SVN</FONT> uses a simple integer for <TT>$Revision</TT>$ so you can adapt it for your
+<TT>$VERSION</TT> like so:
+
+
+<P>
+
+
+
+
+<PRE>
+    ($VERSION) = q$Revision$ =~ /(\d+)/;
+
+</PRE>
+
+
+
+
+<P>
+
+
+In <FONT SIZE="-1">CVS</FONT> and <FONT SIZE="-1">RCS</FONT> version 1.9 is followed by 1.10.  Since <FONT SIZE="-1">CPAN</FONT> compares
+version numbers numerically we use a <I>sprintf()</I> to convert 1.9 to 1.009
+and 1.10 to 1.010 which compare properly.
+
+
+<P>
+
+
+
+
+<PRE>
+    $VERSION = sprintf &quot;%d.%03d&quot;, q$Revision$ =~ /(\d+)\.(\d+)/g;
+
+</PRE>
+
+
+
+
+<P>
+
+
+If branches are involved (ie. <TT>$Revision:</TT> 1.5.3.4$) its a little more
+complicated.
+
+
+<P>
+
+
+
+
+<PRE>
+    # must be all on one line or MakeMaker will get confused.
+    $VERSION = do { my @r = (q$Revision$ =~ /\d+/g); sprintf &quot;%d.&quot;.&quot;%03d&quot; x $#r, @r };
+
+</PRE>
+
+
+
+
+<P>
+
+
+In <FONT SIZE="-1">SVN</FONT>, <TT>$Revision</TT>$ should be the same for every file in the project so
+they would all have the same <TT>$VERSION</TT>.  <FONT SIZE="-1">CVS</FONT> and <FONT SIZE="-1">RCS</FONT> have a different
+<TT>$Revision</TT>$ per file so each file will have a differnt <TT>$VERSION</TT>.
+Distributed version control systems, such as <FONT SIZE="-1">SVK</FONT>, may have a different
+<TT>$Revision</TT>$ based on who checks out the file leading to a different <TT>$VERSION</TT>
+on each machine!  Finally, some distributed version control systems, such
+as darcs, have no concept of revision number at all.
+<DT>What's this <I></I><FONT SIZE="-1"><I>META</I></FONT><I>.yml</I> thing and how did it get in my <I></I><FONT SIZE="-1"><I>MANIFEST</I></FONT><I></I>?!<DD>
+<A NAME="ixAAO"></A>
+<I></I><FONT SIZE="-1"><I>META</I></FONT><I>.yml</I> is a module meta-data file pioneered by Module::Build and
+automatically generated as part of the 'distdir' target (and thus
+'dist').  See ``Module Meta-Data'' in ExtUtils::MakeMaker.
+
+
+<P>
+
+
+To shut off its generation, pass the <TT>&quot;NO_META&quot;</TT> flag to <TT>&quot;WriteMakefile()&quot;</TT>.
+<DT>How do I delete everything not in my <I></I><FONT SIZE="-1"><I>MANIFEST</I></FONT><I></I>?<DD>
+<A NAME="ixAAP"></A>
+Some folks are surpried that <TT>&quot;make distclean&quot;</TT> does not delete
+everything not listed in their <FONT SIZE="-1">MANIFEST</FONT> (thus making a clean
+distribution) but only tells them what they need to delete.  This is
+done because it is considered too dangerous.  While developing your
+module you might write a new file, not add it to the <FONT SIZE="-1">MANIFEST</FONT>, then
+run a <TT>&quot;distclean&quot;</TT> and be sad because your new work was deleted.
+
+
+<P>
+
+
+If you really want to do this, you can use
+<TT>&quot;ExtUtils::Manifest::manifind()&quot;</TT> to read the <FONT SIZE="-1">MANIFEST</FONT> and File::Find
+to delete the files.  But you have to be careful.  Here's a script to
+do that.  Use at your own risk.  Have fun blowing holes in your foot.
+
+
+<P>
+
+
+
+
+<PRE>
+    #!/usr/bin/perl -w
+    
+    use strict;
+    
+    use File::Spec;
+    use File::Find;
+    use ExtUtils::Manifest qw(maniread);
+    
+    my %manifest = map  {( $_ =&gt; 1 )}
+                   grep { File::Spec-&gt;canonpath($_) }
+                        keys %{ maniread() };
+
+    if( !keys %manifest ) {
+        print &quot;No files found in MANIFEST.  Stopping.\n&quot;;
+        exit;
+    }
+    
+    find({
+          wanted   =&gt; sub {
+              my $path = File::Spec-&gt;canonpath($_);
+    
+              return unless -f $path;
+              return if exists $manifest{ $path };
+    
+              print &quot;unlink $path\n&quot;;
+              unlink $path;
+          },
+          no_chdir =&gt; 1
+         },
+         &quot;.&quot;
+    );
+
+</PRE>
+
+
+<DT>Which zip should I use on Windows for '[nd]make zipdist'?<DD>
+<A NAME="ixAAQ"></A>
+We recommend InfoZIP: &lt;<A HREF="http://www.info-zip.org/Zip.html">http://www.info-zip.org/Zip.html</A>&gt;
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H3><FONT SIZE="-1">XS</FONT></H3>
+
+<A NAME="ixAAR"></A>
+<DL COMPACT>
+<DT>How to I prevent object version X.XX does not match bootstrap parameter Y.YY errors?<DD>
+
+
+<A NAME="ixAAS"></A>
+<FONT SIZE="-1">XS</FONT> code is very sensitive to the module version number and will
+complain if the version number in your Perl module doesn't match.  If
+you change your module's version # without rerunning Makefile.PL the old
+version number will remain in the Makefile causing the <FONT SIZE="-1">XS</FONT> code to be built
+with the wrong number.
+
+
+<P>
+
+
+To avoid this, you can force the Makefile to be rebuilt whenever you
+change the module containing the version number by adding this to your
+<I>WriteMakefile()</I> arguments.
+
+
+<P>
+
+
+
+
+<PRE>
+    depend =&gt; { '$(FIRST_MAKEFILE)' =&gt; '$(VERSION_FROM)' }
+
+</PRE>
+
+
+<DT>How do I make two or more <FONT SIZE="-1">XS</FONT> files coexist in the same directory?<DD>
+<A NAME="ixAAT"></A>
+Sometimes you need to have two and more <FONT SIZE="-1">XS</FONT> files in the same package.
+One way to go is to put them into separate directories, but sometimes
+this is not the most suitable solution. The following technique allows
+you to put two (and more) <FONT SIZE="-1">XS</FONT> files in the same directory.
+
+
+<P>
+
+
+Let's assume that we have a package <TT>&quot;Cool::Foo&quot;</TT>, which includes
+<TT>&quot;Cool::Foo&quot;</TT> and <TT>&quot;Cool::Bar&quot;</TT> modules each having a separate <FONT SIZE="-1">XS</FONT>
+file. First we use the following <I>Makefile.PL</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+  use ExtUtils::MakeMaker;
+
+  WriteMakefile(
+      NAME              =&gt; 'Cool::Foo',
+      VERSION_FROM      =&gt; 'Foo.pm',
+      OBJECT              =&gt; q/$(O_FILES)/,
+      # ... other attrs ...
+  );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Notice the <TT>&quot;OBJECT&quot;</TT> attribute. MakeMaker generates the following
+variables in <I>Makefile</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+  # Handy lists of source code files:
+  XS_FILES= Bar.xs \
+        Foo.xs
+  C_FILES = Bar.c \
+        Foo.c
+  O_FILES = Bar.o \
+        Foo.o
+
+</PRE>
+
+
+
+
+<P>
+
+
+Therefore we can use the <TT>&quot;O_FILES&quot;</TT> variable to tell MakeMaker to use
+these objects into the shared library.
+
+
+<P>
+
+
+That's pretty much it. Now write <I>Foo.pm</I> and <I>Foo.xs</I>, <I>Bar.pm</I>
+and <I>Bar.xs</I>, where <I>Foo.pm</I> bootstraps the shared library and
+<I>Bar.pm</I> simply loading <I>Foo.pm</I>.
+
+
+<P>
+
+
+The only issue left is to how to bootstrap <I>Bar.xs</I>. This is done
+from <I>Foo.xs</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+  MODULE = Cool::Foo PACKAGE = Cool::Foo
+
+  BOOT:
+  # boot the second XS file
+  boot_Cool__Bar(aTHX_ cv);
+
+</PRE>
+
+
+
+
+<P>
+
+
+If you have more than two files, this is the place where you should
+boot extra <FONT SIZE="-1">XS</FONT> files from.
+
+
+<P>
+
+
+The following four files sum up all the details discussed so far.
+
+
+<P>
+
+
+
+
+<PRE>
+  Foo.pm:
+  -------
+  package Cool::Foo;
+
+  require DynaLoader;
+
+  our @ISA = qw(DynaLoader);
+  our $VERSION = '0.01';
+  bootstrap Cool::Foo $VERSION;
+
+  1;
+
+  Bar.pm:
+  -------
+  package Cool::Bar;
+
+  use Cool::Foo; # bootstraps Bar.xs
+
+  1;
+
+  Foo.xs:
+  -------
+  #include &quot;EXTERN.h&quot;
+  #include &quot;perl.h&quot;
+  #include &quot;XSUB.h&quot;
+
+  MODULE = Cool::Foo  PACKAGE = Cool::Foo
+
+  BOOT:
+  # boot the second XS file
+  boot_Cool__Bar(aTHX_ cv);
+
+  MODULE = Cool::Foo  PACKAGE = Cool::Foo  PREFIX = cool_foo_
+
+  void
+  cool_foo_perl_rules()
+
+      CODE:
+      fprintf(stderr, &quot;Cool::Foo says: Perl Rules\n&quot;);
+
+  Bar.xs:
+  -------
+  #include &quot;EXTERN.h&quot;
+  #include &quot;perl.h&quot;
+  #include &quot;XSUB.h&quot;
+
+  MODULE = Cool::Bar  PACKAGE = Cool::Bar PREFIX = cool_bar_
+
+  void
+  cool_bar_perl_rules()
+
+      CODE:
+      fprintf(stderr, &quot;Cool::Bar says: Perl Rules\n&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+And of course a very basic test:
+
+
+<P>
+
+
+
+
+<PRE>
+  t/cool.t:
+  --------
+  use Test;
+  BEGIN { plan tests =&gt; 1 };
+  use Cool::Foo;
+  use Cool::Bar;
+  Cool::Foo::perl_rules();
+  Cool::Bar::perl_rules();
+  ok 1;
+
+</PRE>
+
+
+
+
+<P>
+
+
+This tip has been brought to you by Nick Ing-Simmons and Stas Bekman.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>PATCHING</H2>
+
+<A NAME="ixAAU"></A>
+If you have a question you'd like to see added to the <FONT SIZE="-1">FAQ</FONT> (whether or
+not you have the answer) please send it to <A HREF="mailto:makemaker@perl.org">makemaker@perl.org</A>.
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAV"></A>
+The denizens of <A HREF="mailto:makemaker@perl.org">makemaker@perl.org</A>.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAW"></A>
+ExtUtils::MakeMaker
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAD">Module Installation</A><DD>
+<DT><A HREF="#lbAE">Philosophy and History</A><DD>
+<DT><A HREF="#lbAF">Module Writing</A><DD>
+<DT><A HREF="#lbAG"><FONT SIZE="-1">XS</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAH">PATCHING</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:26 GMT, December 24, 2015
+</div></body>
+</HTML>

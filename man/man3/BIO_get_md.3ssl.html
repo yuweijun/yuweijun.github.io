@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of BIO_f_md</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>BIO_f_md</H1>
+Section: OpenSSL (3)<BR>Updated: 2009-09-30<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+BIO_f_md, BIO_set_md, BIO_get_md, BIO_get_md_ctx - message digest BIO filter
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/bio.h">openssl/bio.h</A>&gt;
+ #include &lt;<A HREF="file:/usr/include/openssl/evp.h">openssl/evp.h</A>&gt;
+
+ BIO_METHOD *   BIO_f_md(void);
+ int BIO_set_md(BIO *b,EVP_MD *md);
+ int BIO_get_md(BIO *b,EVP_MD **mdp);
+ int BIO_get_md_ctx(BIO *b,EVP_MD_CTX **mdcp);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<I>BIO_f_md()</I> returns the message digest <FONT SIZE="-1">BIO</FONT> method. This is a filter
+<FONT SIZE="-1">BIO</FONT> that digests any data passed through it, it is a <FONT SIZE="-1">BIO</FONT> wrapper
+for the digest routines <I>EVP_DigestInit()</I>, <I>EVP_DigestUpdate()</I>
+and <I>EVP_DigestFinal()</I>.
+<P>
+
+Any data written or read through a digest <FONT SIZE="-1">BIO</FONT> using <I>BIO_read()</I> and
+<I>BIO_write()</I> is digested.
+<P>
+
+<I>BIO_gets()</I>, if its <B>size</B> parameter is large enough finishes the
+digest calculation and returns the digest value. <I>BIO_puts()</I> is
+not supported.
+<P>
+
+<I>BIO_reset()</I> reinitialises a digest <FONT SIZE="-1">BIO</FONT>.
+<P>
+
+<I>BIO_set_md()</I> sets the message digest of <FONT SIZE="-1">BIO</FONT> <B>b</B> to <B>md</B>: this
+must be called to initialize a digest <FONT SIZE="-1">BIO</FONT> before any data is
+passed through it. It is a <I>BIO_ctrl()</I> macro.
+<P>
+
+<I>BIO_get_md()</I> places the a pointer to the digest BIOs digest method
+in <B>mdp</B>, it is a <I>BIO_ctrl()</I> macro.
+<P>
+
+<I>BIO_get_md_ctx()</I> returns the digest BIOs context into <B>mdcp</B>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+The context returned by <I>BIO_get_md_ctx()</I> can be used in calls
+to <I>EVP_DigestFinal()</I> and also the signature routines <I>EVP_SignFinal()</I>
+and <I>EVP_VerifyFinal()</I>.
+<P>
+
+The context returned by <I>BIO_get_md_ctx()</I> is an internal context
+structure. Changes made to this context will affect the digest
+<FONT SIZE="-1">BIO</FONT> itself and the context pointer will become invalid when the digest
+<FONT SIZE="-1">BIO</FONT> is freed.
+<P>
+
+After the digest has been retrieved from a digest <FONT SIZE="-1">BIO</FONT> it must be
+reinitialized by calling <I>BIO_reset()</I>, or <I>BIO_set_md()</I> before any more
+data is passed through it.
+<P>
+
+If an application needs to call <I>BIO_gets()</I> or <I>BIO_puts()</I> through
+a chain containing digest BIOs then this can be done by prepending
+a buffering <FONT SIZE="-1">BIO</FONT>.
+<P>
+
+Before OpenSSL 1.0.0 the call to <I>BIO_get_md_ctx()</I> would only work if the <FONT SIZE="-1">BIO</FONT>
+had been initialized for example by calling <I>BIO_set_md()</I> ). In OpenSSL
+1.0.0 and later the context is always returned and the <FONT SIZE="-1">BIO</FONT> is state is set
+to initialized. This allows applications to initialize the context externally
+if the standard calls such as <I>BIO_set_md()</I> are not sufficiently flexible.
+<A NAME="lbAF">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<A NAME="ixAAF"></A>
+<I>BIO_f_md()</I> returns the digest <FONT SIZE="-1">BIO</FONT> method.
+<P>
+
+<I>BIO_set_md()</I>, <I>BIO_get_md()</I> and <I>BIO_md_ctx()</I> return 1 for success and
+0 for failure.
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAG"></A>
+The following example creates a <FONT SIZE="-1">BIO</FONT> chain containing an <FONT SIZE="-1">SHA1</FONT> and <FONT SIZE="-1">MD5</FONT>
+digest <FONT SIZE="-1">BIO</FONT> and passes the string ``Hello World'' through it. Error
+checking has been omitted for clarity.
+<P>
+
+
+
+<PRE>
+ BIO *bio, *mdtmp;
+ char message[] = &quot;Hello World&quot;;
+ bio = BIO_new(BIO_s_null());
+ mdtmp = BIO_new(BIO_f_md());
+ BIO_set_md(mdtmp, EVP_sha1());
+ /* For BIO_push() we want to append the sink BIO and keep a note of
+  * the start of the chain.
+  */
+ bio = BIO_push(mdtmp, bio);
+ mdtmp = BIO_new(BIO_f_md());
+ BIO_set_md(mdtmp, EVP_md5());
+ bio = BIO_push(mdtmp, bio);
+ /* Note: mdtmp can now be discarded */
+ BIO_write(bio, message, strlen(message));
+
+</PRE>
+
+
+<P>
+
+The next example digests data by reading through a chain instead:
+<P>
+
+
+
+<PRE>
+ BIO *bio, *mdtmp;
+ char buf[1024];
+ int rdlen;
+ bio = BIO_new_file(file, &quot;rb&quot;);
+ mdtmp = BIO_new(BIO_f_md());
+ BIO_set_md(mdtmp, EVP_sha1());
+ bio = BIO_push(mdtmp, bio);
+ mdtmp = BIO_new(BIO_f_md());
+ BIO_set_md(mdtmp, EVP_md5());
+ bio = BIO_push(mdtmp, bio);
+ do {
+        rdlen = BIO_read(bio, buf, sizeof(buf));
+        /* Might want to do something with the data here */
+ } while(rdlen &gt; 0);
+
+</PRE>
+
+
+<P>
+
+This next example retrieves the message digests from a <FONT SIZE="-1">BIO</FONT> chain and
+outputs them. This could be used with the examples above.
+<P>
+
+
+
+<PRE>
+ BIO *mdtmp;
+ unsigned char mdbuf[EVP_MAX_MD_SIZE];
+ int mdlen;
+ int i;
+ mdtmp = bio;   /* Assume bio has previously been set up */
+ do {
+        EVP_MD *md;
+        mdtmp = BIO_find_type(mdtmp, BIO_TYPE_MD);
+        if(!mdtmp) break;
+        BIO_get_md(mdtmp, &amp;md);
+        printf(&quot;%s digest&quot;, OBJ_nid2sn(EVP_MD_type(md)));
+        mdlen = BIO_gets(mdtmp, mdbuf, EVP_MAX_MD_SIZE);
+        for(i = 0; i &lt; mdlen; i++) printf(&quot;:%02X&quot;, mdbuf[i]);
+        printf(&quot;\n&quot;);
+        mdtmp = BIO_next(mdtmp);
+ } while(mdtmp);
+
+ BIO_free_all(bio);
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAH"></A>
+The lack of support for <I>BIO_puts()</I> and the non standard behaviour of
+<I>BIO_gets()</I> could be regarded as anomalous. It could be argued that <I>BIO_gets()</I>
+and <I>BIO_puts()</I> should be passed to the next <FONT SIZE="-1">BIO</FONT> in the chain and digest
+the data passed through and that digests should be retrieved using a
+separate <I>BIO_ctrl()</I> call.
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAI"></A>
+<FONT SIZE="-1">TBA</FONT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">BUGS</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:13 GMT, December 24, 2015
+</div></body>
+</HTML>

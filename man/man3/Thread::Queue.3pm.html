@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Thread::Queue</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Thread::Queue</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Thread::Queue - Thread-safe queues
+<A NAME="lbAC">&nbsp;</A>
+<H2>VERSION</H2>
+
+<A NAME="ixAAC"></A>
+This document describes Thread::Queue version 2.11
+<A NAME="lbAD">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAD"></A>
+
+
+<PRE>
+    use strict;
+    use warnings;
+
+    use threads;
+    use Thread::Queue;
+
+    my $q = Thread::Queue-&gt;new();    # A new empty queue
+
+    # Worker thread
+    my $thr = threads-&gt;create(sub {
+                                while (my $item = $q-&gt;dequeue()) {
+                                    # Do work on $item
+                                }
+                             })-&gt;detach();
+
+    # Send work to the thread
+    $q-&gt;enqueue($item1, ...);
+
+
+    # Count of items in the queue
+    my $left = $q-&gt;pending();
+
+    # Non-blocking dequeue
+    if (defined(my $item = $q-&gt;dequeue_nb())) {
+        # Work on $item
+    }
+
+    # Get the second item in the queue without dequeuing anything
+    my $item = $q-&gt;<A HREF="/man/index.html?1+peek">peek</A>(1);
+
+    # Insert two items into the queue just behind the head
+    $q-&gt;insert(1, $item1, $item2);
+
+    # Extract the last two items on the queue
+    my ($item1, $item2) = $q-&gt;extract(-2, 2);
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAE"></A>
+This module provides thread-safe <FONT SIZE="-1">FIFO</FONT> queues that can be accessed safely by
+any number of threads.
+<P>
+
+Any data types supported by threads::shared can be passed via queues:
+<DL COMPACT>
+<DT>Ordinary scalars<DD>
+<A NAME="ixAAF"></A>
+
+<DT>Array refs<DD>
+<A NAME="ixAAG"></A>
+<DT>Hash refs<DD>
+<A NAME="ixAAH"></A>
+<DT>Scalar refs<DD>
+<A NAME="ixAAI"></A>
+<DT>Objects based on the above<DD>
+<A NAME="ixAAJ"></A>
+
+</DL>
+<P>
+
+Ordinary scalars are added to queues as they are.
+<P>
+
+If not already thread-shared, the other complex data types will be cloned
+(recursively, if needed, and including any <TT>&quot;bless&quot;</TT>ings and read-only
+settings) into thread-shared structures before being placed onto a queue.
+<P>
+
+For example, the following would cause Thread::Queue to create a empty,
+shared array reference via <TT>&quot;&amp;shared([])&quot;</TT>, copy the elements 'foo', 'bar'
+and 'baz' from <TT>@ary</TT> into it, and then place that shared reference onto
+the queue:
+<P>
+
+
+
+<PRE>
+    my @ary = qw/foo bar baz/;
+    $q-&gt;enqueue(\@ary);
+
+</PRE>
+
+
+<P>
+
+However, for the following, the items are already shared, so their references
+are added directly to the queue, and no cloning takes place:
+<P>
+
+
+
+<PRE>
+    my @ary :shared = qw/foo bar baz/;
+    $q-&gt;enqueue(\@ary);
+
+    my $obj = &amp;shared({});
+    $$obj{'foo'} = 'bar';
+    $$obj{'qux'} = 99;
+    bless($obj, 'My::Class');
+    $q-&gt;enqueue($obj);
+
+</PRE>
+
+
+<P>
+
+See ``<FONT SIZE="-1">LIMITATIONS</FONT>'' for caveats related to passing objects via queues.
+<A NAME="lbAF">&nbsp;</A>
+<H2>QUEUE CREATION</H2>
+
+<A NAME="ixAAK"></A>
+<DL COMPACT>
+<DT>-&gt;<I>new()</I><DD>
+<A NAME="ixAAL"></A>
+Creates a new empty queue.
+<DT>-&gt;new(<FONT SIZE="-1">LIST</FONT>)<DD>
+<A NAME="ixAAM"></A>
+Creates a new queue pre-populated with the provided list of items.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>BASIC METHODS</H2>
+
+<A NAME="ixAAN"></A>
+The following methods deal with queues on a <FONT SIZE="-1">FIFO</FONT> basis.
+<DL COMPACT>
+<DT>-&gt;enqueue(<FONT SIZE="-1">LIST</FONT>)<DD>
+<A NAME="ixAAO"></A>
+Adds a list of items onto the end of the queue.
+<DT>-&gt;<I>dequeue()</I><DD>
+<A NAME="ixAAP"></A>
+
+<DT>-&gt;dequeue(<FONT SIZE="-1">COUNT</FONT>)<DD>
+<A NAME="ixAAQ"></A>
+
+Removes the requested number of items (default is 1) from the head of the
+queue, and returns them.  If the queue contains fewer than the requested
+number of items, then the thread will be blocked until the requisite number
+of items are available (i.e., until other threads &lt;enqueue&gt; more items).
+<DT>-&gt;<I>dequeue_nb()</I><DD>
+<A NAME="ixAAR"></A>
+
+<DT>-&gt;dequeue_nb(<FONT SIZE="-1">COUNT</FONT>)<DD>
+<A NAME="ixAAS"></A>
+
+Removes the requested number of items (default is 1) from the head of the
+queue, and returns them.  If the queue contains fewer than the requested
+number of items, then it immediately (i.e., non-blocking) returns whatever
+items there are on the queue.  If the queue is empty, then <TT>&quot;undef&quot;</TT> is
+returned.
+<DT>-&gt;<I>pending()</I><DD>
+<A NAME="ixAAT"></A>
+Returns the number of items still in the queue.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>ADVANCED METHODS</H2>
+
+<A NAME="ixAAU"></A>
+The following methods can be used to manipulate items anywhere in a queue.
+<P>
+
+To prevent the contents of a queue from being modified by another thread
+while it is being examined and/or changed, lock the queue inside a local block:
+<P>
+
+
+
+<PRE>
+    {
+        lock($q);   # Keep other threads from changing the queue's contents
+        my $item = $q-&gt;peek();
+        if ($item ...) {
+            ...
+        }
+    }
+    # Queue is now unlocked
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>-&gt;<I>peek()</I><DD>
+<A NAME="ixAAV"></A>
+
+<DT>-&gt;peek(<FONT SIZE="-1">INDEX</FONT>)<DD>
+<A NAME="ixAAW"></A>
+
+Returns an item from the queue without dequeuing anything.  Defaults to the
+the head of queue (at index position 0) if no index is specified.  Negative
+index values are supported as with arrays (i.e., -1
+is the end of the queue, -2 is next to last, and so on).
+
+
+<P>
+
+
+If no items exists at the specified index (i.e., the queue is empty, or the
+index is beyond the number of items on the queue), then <TT>&quot;undef&quot;</TT> is returned.
+
+
+<P>
+
+
+Remember, the returned item is not removed from the queue, so manipulating a
+<TT>&quot;peek&quot;</TT>ed at reference affects the item on the queue.
+<DT>-&gt;insert(<FONT SIZE="-1">INDEX</FONT>, <FONT SIZE="-1">LIST</FONT>)<DD>
+<A NAME="ixAAX"></A>
+Adds the list of items to the queue at the specified index position (0
+is the head of the list).  Any existing items at and beyond that position are
+pushed back past the newly added items:
+
+
+<P>
+
+
+
+
+<PRE>
+    $q-&gt;enqueue(1, 2, 3, 4);
+    $q-&gt;insert(1, qw/foo bar/);
+    # Queue now contains:  1, foo, bar, 2, 3, 4
+
+</PRE>
+
+
+
+
+<P>
+
+
+Specifying an index position greater than the number of items in the queue
+just adds the list to the end.
+
+
+<P>
+
+
+Negative index positions are supported:
+
+
+<P>
+
+
+
+
+<PRE>
+    $q-&gt;enqueue(1, 2, 3, 4);
+    $q-&gt;insert(-2, qw/foo bar/);
+    # Queue now contains:  1, 2, foo, bar, 3, 4
+
+</PRE>
+
+
+
+
+<P>
+
+
+Specifying a negative index position greater than the number of items in the
+queue adds the list to the head of the queue.
+<DT>-&gt;<I>extract()</I><DD>
+<A NAME="ixAAY"></A>
+
+<DT>-&gt;extract(<FONT SIZE="-1">INDEX</FONT>)<DD>
+<A NAME="ixAAZ"></A>
+<DT>-&gt;extract(<FONT SIZE="-1">INDEX</FONT>, <FONT SIZE="-1">COUNT</FONT>)<DD>
+<A NAME="ixABA"></A>
+
+Removes and returns the specified number of items (defaults to 1) from the
+specified index position in the queue (0 is the head of the queue).  When
+called with no arguments, <TT>&quot;extract&quot;</TT> operates the same as <TT>&quot;dequeue_nb&quot;</TT>.
+
+
+<P>
+
+
+This method is non-blocking, and will return only as many items as are
+available to fulfill the request:
+
+
+<P>
+
+
+
+
+<PRE>
+    $q-&gt;enqueue(1, 2, 3, 4);
+    my $item  = $q-&gt;<A HREF="/man/index.html?2+extract">extract</A>(2)     # Returns 3
+                                   # Queue now contains:  1, 2, 4
+    my @items = $q-&gt;extract(1, 3)  # Returns (2, 4)
+                                   # Queue now contains:  1
+
+</PRE>
+
+
+
+
+<P>
+
+
+Specifying an index position greater than the number of items in the
+queue results in <TT>&quot;undef&quot;</TT> or an empty list being returned.
+
+
+<P>
+
+
+
+
+<PRE>
+    $q-&gt;enqueue('foo');
+    my $nada = $q-&gt;<A HREF="/man/index.html?3+extract">extract</A>(3)      # Returns undef
+    my @nada = $q-&gt;extract(1, 3)   # Returns ()
+
+</PRE>
+
+
+
+
+<P>
+
+
+Negative index positions are supported.  Specifying a negative index position
+greater than the number of items in the queue may return items from the head
+of the queue (similar to <TT>&quot;dequeue_nb&quot;</TT>) if the count overlaps the head of the
+queue from the specified position (i.e. if queue size + index + count is
+greater than zero):
+
+
+<P>
+
+
+
+
+<PRE>
+    $q-&gt;enqueue(qw/foo bar baz/);
+    my @nada = $q-&gt;extract(-6, 2);   # Returns ()         - (3+(-6)+2) &lt;= 0
+    my @some = $q-&gt;extract(-6, 4);   # Returns (foo)      - (3+(-6)+4) &gt; 0
+                                     # Queue now contains:  bar, baz
+    my @rest = $q-&gt;extract(-3, 4);   # Returns (bar, baz) - (2+(-3)+4) &gt; 0
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixABB"></A>
+Queues created by Thread::Queue can be used in both threaded and
+non-threaded applications.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>LIMITATIONS</H2>
+
+<A NAME="ixABC"></A>
+Passing objects on queues may not work if the objects' classes do not support
+sharing.  See ``<FONT SIZE="-1">BUGS</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">LIMITATIONS</FONT>'' in threads::shared for more.
+<P>
+
+Passing array/hash refs that contain objects may not work for Perl prior to
+5.10.0.
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABD"></A>
+Thread::Queue Discussion Forum on <FONT SIZE="-1">CPAN:</FONT>
+&lt;<A HREF="http://www.cpanforum.com/dist/Thread-Queue">http://www.cpanforum.com/dist/Thread-Queue</A>&gt;
+<P>
+
+Annotated <FONT SIZE="-1">POD</FONT> for Thread::Queue:
+&lt;<A HREF="http://annocpan.org/~JDHEDDEN/Thread-Queue-2.11/lib/Thread/Queue.pm">http://annocpan.org/~JDHEDDEN/Thread-Queue-2.11/lib/Thread/Queue.pm</A>&gt;
+<P>
+
+Source repository:
+&lt;<A HREF="http://code.google.com/p/thread-queue/">http://code.google.com/p/thread-queue/</A>&gt;
+<P>
+
+threads, threads::shared
+<A NAME="lbAL">&nbsp;</A>
+<H2>MAINTAINER</H2>
+
+<A NAME="ixABE"></A>
+Jerry D. Hedden, &lt;jdhedden&nbsp;<FONT SIZE="-1">AT</FONT>&nbsp;cpan&nbsp;<FONT SIZE="-1">DOT</FONT>&nbsp;org&gt;
+<A NAME="lbAM">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixABF"></A>
+This program is free software; you can redistribute it and/or modify it under
+the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">VERSION</A><DD>
+<DT><A HREF="#lbAD">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAE">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAF">QUEUE CREATION</A><DD>
+<DT><A HREF="#lbAG">BASIC METHODS</A><DD>
+<DT><A HREF="#lbAH">ADVANCED METHODS</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DT><A HREF="#lbAJ">LIMITATIONS</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">MAINTAINER</A><DD>
+<DT><A HREF="#lbAM">LICENSE</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:43 GMT, December 24, 2015
+</div></body>
+</HTML>

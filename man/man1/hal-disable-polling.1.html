@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of HAL-DISABLE-POLLING</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>HAL-DISABLE-POLLING</H1>
+Section: User Commands  (1)<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+hal-disable-polling - disable polling on drives with removable media
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+
+<B>hal-disable-polling</B>
+
+[options]
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+<I>hal-disable-polling</I> can be used to to disable and enable media
+detection on drives with removable storage. For more information about
+both the big picture and specific
+<B>HAL</B>
+
+properties, refer to the <I>HAL spec</I> which can be found in
+<I>/usr/share/doc/hal-0.5.14/spec/hal-spec.html</I>
+
+depending on the distribution.
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+The following options are supported:
+<DL COMPACT>
+<DT><I>--udi</I>
+
+<DD>
+The UDI (<I>Unique Device Identifier</I>) of the device object. 
+<DT><I>--device</I>
+
+<DD>
+The device file of the drive.
+<DT><I>--enable-polling</I>
+
+<DD>
+Enable polling instead of disabling it.
+<DT><I>--help</I>
+
+<DD>
+Print out usage.
+<DT><I>--version</I>
+
+<DD>
+Print the version.
+<P>
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+This program requires super user privileges.
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+<P>
+
+If the requested operation was successful, this program will exit with
+exit code 0.
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<P>
+
+Polling a storage drive is a necessary evil to detect when the user
+inserts or removes media. Human computer interaction studies have
+shown that a broad class of users expect their system to react within
+a few seconds of this. Thus, the
+<I>hald</I>
+
+daemon polls through the 
+<I>hald-addon-storage</I>
+
+addon (one instance for each drive with removable media).
+<P>
+The purpose of the 
+<I>hald-addon-storage</I>
+
+addon is simply to open the special device file at a regular interval
+(either every 2 or every 16 seconds) to check for new media. This
+program tries to open the device file using the
+<B>O_EXCL</B>
+
+option which means that programs like <I><A HREF="/man/index.html?1+cdrecord">cdrecord</A></I>(1) that uses
+<B>O_EXCL</B>
+
+automatically prevents the 
+<I>hald-addon-storage</I>
+
+for interferring by continously opening the device file. In addition,
+if the drive is locked using HAL (see <I><A HREF="/man/index.html?1+hal-lock">hal-lock</A></I>(1)) the addon
+also stops polling.
+<P>
+Unfortunately, polling a storage drive can have adverse side effects
+if the hardware and/or device driver for the hardware is
+malfunctioning. Additionally, the operating system kernel itself may
+offer multiple interfaces for the same device (e.g. <I>/dev/sg0</I>
+and <I>/dev/scd0</I>) so even
+<B>O_EXCL</B>
+
+won't work. Also, polling a drive may decrease throughput in certain
+(odd and/or broken) configurations; for example, if two IDE drives
+shares the same host (master/slave), bus traffic and contention caused
+by polling e.g. the optical drive (slave) can reduce throughput to the
+hard disk (master) and/or interfere with CD burning on another optical
+drive (master). Finally, polling a drive incurs an overhead both in
+the host system (processes get woken up often, preventing the CPU to
+stay in a deep power saving states) and it may prevent the actual
+drive from reaching deep power states as well. As a result, more power
+is consumed and this affects battery life for laptops.
+<P>
+Despite the existence of support for asynchronous media change
+notification in recent MMC (Multi-Media Commands) specifications,
+virtually no optical drives are compliant with the
+specification. Fortunately newer SATA ATAPI hardware seems to support
+Asynchronous Notification (AN) and at this time of writing (March
+2007) work is underway to make both the
+<I>Linux </I>
+
+operating system kernel and
+<I>HAL</I>
+
+take advantage of this.
+<P>
+It is the position of the
+<I>HAL</I>
+
+team that polling should be avoided at all costs as long as it doesn't
+heavily impact the user experience in a negative way. This tool is
+provided as a stop-gap measure to use if a system is rendered useless
+due to bugs in drivers and/or hardware that is provoked by HAL polling
+the drive. If such a bug is encountered it should be reported (see the
+<B>BUGS</B>
+
+section below) so it can be fixed - historically
+<B>hald</B>
+
+have triggered a number of bugs in 
+<I>Linux</I>
+
+storage drivers and related subsystems (such as USB) that have later
+been fixed.
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+<P>
+
+Please send bug reports to either the distribution or the HAL
+mailing list, see 
+<I><A HREF="http://lists.freedesktop.org/mailman/listinfo/hal">http://lists.freedesktop.org/mailman/listinfo/hal</A></I>
+
+on how to subscribe.
+<P>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<I><A HREF="/man/index.html?8+hald">hald</A></I>(8),
+<I><A HREF="/man/index.html?1+lshal">lshal</A></I>(1),
+<I><A HREF="/man/index.html?1+hal-lock">hal-lock</A></I>(1),
+<I><A HREF="/man/index.html?2+open">open</A></I>(2),
+<I><A HREF="http://www.t10.org/scsi-3.htm">http://www.t10.org/scsi-3.htm</A></I>,
+<I><A HREF="https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=halpolling">https://bugzilla.redhat.com/bugzilla/show_bug.cgi?id=halpolling</A></I>
+<P>
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Written by David Zeuthen &lt;<A HREF="mailto:david@fubar.dk">david@fubar.dk</A>&gt; with a lot of help from many
+others.
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">NOTES</A><DD>
+<DT><A HREF="#lbAG">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAH">HISTORY</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:04 GMT, December 24, 2015
+</div></body>
+</HTML>

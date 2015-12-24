@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of POLL</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>POLL</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2009-06-02<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+poll, ppoll - wait for some event on a file descriptor
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/poll.h">poll.h</A>&gt;</B>
+
+<B>int poll(struct pollfd *</B><I>fds</I><B>, nfds_t </B><I>nfds</I><B>, int </B><I>timeout</I><B>);</B>
+
+<B>#define _GNU_SOURCE</B>
+<B>#include &lt;<A HREF="file:/usr/include/poll.h">poll.h</A>&gt;</B>
+
+<B>int ppoll(struct pollfd *</B><I>fds</I><B>, nfds_t </B><I>nfds</I><B>, </B>
+<B>        const struct timespec *</B><I>timeout</I><B>, const sigset_t *</B><I>sigmask</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>poll</B>()
+
+performs a similar task to
+<B><A HREF="/man/index.html?2+select">select</A></B>(2):
+
+it waits for one of a set of file descriptors to become ready
+to perform I/O.
+<P>
+The set of file descriptors to be monitored is specified in the
+<I>fds</I>
+
+argument, which is an array of
+<I>nfds</I>
+
+structures of the following form:
+
+<PRE>
+
+struct pollfd {
+    int   fd;         /* file descriptor */
+    short events;     /* requested events */
+    short revents;    /* returned events */
+};
+
+</PRE>
+
+
+The field
+<I>fd</I>
+
+contains a file descriptor for an open file.
+<P>
+The field
+<I>events</I>
+
+is an input parameter, a bit mask specifying the events the application
+is interested in.
+<P>
+The field
+<I>revents</I>
+
+is an output parameter, filled by the kernel with the events that
+actually occurred.
+The bits returned in
+<I>revents</I>
+
+can include any of those specified in
+<I>events</I>,
+
+or one of the values
+<B>POLLERR</B>,
+
+<B>POLLHUP</B>,
+
+or
+<B>POLLNVAL</B>.
+
+(These three bits are meaningless in the
+<I>events</I>
+
+field, and will be set in the
+<I>revents</I>
+
+field whenever the corresponding condition is true.)
+<P>
+If none of the events requested (and no error) has occurred for any
+of the file descriptors, then
+<B>poll</B>()
+
+blocks until one of the events occurs.
+<P>
+The
+<I>timeout</I>
+
+argument specifies an upper limit on the time for which
+<B>poll</B>()
+
+will block, in milliseconds.
+Specifying a negative value in
+<I>timeout</I>
+
+means an infinite timeout.
+<P>
+The bits that may be set/returned in
+<I>events</I>
+
+and
+<I>revents</I>
+
+are defined in <I>&lt;<A HREF="file:/usr/include/poll.h">poll.h</A>&gt;</I>:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>POLLIN</B>
+
+<DD>
+There is data to read.
+<DT><B>POLLPRI</B>
+
+<DD>
+There is urgent data to read (e.g., out-of-band data on TCP socket;
+pseudo-terminal master in packet mode has seen state change in slave).
+<DT><B>POLLOUT</B>
+
+<DD>
+Writing now will not block.
+<DT><B>POLLRDHUP</B> (since Linux 2.6.17)
+
+<DD>
+Stream socket peer closed connection,
+or shut down writing half of connection.
+The
+<B>_GNU_SOURCE</B>
+
+feature test macro must be defined in order to obtain this definition.
+<DT><B>POLLERR</B>
+
+<DD>
+Error condition (output only).
+<DT><B>POLLHUP</B>
+
+<DD>
+Hang up (output only).
+<DT><B>POLLNVAL</B>
+
+<DD>
+Invalid request:
+<I>fd</I>
+
+not open (output only).
+</DL>
+</DL>
+
+<P>
+
+When compiling with
+<B>_XOPEN_SOURCE</B>
+
+defined, one also has the following,
+which convey no further information beyond the bits listed above:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>POLLRDNORM</B>
+
+<DD>
+Equivalent to
+<B>POLLIN</B>.
+
+<DT><B>POLLRDBAND</B>
+
+<DD>
+Priority band data can be read (generally unused on Linux).
+
+<DT><B>POLLWRNORM</B>
+
+<DD>
+Equivalent to
+<B>POLLOUT</B>.
+
+<DT><B>POLLWRBAND</B>
+
+<DD>
+Priority data may be written.
+</DL>
+</DL>
+
+<P>
+
+Linux also knows about, but does not use
+<B>POLLMSG</B>.
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>ppoll()</H3>
+
+The relationship between
+<B>poll</B>()
+
+and
+<B>ppoll</B>()
+
+is analogous to the relationship between
+<B><A HREF="/man/index.html?2+select">select</A></B>(2)
+
+and
+<B><A HREF="/man/index.html?2+pselect">pselect</A></B>(2):
+
+like
+<B><A HREF="/man/index.html?2+pselect">pselect</A></B>(2),
+
+<B>ppoll</B>()
+
+allows an application to safely wait until either a file descriptor
+becomes ready or until a signal is caught.
+<P>
+
+Other than the difference in the
+<I>timeout</I>
+
+argument, the following
+<B>ppoll</B>()
+
+call:
+<PRE>
+
+    ready = ppoll(&amp;fds, nfds, timeout, &amp;sigmask);
+
+</PRE>
+
+is equivalent to
+<I>atomically</I>
+
+executing the following calls:
+<PRE>
+
+    sigset_t origmask;
+
+    sigprocmask(SIG_SETMASK, &amp;sigmask, &amp;origmask);
+    ready = poll(&amp;fds, nfds, timeout);
+    sigprocmask(SIG_SETMASK, &amp;origmask, NULL);
+</PRE>
+
+<P>
+
+See the description of
+<B><A HREF="/man/index.html?2+pselect">pselect</A></B>(2)
+
+for an explanation of why
+<B>ppoll</B>()
+
+is necessary.
+<P>
+If the
+<I>sigmask</I>
+
+argument is specified as NULL, then
+no signal mask manipulation is performed
+(and thus
+<B>ppoll</B>()
+
+differs from
+<B>poll</B>()
+
+only in the precision of the
+<I>timeout</I>
+
+argument).
+<P>
+The
+<I>timeout</I>
+
+argument specifies an upper limit on the amount of time that
+<B>ppoll</B>()
+
+will block.
+This argument is a pointer to a structure of the following form:
+
+<PRE>
+
+struct timespec {
+    long    tv_sec;         /* seconds */
+    long    tv_nsec;        /* nanoseconds */
+};
+</PRE>
+
+
+<P>
+If
+<I>timeout</I>
+
+is specified as NULL, then
+<B>ppoll</B>()
+
+can block indefinitely.
+<A NAME="lbAF">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success, a positive number is returned; this is
+the number of structures which have non-zero
+<I>revents</I>
+
+fields (in other words, those descriptors with events or errors reported).
+A value of 0 indicates that the call timed out and no file
+descriptors were ready.
+On error, -1 is returned, and
+<I>errno</I>
+
+is set appropriately.
+<A NAME="lbAG">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EFAULT</B>
+
+<DD>
+The array given as argument was not contained in the calling program's
+address space.
+<DT><B>EINTR</B>
+
+<DD>
+A signal occurred before any requested event; see
+<B><A HREF="/man/index.html?7+signal">signal</A></B>(7).
+
+<DT><B>EINVAL</B>
+
+<DD>
+The
+<I>nfds</I>
+
+value exceeds the
+<B>RLIMIT_NOFILE</B>
+
+value.
+<DT><B>ENOMEM</B>
+
+<DD>
+There was no space to allocate file descriptor tables.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+The
+<B>poll</B>()
+
+system call was introduced in Linux 2.1.23.
+The
+<B>poll</B>()
+
+library call was introduced in libc 5.4.28
+(and provides emulation using <A HREF="/man/index.html?2+select">select</A>(2) if your kernel does not
+have a
+<B>poll</B>()
+
+system call).
+<P>
+The
+<B>ppoll</B>()
+
+system call was added to Linux in kernel 2.6.16.
+The
+<B>ppoll</B>()
+
+library call was added in glibc 2.4.
+<A NAME="lbAI">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+<B>poll</B>()
+
+conforms to POSIX.1-2001.
+<B>ppoll</B>()
+
+is Linux-specific.
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>NOTES</H2>
+
+Some implementations define the non-standard constant
+<B>INFTIM</B>
+
+with the value -1 for use as a
+<I>timeout</I>.
+
+This constant is not provided in glibc.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Linux Notes</H3>
+
+The Linux
+<B>ppoll</B>()
+
+system call modifies its
+<I>timeout</I>
+
+argument.
+However, the glibc wrapper function hides this behavior
+by using a local variable for the timeout argument that
+is passed to the system call.
+Thus, the glibc
+<B>ppoll</B>()
+
+function does not modify its
+<I>timeout</I>
+
+argument.
+<A NAME="lbAL">&nbsp;</A>
+<H2>BUGS</H2>
+
+See the discussion of spurious readiness notifications under the
+BUGS section of
+<B><A HREF="/man/index.html?2+select">select</A></B>(2).
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+select">select</A></B>(2),
+
+<B><A HREF="/man/index.html?2+select_tut">select_tut</A></B>(2),
+
+<B><A HREF="/man/index.html?7+feature_test_macros">feature_test_macros</A></B>(7),
+
+<B><A HREF="/man/index.html?7+time">time</A></B>(7)
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">ppoll()</A><DD>
+</DL>
+<DT><A HREF="#lbAF">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAG">ERRORS</A><DD>
+<DT><A HREF="#lbAH">VERSIONS</A><DD>
+<DT><A HREF="#lbAI">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAJ">NOTES</A><DD>
+<DL>
+<DT><A HREF="#lbAK">Linux Notes</A><DD>
+</DL>
+<DT><A HREF="#lbAL">BUGS</A><DD>
+<DT><A HREF="#lbAM">SEE ALSO</A><DD>
+<DT><A HREF="#lbAN">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:04 GMT, December 24, 2015
+</div></body>
+</HTML>

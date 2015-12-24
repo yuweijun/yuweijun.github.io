@@ -1,0 +1,1340 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Compress::Zlib</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Compress::Zlib</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-06-10<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Compress::Zlib - Interface to zlib compression library
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Compress::Zlib ;
+
+    ($d, $status) = deflateInit( [OPT] ) ;
+    $status = $d-&gt;deflate($input, $output) ;
+    $status = $d-&gt;flush([$flush_type]) ;
+    $d-&gt;deflateParams(OPTS) ;
+    $d-&gt;deflateTune(OPTS) ;
+    $d-&gt;dict_adler() ;
+    $d-&gt;crc32() ;
+    $d-&gt;adler32() ;
+    $d-&gt;total_in() ;
+    $d-&gt;total_out() ;
+    $d-&gt;msg() ;
+    $d-&gt;get_Strategy();
+    $d-&gt;get_Level();
+    $d-&gt;get_BufSize();
+
+    ($i, $status) = inflateInit( [OPT] ) ;
+    $status = $i-&gt;inflate($input, $output [, $eof]) ;
+    $status = $i-&gt;inflateSync($input) ;
+    $i-&gt;dict_adler() ;
+    $d-&gt;crc32() ;
+    $d-&gt;adler32() ;
+    $i-&gt;total_in() ;
+    $i-&gt;total_out() ;
+    $i-&gt;msg() ;
+    $d-&gt;get_BufSize();
+
+    $dest = compress($source) ;
+    $dest = uncompress($source) ;
+
+    $gz = gzopen($filename or filehandle, $mode) ;
+    $bytesread = $gz-&gt;gzread($buffer [,$size]) ;
+    $bytesread = $gz-&gt;gzreadline($line) ;
+    $byteswritten = $gz-&gt;gzwrite($buffer) ;
+    $status = $gz-&gt;gzflush($flush) ;
+    $offset = $gz-&gt;gztell() ;
+    $status = $gz-&gt;gzseek($offset, $whence) ;
+    $status = $gz-&gt;gzclose() ;
+    $status = $gz-&gt;gzeof() ;
+    $status = $gz-&gt;gzsetparams($level, $strategy) ;
+    $errstring = $gz-&gt;gzerror() ; 
+    $gzerrno
+
+    $dest = Compress::Zlib::memGzip($buffer) ;
+    $dest = Compress::Zlib::memGunzip($buffer) ;
+
+    $crc = adler32($buffer [,$crc]) ;
+    $crc = crc32($buffer [,$crc]) ;
+
+    $crc = adler32_combine($crc1, $crc2, $len2)l
+    $crc = crc32_combine($adler1, $adler2, $len2)
+
+    my $version = Compress::Raw::Zlib::zlib_version();
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <I>Compress::Zlib</I> module provides a Perl interface to the <I>zlib</I>
+compression library (see ``<FONT SIZE="-1">AUTHOR</FONT>'' for details about where to get
+<I>zlib</I>).
+<P>
+
+The <TT>&quot;Compress::Zlib&quot;</TT> module can be split into two general areas of
+functionality, namely a simple read/write interface to <I>gzip</I> files
+and a low-level in-memory compression/decompression interface.
+<P>
+
+Each of these areas will be discussed in the following sections.
+<A NAME="lbAE">&nbsp;</A>
+<H3>Notes for users of Compress::Zlib version 1</H3>
+
+<A NAME="ixAAE"></A>
+The main change in <TT>&quot;Compress::Zlib&quot;</TT> version 2.x is that it does not now
+interface directly to the zlib library. Instead it uses the
+<TT>&quot;IO::Compress::Gzip&quot;</TT> and <TT>&quot;IO::Uncompress::Gunzip&quot;</TT> modules for
+reading/writing gzip files, and the <TT>&quot;Compress::Raw::Zlib&quot;</TT> module for some
+low-level zlib access.
+<P>
+
+The interface provided by version 2 of this module should be 100% backward
+compatible with version 1. If you find a difference in the expected
+behaviour please contact the author (See ``<FONT SIZE="-1">AUTHOR</FONT>''). See ``<FONT SIZE="-1">GZIP</FONT> <FONT SIZE="-1">INTERFACE</FONT>''
+<P>
+
+With the creation of the <TT>&quot;IO::Compress&quot;</TT> and <TT>&quot;IO::Uncompress&quot;</TT> modules no
+new features are planned for <TT>&quot;Compress::Zlib&quot;</TT> - the new modules do
+everything that <TT>&quot;Compress::Zlib&quot;</TT> does and then some. Development on
+<TT>&quot;Compress::Zlib&quot;</TT> will be limited to bug fixes only.
+<P>
+
+If you are writing new code, your first port of call should be one of the
+new <TT>&quot;IO::Compress&quot;</TT> or <TT>&quot;IO::Uncompress&quot;</TT> modules.
+<A NAME="lbAF">&nbsp;</A>
+<H2>GZIP INTERFACE</H2>
+
+<A NAME="ixAAF"></A>
+A number of functions are supplied in <I>zlib</I> for reading and writing
+<I>gzip</I> files that conform to <FONT SIZE="-1">RFC</FONT> 1952. This module provides an interface
+to most of them.
+<P>
+
+If you have previously used <TT>&quot;Compress::Zlib&quot;</TT> 1.x, the following
+enhancements/changes have been made to the <TT>&quot;gzopen&quot;</TT> interface:
+<DL COMPACT>
+<DT>1.<DD>
+If you want to to open either <FONT SIZE="-1">STDIN</FONT> or <FONT SIZE="-1">STDOUT</FONT> with <TT>&quot;gzopen&quot;</TT>, you can now
+optionally use the special filename &quot;<TT>&quot;-&quot;</TT>&quot; as a synonym for <TT>&quot;\*STDIN&quot;</TT> and
+<TT>&quot;\*STDOUT&quot;</TT>.
+<DT>2.<DD>
+In <TT>&quot;Compress::Zlib&quot;</TT> version 1.x, <TT>&quot;gzopen&quot;</TT> used the zlib library to open
+the underlying file. This made things especially tricky when a Perl
+filehandle was passed to <TT>&quot;gzopen&quot;</TT>. Behind the scenes the numeric C file
+descriptor had to be extracted from the Perl filehandle and this passed to
+the zlib library.
+
+
+<P>
+
+
+Apart from being non-portable to some operating systems, this made it
+difficult to use <TT>&quot;gzopen&quot;</TT> in situations where you wanted to extract/create
+a gzip data stream that is embedded in a larger file, without having to
+resort to opening and closing the file multiple times.
+
+
+<P>
+
+
+It also made it impossible to pass a perl filehandle that wasn't associated
+with a real filesystem file, like, say, an <TT>&quot;IO::String&quot;</TT>.
+
+
+<P>
+
+
+In <TT>&quot;Compress::Zlib&quot;</TT> version 2.x, the <TT>&quot;gzopen&quot;</TT> interface has been
+completely rewritten to use the IO::Compress::Gzip
+for writing gzip files and IO::Uncompress::Gunzip
+for reading gzip files. None of the limitations mentioned above apply.
+<DT>3.<DD>
+Addition of <TT>&quot;gzseek&quot;</TT> to provide a restricted <TT>&quot;seek&quot;</TT> interface.
+<DT>4.<DD>
+Added <TT>&quot;gztell&quot;</TT>.
+</DL>
+<P>
+
+A more complete and flexible interface for reading/writing gzip
+files/buffers is included with the module <TT>&quot;IO-Compress-Zlib&quot;</TT>. See
+IO::Compress::Gzip and
+IO::Uncompress::Gunzip for more details.
+<DL COMPACT>
+<DT><B>$gz = gzopen($filename, </B>$mode<B>)</B><DD>
+
+
+<A NAME="ixAAG"></A>
+
+<DT><B>$gz = gzopen($filehandle, </B>$mode<B>)</B><DD>
+
+
+<A NAME="ixAAH"></A>
+
+This function opens either the <I>gzip</I> file <TT>$filename</TT> for reading or
+writing or attaches to the opened filehandle, <TT>$filehandle</TT>. 
+It returns an object on success and <TT>&quot;undef&quot;</TT> on failure.
+
+
+<P>
+
+
+When writing a gzip file this interface will <I>always</I> create the smallest
+possible gzip header (exactly 10 bytes). If you want greater control over
+what gets stored in the gzip header (like the original filename or a
+comment) use IO::Compress::Gzip instead. Similarly if
+you want to read the contents of the gzip header use
+IO::Uncompress::Gunzip.
+
+
+<P>
+
+
+The second parameter, <TT>$mode</TT>, is used to specify whether the file is
+opened for reading or writing and to optionally specify a compression
+level and compression strategy when writing. The format of the <TT>$mode</TT>
+parameter is similar to the mode parameter to the 'C' function <TT>&quot;fopen&quot;</TT>,
+so ``rb'' is used to open for reading, ``wb'' for writing and ``ab'' for
+appending (writing at the end of the file).
+
+
+<P>
+
+
+To specify a compression level when writing, append a digit between 0
+and 9 to the mode string --- 0 means no compression and 9 means maximum
+compression.
+If no compression level is specified Z_DEFAULT_COMPRESSION is used.
+
+
+<P>
+
+
+To specify the compression strategy when writing, append 'f' for filtered
+data, 'h' for Huffman only compression, or 'R' for run-length encoding.
+If no strategy is specified Z_DEFAULT_STRATEGY is used.
+
+
+<P>
+
+
+So, for example, ``wb9'' means open for writing with the maximum compression
+using the default strategy and ``wb4R'' means open for writing with compression
+level 4 and run-length encoding.
+
+
+<P>
+
+
+Refer to the <I>zlib</I> documentation for the exact format of the <TT>$mode</TT>
+parameter.
+<DT><B>$bytesread = </B>$gz<B>-&gt;gzread($buffer [, </B>$size<B>]) ;</B><DD>
+
+
+<A NAME="ixAAI"></A>
+Reads <TT>$size</TT> bytes from the compressed file into <TT>$buffer</TT>. If
+<TT>$size</TT> is not specified, it will default to 4096. If the scalar
+<TT>$buffer</TT> is not large enough, it will be extended automatically.
+
+
+<P>
+
+
+Returns the number of bytes actually read. On <FONT SIZE="-1">EOF</FONT> it returns 0 and in
+the case of an error, -1.
+<DT><B>$bytesread = </B>$gz<B>-&gt;gzreadline($line) ;</B><DD>
+
+
+<A NAME="ixAAJ"></A>
+Reads the next line from the compressed file into <TT>$line</TT>.
+
+
+<P>
+
+
+Returns the number of bytes actually read. On <FONT SIZE="-1">EOF</FONT> it returns 0 and in
+the case of an error, -1.
+
+
+<P>
+
+
+It is legal to intermix calls to <TT>&quot;gzread&quot;</TT> and <TT>&quot;gzreadline&quot;</TT>.
+
+
+<P>
+
+
+To maintain backward compatibility with version 1.x of this module
+<TT>&quot;gzreadline&quot;</TT> ignores the <TT>$/</TT> variable - it <I>always</I> uses the string
+<TT>&quot;\n&quot;</TT> as the line delimiter.
+
+
+<P>
+
+
+If you want to read a gzip file a line at a time and have it respect the
+<TT>$/</TT> variable (or <TT>$INPUT_RECORD_SEPARATOR</TT>, or <TT>$RS</TT> when <TT>&quot;English&quot;</TT> is
+in use) see IO::Uncompress::Gunzip.
+<DT><B>$byteswritten = </B>$gz<B>-&gt;gzwrite($buffer) ;</B><DD>
+
+
+<A NAME="ixAAK"></A>
+Writes the contents of <TT>$buffer</TT> to the compressed file. Returns the
+number of bytes actually written, or 0 on error.
+<DT><B>$status = </B>$gz<B>-&gt;gzflush($flush_type) ;</B><DD>
+
+
+<A NAME="ixAAL"></A>
+Flushes all pending output into the compressed file.
+
+
+<P>
+
+
+This method takes an optional parameter, <TT>$flush_type</TT>, that controls
+how the flushing will be carried out. By default the <TT>$flush_type</TT>
+used is <TT>&quot;Z_FINISH&quot;</TT>. Other valid values for <TT>$flush_type</TT> are
+<TT>&quot;Z_NO_FLUSH&quot;</TT>, <TT>&quot;Z_SYNC_FLUSH&quot;</TT>, <TT>&quot;Z_FULL_FLUSH&quot;</TT> and <TT>&quot;Z_BLOCK&quot;</TT>. It is
+strongly recommended that you only set the <TT>&quot;flush_type&quot;</TT> parameter if
+you fully understand the implications of what it does - overuse of <TT>&quot;flush&quot;</TT>
+can seriously degrade the level of compression achieved. See the <TT>&quot;zlib&quot;</TT>
+documentation for details.
+
+
+<P>
+
+
+Returns 0 on success.
+<DT><B>$offset = </B>$gz<B>-&gt;</B>gztell()<B> ;</B><DD>
+
+
+<A NAME="ixAAM"></A>
+Returns the uncompressed file offset.
+<DT><B>$status = </B>$gz<B>-&gt;gzseek($offset, </B>$whence<B>) ;</B><DD>
+
+
+<A NAME="ixAAN"></A>
+Provides a sub-set of the <TT>&quot;seek&quot;</TT> functionality, with the restriction
+that it is only legal to seek forward in the compressed file.
+It is a fatal error to attempt to seek backward.
+
+
+<P>
+
+
+When opened for writing, empty parts of the file will have <FONT SIZE="-1">NULL</FONT> (0x00)
+bytes written to them.
+
+
+<P>
+
+
+The <TT>$whence</TT> parameter should be one of <FONT SIZE="-1">SEEK_SET</FONT>, <FONT SIZE="-1">SEEK_CUR</FONT> or <FONT SIZE="-1">SEEK_END</FONT>.
+
+
+<P>
+
+
+Returns 1 on success, 0 on failure.
+<DT><B>$gz-&gt;gzclose</B><DD>
+
+
+<A NAME="ixAAO"></A>
+Closes the compressed file. Any pending data is flushed to the file
+before it is closed.
+
+
+<P>
+
+
+Returns 0 on success.
+<DT><B>$gz-&gt;gzsetparams($level, </B>$strategy<B></B><DD>
+
+
+<A NAME="ixAAP"></A>
+Change settings for the deflate stream <TT>$gz</TT>.
+
+
+<P>
+
+
+The list of the valid options is shown below. Options not specified
+will remain unchanged.
+
+
+<P>
+
+
+Note: This method is only available if you are running zlib 1.0.6 or better.
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>$level</B><DD>
+
+
+<A NAME="ixAAQ"></A>
+Defines the compression level. Valid values are 0 through 9,
+<TT>&quot;Z_NO_COMPRESSION&quot;</TT>, <TT>&quot;Z_BEST_SPEED&quot;</TT>, <TT>&quot;Z_BEST_COMPRESSION&quot;</TT>, and
+<TT>&quot;Z_DEFAULT_COMPRESSION&quot;</TT>.
+<DT><B>$strategy</B><DD>
+
+
+<A NAME="ixAAR"></A>
+Defines the strategy used to tune the compression. The valid values are
+<TT>&quot;Z_DEFAULT_STRATEGY&quot;</TT>, <TT>&quot;Z_FILTERED&quot;</TT> and <TT>&quot;Z_HUFFMAN_ONLY&quot;</TT>.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT><B>$gz-&gt;gzerror</B><DD>
+
+
+<A NAME="ixAAS"></A>
+Returns the <I>zlib</I> error message or number for the last operation
+associated with <TT>$gz</TT>. The return value will be the <I>zlib</I> error
+number when used in a numeric context and the <I>zlib</I> error message
+when used in a string context. The <I>zlib</I> error number constants,
+shown below, are available for use.
+
+
+<P>
+
+
+
+
+<PRE>
+    Z_OK
+    Z_STREAM_END
+    Z_ERRNO
+    Z_STREAM_ERROR
+    Z_DATA_ERROR
+    Z_MEM_ERROR
+    Z_BUF_ERROR
+
+</PRE>
+
+
+<DT><B>$gzerrno</B><DD>
+
+
+<A NAME="ixAAT"></A>
+The <TT>$gzerrno</TT> scalar holds the error code associated with the most
+recent <I>gzip</I> routine. Note that unlike <TT>&quot;gzerror()&quot;</TT>, the error is
+<I>not</I> associated with a particular file.
+
+
+<P>
+
+
+As with <TT>&quot;gzerror()&quot;</TT> it returns an error number in numeric context and
+an error message in string context. Unlike <TT>&quot;gzerror()&quot;</TT> though, the
+error message will correspond to the <I>zlib</I> message when the error is
+associated with <I>zlib</I> itself, or the <FONT SIZE="-1">UNIX</FONT> error message when it is
+not (i.e. <I>zlib</I> returned <TT>&quot;Z_ERRORNO&quot;</TT>).
+
+
+<P>
+
+
+As there is an overlap between the error numbers used by <I>zlib</I> and
+<FONT SIZE="-1">UNIX</FONT>, <TT>$gzerrno</TT> should only be used to check for the presence of
+<I>an</I> error in numeric context. Use <TT>&quot;gzerror()&quot;</TT> to check for specific
+<I>zlib</I> errors. The <I>gzcat</I> example below shows how the variable can
+be used safely.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Examples</H3>
+
+<A NAME="ixAAU"></A>
+Here is an example script which uses the interface. It implements a
+<I>gzcat</I> function.
+<P>
+
+
+
+<PRE>
+    use strict ;
+    use warnings ;
+    
+    use Compress::Zlib ;
+    
+    # use stdin if no files supplied
+    @ARGV = '-' unless @ARGV ;
+    
+    foreach my $file (@ARGV) {
+        my $buffer ;
+    
+        my $gz = gzopen($file, &quot;rb&quot;) 
+             or die &quot;Cannot open $file: $gzerrno\n&quot; ;
+    
+        print $buffer while $gz-&gt;gzread($buffer) &gt; 0 ;
+    
+        die &quot;Error reading from $file: $gzerrno&quot; . ($gzerrno+0) . &quot;\n&quot; 
+            if $gzerrno != Z_STREAM_END ;
+        
+        $gz-&gt;gzclose() ;
+    }
+
+</PRE>
+
+
+<P>
+
+Below is a script which makes use of <TT>&quot;gzreadline&quot;</TT>. It implements a
+very simple <I>grep</I> like script.
+<P>
+
+
+
+<PRE>
+    use strict ;
+    use warnings ;
+    
+    use Compress::Zlib ;
+    
+    die &quot;Usage: gzgrep pattern [file...]\n&quot;
+        unless @ARGV &gt;= 1;
+    
+    my $pattern = shift ;
+    
+    # use stdin if no files supplied
+    @ARGV = '-' unless @ARGV ;
+    
+    foreach my $file (@ARGV) {
+        my $gz = gzopen($file, &quot;rb&quot;) 
+             or die &quot;Cannot open $file: $gzerrno\n&quot; ;
+    
+        while ($gz-&gt;gzreadline($_) &gt; 0) {
+            print if /$pattern/ ;
+        }
+    
+        die &quot;Error reading from $file: $gzerrno\n&quot; 
+            if $gzerrno != Z_STREAM_END ;
+        
+        $gz-&gt;gzclose() ;
+    }
+
+</PRE>
+
+
+<P>
+
+This script, <I>gzstream</I>, does the opposite of the <I>gzcat</I> script
+above. It reads from standard input and writes a gzip data stream to
+standard output.
+<P>
+
+
+
+<PRE>
+    use strict ;
+    use warnings ;
+    
+    use Compress::Zlib ;
+    
+    binmode STDOUT;  # gzopen only sets it on the fd
+    
+    my $gz = gzopen(\*STDOUT, &quot;wb&quot;)
+          or die &quot;Cannot open stdout: $gzerrno\n&quot; ;
+    
+    while (&lt;&gt;) {
+        $gz-&gt;gzwrite($_) 
+          or die &quot;error writing: $gzerrno\n&quot; ;
+    }
+
+    $gz-&gt;gzclose ;
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>Compress::Zlib::memGzip</H3>
+
+<A NAME="ixAAV"></A>
+This function is used to create an in-memory gzip file with the minimum
+possible gzip header (exactly 10 bytes).
+<P>
+
+
+
+<PRE>
+    $dest = Compress::Zlib::memGzip($buffer) ;
+
+</PRE>
+
+
+<P>
+
+If successful, it returns the in-memory gzip file, otherwise it returns
+undef.
+<P>
+
+The <TT>$buffer</TT> parameter can either be a scalar or a scalar reference.
+<P>
+
+See IO::Compress::Gzip for an alternative way to
+carry out in-memory gzip compression.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Compress::Zlib::memGunzip</H3>
+
+<A NAME="ixAAW"></A>
+This function is used to uncompress an in-memory gzip file.
+<P>
+
+
+
+<PRE>
+    $dest = Compress::Zlib::memGunzip($buffer) ;
+
+</PRE>
+
+
+<P>
+
+If successful, it returns the uncompressed gzip file, otherwise it
+returns undef.
+<P>
+
+The <TT>$buffer</TT> parameter can either be a scalar or a scalar reference. The
+contents of the <TT>$buffer</TT> parameter are destroyed after calling this function.
+<P>
+
+See IO::Uncompress::Gunzip for an alternative way
+to carry out in-memory gzip uncompression.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>COMPRESS/UNCOMPRESS</H2>
+
+<A NAME="ixAAX"></A>
+Two functions are provided to perform in-memory compression/uncompression of
+<FONT SIZE="-1">RFC</FONT> 1950 data streams. They are called <TT>&quot;compress&quot;</TT> and <TT>&quot;uncompress&quot;</TT>.
+<DL COMPACT>
+<DT><B>$dest = compress($source [, </B>$level<B>] ) ;</B><DD>
+
+
+<A NAME="ixAAY"></A>
+Compresses <TT>$source</TT>. If successful it returns the compressed
+data. Otherwise it returns <I>undef</I>.
+
+
+<P>
+
+
+The source buffer, <TT>$source</TT>, can either be a scalar or a scalar
+reference.
+
+
+<P>
+
+
+The <TT>$level</TT> parameter defines the compression level. Valid values are
+0 through 9, <TT>&quot;Z_NO_COMPRESSION&quot;</TT>, <TT>&quot;Z_BEST_SPEED&quot;</TT>,
+<TT>&quot;Z_BEST_COMPRESSION&quot;</TT>, and <TT>&quot;Z_DEFAULT_COMPRESSION&quot;</TT>.
+If <TT>$level</TT> is not specified <TT>&quot;Z_DEFAULT_COMPRESSION&quot;</TT> will be used.
+<DT><B>$dest = uncompress($source) ;</B><DD>
+
+
+<A NAME="ixAAZ"></A>
+Uncompresses <TT>$source</TT>. If successful it returns the uncompressed
+data. Otherwise it returns <I>undef</I>.
+
+
+<P>
+
+
+The source buffer can either be a scalar or a scalar reference.
+</DL>
+<P>
+
+Please note: the two functions defined above are <I>not</I> compatible with
+the Unix commands of the same name.
+<P>
+
+See IO::Deflate and IO::Inflate included with
+this distribution for an alternative interface for reading/writing <FONT SIZE="-1">RFC</FONT> 1950
+files/buffers.
+<A NAME="lbAK">&nbsp;</A>
+<H2>Deflate Interface</H2>
+
+<A NAME="ixABA"></A>
+This section defines an interface that allows in-memory compression using
+the <I>deflate</I> interface provided by zlib.
+<P>
+
+Here is a definition of the interface available:
+<A NAME="lbAL">&nbsp;</A>
+<H3><B>($d, </B><B>$status</B><B>) = deflateInit( [</B><FONT SIZE="-1"><B>OPT</B></FONT><B>] )</B></H3>
+
+
+
+<A NAME="ixABB"></A>
+Initialises a deflation stream.
+<P>
+
+It combines the features of the <I>zlib</I> functions <TT>&quot;deflateInit&quot;</TT>,
+<TT>&quot;deflateInit2&quot;</TT> and <TT>&quot;deflateSetDictionary&quot;</TT>.
+<P>
+
+If successful, it will return the initialised deflation stream, <TT>$d</TT>
+and <TT>$status</TT> of <TT>&quot;Z_OK&quot;</TT> in a list context. In scalar context it
+returns the deflation stream, <TT>$d</TT>, only.
+<P>
+
+If not successful, the returned deflation stream (<TT>$d</TT>) will be
+<I>undef</I> and <TT>$status</TT> will hold the exact <I>zlib</I> error code.
+<P>
+
+The function optionally takes a number of named options specified as
+<TT>&quot;-Name=&gt;value&quot;</TT> pairs. This allows individual options to be
+tailored without having to specify them all in the parameter list.
+<P>
+
+For backward compatibility, it is also possible to pass the parameters
+as a reference to a hash containing the name=&gt;value pairs.
+<P>
+
+The function takes one optional parameter, a reference to a hash.  The
+contents of the hash allow the deflation interface to be tailored.
+<P>
+
+Here is a list of the valid options:
+<DL COMPACT>
+<DT><B>-Level</B><DD>
+<A NAME="ixABC"></A>
+Defines the compression level. Valid values are 0 through 9,
+<TT>&quot;Z_NO_COMPRESSION&quot;</TT>, <TT>&quot;Z_BEST_SPEED&quot;</TT>, <TT>&quot;Z_BEST_COMPRESSION&quot;</TT>, and
+<TT>&quot;Z_DEFAULT_COMPRESSION&quot;</TT>.
+
+
+<P>
+
+
+The default is Z_DEFAULT_COMPRESSION.
+<DT><B>-Method</B><DD>
+<A NAME="ixABD"></A>
+Defines the compression method. The only valid value at present (and
+the default) is Z_DEFLATED.
+<DT><B>-WindowBits</B><DD>
+<A NAME="ixABE"></A>
+To create an <FONT SIZE="-1">RFC</FONT> 1950 data stream, set <TT>&quot;WindowBits&quot;</TT> to a positive number.
+
+
+<P>
+
+
+To create an <FONT SIZE="-1">RFC</FONT> 1951 data stream, set <TT>&quot;WindowBits&quot;</TT> to <TT>&quot;-MAX_WBITS&quot;</TT>.
+
+
+<P>
+
+
+For a full definition of the meaning and valid values for <TT>&quot;WindowBits&quot;</TT> refer
+to the <I>zlib</I> documentation for <I>deflateInit2</I>.
+
+
+<P>
+
+
+Defaults to <FONT SIZE="-1">MAX_WBITS</FONT>.
+<DT><B>-MemLevel</B><DD>
+<A NAME="ixABF"></A>
+For a definition of the meaning and valid values for <TT>&quot;MemLevel&quot;</TT>
+refer to the <I>zlib</I> documentation for <I>deflateInit2</I>.
+
+
+<P>
+
+
+Defaults to <FONT SIZE="-1">MAX_MEM_LEVEL</FONT>.
+<DT><B>-Strategy</B><DD>
+<A NAME="ixABG"></A>
+Defines the strategy used to tune the compression. The valid values are
+<TT>&quot;Z_DEFAULT_STRATEGY&quot;</TT>, <TT>&quot;Z_FILTERED&quot;</TT> and <TT>&quot;Z_HUFFMAN_ONLY&quot;</TT>.
+
+
+<P>
+
+
+The default is Z_DEFAULT_STRATEGY.
+<DT><B>-Dictionary</B><DD>
+<A NAME="ixABH"></A>
+When a dictionary is specified <I>Compress::Zlib</I> will automatically
+call <TT>&quot;deflateSetDictionary&quot;</TT> directly after calling <TT>&quot;deflateInit&quot;</TT>. The
+Adler32 value for the dictionary can be obtained by calling the method 
+<TT>&quot;$d-&quot;</TT><I>dict_adler()</I>&gt;.
+
+
+<P>
+
+
+The default is no dictionary.
+<DT><B>-Bufsize</B><DD>
+<A NAME="ixABI"></A>
+Sets the initial size for the deflation buffer. If the buffer has to be
+reallocated to increase the size, it will grow in increments of
+<TT>&quot;Bufsize&quot;</TT>.
+
+
+<P>
+
+
+The default is 4096.
+</DL>
+<P>
+
+Here is an example of using the <TT>&quot;deflateInit&quot;</TT> optional parameter list
+to override the default buffer size and compression level. All other
+options will take their default values.
+<P>
+
+
+
+<PRE>
+    deflateInit( -Bufsize =&gt; 300, 
+                 -Level =&gt; Z_BEST_SPEED  ) ;
+
+</PRE>
+
+
+<A NAME="lbAM">&nbsp;</A>
+<H3><B>($out, </B><B>$status</B><B>) = </B><B>$d</B><B>-&gt;deflate($buffer)</B></H3>
+
+
+
+<A NAME="ixABJ"></A>
+Deflates the contents of <TT>$buffer</TT>. The buffer can either be a scalar
+or a scalar reference.  When finished, <TT>$buffer</TT> will be
+completely processed (assuming there were no errors). If the deflation
+was successful it returns the deflated output, <TT>$out</TT>, and a status
+value, <TT>$status</TT>, of <TT>&quot;Z_OK&quot;</TT>.
+<P>
+
+On error, <TT>$out</TT> will be <I>undef</I> and <TT>$status</TT> will contain the
+<I>zlib</I> error code.
+<P>
+
+In a scalar context <TT>&quot;deflate&quot;</TT> will return <TT>$out</TT> only.
+<P>
+
+As with the <I>deflate</I> function in <I>zlib</I>, it is not necessarily the
+case that any output will be produced by this method. So don't rely on
+the fact that <TT>$out</TT> is empty for an error test.
+<A NAME="lbAN">&nbsp;</A>
+<H3><B>($out, </B><B>$status</B><B>) = </B><B>$d</B><B>-&gt;</B>flush()<B></B> =head2 <B>($out, </B><B>$status</B><B>) = </B><B>$d</B><B>-&gt;flush($flush_type)</B></H3>
+
+
+
+<A NAME="ixABK"></A>
+Typically used to finish the deflation. Any pending output will be
+returned via <TT>$out</TT>.
+<TT>$status</TT> will have a value <TT>&quot;Z_OK&quot;</TT> if successful.
+<P>
+
+In a scalar context <TT>&quot;flush&quot;</TT> will return <TT>$out</TT> only.
+<P>
+
+Note that flushing can seriously degrade the compression ratio, so it
+should only be used to terminate a decompression (using <TT>&quot;Z_FINISH&quot;</TT>) or
+when you want to create a <I>full flush point</I> (using <TT>&quot;Z_FULL_FLUSH&quot;</TT>).
+<P>
+
+By default the <TT>&quot;flush_type&quot;</TT> used is <TT>&quot;Z_FINISH&quot;</TT>. Other valid values
+for <TT>&quot;flush_type&quot;</TT> are <TT>&quot;Z_NO_FLUSH&quot;</TT>, <TT>&quot;Z_PARTIAL_FLUSH&quot;</TT>, <TT>&quot;Z_SYNC_FLUSH&quot;</TT>
+and <TT>&quot;Z_FULL_FLUSH&quot;</TT>. It is strongly recommended that you only set the
+<TT>&quot;flush_type&quot;</TT> parameter if you fully understand the implications of
+what it does. See the <TT>&quot;zlib&quot;</TT> documentation for details.
+<A NAME="lbAO">&nbsp;</A>
+<H3><B></B><B>$status</B><B> = </B><B>$d</B><B>-&gt;deflateParams([</B><FONT SIZE="-1"><B>OPT</B></FONT><B>])</B></H3>
+
+
+
+<A NAME="ixABL"></A>
+Change settings for the deflate stream <TT>$d</TT>.
+<P>
+
+The list of the valid options is shown below. Options not specified
+will remain unchanged.
+<DL COMPACT>
+<DT><B>-Level</B><DD>
+<A NAME="ixABM"></A>
+Defines the compression level. Valid values are 0 through 9,
+<TT>&quot;Z_NO_COMPRESSION&quot;</TT>, <TT>&quot;Z_BEST_SPEED&quot;</TT>, <TT>&quot;Z_BEST_COMPRESSION&quot;</TT>, and
+<TT>&quot;Z_DEFAULT_COMPRESSION&quot;</TT>.
+<DT><B>-Strategy</B><DD>
+<A NAME="ixABN"></A>
+Defines the strategy used to tune the compression. The valid values are
+<TT>&quot;Z_DEFAULT_STRATEGY&quot;</TT>, <TT>&quot;Z_FILTERED&quot;</TT> and <TT>&quot;Z_HUFFMAN_ONLY&quot;</TT>.
+</DL>
+<A NAME="lbAP">&nbsp;</A>
+<H3><B></B><B>$d</B><B>-&gt;</B>dict_adler()<B></B></H3>
+
+
+
+<A NAME="ixABO"></A>
+Returns the adler32 value for the dictionary.
+<A NAME="lbAQ">&nbsp;</A>
+<H3><B></B><B>$d</B><B>-&gt;</B>msg()<B></B></H3>
+
+
+
+<A NAME="ixABP"></A>
+Returns the last error message generated by zlib.
+<A NAME="lbAR">&nbsp;</A>
+<H3><B></B><B>$d</B><B>-&gt;</B>total_in()<B></B></H3>
+
+
+
+<A NAME="ixABQ"></A>
+Returns the total number of bytes uncompressed bytes input to deflate.
+<A NAME="lbAS">&nbsp;</A>
+<H3><B></B><B>$d</B><B>-&gt;</B>total_out()<B></B></H3>
+
+
+
+<A NAME="ixABR"></A>
+Returns the total number of compressed bytes output from deflate.
+<A NAME="lbAT">&nbsp;</A>
+<H3>Example</H3>
+
+<A NAME="ixABS"></A>
+Here is a trivial example of using <TT>&quot;deflate&quot;</TT>. It simply reads standard
+input, deflates it and writes it to standard output.
+<P>
+
+
+
+<PRE>
+    use strict ;
+    use warnings ;
+
+    use Compress::Zlib ;
+
+    binmode STDIN;
+    binmode STDOUT;
+    my $x = deflateInit()
+       or die &quot;Cannot create a deflation stream\n&quot; ;
+
+    my ($output, $status) ;
+    while (&lt;&gt;)
+    {
+        ($output, $status) = $x-&gt;deflate($_) ;
+    
+        $status == Z_OK
+            or die &quot;deflation failed\n&quot; ;
+    
+        print $output ;
+    }
+    
+    ($output, $status) = $x-&gt;flush() ;
+    
+    $status == Z_OK
+        or die &quot;deflation failed\n&quot; ;
+    
+    print $output ;
+
+</PRE>
+
+
+<A NAME="lbAU">&nbsp;</A>
+<H2>Inflate Interface</H2>
+
+<A NAME="ixABT"></A>
+This section defines the interface available that allows in-memory
+uncompression using the <I>deflate</I> interface provided by zlib.
+<P>
+
+Here is a definition of the interface:
+<A NAME="lbAV">&nbsp;</A>
+<H3><B>($i, </B><B>$status</B><B>) = </B>inflateInit()<B></B></H3>
+
+
+
+<A NAME="ixABU"></A>
+Initialises an inflation stream.
+<P>
+
+In a list context it returns the inflation stream, <TT>$i</TT>, and the
+<I>zlib</I> status code in <TT>$status</TT>. In a scalar context it returns the
+inflation stream only.
+<P>
+
+If successful, <TT>$i</TT> will hold the inflation stream and <TT>$status</TT> will
+be <TT>&quot;Z_OK&quot;</TT>.
+<P>
+
+If not successful, <TT>$i</TT> will be <I>undef</I> and <TT>$status</TT> will hold the
+<I>zlib</I> error code.
+<P>
+
+The function optionally takes a number of named options specified as
+<TT>&quot;-Name=&gt;value&quot;</TT> pairs. This allows individual options to be
+tailored without having to specify them all in the parameter list.
+<P>
+
+For backward compatibility, it is also possible to pass the parameters
+as a reference to a hash containing the name=&gt;value pairs.
+<P>
+
+The function takes one optional parameter, a reference to a hash.  The
+contents of the hash allow the deflation interface to be tailored.
+<P>
+
+Here is a list of the valid options:
+<DL COMPACT>
+<DT><B>-WindowBits</B><DD>
+<A NAME="ixABV"></A>
+To uncompress an <FONT SIZE="-1">RFC</FONT> 1950 data stream, set <TT>&quot;WindowBits&quot;</TT> to a positive number.
+
+
+<P>
+
+
+To uncompress an <FONT SIZE="-1">RFC</FONT> 1951 data stream, set <TT>&quot;WindowBits&quot;</TT> to <TT>&quot;-MAX_WBITS&quot;</TT>.
+
+
+<P>
+
+
+For a full definition of the meaning and valid values for <TT>&quot;WindowBits&quot;</TT> refer
+to the <I>zlib</I> documentation for <I>inflateInit2</I>.
+
+
+<P>
+
+
+Defaults to <FONT SIZE="-1">MAX_WBITS</FONT>.
+<DT><B>-Bufsize</B><DD>
+<A NAME="ixABW"></A>
+Sets the initial size for the inflation buffer. If the buffer has to be
+reallocated to increase the size, it will grow in increments of
+<TT>&quot;Bufsize&quot;</TT>.
+
+
+<P>
+
+
+Default is 4096.
+<DT><B>-Dictionary</B><DD>
+<A NAME="ixABX"></A>
+The default is no dictionary.
+</DL>
+<P>
+
+Here is an example of using the <TT>&quot;inflateInit&quot;</TT> optional parameter to
+override the default buffer size.
+<P>
+
+
+
+<PRE>
+    inflateInit( -Bufsize =&gt; 300 ) ;
+
+</PRE>
+
+
+<A NAME="lbAW">&nbsp;</A>
+<H3><B>($out, </B><B>$status</B><B>) = </B><B>$i</B><B>-&gt;inflate($buffer)</B></H3>
+
+
+
+<A NAME="ixABY"></A>
+Inflates the complete contents of <TT>$buffer</TT>. The buffer can either be
+a scalar or a scalar reference.
+<P>
+
+Returns <TT>&quot;Z_OK&quot;</TT> if successful and <TT>&quot;Z_STREAM_END&quot;</TT> if the end of the
+compressed data has been successfully reached. 
+If not successful, <TT>$out</TT> will be <I>undef</I> and <TT>$status</TT> will hold
+the <I>zlib</I> error code.
+<P>
+
+The <TT>$buffer</TT> parameter is modified by <TT>&quot;inflate&quot;</TT>. On completion it
+will contain what remains of the input buffer after inflation. This
+means that <TT>$buffer</TT> will be an empty string when the return status is
+<TT>&quot;Z_OK&quot;</TT>. When the return status is <TT>&quot;Z_STREAM_END&quot;</TT> the <TT>$buffer</TT>
+parameter will contains what (if anything) was stored in the input
+buffer after the deflated data stream.
+<P>
+
+This feature is useful when processing a file format that encapsulates
+a  compressed data stream (e.g. gzip, zip).
+<A NAME="lbAX">&nbsp;</A>
+<H3><B></B><B>$status</B><B> = </B><B>$i</B><B>-&gt;inflateSync($buffer)</B></H3>
+
+
+
+<A NAME="ixABZ"></A>
+Scans <TT>$buffer</TT> until it reaches either a <I>full flush point</I> or the
+end of the buffer.
+<P>
+
+If a <I>full flush point</I> is found, <TT>&quot;Z_OK&quot;</TT> is returned and <TT>$buffer</TT>
+will be have all data up to the flush point removed. This can then be
+passed to the <TT>&quot;deflate&quot;</TT> method.
+<P>
+
+Any other return code means that a flush point was not found. If more
+data is available, <TT>&quot;inflateSync&quot;</TT> can be called repeatedly with more
+compressed data until the flush point is found.
+<A NAME="lbAY">&nbsp;</A>
+<H3><B></B><B>$i</B><B>-&gt;</B>dict_adler()<B></B></H3>
+
+
+
+<A NAME="ixACA"></A>
+Returns the adler32 value for the dictionary.
+<A NAME="lbAZ">&nbsp;</A>
+<H3><B></B><B>$i</B><B>-&gt;</B>msg()<B></B></H3>
+
+
+
+<A NAME="ixACB"></A>
+Returns the last error message generated by zlib.
+<A NAME="lbBA">&nbsp;</A>
+<H3><B></B><B>$i</B><B>-&gt;</B>total_in()<B></B></H3>
+
+
+
+<A NAME="ixACC"></A>
+Returns the total number of bytes compressed bytes input to inflate.
+<A NAME="lbBB">&nbsp;</A>
+<H3><B></B><B>$i</B><B>-&gt;</B>total_out()<B></B></H3>
+
+
+
+<A NAME="ixACD"></A>
+Returns the total number of uncompressed bytes output from inflate.
+<A NAME="lbBC">&nbsp;</A>
+<H3>Example</H3>
+
+<A NAME="ixACE"></A>
+Here is an example of using <TT>&quot;inflate&quot;</TT>.
+<P>
+
+
+
+<PRE>
+    use strict ;
+    use warnings ;
+    
+    use Compress::Zlib ;
+    
+    my $x = inflateInit()
+       or die &quot;Cannot create a inflation stream\n&quot; ;
+    
+    my $input = '' ;
+    binmode STDIN;
+    binmode STDOUT;
+    
+    my ($output, $status) ;
+    while (read(STDIN, $input, 4096))
+    {
+        ($output, $status) = $x-&gt;inflate(\$input) ;
+    
+        print $output 
+            if $status == Z_OK or $status == Z_STREAM_END ;
+    
+        last if $status != Z_OK ;
+    }
+    
+    die &quot;inflation failed\n&quot;
+        unless $status == Z_STREAM_END ;
+
+</PRE>
+
+
+<A NAME="lbBD">&nbsp;</A>
+<H2>CHECKSUM FUNCTIONS</H2>
+
+<A NAME="ixACF"></A>
+Two functions are provided by <I>zlib</I> to calculate checksums. For the
+Perl interface, the order of the two parameters in both functions has
+been reversed. This allows both running checksums and one off
+calculations to be done.
+<P>
+
+
+
+<PRE>
+    $crc = adler32($buffer [,$crc]) ;
+    $crc = crc32($buffer [,$crc]) ;
+
+</PRE>
+
+
+<P>
+
+The buffer parameters can either be a scalar or a scalar reference.
+<P>
+
+If the <TT>$crc</TT> parameters is <TT>&quot;undef&quot;</TT>, the crc value will be reset.
+<P>
+
+If you have built this module with zlib 1.2.3 or better, two more
+CRC-related functions are available.
+<P>
+
+
+
+<PRE>
+    $crc = adler32_combine($crc1, $crc2, $len2)l
+    $crc = crc32_combine($adler1, $adler2, $len2)
+
+</PRE>
+
+
+<P>
+
+These functions allow checksums to be merged.
+<A NAME="lbBE">&nbsp;</A>
+<H2>Misc</H2>
+
+<A NAME="ixACG"></A>
+<A NAME="lbBF">&nbsp;</A>
+<H3>my $version = <I>Compress::Zlib::zlib_version()</I>;</H3>
+
+
+
+<A NAME="ixACH"></A>
+Returns the version of the zlib library.
+<A NAME="lbBG">&nbsp;</A>
+<H2>CONSTANTS</H2>
+
+<A NAME="ixACI"></A>
+All the <I>zlib</I> constants are automatically imported when you make use
+of <I>Compress::Zlib</I>.
+<A NAME="lbBH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixACJ"></A>
+IO::Compress::Gzip, IO::Uncompress::Gunzip, IO::Compress::Deflate, IO::Uncompress::Inflate, IO::Compress::RawDeflate, IO::Uncompress::RawInflate, IO::Compress::Bzip2, IO::Uncompress::Bunzip2, IO::Compress::Lzop, IO::Uncompress::UnLzop, IO::Compress::Lzf, IO::Uncompress::UnLzf, IO::Uncompress::AnyInflate, IO::Uncompress::AnyUncompress
+<P>
+
+Compress::Zlib::FAQ
+<P>
+
+File::GlobMapper, Archive::Zip,
+Archive::Tar,
+IO::Zlib
+<P>
+
+For <FONT SIZE="-1">RFC</FONT> 1950, 1951 and 1952 see 
+<I><A HREF="http://www.faqs.org/rfcs/rfc1950.html">http://www.faqs.org/rfcs/rfc1950.html</A></I>,
+<I><A HREF="http://www.faqs.org/rfcs/rfc1951.html">http://www.faqs.org/rfcs/rfc1951.html</A></I> and
+<I><A HREF="http://www.faqs.org/rfcs/rfc1952.html">http://www.faqs.org/rfcs/rfc1952.html</A></I>
+<P>
+
+The <I>zlib</I> compression library was written by Jean-loup Gailly
+<I><A HREF="mailto:gzip@prep.ai.mit.edu">gzip@prep.ai.mit.edu</A></I> and Mark Adler <I><A HREF="mailto:madler@alumni.caltech.edu">madler@alumni.caltech.edu</A></I>.
+<P>
+
+The primary site for the <I>zlib</I> compression library is
+<I><A HREF="http://www.zlib.org">http://www.zlib.org</A></I>.
+<P>
+
+The primary site for gzip is <I><A HREF="http://www.gzip.org">http://www.gzip.org</A></I>.
+<A NAME="lbBI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixACK"></A>
+This module was written by Paul Marquess, <I><A HREF="mailto:pmqs@cpan.org">pmqs@cpan.org</A></I>.
+<A NAME="lbBJ">&nbsp;</A>
+<H2>MODIFICATION HISTORY</H2>
+
+<A NAME="ixACL"></A>
+See the Changes file.
+<A NAME="lbBK">&nbsp;</A>
+<H2>COPYRIGHT AND LICENSE</H2>
+
+<A NAME="ixACM"></A>
+Copyright (c) 1995-2009 Paul Marquess. All rights reserved.
+<P>
+
+This program is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Notes for users of Compress::Zlib version 1</A><DD>
+</DL>
+<DT><A HREF="#lbAF">GZIP INTERFACE</A><DD>
+<DL>
+<DT><A HREF="#lbAG">Examples</A><DD>
+<DT><A HREF="#lbAH">Compress::Zlib::memGzip</A><DD>
+<DT><A HREF="#lbAI">Compress::Zlib::memGunzip</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">COMPRESS/UNCOMPRESS</A><DD>
+<DT><A HREF="#lbAK">Deflate Interface</A><DD>
+<DL>
+<DT><A HREF="#lbAL"><B>($d, </B><B>$status</B><B>) = deflateInit( [</B><FONT SIZE="-1"><B>OPT</B></FONT><B>] )</B></A><DD>
+<DT><A HREF="#lbAM"><B>($out, </B><B>$status</B><B>) = </B><B>$d</B><B>-&gt;deflate($buffer)</B></A><DD>
+<DT><A HREF="#lbAN"><B>($out, </B><B>$status</B><B>) = </B><B>$d</B><B>-&gt;</B>flush()<B></B> =head2 <B>($out, </B><B>$status</B><B>) = </B><B>$d</B><B>-&gt;flush($flush_type)</B></A><DD>
+<DT><A HREF="#lbAO"><B></B><B>$status</B><B> = </B><B>$d</B><B>-&gt;deflateParams([</B><FONT SIZE="-1"><B>OPT</B></FONT><B>])</B></A><DD>
+<DT><A HREF="#lbAP"><B></B><B>$d</B><B>-&gt;</B>dict_adler()<B></B></A><DD>
+<DT><A HREF="#lbAQ"><B></B><B>$d</B><B>-&gt;</B>msg()<B></B></A><DD>
+<DT><A HREF="#lbAR"><B></B><B>$d</B><B>-&gt;</B>total_in()<B></B></A><DD>
+<DT><A HREF="#lbAS"><B></B><B>$d</B><B>-&gt;</B>total_out()<B></B></A><DD>
+<DT><A HREF="#lbAT">Example</A><DD>
+</DL>
+<DT><A HREF="#lbAU">Inflate Interface</A><DD>
+<DL>
+<DT><A HREF="#lbAV"><B>($i, </B><B>$status</B><B>) = </B>inflateInit()<B></B></A><DD>
+<DT><A HREF="#lbAW"><B>($out, </B><B>$status</B><B>) = </B><B>$i</B><B>-&gt;inflate($buffer)</B></A><DD>
+<DT><A HREF="#lbAX"><B></B><B>$status</B><B> = </B><B>$i</B><B>-&gt;inflateSync($buffer)</B></A><DD>
+<DT><A HREF="#lbAY"><B></B><B>$i</B><B>-&gt;</B>dict_adler()<B></B></A><DD>
+<DT><A HREF="#lbAZ"><B></B><B>$i</B><B>-&gt;</B>msg()<B></B></A><DD>
+<DT><A HREF="#lbBA"><B></B><B>$i</B><B>-&gt;</B>total_in()<B></B></A><DD>
+<DT><A HREF="#lbBB"><B></B><B>$i</B><B>-&gt;</B>total_out()<B></B></A><DD>
+<DT><A HREF="#lbBC">Example</A><DD>
+</DL>
+<DT><A HREF="#lbBD">CHECKSUM FUNCTIONS</A><DD>
+<DT><A HREF="#lbBE">Misc</A><DD>
+<DL>
+<DT><A HREF="#lbBF">my $version = <I>Compress::Zlib::zlib_version()</I>;</A><DD>
+</DL>
+<DT><A HREF="#lbBG">CONSTANTS</A><DD>
+<DT><A HREF="#lbBH">SEE ALSO</A><DD>
+<DT><A HREF="#lbBI">AUTHOR</A><DD>
+<DT><A HREF="#lbBJ">MODIFICATION HISTORY</A><DD>
+<DT><A HREF="#lbBK">COPYRIGHT AND LICENSE</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:16 GMT, December 24, 2015
+</div></body>
+</HTML>

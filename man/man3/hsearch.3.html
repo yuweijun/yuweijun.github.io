@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of HSEARCH</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>HSEARCH</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2008-10-06<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+hcreate, hdestroy, hsearch, hcreate_r, hdestroy_r,
+hsearch_r - hash table management
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/search.h">search.h</A>&gt;</B>
+
+<B>int hcreate(size_t </B><I>nel</I><B>);</B>
+
+<B>ENTRY *hsearch(ENTRY </B><I>item</I><B>, ACTION </B><I>action</I><B>);</B>
+
+<B>void hdestroy(void);</B>
+
+<B>#define _GNU_SOURCE</B>
+<BR>
+<B>#include &lt;<A HREF="file:/usr/include/search.h">search.h</A>&gt;</B>
+
+<B>int hcreate_r(size_t </B><I>nel</I><B>, struct hsearch_data *</B><I>htab</I><B>);</B>
+
+<B>int hsearch_r(ENTRY </B><I>item</I><B>, ACTION </B><I>action</I><B>, ENTRY **</B><I>retval</I><B>,</B>
+<B>              struct hsearch_data *</B><I>htab</I><B>);</B>
+
+<B>void hdestroy_r(struct hsearch_data *</B><I>htab</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The three functions
+<B>hcreate</B>(),
+
+<B>hsearch</B>(),
+
+and
+<B>hdestroy</B>()
+
+allow the caller to create and manage a hash search table
+containing entries consisting of a key (a string) and associated data.
+Using these functions, only one hash table can be used at a time.
+<P>
+The three functions
+<B>hcreate_r</B>(),
+
+<B>hsearch_r</B>(),
+
+<B>hdestroy_r</B>()
+
+are reentrant versions that allow a program to use
+more than one hash search table at the same time.
+The last argument,
+<I>htab</I>,
+
+points to a structure that describes the table
+on which the function is to operate.
+The programmer should treat this structure as opaque
+(i.e., do not attempt to directly access or modify
+the fields in this structure).
+<P>
+First a hash table must be created using
+<B>hcreate</B>().
+
+The argument <I>nel</I> specifies the maximum number of entries
+in the table.
+(This maximum cannot be changed later, so choose it wisely.)
+The implementation may adjust this value upward to improve the
+performance of the resulting hash table.
+
+<P>
+The
+<B>hcreate_r</B>()
+
+function performs the same task as
+<B>hcreate</B>(),
+
+but for the table described by the structure
+<I>*htab</I>.
+
+The structure pointed to by
+<I>htab</I>
+
+must be zeroed before the first call to
+<B>hcreate_r</B>().
+
+<P>
+The function
+<B>hdestroy</B>()
+
+frees the memory occupied by the hash table that was created by
+<B>hcreate</B>().
+
+After calling
+<B>hdestroy</B>()
+
+a new hash table can be created using
+<B>hcreate</B>().
+
+The
+<B>hdestroy_r</B>()
+
+function performs the analogous task for a hash table described by
+<I>*htab</I>,
+
+which was previously created using
+<B>hcreate_r</B>().
+
+<P>
+The
+<B>hsearch</B>()
+
+function searches the hash table for an
+item with the same key as <I>item</I> (where &quot;the same&quot; is determined using
+<B><A HREF="/man/index.html?3+strcmp">strcmp</A></B>(3)),
+
+and if successful returns a pointer to it.
+<P>
+The argument <I>item</I> is of type <I>ENTRY</I>, which is defined in
+<I>&lt;<A HREF="file:/usr/include/search.h">search.h</A>&gt;</I> as follows:
+
+<P>
+<PRE>
+typedef struct entry {
+    char *key;
+    void *data;
+} ENTRY;
+</PRE>
+
+<P>
+The field <I>key</I> points to a null-terminated string which is the
+search key.
+The field <I>data</I> points to data that is associated with that key.
+<P>
+The argument <I>action</I> determines what
+<B>hsearch</B>()
+
+does after an unsuccessful search.
+This argument must either have the value
+<B>ENTER</B>,
+
+meaning insert a copy of
+<I>item</I>
+
+(and return a pointer to the new hash table entry as the function result),
+or the value
+<B>FIND</B>,
+
+meaning that NULL should be returned.
+(If
+<I>action</I>
+
+is
+<B>FIND</B>,
+
+then
+<I>data</I>
+
+is ignored.)
+<P>
+The
+<B>hsearch_r</B>()
+
+function is like
+<B>hsearch</B>()
+
+but operates on the hash table described by
+<I>*htab</I>.
+
+The
+<B>hsearch_r</B>()
+
+function differs from
+<B>hsearch</B>()
+
+in that a pointer to the found item is returned in
+<I>*retval</I>,
+
+rather than as the function result.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+<B>hcreate</B>()
+
+and
+<B>hcreate_r</B>()
+
+return non-zero on success.
+They return 0 on error.
+<P>
+On success,
+<B>hsearch</B>()
+
+returns a pointer to an entry in the hash table.
+<B>hsearch</B>()
+
+returns NULL on error, that is,
+if <I>action</I> is <B>ENTER</B> and
+the hash table is full, or <I>action</I> is <B>FIND</B> and <I>item</I>
+cannot be found in the hash table.
+<B>hsearch_r</B>()
+
+returns non-zero on success, and 0 on error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<P>
+
+<B>hcreate</B>()
+
+and
+<B>hcreate_r</B>()
+
+can fail for the following reasons:
+<DL COMPACT>
+<DT><B>EINVAL</B>
+
+<DD>
+(<B>hcreate_r</B>())
+
+<I>htab</I>
+
+is NULL.
+<DT><B>ENOMEM</B>
+
+<DD>
+Table full with <I>action</I> set to <B>ENTER</B>.
+<DT><B>ESRCH</B>
+
+<DD>
+The <I>action</I> argument is <B>FIND</B> and no corresponding element
+is found in the table.
+
+</DL>
+<P>
+
+<B>hsearch</B>()
+
+and
+<B>hsearch_r</B>()
+
+can fail for the following reasons:
+<DL COMPACT>
+<DT><B>ENOMEM</B>
+
+<DD>
+<I>action</I>
+
+was
+<B>ENTER</B>,
+
+<I>key</I>
+
+was not found in the table,
+and there was no room in the table to add a new entry.
+<DT><B>ESRCH</B>
+
+<DD>
+<I>action</I>
+
+was
+<B>FIND</B>,
+
+and
+<I>key</I>
+
+was not found in the table.
+</DL>
+<P>
+
+POSIX.1-2001 only specifies the
+<B>ENOMEM</B>
+
+error.
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+The functions
+<B>hcreate</B>(),
+
+<B>hsearch</B>(),
+
+and
+<B>hdestroy</B>()
+
+are from SVr4, and are described in POSIX.1-2001.
+The functions
+<B>hcreate_r</B>(),
+
+<B>hsearch_r</B>(),
+
+and
+<B>hdestroy_r</B>()
+
+are GNU extensions.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+Hash table implementations are usually more efficient when the
+table contains enough free space to minimize collisions.
+Typically, this means that
+<I>nel</I>
+
+should be at least 25% larger than the maximum number of elements
+that the caller expects to store in the table.
+<P>
+The
+<B>hdestroy</B>()
+
+and
+<B>hdestroy</B>_r()
+
+functions do not free the buffers pointed to by the
+<I>key</I>
+
+and
+<I>data</I>
+
+elements of the hash table entries.
+(It can't do this because it doesn't know
+whether these buffers were allocated dynamically.)
+If these buffers need to be freed (perhaps because the program
+is repeatedly creating and destroying hash tables,
+rather than creating a single table whose lifetime
+matches that of the program),
+then the program must maintain bookkeeping data structures that
+allow it to free them.
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+SVr4 and POSIX.1-2001 specify that <I>action</I>
+is significant only for unsuccessful searches, so that an <B>ENTER</B>
+should not do anything for a successful search.
+In libc and glibc (before version 2.3), the
+implementation violates the specification,
+updating the <I>data</I> for the given <I>key</I> in this case.
+<P>
+Individual hash table entries can be added, but not deleted.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<P>
+
+The following program inserts 24 items into a hash table, then prints
+some of them.
+<PRE>
+
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/search.h">search.h</A>&gt;
+
+char *data[] = { &quot;alpha&quot;, &quot;bravo&quot;, &quot;charlie&quot;, &quot;delta&quot;,
+     &quot;echo&quot;, &quot;foxtrot&quot;, &quot;golf&quot;, &quot;hotel&quot;, &quot;india&quot;, &quot;juliet&quot;,
+     &quot;kilo&quot;, &quot;lima&quot;, &quot;mike&quot;, &quot;november&quot;, &quot;oscar&quot;, &quot;papa&quot;,
+     &quot;quebec&quot;, &quot;romeo&quot;, &quot;sierra&quot;, &quot;tango&quot;, &quot;uniform&quot;,
+     &quot;victor&quot;, &quot;whisky&quot;, &quot;x-ray&quot;, &quot;yankee&quot;, &quot;zulu&quot;
+};
+
+int
+main(void)
+{
+    ENTRY e, *ep;
+    int i;
+
+    hcreate(30);
+
+    for (i = 0; i &lt; 24; i++) {
+        e.key = data[i];
+        /* data is just an integer, instead of a
+           pointer to something */
+        e.data = (void *) i;
+        ep = hsearch(e, ENTER);
+        /* there should be no failures */
+        if (ep == NULL) {
+            fprintf(stderr, &quot;entry failed\n&quot;);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    for (i = 22; i &lt; 26; i++) {
+        /* print two entries from the table, and
+           show that two are not in the table */
+        e.key = data[i];
+        ep = hsearch(e, FIND);
+        printf(&quot;%9.9s -&gt; %9.9s:%d\n&quot;, e.key,
+               ep ? ep-&gt;key : &quot;NULL&quot;, ep ? (int)(ep-&gt;data) : 0);
+    }
+    hdestroy();
+    exit(EXIT_SUCCESS);
+}
+</PRE>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?3+bsearch">bsearch</A></B>(3),
+
+<B><A HREF="/man/index.html?3+lsearch">lsearch</A></B>(3),
+
+<B><A HREF="/man/index.html?3+malloc">malloc</A></B>(3),
+
+<B><A HREF="/man/index.html?3+tsearch">tsearch</A></B>(3),
+
+<B><A HREF="/man/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">EXAMPLE</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:29 GMT, December 24, 2015
+</div></body>
+</HTML>

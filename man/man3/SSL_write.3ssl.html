@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SSL_write</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SSL_write</H1>
+Section: OpenSSL (3)<BR>Updated: 2002-07-19<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+SSL_write - write bytes to a TLS/SSL connection.
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/ssl.h">openssl/ssl.h</A>&gt;
+
+ int SSL_write(SSL *ssl, const void *buf, int num);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<I>SSL_write()</I> writes <B>num</B> bytes from the buffer <B>buf</B> into the specified
+<B>ssl</B> connection.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+If necessary, <I>SSL_write()</I> will negotiate a <FONT SIZE="-1">TLS/SSL</FONT> session, if
+not already explicitly performed by <I><A HREF="/man/index.html?3+SSL_connect">SSL_connect</A></I>(3) or
+<I><A HREF="/man/index.html?3+SSL_accept">SSL_accept</A></I>(3). If the
+peer requests a re-negotiation, it will be performed transparently during
+the <I>SSL_write()</I> operation. The behaviour of <I>SSL_write()</I> depends on the
+underlying <FONT SIZE="-1">BIO</FONT>.
+<P>
+
+For the transparent negotiation to succeed, the <B>ssl</B> must have been
+initialized to client or server mode. This is being done by calling
+<I><A HREF="/man/index.html?3+SSL_set_connect_state">SSL_set_connect_state</A></I>(3) or <I>SSL_set_accept_state()</I>
+before the first call to an <I><A HREF="/man/index.html?3+SSL_read">SSL_read</A></I>(3) or <I>SSL_write()</I> function.
+<P>
+
+If the underlying <FONT SIZE="-1">BIO</FONT> is <B>blocking</B>, <I>SSL_write()</I> will only return, once the
+write operation has been finished or an error occurred, except when a
+renegotiation take place, in which case a <FONT SIZE="-1">SSL_ERROR_WANT_READ</FONT> may occur. 
+This behaviour can be controlled with the <FONT SIZE="-1">SSL_MODE_AUTO_RETRY</FONT> flag of the
+<I><A HREF="/man/index.html?3+SSL_CTX_set_mode">SSL_CTX_set_mode</A></I>(3) call.
+<P>
+
+If the underlying <FONT SIZE="-1">BIO</FONT> is <B>non-blocking</B>, <I>SSL_write()</I> will also return,
+when the underlying <FONT SIZE="-1">BIO</FONT> could not satisfy the needs of <I>SSL_write()</I>
+to continue the operation. In this case a call to
+<I><A HREF="/man/index.html?3+SSL_get_error">SSL_get_error</A></I>(3) with the
+return value of <I>SSL_write()</I> will yield <B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_READ</B></FONT><B></B> or
+<B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_WRITE</B></FONT><B></B>. As at any time a re-negotiation is possible, a
+call to <I>SSL_write()</I> can also cause read operations! The calling process
+then must repeat the call after taking appropriate action to satisfy the
+needs of <I>SSL_write()</I>. The action depends on the underlying <FONT SIZE="-1">BIO</FONT>. When using a
+non-blocking socket, nothing is to be done, but <I>select()</I> can be used to check
+for the required condition. When using a buffering <FONT SIZE="-1">BIO</FONT>, like a <FONT SIZE="-1">BIO</FONT> pair, data
+must be written into or retrieved out of the <FONT SIZE="-1">BIO</FONT> before being able to continue.
+<P>
+
+<I>SSL_write()</I> will only return with success, when the complete contents
+of <B>buf</B> of length <B>num</B> has been written. This default behaviour
+can be changed with the <FONT SIZE="-1">SSL_MODE_ENABLE_PARTIAL_WRITE</FONT> option of
+<I><A HREF="/man/index.html?3+SSL_CTX_set_mode">SSL_CTX_set_mode</A></I>(3). When this flag is set,
+<I>SSL_write()</I> will also return with success, when a partial write has been
+successfully completed. In this case the <I>SSL_write()</I> operation is considered
+completed. The bytes are sent and a new <I>SSL_write()</I> operation with a new
+buffer (with the already sent bytes removed) must be started.
+A partial write is performed with the size of a message block, which is
+16kB for SSLv3/TLSv1.
+<A NAME="lbAF">&nbsp;</A>
+<H2>WARNING</H2>
+
+<A NAME="ixAAF"></A>
+When an <I>SSL_write()</I> operation has to be repeated because of
+<B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_READ</B></FONT><B></B> or <B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_WRITE</B></FONT><B></B>, it must be repeated
+with the same arguments.
+<P>
+
+When calling <I>SSL_write()</I> with num=0 bytes to be sent the behaviour is
+undefined.
+<A NAME="lbAG">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<A NAME="ixAAG"></A>
+The following return values can occur:
+<DL COMPACT>
+<DT>&gt;0<DD>
+<A NAME="ixAAH"></A>
+The write operation was successful, the return value is the number of
+bytes actually written to the <FONT SIZE="-1">TLS/SSL</FONT> connection.
+<DT>0<DD>
+The write operation was not successful. Probably the underlying connection
+was closed. Call <I>SSL_get_error()</I> with the return value <B>ret</B> to find out,
+whether an error occurred or the connection was shut down cleanly
+(<FONT SIZE="-1">SSL_ERROR_ZERO_RETURN</FONT>).
+
+
+<P>
+
+
+SSLv2 (deprecated) does not support a shutdown alert protocol, so it can
+only be detected, whether the underlying connection was closed. It cannot
+be checked, why the closure happened.
+<DT>&lt;0<DD>
+<A NAME="ixAAI"></A>
+The write operation was not successful, because either an error occurred
+or action must be taken by the calling process. Call <I>SSL_get_error()</I> with the
+return value <B>ret</B> to find out the reason.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAJ"></A>
+<I><A HREF="/man/index.html?3+SSL_get_error">SSL_get_error</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+SSL_read">SSL_read</A></I>(3),
+<I><A HREF="/man/index.html?3+SSL_CTX_set_mode">SSL_CTX_set_mode</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+SSL_CTX_new">SSL_CTX_new</A></I>(3),
+<I><A HREF="/man/index.html?3+SSL_connect">SSL_connect</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+SSL_accept">SSL_accept</A></I>(3)
+<I><A HREF="/man/index.html?3+SSL_set_connect_state">SSL_set_connect_state</A></I>(3),
+<I><A HREF="/man/index.html?3+ssl">ssl</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+bio">bio</A></I>(3)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">WARNING</A><DD>
+<DT><A HREF="#lbAG">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:42 GMT, December 24, 2015
+</div></body>
+</HTML>

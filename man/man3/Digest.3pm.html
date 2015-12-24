@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Digest</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Digest</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Digest - Modules that calculate message digests
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  $md5  = Digest-&gt;new(&quot;MD5&quot;);
+  $sha1 = Digest-&gt;new(&quot;SHA-1&quot;);
+  $sha256 = Digest-&gt;new(&quot;SHA-256&quot;);
+  $sha384 = Digest-&gt;new(&quot;SHA-384&quot;);
+  $sha512 = Digest-&gt;new(&quot;SHA-512&quot;);
+
+  $hmac = Digest-&gt;HMAC_MD5($key);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <TT>&quot;Digest::&quot;</TT> modules calculate digests, also called ``fingerprints''
+or ``hashes'', of some data, called a message.  The digest is (usually)
+some small/fixed size string.  The actual size of the digest depend of
+the algorithm used.  The message is simply a sequence of arbitrary
+bytes or bits.
+<P>
+
+An important property of the digest algorithms is that the digest is
+<I>likely</I> to change if the message change in some way.  Another
+property is that digest functions are one-way functions, that is it
+should be <I>hard</I> to find a message that correspond to some given
+digest.  Algorithms differ in how ``likely'' and how ``hard'', as well as
+how efficient they are to compute.
+<P>
+
+Note that the properties of the algorithms change over time, as the
+algorithms are analyzed and machines grow faster.  If your application
+for instance depends on it being ``impossible'' to generate the same
+digest for a different message it is wise to make it easy to plug in
+stronger algorithms as the one used grow weaker.  Using the interface
+documented here should make it easy to change algorithms later.
+<P>
+
+All <TT>&quot;Digest::&quot;</TT> modules provide the same programming interface.  A
+functional interface for simple use, as well as an object oriented
+interface that can handle messages of arbitrary length and which can
+read files directly.
+<P>
+
+The digest can be delivered in three formats:
+<DL COMPACT>
+<DT><I>binary</I><DD>
+<A NAME="ixAAE"></A>
+This is the most compact form, but it is not well suited for printing
+or embedding in places that can't handle arbitrary data.
+<DT><I>hex</I><DD>
+<A NAME="ixAAF"></A>
+A twice as long string of lowercase hexadecimal digits.
+<DT><I>base64</I><DD>
+<A NAME="ixAAG"></A>
+A string of portable printable characters.  This is the base64 encoded
+representation of the digest with any trailing padding removed.  The
+string will be about 30% longer than the binary version.
+MIME::Base64 tells you more about this encoding.
+</DL>
+<P>
+
+The functional interface is simply importable functions with the same
+name as the algorithm.  The functions take the message as argument and
+return the digest.  Example:
+<P>
+
+
+
+<PRE>
+  use Digest::MD5 qw(md5);
+  $digest = md5($message);
+
+</PRE>
+
+
+<P>
+
+There are also versions of the functions with ``_hex'' or ``_base64''
+appended to the name, which returns the digest in the indicated form.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OO INTERFACE</H2>
+
+<A NAME="ixAAH"></A>
+The following methods are available for all <TT>&quot;Digest::&quot;</TT> modules:
+<DL COMPACT>
+<DT>$ctx = Digest-&gt;<FONT SIZE="-1">XXX</FONT>($arg,...)<DD>
+
+
+<A NAME="ixAAI"></A>
+
+<DT>$ctx = Digest-&gt;new(<FONT SIZE="-1">XXX</FONT> =&gt; $arg,...)<DD>
+
+
+<A NAME="ixAAJ"></A>
+<DT>$ctx = Digest::XXX-&gt;new($arg,...)<DD>
+
+
+<A NAME="ixAAK"></A>
+
+The constructor returns some object that encapsulate the state of the
+message-digest algorithm.  You can add data to the object and finally
+ask for the digest.  The ``<FONT SIZE="-1">XXX</FONT>'' should of course be replaced by the proper
+name of the digest algorithm you want to use.
+
+
+<P>
+
+
+The two first forms are simply syntactic sugar which automatically
+load the right module on first use.  The second form allow you to use
+algorithm names which contains letters which are not legal perl
+identifiers, e.g. ``<FONT SIZE="-1">SHA-1</FONT>''.  If no implementation for the given algorithm
+can be found, then an exception is raised.
+
+
+<P>
+
+
+If <I>new()</I> is called as an instance method (i.e. <TT>$ctx</TT>-&gt;new) it will just
+reset the state the object to the state of a newly created object.  No
+new object is created in this case, and the return value is the
+reference to the object (i.e. <TT>$ctx</TT>).
+<DT>$other_ctx = $ctx-&gt;clone<DD>
+
+
+<A NAME="ixAAL"></A>
+The clone method creates a copy of the digest state object and returns
+a reference to the copy.
+<DT>$ctx-&gt;reset<DD>
+
+
+<A NAME="ixAAM"></A>
+This is just an alias for <TT>$ctx</TT>-&gt;new.
+<DT>$ctx-&gt;add( $data )<DD>
+
+
+<A NAME="ixAAN"></A>
+
+<DT>$ctx-&gt;add( $chunk1, $chunk2, ... )<DD>
+
+
+<A NAME="ixAAO"></A>
+
+The string value of the <TT>$data</TT> provided as argument is appended to the
+message we calculate the digest for.  The return value is the <TT>$ctx</TT>
+object itself.
+
+
+<P>
+
+
+If more arguments are provided then they are all appended to the
+message, thus all these lines will have the same effect on the state
+of the <TT>$ctx</TT> object:
+
+
+<P>
+
+
+
+
+<PRE>
+  $ctx-&gt;add(&quot;a&quot;); $ctx-&gt;add(&quot;b&quot;); $ctx-&gt;add(&quot;c&quot;);
+  $ctx-&gt;add(&quot;a&quot;)-&gt;add(&quot;b&quot;)-&gt;add(&quot;c&quot;);
+  $ctx-&gt;add(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;);
+  $ctx-&gt;add(&quot;abc&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Most algorithms are only defined for strings of bytes and this method
+might therefore croak if the provided arguments contain chars with
+ordinal number above 255.
+<DT>$ctx-&gt;addfile( $io_handle )<DD>
+
+
+<A NAME="ixAAP"></A>
+The <TT>$io_handle</TT> is read until <FONT SIZE="-1">EOF</FONT> and the content is appended to the
+message we calculate the digest for.  The return value is the <TT>$ctx</TT>
+object itself.
+
+
+<P>
+
+
+The <I>addfile()</I> method will <I>croak()</I> if it fails reading data for some
+reason.  If it croaks it is unpredictable what the state of the <TT>$ctx</TT>
+object will be in. The <I>addfile()</I> method might have been able to read
+the file partially before it failed.  It is probably wise to discard
+or reset the <TT>$ctx</TT> object if this occurs.
+
+
+<P>
+
+
+In most cases you want to make sure that the <TT>$io_handle</TT> is in
+``binmode'' before you pass it as argument to the <I>addfile()</I> method.
+<DT>$ctx-&gt;add_bits( $data, $nbits )<DD>
+
+
+<A NAME="ixAAQ"></A>
+
+<DT>$ctx-&gt;add_bits( $bitstring )<DD>
+
+
+<A NAME="ixAAR"></A>
+
+The <I>add_bits()</I> method is an alternative to <I>add()</I> that allow partial
+bytes to be appended to the message.  Most users should just ignore
+this method as partial bytes is very unlikely to be of any practical
+use.
+
+
+<P>
+
+
+The two argument form of <I>add_bits()</I> will add the first <TT>$nbits</TT> bits
+from <TT>$data</TT>.  For the last potentially partial byte only the high order
+<TT>&quot;$nbits % 8&quot;</TT> bits are used.  If <TT>$nbits</TT> is greater than <TT>&quot;length($data) * 8&quot;</TT>, then this method would do the same as <TT>&quot;$ctx-&gt;add($data)&quot;</TT>.
+
+
+<P>
+
+
+The one argument form of <I>add_bits()</I> takes a <TT>$bitstring</TT> of ``1'' and ``0''
+chars as argument.  It's a shorthand for <TT>&quot;$ctx-&gt;add_bits(pack(&quot;B*&quot;,
+$bitstring), length($bitstring))&quot;</TT>.
+
+
+<P>
+
+
+The return value is the <TT>$ctx</TT> object itself.
+
+
+<P>
+
+
+This example shows two calls that should have the same effect:
+
+
+<P>
+
+
+
+
+<PRE>
+   $ctx-&gt;add_bits(&quot;111100001010&quot;);
+   $ctx-&gt;add_bits(&quot;\xF0\xA0&quot;, 12);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Most digest algorithms are byte based and for these it is not possible
+to add bits that are not a multiple of 8, and the <I>add_bits()</I> method
+will croak if you try.
+<DT>$ctx-&gt;digest<DD>
+
+
+<A NAME="ixAAS"></A>
+Return the binary digest for the message.
+
+
+<P>
+
+
+Note that the <TT>&quot;digest&quot;</TT> operation is effectively a destructive,
+read-once operation. Once it has been performed, the <TT>$ctx</TT> object is
+automatically <TT>&quot;reset&quot;</TT> and can be used to calculate another digest
+value.  Call <TT>$ctx</TT>-&gt;clone-&gt;digest if you want to calculate the digest
+without resetting the digest state.
+<DT>$ctx-&gt;hexdigest<DD>
+
+
+<A NAME="ixAAT"></A>
+Same as <TT>$ctx</TT>-&gt;digest, but will return the digest in hexadecimal form.
+<DT>$ctx-&gt;b64digest<DD>
+
+
+<A NAME="ixAAU"></A>
+Same as <TT>$ctx</TT>-&gt;digest, but will return the digest as a base64 encoded
+string.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>Digest speed</H2>
+
+<A NAME="ixAAV"></A>
+This table should give some indication on the relative speed of
+different algorithms.  It is sorted by throughput based on a benchmark
+done with of some implementations of this <FONT SIZE="-1">API:</FONT>
+<P>
+
+
+
+<PRE>
+ Algorithm      Size    Implementation                  MB/s
+
+ MD4            128     Digest::MD4 v1.3               165.0
+ MD5            128     Digest::MD5 v2.33               98.8
+ SHA-256        256     Digest::SHA2 v1.1.0             66.7
+ SHA-1          160     Digest::SHA v4.3.1              58.9
+ SHA-1          160     Digest::SHA1 v2.10              48.8
+ SHA-256        256     Digest::SHA v4.3.1              41.3
+ Haval-256      256     Digest::Haval256 v1.0.4         39.8
+ SHA-384        384     Digest::SHA2 v1.1.0             19.6
+ SHA-512        512     Digest::SHA2 v1.1.0             19.3
+ SHA-384        384     Digest::SHA v4.3.1              19.2
+ SHA-512        512     Digest::SHA v4.3.1              19.2
+ Whirlpool      512     Digest::Whirlpool v1.0.2        13.0
+ MD2            128     Digest::MD2 v2.03                9.5
+
+ Adler-32        32     Digest::Adler32 v0.03            1.3
+ CRC-16          16     Digest::CRC v0.05                1.1
+ CRC-32          32     Digest::CRC v0.05                1.1
+ MD5            128     Digest::Perl::MD5 v1.5           1.0
+ CRC-CCITT       16     Digest::CRC v0.05                0.8
+
+</PRE>
+
+
+<P>
+
+These numbers was achieved Apr 2004 with ActivePerl-5.8.3 running
+under Linux on a P4 2.8 GHz <FONT SIZE="-1">CPU</FONT>.  The last 5 entries differ by being
+pure perl implementations of the algorithms, which explains why they
+are so slow.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAW"></A>
+Digest::Adler32, Digest::CRC, Digest::Haval256,
+Digest::HMAC, Digest::MD2, Digest::MD4, Digest::MD5,
+Digest::SHA, Digest::SHA1, Digest::SHA2, Digest::Whirlpool
+<P>
+
+New digest implementations should consider subclassing from Digest::base.
+<P>
+
+MIME::Base64
+<P>
+
+<A HREF="http://en.wikipedia.org/wiki/Cryptographic_hash_function">http://en.wikipedia.org/wiki/Cryptographic_hash_function</A>
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAX"></A>
+Gisle Aas &lt;<A HREF="mailto:gisle@aas.no">gisle@aas.no</A>&gt;
+<P>
+
+The <TT>&quot;Digest::&quot;</TT> interface is based on the interface originally
+developed by Neil Winton for his <TT>&quot;MD5&quot;</TT> module.
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+
+
+<PRE>
+    Copyright 1998-2006 Gisle Aas.
+    Copyright 1995,1996 Neil Winton.
+
+</PRE>
+
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OO INTERFACE</A><DD>
+<DT><A HREF="#lbAF">Digest speed</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:23 GMT, December 24, 2015
+</div></body>
+</HTML>

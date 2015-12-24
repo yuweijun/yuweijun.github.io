@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Term::ProgressBar</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Term::ProgressBar</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2011-10-04<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Term::ProgressBar - provide a progress meter on a standard terminal
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Term::ProgressBar;
+
+  $progress = Term::ProgressBar-&gt;new ({count =&gt; $count});
+  $progress-&gt;update ($so_far);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Term::ProgressBar provides a simple progress bar on the terminal, to let the
+user know that something is happening, roughly how much stuff has been done,
+and maybe an estimate at how long remains.
+<P>
+
+A typical use sets up the progress bar with a number of items to do, and then
+calls update to update the bar whenever an item is processed.
+<P>
+
+Often, this would involve updating the progress bar many times with no
+user-visible change.  To avoid uneccessary work, the update method returns a
+value, being the update value at which the user will next see a change.  By
+only calling update when the current value exceeds the next update value, the
+call overhead is reduced.
+<P>
+
+Remember to call the <TT>&quot;$progress-&gt;update($max_value)&quot;</TT> when the job is done
+to get a nice 100% done bar.
+<P>
+
+A progress bar by default is simple; it just goes from left-to-right, filling
+the bar with '=' characters.  These are called <B>major</B> characters.  For
+long-running jobs, this may be too slow, so two additional features are
+available: a linear completion time estimator, and/or a <B>minor</B> character:
+this is a character that <I>moves</I> from left-to-right on the progress bar (it
+does not fill it as the major character does), traversing once for each
+major-character added.  This exponentially increases the granularity of the
+bar for the same width.
+<A NAME="lbAE">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAE"></A>
+<A NAME="lbAF">&nbsp;</A>
+<H3>A really simple use</H3>
+
+<A NAME="ixAAF"></A>
+
+
+<PRE>
+  #!/usr/bin/perl
+
+  use Term::ProgressBar 2.00;
+
+  use constant MAX =&gt; 100_000;
+
+  my $progress = Term::ProgressBar-&gt;new(MAX);
+
+  for (0..MAX) {
+    my $is_power = 0;
+    for(my $i = 0; 2**$i &lt;= $_; $i++) {
+      $is_power = 1
+        if 2**$i == $_;
+    }
+
+    if ( $is_power ) {
+      $progress-&gt;update($_);
+    }
+  }
+
+</PRE>
+
+
+<P>
+
+Here is a simple example.  The process considers all the numbers between 0 and
+<FONT SIZE="-1">MAX</FONT>, and updates the progress bar whenever it finds one.  Note that the
+progress bar update will be very erratic.  See below for a smoother example.
+Note also that the progress bar will never complete; see below to solve this.
+<P>
+
+The complete text of this example is in <I>examples/powers</I> in the
+distribution set (it is not installed as part of the module).
+<A NAME="lbAG">&nbsp;</A>
+<H3>A smoother bar update</H3>
+
+<A NAME="ixAAG"></A>
+
+
+<PRE>
+  my $progress = Term::ProgressBar-&gt;new($max);
+
+  for (0..$max) {
+    my $is_power = 0;
+    for(my $i = 0; 2**$i &lt;= $_; $i++) {
+      $is_power = 1
+        if 2**$i == $_;
+    }
+
+    $progress-&gt;update($_)
+  }
+
+</PRE>
+
+
+<P>
+
+This example calls update for each value considered.  This will result in a
+much smoother progress update, but more program time is spent updating the bar
+than doing the ``real'' work.  See below to remedy this.  This example does
+<I>not</I> call <TT>&quot;$progress-&gt;update($max);&quot;</TT> at the end, since it is
+unnecessary, and ProgressBar will throw an exception at an attempt to update a
+finished bar.
+<P>
+
+The complete text of this example is in <I>examples/powers2</I> in the
+distribution set (it is not installed as part of the module.
+<A NAME="lbAH">&nbsp;</A>
+<H3>A (much) more efficient update</H3>
+
+<A NAME="ixAAH"></A>
+
+
+<PRE>
+  my $progress = Term::ProgressBar-&gt;new({name =&gt; 'Powers', count =&gt; $max, remove =&gt; 1});
+  $progress-&gt;minor(0);
+  my $next_update = 0;
+
+  for (0..$max) {
+    my $is_power = 0;
+    for(my $i = 0; 2**$i &lt;= $_; $i++) {
+      $is_power = 1
+        if 2**$i == $_;
+    }
+
+    $next_update = $progress-&gt;update($_)
+      if $_ &gt;= $next_update;
+  }
+  $progress-&gt;update($max)
+    if $max &gt;= $next_update;
+
+</PRE>
+
+
+<P>
+
+This example does two things to improve efficiency: firstly, it uses the value
+returned by update to only call it again when needed; secondly, it
+switches off the use of minor characters to update a lot less frequently (<TT>&quot;$progress-&gt;minor(0);&quot;</TT>.  The use of the return value of update
+means that the call of <TT>&quot;$progress-&gt;update($max);&quot;</TT> at the end is required
+to ensure that the bar ends on 100%, which gives the user a nice feeling.
+<P>
+
+This example also sets the name of the progress bar.
+<P>
+
+This example also demonstrates the use of the 'remove' flag, which removes the
+progress bar from the terminal when done.
+<P>
+
+The complete text of this example is in <I>examples/powers3</I> in the
+distribution set (it is not installed as part of the module.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Using Completion Time Estimation</H3>
+
+<A NAME="ixAAI"></A>
+
+
+<PRE>
+  my $progress = Term::ProgressBar-&gt;new({name  =&gt; 'Powers',
+                                         count =&gt; $max,
+                                         ETA   =&gt; linear, });
+  $progress-&gt;<A HREF="/man/index.html?1+max_update_rate">max_update_rate</A>(1);
+  my $next_update = 0;
+
+  for (0..$max) {
+    my $is_power = 0;
+    for(my $i = 0; 2**$i &lt;= $_; $i++) {
+      if ( 2**$i == $_ ) {
+        $is_power = 1;
+        $progress-&gt;message(sprintf &quot;Found %8d to be 2 ** %2d&quot;, $_, $i);
+      }
+    }
+
+    $next_update = $progress-&gt;update($_)
+      if $_ &gt; $next_update;
+  }
+  $progress-&gt;update($max)
+      if $max &gt;= $next_update;
+
+</PRE>
+
+
+<P>
+
+This example uses the <FONT SIZE="-1">ETA</FONT> option to switch on completion estimation.
+Also, the update return is tuned to try to update the bar approximately once
+per second, with the max_update_rate call.  See the
+documentation for the new method for details of the format(s) used.
+<P>
+
+This example also provides an example of the use of the message
+function to output messages to the same filehandle whilst keeping the progress bar intact
+<P>
+
+The complete text of this example is in <I>examples/powers5</I> in the
+distribution set (it is not installed as part of the module.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>CLASS CONSTANTS</H2>
+
+<A NAME="ixAAJ"></A>
+<P>
+<A NAME="lbAK">&nbsp;</A>
+<H2>INSTANCE CONSTRUCTION</H2>
+
+<A NAME="ixAAK"></A>
+<P>
+<A NAME="lbAL">&nbsp;</A>
+<H3>new</H3>
+
+<A NAME="ixAAL"></A>
+Create &amp; return a new Term::ProgressBar instance.
+<DL COMPACT>
+<DT><FONT SIZE="-1">ARGUMENTS</FONT><DD>
+<A NAME="ixAAM"></A>
+If one argument is provided, and it is a hashref, then the hash is treated as
+a set of key/value pairs, with the following keys; otherwise, it is treated as
+a number, being equivalent to the <TT>&quot;count&quot;</TT> key.
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>count<DD>
+<A NAME="ixAAN"></A>
+The item count.  The progress is marked at 100% when update <I>count</I> is
+invoked, and proportionally until then.
+<DT>name<DD>
+<A NAME="ixAAO"></A>
+A name to prefix the progress bar with.
+<DT>fh<DD>
+<A NAME="ixAAP"></A>
+The filehandle to output to.  Defaults to stderr.  Do not try to use
+*foo{<FONT SIZE="-1">THING</FONT>} syntax if you want Term capabilities; it does not work.  Pass in a
+globref instead.
+<DT><FONT SIZE="-1">ETA</FONT><DD>
+<A NAME="ixAAQ"></A>
+A total time estimation to use.  If enabled, a time finished estimation is
+printed on the <FONT SIZE="-1">RHS</FONT> (once sufficient updates have been performed to make such
+an estimation feasible).  Naturally, this is an <I>estimate</I>; no guarantees are
+made.  The format of the estimate
+
+
+<P>
+
+
+Note that the format is intended to be as compact as possible while giving
+over the relevant information.  Depending upon the time remaining, the format
+is selected to provide some resolution whilst remaining compact.  Since the
+time remaining decreases, the format typically changes over time.
+
+
+<P>
+
+
+As the <FONT SIZE="-1">ETA</FONT> approaches, the format will state minutes &amp; seconds left.  This is
+identifiable by the word <TT>'Left'</TT> at the <FONT SIZE="-1">RHS</FONT> of the line.  If the <FONT SIZE="-1">ETA</FONT> is
+further away, then an estimate time of completion (rather than time left) is
+given, and is identifiable by <TT>'ETA'</TT> at the <FONT SIZE="-1">LHS</FONT> of the <FONT SIZE="-1">ETA</FONT> box (on the right
+of the progress bar).  A time or date may be presented; these are of the form
+of a 24 hour clock, e.g. <TT>'13:33'</TT>, a time plus days (e.g., <TT>' 7PM+3'</TT> for
+around in over 3 days time) or a day/date, e.g. <TT>' 1Jan'</TT> or <TT>'27Feb'</TT>.
+
+
+<P>
+
+
+If <FONT SIZE="-1">ETA</FONT> is switched on, the return value of update is also
+affected: the idea here is that if the progress bar seems to be moving quicker
+than the eye would normally care for (and thus a great deal of time is spent
+doing progress updates rather than ``real'' work), the next value is increased
+to slow it.  The maximum rate aimed for is tunable via the
+max_update_rate component.
+
+
+<P>
+
+
+The available values for this are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>undef<DD>
+<A NAME="ixAAR"></A>
+Do not do estimation.  The default.
+<DT>linear<DD>
+<A NAME="ixAAS"></A>
+Perform linear estimation.  This is simply that the amount of time between the
+creation of the progress bar and now is divided by the current amount done,
+and completion estimated linearly.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT><FONT SIZE="-1">EXAMPLES</FONT><DD>
+<A NAME="ixAAT"></A>
+
+
+<PRE>
+  my $progress = Term::ProgressBar-&gt;new(100); # count from 1 to 100
+  my $progress = Term::ProgressBar-&gt;new({ count =&gt; 100 }); # same
+
+  # Count to 200 thingies, outputting to stdout instead of stderr,
+  # prefix bar with 'thingy'
+  my $progress = Term::ProgressBar-&gt;new({ count =&gt; 200,
+                                          fh    =&gt; \*STDOUT,
+                                          name  =&gt; 'thingy' });
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H2>INSTANCE COMPONENTS</H2>
+
+<A NAME="ixAAU"></A>
+<A NAME="lbAN">&nbsp;</A>
+<H3>Scalar Components.</H3>
+
+<A NAME="ixAAV"></A>
+See ``get_set'' in Class::MethodMaker for usage.
+<DL COMPACT>
+<DT>target<DD>
+<A NAME="ixAAW"></A>
+The final target.  Updates are measured in terms of this.  Changes will have
+no effect until the next update, but the next update value should be relative
+to the new target.  So
+
+
+<P>
+
+
+
+
+<PRE>
+  $p = Term::ProgressBar({count =&gt; 20});
+  # Halfway
+  $p-&gt;update(10);
+  # Double scale
+  $p-&gt;target(40)
+  $p-&gt;update(21);
+
+</PRE>
+
+
+
+
+<P>
+
+
+will cause the progress bar to update to 52.5%
+<DT>max_update_rate<DD>
+<A NAME="ixAAX"></A>
+This value is taken as being the maximum speed between updates to aim for.
+<B>It is only meaningful if </B><FONT SIZE="-1"><B>ETA</B></FONT><B> is switched on.</B> It defaults to 0.5, being the
+number of seconds between updates.
+</DL>
+<A NAME="lbAO">&nbsp;</A>
+<H3>Boolean Components</H3>
+
+<A NAME="ixAAY"></A>
+See ``get_set'' in Class::MethodMaker for usage.
+<DL COMPACT>
+<DT>minor<DD>
+<A NAME="ixAAZ"></A>
+Default: set.  If unset, no minor scale will be calculated or updated.
+
+
+<P>
+
+
+Minor characters are used on the progress bar to give the user the idea of
+progress even when there are so many more tasks than the terminal is wide that
+the granularity would be too great.  By default, Term::ProgressBar makes a
+guess as to when minor characters would be valuable.  However, it may not
+always guess right, so this method may be called to force it one way or the
+other.  Of course, the efficiency saving is minimal unless the client is
+utilizing the return value of update.
+
+
+<P>
+
+
+See <I>examples/powers4</I> and <I>examples/powers3</I> to see minor characters in
+action, and not in action, respectively.
+</DL>
+<A NAME="lbAP">&nbsp;</A>
+<H2>INSTANCE HIGHER-LEVEL PROCEDURES</H2>
+
+<A NAME="ixABA"></A>
+<P>
+<A NAME="lbAQ">&nbsp;</A>
+<H3>update</H3>
+
+<A NAME="ixABB"></A>
+Update the progress bar.
+<DL COMPACT>
+<DT><FONT SIZE="-1">ARGUMENTS</FONT><DD>
+<A NAME="ixABC"></A>
+<DL COMPACT><DT><DD>
+
+<DL COMPACT>
+<DT>so_far<DD>
+<A NAME="ixABD"></A>
+
+Current progress point, in whatever units were passed to <TT>&quot;new&quot;</TT>.
+
+
+<P>
+
+
+If not defined, assumed to be 1+ whatever was the value last time <TT>&quot;update&quot;</TT>
+was called (starting at 0).
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT><FONT SIZE="-1">RETURNS</FONT><DD>
+<A NAME="ixABE"></A>
+<DL COMPACT><DT><DD>
+
+<DL COMPACT>
+<DT>next_call<DD>
+<A NAME="ixABF"></A>
+
+The next value of so_far at which to call <TT>&quot;update&quot;</TT>.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H3>message</H3>
+
+<A NAME="ixABG"></A>
+Output a message.  This is very much like print, but we try not to disturb the
+terminal.
+<DL COMPACT>
+<DT><FONT SIZE="-1">ARGUMENTS</FONT><DD>
+<A NAME="ixABH"></A>
+<DL COMPACT><DT><DD>
+
+<DL COMPACT>
+<DT>string<DD>
+<A NAME="ixABI"></A>
+
+The message to output.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+</DL>
+<A NAME="lbAS">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixABJ"></A>
+<P>
+<A NAME="lbAT">&nbsp;</A>
+<H2>REPORTING BUGS</H2>
+
+<A NAME="ixABK"></A>
+Email the author.
+<A NAME="lbAU">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<A NAME="ixABL"></A>
+If exactly two arguments are provided, then new operates in v1
+compatibility mode: the arguments are considered to be name, and item count.
+Various other defaults are set to emulate version one (e.g., the major output
+character is '#', the bar width is set to 50 characters and the output
+filehandle is not treated as a terminal). This mode is deprecated.
+<A NAME="lbAV">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABM"></A>
+Martyn J. Pearce <A HREF="mailto:fluffy@cpan.org">fluffy@cpan.org</A>
+<P>
+
+Significant contributions from Ed Avis, amongst others.
+<A NAME="lbAW">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABN"></A>
+Copyright (c) 2001, 2002, 2003, 2004, 2005 Martyn J. Pearce.  This program is
+free software; you can redistribute it and/or modify it under the same terms
+as Perl itself.
+<A NAME="lbAX">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABO"></A>
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">EXAMPLES</A><DD>
+<DL>
+<DT><A HREF="#lbAF">A really simple use</A><DD>
+<DT><A HREF="#lbAG">A smoother bar update</A><DD>
+<DT><A HREF="#lbAH">A (much) more efficient update</A><DD>
+<DT><A HREF="#lbAI">Using Completion Time Estimation</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">CLASS CONSTANTS</A><DD>
+<DT><A HREF="#lbAK">INSTANCE CONSTRUCTION</A><DD>
+<DL>
+<DT><A HREF="#lbAL">new</A><DD>
+</DL>
+<DT><A HREF="#lbAM">INSTANCE COMPONENTS</A><DD>
+<DL>
+<DT><A HREF="#lbAN">Scalar Components.</A><DD>
+<DT><A HREF="#lbAO">Boolean Components</A><DD>
+</DL>
+<DT><A HREF="#lbAP">INSTANCE HIGHER-LEVEL PROCEDURES</A><DD>
+<DL>
+<DT><A HREF="#lbAQ">update</A><DD>
+<DT><A HREF="#lbAR">message</A><DD>
+</DL>
+<DT><A HREF="#lbAS">BUGS</A><DD>
+<DT><A HREF="#lbAT">REPORTING BUGS</A><DD>
+<DT><A HREF="#lbAU">COMPATIBILITY</A><DD>
+<DT><A HREF="#lbAV">AUTHOR</A><DD>
+<DT><A HREF="#lbAW">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAX">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:43 GMT, December 24, 2015
+</div></body>
+</HTML>

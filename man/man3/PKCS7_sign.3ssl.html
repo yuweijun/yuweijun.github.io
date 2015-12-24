@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PKCS7_sign</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PKCS7_sign</H1>
+Section: OpenSSL (3)<BR>Updated: 2009-09-30<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+PKCS7_sign - create a PKCS#7 signedData structure
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/pkcs7.h">openssl/pkcs7.h</A>&gt;
+
+ PKCS7 *PKCS7_sign(X509 *signcert, EVP_PKEY *pkey, STACK_OF(X509) *certs, BIO *data, int flags);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<I>PKCS7_sign()</I> creates and returns a PKCS#7 signedData structure. <B>signcert</B> is
+the certificate to sign with, <B>pkey</B> is the corresponsding private key.
+<B>certs</B> is an optional additional set of certificates to include in the PKCS#7
+structure (for example any intermediate CAs in the chain).
+<P>
+
+The data to be signed is read from <FONT SIZE="-1">BIO</FONT> <B>data</B>.
+<P>
+
+<B>flags</B> is an optional set of flags.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+Any of the following flags (ored together) can be passed in the <B>flags</B>
+parameter.
+<P>
+
+Many S/MIME clients expect the signed content to include valid <FONT SIZE="-1">MIME</FONT> headers. If
+the <B></B><FONT SIZE="-1"><B>PKCS7_TEXT</B></FONT><B></B> flag is set <FONT SIZE="-1">MIME</FONT> headers for type <B>text/plain</B> are prepended
+to the data.
+<P>
+
+If <B></B><FONT SIZE="-1"><B>PKCS7_NOCERTS</B></FONT><B></B> is set the signer's certificate will not be included in the
+<FONT SIZE="-1">PKCS7</FONT> structure, the signer's certificate must still be supplied in the
+<B>signcert</B> parameter though. This can reduce the size of the signature if the
+signers certificate can be obtained by other means: for example a previously
+signed message.
+<P>
+
+The data being signed is included in the <FONT SIZE="-1">PKCS7</FONT> structure, unless
+<B></B><FONT SIZE="-1"><B>PKCS7_DETACHED</B></FONT><B></B> is set in which case it is omitted. This is used for <FONT SIZE="-1">PKCS7</FONT>
+detached signatures which are used in S/MIME plaintext signed messages for
+example.
+<P>
+
+Normally the supplied content is translated into <FONT SIZE="-1">MIME</FONT> canonical format (as
+required by the S/MIME specifications) if <B></B><FONT SIZE="-1"><B>PKCS7_BINARY</B></FONT><B></B> is set no translation
+occurs. This option should be used if the supplied data is in binary format
+otherwise the translation will corrupt it.
+<P>
+
+The signedData structure includes several PKCS#7 autenticatedAttributes
+including the signing time, the PKCS#7 content type and the supported list of
+ciphers in an SMIMECapabilities attribute. If <B></B><FONT SIZE="-1"><B>PKCS7_NOATTR</B></FONT><B></B> is set then no
+authenticatedAttributes will be used. If <B></B><FONT SIZE="-1"><B>PKCS7_NOSMIMECAP</B></FONT><B></B> is set then just
+the SMIMECapabilities are omitted.
+<P>
+
+If present the SMIMECapabilities attribute indicates support for the following
+algorithms: triple <FONT SIZE="-1">DES</FONT>, 128 bit <FONT SIZE="-1">RC2</FONT>, 64 bit <FONT SIZE="-1">RC2</FONT>, <FONT SIZE="-1">DES</FONT> and 40 bit <FONT SIZE="-1">RC2</FONT>. If any of
+these algorithms is disabled then it will not be included.
+<P>
+
+If the flags <B></B><FONT SIZE="-1"><B>PKCS7_STREAM</B></FONT><B></B> is set then the returned <B></B><FONT SIZE="-1"><B>PKCS7</B></FONT><B></B> structure is
+just initialized ready to perform the signing operation. The signing is however
+<B>not</B> performed and the data to be signed is not read from the <B>data</B>
+parameter. Signing is deferred until after the data has been written. In this
+way data can be signed in a single pass.
+<P>
+
+If the <B></B><FONT SIZE="-1"><B>PKCS7_PARTIAL</B></FONT><B></B> flag is set a partial <B></B><FONT SIZE="-1"><B>PKCS7</B></FONT><B></B> structure is output to
+which additional signers and capabilities can be added before finalization.
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAF"></A>
+If the flag <B></B><FONT SIZE="-1"><B>PKCS7_STREAM</B></FONT><B></B> is set the returned <B></B><FONT SIZE="-1"><B>PKCS7</B></FONT><B></B> structure is <B>not</B>
+complete and outputting its contents via a function that does not properly
+finalize the <B></B><FONT SIZE="-1"><B>PKCS7</B></FONT><B></B> structure will give unpredictable results.
+<P>
+
+Several functions including <I>SMIME_write_PKCS7()</I>, <I>i2d_PKCS7_bio_stream()</I>,
+<I>PEM_write_bio_PKCS7_stream()</I> finalize the structure. Alternatively finalization
+can be performed by obtaining the streaming <FONT SIZE="-1">ASN1</FONT> <B></B><FONT SIZE="-1"><B>BIO</B></FONT><B></B> directly using
+<I>BIO_new_PKCS7()</I>.
+<P>
+
+If a signer is specified it will use the default digest for the signing
+algorithm. This is <B></B><FONT SIZE="-1"><B>SHA1</B></FONT><B></B> for both <FONT SIZE="-1">RSA</FONT> and <FONT SIZE="-1">DSA</FONT> keys.
+<P>
+
+In OpenSSL 1.0.0 the <B>certs</B>, <B>signcert</B> and <B>pkey</B> parameters can all be
+<B></B><FONT SIZE="-1"><B>NULL</B></FONT><B></B> if the <B></B><FONT SIZE="-1"><B>PKCS7_PARTIAL</B></FONT><B></B> flag is set. One or more signers can be added
+using the function <B></B>PKCS7_sign_add_signer()<B></B>. <B></B>PKCS7_final()<B></B> must also be
+called to finalize the structure if streaming is not enabled. Alternative
+signing digests can also be specified using this method.
+<P>
+
+In OpenSSL 1.0.0 if <B>signcert</B> and <B>pkey</B> are <FONT SIZE="-1">NULL</FONT> then a certificates only
+PKCS#7 structure is output.
+<P>
+
+In versions of OpenSSL before 1.0.0 the <B>signcert</B> and <B>pkey</B> parameters must
+<B></B><FONT SIZE="-1"><B>NOT</B></FONT><B></B> be <FONT SIZE="-1">NULL</FONT>.
+<A NAME="lbAG">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAG"></A>
+Some advanced attributes such as counter signatures are not supported.
+<A NAME="lbAH">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<A NAME="ixAAH"></A>
+<I>PKCS7_sign()</I> returns either a valid <FONT SIZE="-1">PKCS7</FONT> structure or <FONT SIZE="-1">NULL</FONT> if an error
+occurred.  The error can be obtained from <I><A HREF="/man/index.html?3+ERR_get_error">ERR_get_error</A></I>(3).
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAI"></A>
+<I><A HREF="/man/index.html?3+ERR_get_error">ERR_get_error</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+PKCS7_verify">PKCS7_verify</A></I>(3)
+<A NAME="lbAJ">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<A NAME="ixAAJ"></A>
+<I>PKCS7_sign()</I> was added to OpenSSL 0.9.5
+<P>
+
+The <B></B><FONT SIZE="-1"><B>PKCS7_PARTIAL</B></FONT><B></B> flag was added in OpenSSL 1.0.0
+<P>
+
+The <B></B><FONT SIZE="-1"><B>PKCS7_STREAM</B></FONT><B></B> flag was added in OpenSSL 1.0.0
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">NOTES</A><DD>
+<DT><A HREF="#lbAG">BUGS</A><DD>
+<DT><A HREF="#lbAH">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">HISTORY</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:36 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of BIO_should_retry</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>BIO_should_retry</H1>
+Section: OpenSSL (3)<BR>Updated: 2000-09-16<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+BIO_should_retry, BIO_should_read, BIO_should_write,
+BIO_should_io_special, BIO_retry_type, BIO_should_retry,
+BIO_get_retry_BIO, BIO_get_retry_reason - BIO retry functions
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/bio.h">openssl/bio.h</A>&gt;
+
+ #define BIO_should_read(a)             ((a)-&gt;flags &amp; BIO_FLAGS_READ)
+ #define BIO_should_write(a)            ((a)-&gt;flags &amp; BIO_FLAGS_WRITE)
+ #define BIO_should_io_special(a)       ((a)-&gt;flags &amp; BIO_FLAGS_IO_SPECIAL)
+ #define BIO_retry_type(a)              ((a)-&gt;flags &amp; BIO_FLAGS_RWS)
+ #define BIO_should_retry(a)            ((a)-&gt;flags &amp; BIO_FLAGS_SHOULD_RETRY)
+
+ #define BIO_FLAGS_READ         0x01
+ #define BIO_FLAGS_WRITE        0x02
+ #define BIO_FLAGS_IO_SPECIAL   0x04
+ #define BIO_FLAGS_RWS (BIO_FLAGS_READ|BIO_FLAGS_WRITE|BIO_FLAGS_IO_SPECIAL)
+ #define BIO_FLAGS_SHOULD_RETRY 0x08
+
+ BIO *  BIO_get_retry_BIO(BIO *bio, int *reason);
+ int    BIO_get_retry_reason(BIO *bio);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+These functions determine why a <FONT SIZE="-1">BIO</FONT> is not able to read or write data.
+They will typically be called after a failed <I>BIO_read()</I> or <I>BIO_write()</I>
+call.
+<P>
+
+<I>BIO_should_retry()</I> is true if the call that produced this condition
+should then be retried at a later time.
+<P>
+
+If <I>BIO_should_retry()</I> is false then the cause is an error condition.
+<P>
+
+<I>BIO_should_read()</I> is true if the cause of the condition is that a <FONT SIZE="-1">BIO</FONT>
+needs to read data.
+<P>
+
+<I>BIO_should_write()</I> is true if the cause of the condition is that a <FONT SIZE="-1">BIO</FONT>
+needs to read data.
+<P>
+
+<I>BIO_should_io_special()</I> is true if some ``special'' condition, that is a
+reason other than reading or writing is the cause of the condition.
+<P>
+
+<I>BIO_get_retry_reason()</I> returns a mask of the cause of a retry condition
+consisting of the values <B></B><FONT SIZE="-1"><B>BIO_FLAGS_READ</B></FONT><B></B>, <B></B><FONT SIZE="-1"><B>BIO_FLAGS_WRITE</B></FONT><B></B>,
+<B></B><FONT SIZE="-1"><B>BIO_FLAGS_IO_SPECIAL</B></FONT><B></B> though current <FONT SIZE="-1">BIO</FONT> types will only set one of
+these.
+<P>
+
+<I>BIO_get_retry_BIO()</I> determines the precise reason for the special
+condition, it returns the <FONT SIZE="-1">BIO</FONT> that caused this condition and if 
+<B>reason</B> is not <FONT SIZE="-1">NULL</FONT> it contains the reason code. The meaning of
+the reason code and the action that should be taken depends on
+the type of <FONT SIZE="-1">BIO</FONT> that resulted in this condition.
+<P>
+
+<I>BIO_get_retry_reason()</I> returns the reason for a special condition if
+passed the relevant <FONT SIZE="-1">BIO</FONT>, for example as returned by <I>BIO_get_retry_BIO()</I>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+If <I>BIO_should_retry()</I> returns false then the precise ``error condition''
+depends on the <FONT SIZE="-1">BIO</FONT> type that caused it and the return code of the <FONT SIZE="-1">BIO</FONT>
+operation. For example if a call to <I>BIO_read()</I> on a socket <FONT SIZE="-1">BIO</FONT> returns
+0 and <I>BIO_should_retry()</I> is false then the cause will be that the
+connection closed. A similar condition on a file <FONT SIZE="-1">BIO</FONT> will mean that it
+has reached <FONT SIZE="-1">EOF</FONT>. Some <FONT SIZE="-1">BIO</FONT> types may place additional information on
+the error queue. For more details see the individual <FONT SIZE="-1">BIO</FONT> type manual
+pages.
+<P>
+
+If the underlying I/O structure is in a blocking mode almost all current
+<FONT SIZE="-1">BIO</FONT> types will not request a retry, because the underlying I/O
+calls will not. If the application knows that the <FONT SIZE="-1">BIO</FONT> type will never
+signal a retry then it need not call <I>BIO_should_retry()</I> after a failed
+<FONT SIZE="-1">BIO</FONT> I/O call. This is typically done with file BIOs.
+<P>
+
+<FONT SIZE="-1">SSL</FONT> BIOs are the only current exception to this rule: they can request a
+retry even if the underlying I/O structure is blocking, if a handshake
+occurs during a call to <I>BIO_read()</I>. An application can retry the failed
+call immediately or avoid this situation by setting <FONT SIZE="-1">SSL_MODE_AUTO_RETRY</FONT>
+on the underlying <FONT SIZE="-1">SSL</FONT> structure.
+<P>
+
+While an application may retry a failed non blocking call immediately
+this is likely to be very inefficient because the call will fail
+repeatedly until data can be processed or is available. An application
+will normally wait until the necessary condition is satisfied. How
+this is done depends on the underlying I/O structure.
+<P>
+
+For example if the cause is ultimately a socket and <I>BIO_should_read()</I>
+is true then a call to <I>select()</I> may be made to wait until data is
+available and then retry the <FONT SIZE="-1">BIO</FONT> operation. By combining the retry
+conditions of several non blocking BIOs in a single <I>select()</I> call
+it is possible to service several BIOs in a single thread, though
+the performance may be poor if <FONT SIZE="-1">SSL</FONT> BIOs are present because long delays
+can occur during the initial handshake process.
+<P>
+
+It is possible for a <FONT SIZE="-1">BIO</FONT> to block indefinitely if the underlying I/O
+structure cannot process or return any data. This depends on the behaviour of
+the platforms I/O functions. This is often not desirable: one solution
+is to use non blocking I/O and use a timeout on the <I>select()</I> (or
+equivalent) call.
+<A NAME="lbAF">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAF"></A>
+The OpenSSL <FONT SIZE="-1">ASN1</FONT> functions cannot gracefully deal with non blocking I/O:
+that is they cannot retry after a partial read or write. This is usually
+worked around by only passing the relevant data to <FONT SIZE="-1">ASN1</FONT> functions when
+the entire structure can be read or written.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAG"></A>
+<FONT SIZE="-1">TBA</FONT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">BUGS</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:13 GMT, December 24, 2015
+</div></body>
+</HTML>

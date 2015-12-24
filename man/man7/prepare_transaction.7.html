@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PREPARE TRANSACTION</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PREPARE TRANSACTION</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+PREPARE TRANSACTION - prepare the current transaction for two-phase commit
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+PREPARE TRANSACTION <I>transaction_id</I>
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>PREPARE TRANSACTION</B> prepares the current transaction
+for two-phase commit. After this command, the transaction is no longer
+associated with the current session; instead, its state is fully stored on
+disk, and there is a very high probability that it can be committed
+successfully, even if a database crash occurs before the commit is
+requested.
+<P>
+
+Once prepared, a transaction can later be committed or rolled back
+with COMMIT PREPARED [<B><A HREF="/man/index.html?7+commit_prepared">commit_prepared</A></B>(7)]
+or ROLLBACK PREPARED [<B><A HREF="/man/index.html?7+rollback_prepared">rollback_prepared</A></B>(7)],
+respectively. Those commands can be issued from any session, not
+only the one that executed the original transaction.
+<P>
+
+From the point of view of the issuing session, <B>PREPARE
+TRANSACTION</B> is not unlike a <B>ROLLBACK</B> command:
+after executing it, there is no active current transaction, and the
+effects of the prepared transaction are no longer visible. (The effects
+will become visible again if the transaction is committed.)
+<P>
+
+If the <B>PREPARE TRANSACTION</B> command fails for any
+reason, it becomes a <B>ROLLBACK</B>: the current transaction
+is canceled.
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B></B><I>transaction_id</I><B></B><DD>
+An arbitrary identifier that later identifies this transaction for
+<B>COMMIT PREPARED</B> or <B>ROLLBACK PREPARED</B>.
+The identifier must be written as a string literal, and must be
+less than 200 bytes long. It must not be the same as the identifier
+used for any currently prepared transaction.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+This command must be used inside a transaction block. Use BEGIN [<B><A HREF="/man/index.html?7+begin">begin</A></B>(7)] to start one.
+<P>
+
+It is not currently allowed to <B>PREPARE</B> a transaction that
+has executed any operations involving temporary tables,
+created any cursors WITH HOLD, or executed
+<B>LISTEN</B> or <B>UNLISTEN</B>.
+Those features are too tightly
+tied to the current session to be useful in a transaction to be prepared.
+<P>
+
+If the transaction modified any run-time parameters with <B>SET</B>
+(without the LOCAL option),
+those effects persist after <B>PREPARE TRANSACTION</B>, and will not
+be affected by any later <B>COMMIT PREPARED</B> or
+<B>ROLLBACK PREPARED</B>. Thus, in this one respect
+<B>PREPARE TRANSACTION</B> acts more like <B>COMMIT</B> than
+<B>ROLLBACK</B>.
+<P>
+
+All currently available prepared transactions are listed in the
+<B>pg_prepared_xacts</B>
+system view.
+<P>
+<DL COMPACT><DT><DD>
+<B>Caution:</B>
+
+<P>
+
+It is unwise to leave transactions in the prepared state for a long time.
+This will interfere with the ability of <B>VACUUM</B> to reclaim
+storage, and in extreme cases could cause the database to shut down
+to prevent transaction ID wraparound (see in the documentation). Keep in mind also that the transaction
+continues to hold whatever locks it held. The intended usage of the
+feature is that a prepared transaction will normally be committed or
+rolled back as soon as an external transaction manager has verified that
+other databases are also prepared to commit.
+<P>
+
+If you have not set up an external transaction manager to track prepared
+transactions and ensure they get closed out promptly, it is best to keep
+the prepared-transaction feature disabled by setting
+max_prepared_transactions to zero. This will
+prevent accidental creation of prepared transactions that might then
+be forgotten and eventually cause problems.
+</DL>
+
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+Prepare the current transaction for two-phase commit, using
+foobar as the transaction identifier:
+<P>
+<PRE>
+PREPARE TRANSACTION 'foobar';
+
+</PRE>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+COMMIT PREPARED [<B><A HREF="/man/index.html?7+commit_prepared">commit_prepared</A></B>(7)], ROLLBACK PREPARED [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+rollback_prepared">rollback_prepared</A></B>(7)]
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">NOTES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:16 GMT, December 24, 2015
+</div></body>
+</HTML>

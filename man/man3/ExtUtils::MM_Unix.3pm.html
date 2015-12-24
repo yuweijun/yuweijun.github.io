@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of ExtUtils::MM_Unix</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>ExtUtils::MM_Unix</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ExtUtils::MM_Unix - methods used by ExtUtils::MakeMaker
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+<TT>&quot;require ExtUtils::MM_Unix;&quot;</TT>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The methods provided by this package are designed to be used in
+conjunction with ExtUtils::MakeMaker. When MakeMaker writes a
+Makefile, it creates one or more objects that inherit their methods
+from a package <TT>&quot;MM&quot;</TT>. <FONT SIZE="-1">MM</FONT> itself doesn't provide any methods, but it
+<FONT SIZE="-1">ISA</FONT> ExtUtils::MM_Unix class. The inheritance tree of <FONT SIZE="-1">MM</FONT> lets operating
+specific packages take the responsibility for all the methods provided
+by MM_Unix. We are trying to reduce the number of the necessary
+overrides by defining rather primitive operations within
+ExtUtils::MM_Unix.
+<P>
+
+If you are going to write a platform specific <FONT SIZE="-1">MM</FONT> package, please try
+to limit the necessary overrides to primitive methods, and if it is not
+possible to do so, let's work out how to achieve that gain.
+<P>
+
+If you are overriding any of these methods in your Makefile.PL (in the
+<FONT SIZE="-1">MY</FONT> class), please report that to the makemaker mailing list. We are
+trying to minimize the necessary method overrides and switch to data
+driven Makefile.PLs wherever possible. In the long run less methods
+will be overridable via the <FONT SIZE="-1">MY</FONT> class.
+<A NAME="lbAE">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAE"></A>
+The following description of methods is still under
+development. Please refer to the code for not suitably documented
+sections and complain loudly to the <A HREF="mailto:makemaker@perl.org">makemaker@perl.org</A> mailing list.
+Better yet, provide a patch.
+<P>
+
+Not all of the methods below are overridable in a
+Makefile.PL. Overridable methods are marked as (o). All methods are
+overridable by a platform specific MM_*.pm file.
+<P>
+
+Cross-platform methods are being moved into MM_Any.  If you can't find
+something that used to be in here, look in MM_Any.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Methods</H3>
+
+<A NAME="ixAAF"></A>
+<DL COMPACT>
+<DT>os_flavor<DD>
+<A NAME="ixAAG"></A>
+Simply says that we're Unix.
+<DT>c_o (o)<DD>
+<A NAME="ixAAH"></A>
+Defines the suffix rules to compile different flavors of C files to
+object files.
+<DT>cflags (o)<DD>
+<A NAME="ixAAI"></A>
+Does very much the same as the cflags script in the perl
+distribution. It doesn't return the whole compiler command line, but
+initializes all of its parts. The const_cccmd method then actually
+returns the definition of the <FONT SIZE="-1">CCCMD</FONT> macro which uses these parts.
+<DT>const_cccmd (o)<DD>
+<A NAME="ixAAJ"></A>
+Returns the full compiler call for C programs and stores the
+definition in <FONT SIZE="-1">CONST_CCCMD</FONT>.
+<DT>const_config (o)<DD>
+<A NAME="ixAAK"></A>
+Defines a couple of constants in the Makefile that are imported from
+<TT>%Config</TT>.
+<DT>const_loadlibs (o)<DD>
+<A NAME="ixAAL"></A>
+Defines <FONT SIZE="-1">EXTRALIBS</FONT>, <FONT SIZE="-1">LDLOADLIBS</FONT>, <FONT SIZE="-1">BSLOADLIBS</FONT>, <FONT SIZE="-1">LD_RUN_PATH</FONT>. See
+ExtUtils::Liblist for details.
+<DT>constants (o)<DD>
+<A NAME="ixAAM"></A>
+
+
+<PRE>
+  my $make_frag = $mm-&gt;constants;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Prints out macros for lots of constants.
+<DT>depend (o)<DD>
+<A NAME="ixAAN"></A>
+Same as macro for the depend attribute.
+<DT>init_DEST<DD>
+<A NAME="ixAAO"></A>
+
+
+<PRE>
+  $mm-&gt;init_DEST
+
+</PRE>
+
+
+
+
+<P>
+
+
+Defines the <FONT SIZE="-1">DESTDIR</FONT> and DEST* variables paralleling the INSTALL*.
+<DT>init_dist<DD>
+<A NAME="ixAAP"></A>
+
+
+<PRE>
+  $mm-&gt;init_dist;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Defines a lot of macros for distribution support.
+
+
+<P>
+
+
+
+
+<PRE>
+  macro         description                     default
+
+  TAR           tar command to use              tar
+  TARFLAGS      flags to pass to TAR            cvf
+
+  ZIP           zip command to use              zip
+  ZIPFLAGS      flags to pass to ZIP            -r
+
+  COMPRESS      compression command to          gzip --best
+                use for tarfiles
+  SUFFIX        suffix to put on                .gz 
+                compressed files
+
+  SHAR          shar command to use             shar
+
+  PREOP         extra commands to run before
+                making the archive 
+  POSTOP        extra commands to run after
+                making the archive
+
+  TO_UNIX       a command to convert linefeeds
+                to Unix style in your archive 
+
+  CI            command to checkin your         ci -u
+                sources to version control
+  RCS_LABEL     command to label your sources   rcs -Nv$(VERSION_SYM): -q
+                just after CI is run
+
+  DIST_CP       $how argument to manicopy()     best
+                when the distdir is created
+
+  DIST_DEFAULT  default target to use to        tardist
+                create a distribution
+
+  DISTVNAME     name of the resulting archive   $(DISTNAME)-$(VERSION)
+                (minus suffixes)
+
+</PRE>
+
+
+<DT>dist (o)<DD>
+<A NAME="ixAAQ"></A>
+
+
+<PRE>
+  my $dist_macros = $mm-&gt;dist(%overrides);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Generates a make fragment defining all the macros initialized in
+init_dist.
+
+
+<P>
+
+
+<TT>%overrides</TT> can be used to override any of the above.
+<DT>dist_basics (o)<DD>
+<A NAME="ixAAR"></A>
+Defines the targets distclean, distcheck, skipcheck, manifest, veryclean.
+<DT>dist_ci (o)<DD>
+<A NAME="ixAAS"></A>
+Defines a check in target for <FONT SIZE="-1">RCS</FONT>.
+<DT>dist_core (o)<DD>
+<A NAME="ixAAT"></A>
+
+
+<PRE>
+  my $dist_make_fragment = $MM-&gt;dist_core;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Puts the targets necessary for 'make dist' together into one make
+fragment.
+<DT><B>dist_target</B><DD>
+<A NAME="ixAAU"></A>
+
+
+<PRE>
+  my $make_frag = $MM-&gt;dist_target;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns the 'dist' target to make an archive for distribution.  This
+target simply checks to make sure the Makefile is up-to-date and
+depends on $(<FONT SIZE="-1">DIST_DEFAULT</FONT>).
+<DT><B>tardist_target</B><DD>
+<A NAME="ixAAV"></A>
+
+
+<PRE>
+  my $make_frag = $MM-&gt;tardist_target;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns the 'tardist' target which is simply so 'make tardist' works.
+The real work is done by the dynamically named <I>tardistfile_target()</I>
+method, tardist should have that as a dependency.
+<DT><B>zipdist_target</B><DD>
+<A NAME="ixAAW"></A>
+
+
+<PRE>
+  my $make_frag = $MM-&gt;zipdist_target;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns the 'zipdist' target which is simply so 'make zipdist' works.
+The real work is done by the dynamically named <I>zipdistfile_target()</I>
+method, zipdist should have that as a dependency.
+<DT><B>tarfile_target</B><DD>
+<A NAME="ixAAX"></A>
+
+
+<PRE>
+  my $make_frag = $MM-&gt;tarfile_target;
+
+</PRE>
+
+
+
+
+<P>
+
+
+The name of this target is the name of the tarball generated by
+tardist.  This target does the actual work of turning the distdir into
+a tarball.
+<DT>zipfile_target<DD>
+<A NAME="ixAAY"></A>
+
+
+<PRE>
+  my $make_frag = $MM-&gt;zipfile_target;
+
+</PRE>
+
+
+
+
+<P>
+
+
+The name of this target is the name of the zip file generated by
+zipdist.  This target does the actual work of turning the distdir into
+a zip file.
+<DT>uutardist_target<DD>
+<A NAME="ixAAZ"></A>
+
+
+<PRE>
+  my $make_frag = $MM-&gt;uutardist_target;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Converts the tarfile into a uuencoded file
+<DT>shdist_target<DD>
+<A NAME="ixABA"></A>
+
+
+<PRE>
+  my $make_frag = $MM-&gt;shdist_target;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Converts the distdir into a shell archive.
+<DT>dlsyms (o)<DD>
+<A NAME="ixABB"></A>
+Used by some <FONT SIZE="-1">OS</FONT>' to define <FONT SIZE="-1">DL_FUNCS</FONT> and <FONT SIZE="-1">DL_VARS</FONT> and write the *.exp files.
+
+
+<P>
+
+
+Normally just returns an empty string.
+<DT>dynamic_bs (o)<DD>
+<A NAME="ixABC"></A>
+Defines targets for bootstrap files.
+<DT>dynamic_lib (o)<DD>
+<A NAME="ixABD"></A>
+Defines how to produce the *.so (or equivalent) files.
+<DT>exescan<DD>
+<A NAME="ixABE"></A>
+Deprecated method. Use libscan instead.
+<DT>extliblist<DD>
+<A NAME="ixABF"></A>
+Called by init_others, and calls ext ExtUtils::Liblist. See
+ExtUtils::Liblist for details.
+<DT>find_perl<DD>
+<A NAME="ixABG"></A>
+Finds the executables <FONT SIZE="-1">PERL</FONT> and <FONT SIZE="-1">FULLPERL</FONT>
+<DT>fixin<DD>
+<A NAME="ixABH"></A>
+
+
+<PRE>
+  $mm-&gt;fixin(@files);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Inserts the sharpbang or equivalent magic number to a set of <TT>@files</TT>.
+<DT>force (o)<DD>
+<A NAME="ixABI"></A>
+Writes an empty <FONT SIZE="-1">FORCE:</FONT> target.
+<DT>guess_name<DD>
+<A NAME="ixABJ"></A>
+Guess the name of this package by examining the working directory's
+name. MakeMaker calls this only if the developer has not supplied a
+<FONT SIZE="-1">NAME</FONT> attribute.
+<DT>has_link_code<DD>
+<A NAME="ixABK"></A>
+Returns true if C, <FONT SIZE="-1">XS</FONT>, <FONT SIZE="-1">MYEXTLIB</FONT> or similar objects exist within this
+object that need a compiler. Does not descend into subdirectories as
+<I>needs_linking()</I> does.
+<DT>init_dirscan<DD>
+<A NAME="ixABL"></A>
+Scans the directory structure and initializes <FONT SIZE="-1">DIR</FONT>, <FONT SIZE="-1">XS</FONT>, <FONT SIZE="-1">XS_FILES</FONT>,
+C, C_FILES, O_FILES, H, H_FILES, <FONT SIZE="-1">PL_FILES</FONT>, <FONT SIZE="-1">EXE_FILES</FONT>.
+
+
+<P>
+
+
+Called by init_main.
+<DT>init_MANPODS<DD>
+<A NAME="ixABM"></A>
+Determines if man pages should be generated and initializes <FONT SIZE="-1">MAN1PODS</FONT>
+and <FONT SIZE="-1">MAN3PODS</FONT> as appropriate.
+<DT>init_MAN1PODS<DD>
+<A NAME="ixABN"></A>
+Initializes <FONT SIZE="-1">MAN1PODS</FONT> from the list of <FONT SIZE="-1">EXE_FILES</FONT>.
+<DT>init_MAN3PODS<DD>
+<A NAME="ixABO"></A>
+Initializes <FONT SIZE="-1">MAN3PODS</FONT> from the list of <FONT SIZE="-1">PM</FONT> files.
+<DT>init_PM<DD>
+<A NAME="ixABP"></A>
+Initializes <FONT SIZE="-1">PMLIBDIRS</FONT> and <FONT SIZE="-1">PM</FONT> from <FONT SIZE="-1">PMLIBDIRS</FONT>.
+<DT>init_DIRFILESEP<DD>
+<A NAME="ixABQ"></A>
+Using / for Unix.  Called by init_main.
+<DT>init_main<DD>
+<A NAME="ixABR"></A>
+Initializes <FONT SIZE="-1">AR</FONT>, <FONT SIZE="-1">AR_STATIC_ARGS</FONT>, <FONT SIZE="-1">BASEEXT</FONT>, <FONT SIZE="-1">CONFIG</FONT>, <FONT SIZE="-1">DISTNAME</FONT>, <FONT SIZE="-1">DLBASE</FONT>,
+<FONT SIZE="-1">EXE_EXT</FONT>, <FONT SIZE="-1">FULLEXT</FONT>, <FONT SIZE="-1">FULLPERL</FONT>, <FONT SIZE="-1">FULLPERLRUN</FONT>, <FONT SIZE="-1">FULLPERLRUNINST</FONT>, INST_*,
+INSTALL*, <FONT SIZE="-1">INSTALLDIRS</FONT>, <FONT SIZE="-1">LIB_EXT</FONT>, <FONT SIZE="-1">LIBPERL_A</FONT>, <FONT SIZE="-1">MAP_TARGET</FONT>, <FONT SIZE="-1">NAME</FONT>,
+<FONT SIZE="-1">OBJ_EXT</FONT>, <FONT SIZE="-1">PARENT_NAME</FONT>, <FONT SIZE="-1">PERL</FONT>, <FONT SIZE="-1">PERL_ARCHLIB</FONT>, <FONT SIZE="-1">PERL_INC</FONT>, <FONT SIZE="-1">PERL_LIB</FONT>,
+<FONT SIZE="-1">PERL_SRC</FONT>, <FONT SIZE="-1">PERLRUN</FONT>, <FONT SIZE="-1">PERLRUNINST</FONT>, <FONT SIZE="-1">PREFIX</FONT>, <FONT SIZE="-1">VERSION</FONT>,
+<FONT SIZE="-1">VERSION_SYM</FONT>, <FONT SIZE="-1">XS_VERSION</FONT>.
+<DT>init_others<DD>
+<A NAME="ixABS"></A>
+Initializes <FONT SIZE="-1">EXTRALIBS</FONT>, <FONT SIZE="-1">BSLOADLIBS</FONT>, <FONT SIZE="-1">LDLOADLIBS</FONT>, <FONT SIZE="-1">LIBS</FONT>, <FONT SIZE="-1">LD_RUN_PATH</FONT>, <FONT SIZE="-1">LD</FONT>,
+<FONT SIZE="-1">OBJECT</FONT>, <FONT SIZE="-1">BOOTDEP</FONT>, <FONT SIZE="-1">PERLMAINCC</FONT>, <FONT SIZE="-1">LDFROM</FONT>, <FONT SIZE="-1">LINKTYPE</FONT>, <FONT SIZE="-1">SHELL</FONT>, <FONT SIZE="-1">NOOP</FONT>,
+<FONT SIZE="-1">FIRST_MAKEFILE</FONT>, <FONT SIZE="-1">MAKEFILE_OLD</FONT>, <FONT SIZE="-1">NOECHO</FONT>, <FONT SIZE="-1">RM_F</FONT>, <FONT SIZE="-1">RM_RF</FONT>, <FONT SIZE="-1">TEST_F</FONT>,
+<FONT SIZE="-1">TOUCH</FONT>, <FONT SIZE="-1">CP</FONT>, <FONT SIZE="-1">MV</FONT>, <FONT SIZE="-1">CHMOD</FONT>, <FONT SIZE="-1">UMASK_NULL</FONT>, <FONT SIZE="-1">ECHO</FONT>, <FONT SIZE="-1">ECHO_N</FONT>
+<DT>init_linker<DD>
+<A NAME="ixABT"></A>
+Unix has no need of special linker flags.
+<DT>init_PERL<DD>
+<A NAME="ixABU"></A>
+
+
+<PRE>
+    $mm-&gt;init_PERL;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Called by init_main.  Sets up <FONT SIZE="-1">ABSPERL</FONT>, <FONT SIZE="-1">PERL</FONT>, <FONT SIZE="-1">FULLPERL</FONT> and all the
+*PERLRUN* permutations.
+
+
+<P>
+
+
+
+
+<PRE>
+    PERL is allowed to be miniperl
+    FULLPERL must be a complete perl
+
+    ABSPERL is PERL converted to an absolute path
+
+    *PERLRUN contains everything necessary to run perl, find it's
+         libraries, etc...
+
+    *PERLRUNINST is *PERLRUN + everything necessary to find the
+         modules being built.
+
+</PRE>
+
+
+<DT>init_platform<DD>
+<A NAME="ixABV"></A>
+
+<DT>platform_constants<DD>
+<A NAME="ixABW"></A>
+
+Add MM_Unix_VERSION.
+<DT>init_PERM<DD>
+<A NAME="ixABX"></A>
+
+
+<PRE>
+  $mm-&gt;init_PERM
+
+</PRE>
+
+
+
+
+<P>
+
+
+Called by init_main.  Initializes PERL_*
+<DT>init_xs<DD>
+<A NAME="ixABY"></A>
+
+
+<PRE>
+    $mm-&gt;init_xs
+
+</PRE>
+
+
+
+
+<P>
+
+
+Sets up macros having to do with <FONT SIZE="-1">XS</FONT> code.  Currently just <FONT SIZE="-1">INST_STATIC</FONT>,
+<FONT SIZE="-1">INST_DYNAMIC</FONT> and <FONT SIZE="-1">INST_BOOT</FONT>.
+<DT>install (o)<DD>
+<A NAME="ixABZ"></A>
+Defines the install target.
+<DT>installbin (o)<DD>
+<A NAME="ixACA"></A>
+Defines targets to make and to install <FONT SIZE="-1">EXE_FILES</FONT>.
+<DT>linkext (o)<DD>
+<A NAME="ixACB"></A>
+Defines the linkext target which in turn defines the <FONT SIZE="-1">LINKTYPE</FONT>.
+<DT>lsdir<DD>
+<A NAME="ixACC"></A>
+Takes as arguments a directory name and a regular expression. Returns
+all entries in the directory that match the regular expression.
+<DT>macro (o)<DD>
+<A NAME="ixACD"></A>
+Simple subroutine to insert the macros defined by the macro attribute
+into the Makefile.
+<DT>makeaperl (o)<DD>
+<A NAME="ixACE"></A>
+Called by staticmake. Defines how to write the Makefile to produce a
+static new perl.
+
+
+<P>
+
+
+By default the Makefile produced includes all the static extensions in
+the perl library. (Purified versions of library files, e.g.,
+DynaLoader_pure_p1_c0_032.a are automatically ignored to avoid link errors.)
+<DT>makefile (o)<DD>
+<A NAME="ixACF"></A>
+Defines how to rewrite the Makefile.
+<DT>maybe_command<DD>
+<A NAME="ixACG"></A>
+Returns true, if the argument is likely to be a command.
+<DT>needs_linking (o)<DD>
+<A NAME="ixACH"></A>
+Does this module need linking? Looks into subdirectory objects (see
+also <I>has_link_code()</I>)
+<DT>parse_abstract<DD>
+<A NAME="ixACI"></A>
+parse a file and return what you think is the <FONT SIZE="-1">ABSTRACT</FONT>
+<DT>parse_version<DD>
+<A NAME="ixACJ"></A>
+
+
+<PRE>
+    my $version = MM-&gt;parse_version($file);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Parse a <TT>$file</TT> and return what <TT>$VERSION</TT> is set to by the first assignment.
+It will return the string ``undef'' if it can't figure out what <TT>$VERSION</TT>
+is. <TT>$VERSION</TT> should be for all to see, so <TT>&quot;our $VERSION&quot;</TT> or plain <TT>$VERSION</TT>
+are okay, but <TT>&quot;my $VERSION&quot;</TT> is not.
+
+
+<P>
+
+
+<I>parse_version()</I> will try to <TT>&quot;use version&quot;</TT> before checking for
+<TT>$VERSION</TT> so the following will work.
+
+
+<P>
+
+
+
+
+<PRE>
+    $VERSION = qv(1.2.3);
+
+</PRE>
+
+
+<DT>pasthru (o)<DD>
+<A NAME="ixACK"></A>
+Defines the string that is passed to recursive make calls in
+subdirectories.
+<DT>perl_script<DD>
+<A NAME="ixACL"></A>
+Takes one argument, a file name, and returns the file name, if the
+argument is likely to be a perl script. On MM_Unix this is true for
+any ordinary, readable file.
+<DT>perldepend (o)<DD>
+<A NAME="ixACM"></A>
+Defines the dependency from all *.h files that come with the perl
+distribution.
+<DT>pm_to_blib<DD>
+<A NAME="ixACN"></A>
+Defines target that copies all files in the hash <FONT SIZE="-1">PM</FONT> to their
+destination and autosplits them. See ``<FONT SIZE="-1">DESCRIPTION</FONT>'' in ExtUtils::Install
+<DT>post_constants (o)<DD>
+<A NAME="ixACO"></A>
+Returns an empty string per default. Dedicated to overrides from
+within Makefile.PL after all constants have been defined.
+<DT>post_initialize (o)<DD>
+<A NAME="ixACP"></A>
+Returns an empty string per default. Used in Makefile.PLs to add some
+chunk of text to the Makefile after the object is initialized.
+<DT>postamble (o)<DD>
+<A NAME="ixACQ"></A>
+Returns an empty string. Can be used in Makefile.PLs to write some
+text to the Makefile at the end.
+<DT>ppd<DD>
+<A NAME="ixACR"></A>
+Defines target that creates a <FONT SIZE="-1">PPD</FONT> (Perl Package Description) file
+for a binary distribution.
+<DT>prefixify<DD>
+<A NAME="ixACS"></A>
+
+
+<PRE>
+  $MM-&gt;prefixify($var, $prefix, $new_prefix, $default);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Using either <TT>$MM</TT>-&gt;{uc <TT>$var</TT>} || <TT>$Config</TT>{lc <TT>$var</TT>}, it will attempt to
+replace it's <TT>$prefix</TT> with a <TT>$new_prefix</TT>.
+
+
+<P>
+
+
+Should the <TT>$prefix</TT> fail to match <I></I><FONT SIZE="-1"><I>AND</I></FONT><I></I> a <FONT SIZE="-1">PREFIX</FONT> was given as an
+argument to <I>WriteMakefile()</I> it will set it to the <TT>$new_prefix</TT> +
+<TT>$default</TT>.  This is for systems whose file layouts don't neatly fit into
+our ideas of prefixes.
+
+
+<P>
+
+
+This is for heuristics which attempt to create directory structures
+that mirror those of the installed perl.
+
+
+<P>
+
+
+For example:
+
+
+<P>
+
+
+
+
+<PRE>
+    $MM-&gt;prefixify('installman1dir', '/usr', '/home/foo', 'man/man1');
+
+</PRE>
+
+
+
+
+<P>
+
+
+this will attempt to remove '/usr' from the front of the
+<TT>$MM</TT>-&gt;{<FONT SIZE="-1">INSTALLMAN1DIR</FONT>} path (initializing it to <TT>$Config</TT>{installman1dir}
+if necessary) and replace it with '/home/foo'.  If this fails it will
+simply use '/home/foo/man/man1'.
+<DT>processPL (o)<DD>
+<A NAME="ixACT"></A>
+Defines targets to run *.PL files.
+<DT>quote_paren<DD>
+<A NAME="ixACU"></A>
+Backslashes parentheses <TT>&quot;()&quot;</TT> in command line arguments.
+Doesn't handle recursive Makefile <TT>&quot;$(...)&quot;</TT> constructs,
+but handles simple ones.
+<DT>replace_manpage_separator<DD>
+<A NAME="ixACV"></A>
+
+
+<PRE>
+  my $man_name = $MM-&gt;replace_manpage_separator($file_path);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Takes the name of a package, which may be a nested package, in the
+form 'Foo/Bar.pm' and replaces the slash with <TT>&quot;::&quot;</TT> or something else
+safe for a man page file name.  Returns the replacement.
+<DT>cd<DD>
+<A NAME="ixACW"></A>
+
+<DT>oneliner<DD>
+<A NAME="ixACX"></A>
+<DT>quote_literal<DD>
+<A NAME="ixACY"></A>
+<DT>escape_newlines<DD>
+<A NAME="ixACZ"></A>
+<DT>max_exec_len<DD>
+<A NAME="ixADA"></A>
+
+Using <FONT SIZE="-1">POSIX::ARG_MAX</FONT>.  Otherwise falling back to 4096.
+<DT>static (o)<DD>
+<A NAME="ixADB"></A>
+Defines the static target.
+<DT>static_lib (o)<DD>
+<A NAME="ixADC"></A>
+Defines how to produce the *.a (or equivalent) files.
+<DT>staticmake (o)<DD>
+<A NAME="ixADD"></A>
+Calls makeaperl.
+<DT>subdir_x (o)<DD>
+<A NAME="ixADE"></A>
+Helper subroutine for subdirs
+<DT>subdirs (o)<DD>
+<A NAME="ixADF"></A>
+Defines targets to process subdirectories.
+<DT>test (o)<DD>
+<A NAME="ixADG"></A>
+Defines the test targets.
+<DT>test_via_harness (override)<DD>
+<A NAME="ixADH"></A>
+For some reason which I forget, Unix machines like to have
+<FONT SIZE="-1">PERL_DL_NONLAZY</FONT> set for tests.
+<DT>test_via_script (override)<DD>
+<A NAME="ixADI"></A>
+Again, the <FONT SIZE="-1">PERL_DL_NONLAZY</FONT> thing.
+<DT>tool_xsubpp (o)<DD>
+<A NAME="ixADJ"></A>
+Determines typemaps, xsubpp version, prototype behaviour.
+<DT>all_target<DD>
+<A NAME="ixADK"></A>
+Build man pages, too
+<DT>top_targets (o)<DD>
+<A NAME="ixADL"></A>
+Defines the targets all, subdirs, config, and O_FILES
+<DT>writedoc<DD>
+<A NAME="ixADM"></A>
+Obsolete, deprecated method. Not used since Version 5.21.
+<DT>xs_c (o)<DD>
+<A NAME="ixADN"></A>
+Defines the suffix rules to compile <FONT SIZE="-1">XS</FONT> files to C.
+<DT>xs_cpp (o)<DD>
+<A NAME="ixADO"></A>
+Defines the suffix rules to compile <FONT SIZE="-1">XS</FONT> files to C<FONT SIZE="-2">++</FONT>.
+<DT>xs_o (o)<DD>
+<A NAME="ixADP"></A>
+Defines suffix rules to go from <FONT SIZE="-1">XS</FONT> to object files directly. This is
+only intended for broken make implementations.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixADQ"></A>
+ExtUtils::MakeMaker
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAF">Methods</A><DD>
+</DL>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:26 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of VFORK</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>VFORK</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2009-06-21<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+vfork - create a child process and block parent
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>#include &lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;</B>
+
+<BR>
+
+<B>#include &lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;</B>
+
+<P>
+<B>pid_t vfork(void);</B>
+
+<P>
+
+Feature Test Macro Requirements for glibc (see
+<B><A HREF="/man/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)):
+
+
+<P>
+<B>vfork</B>():
+
+_BSD_SOURCE || _XOPEN_SOURCE&nbsp;&gt;=&nbsp;500
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>Standard Description</H3>
+
+(From POSIX.1)
+The
+<B>vfork</B>()
+
+function has the same effect as
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2),
+
+except that the behavior is undefined if the process created by
+<B>vfork</B>()
+
+either modifies any data other than a variable of type
+<I>pid_t</I>
+
+used to store the return value from
+<B>vfork</B>(),
+
+or returns from the function in which
+<B>vfork</B>()
+
+was called, or calls any other function before successfully calling
+<B><A HREF="/man/index.html?2+_exit">_exit</A></B>(2)
+
+or one of the
+<B><A HREF="/man/index.html?3+exec">exec</A></B>(3)
+
+family of functions.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Linux Description</H3>
+
+<B>vfork</B>(),
+
+just like
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2),
+
+creates a child process of the calling process.
+For details and return value and errors, see
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2).
+
+<P>
+
+<B>vfork</B>()
+
+is a special case of
+<B><A HREF="/man/index.html?2+clone">clone</A></B>(2).
+
+It is used to create new processes without copying the page tables of
+the parent process.
+It may be useful in performance-sensitive applications
+where a child will be created which then immediately issues an
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2).
+
+<P>
+
+<B>vfork</B>()
+
+differs from
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2)
+
+in that the parent is suspended until the child terminates
+(either normally,
+by calling
+<B><A HREF="/man/index.html?2+_exit">_exit</A></B>(2),
+
+or abnormally, after delivery of a fatal signal),
+or it makes a call to
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2).
+
+Until that point, the child shares all memory with its parent,
+including the stack.
+The child must not return from the current function or call
+<B><A HREF="/man/index.html?3+exit">exit</A></B>(3),
+
+but may call
+<B><A HREF="/man/index.html?2+_exit">_exit</A></B>(2).
+
+<P>
+
+Signal handlers are inherited, but not shared.
+Signals to the parent
+arrive after the child releases the parent's memory
+(i.e., after the child terminates
+or calls
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2)).
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>Historic Description</H3>
+
+Under Linux,
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2)
+
+is implemented using copy-on-write pages, so the only penalty incurred by
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2)
+
+is the time and memory required to duplicate the parent's page tables,
+and to create a unique task structure for the child.
+However, in the bad old days a
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2)
+
+would require making a complete copy of the caller's data space,
+often needlessly, since usually immediately afterwards an
+<B><A HREF="/man/index.html?3+exec">exec</A></B>(3)
+
+is done.
+Thus, for greater efficiency, BSD introduced the
+<B>vfork</B>()
+
+system call, which did not fully copy the address space of
+the parent process, but borrowed the parent's memory and thread
+of control until a call to
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2)
+
+or an exit occurred.
+The parent process was suspended while the
+child was using its resources.
+The use of
+<B>vfork</B>()
+
+was tricky: for example, not modifying data
+in the parent process depended on knowing which variables are
+held in a register.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+4.3BSD, POSIX.1-2001.
+POSIX.1-2008 removes the specification of
+<B>vfork</B>().
+
+The requirements put on
+<B>vfork</B>()
+
+by the standards are weaker than those put on
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2),
+
+so an implementation where the two are synonymous is compliant.
+In particular, the programmer cannot rely on the parent
+remaining blocked until the child either terminates or calls
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2),
+
+and cannot rely on any specific behavior with respect to shared memory.
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Linux Notes</H3>
+
+Fork handlers established using
+<B><A HREF="/man/index.html?3+pthread_atfork">pthread_atfork</A></B>(3)
+
+are not called when a multithreaded program employing
+the NPTL threading library calls
+<B>vfork</B>().
+
+Fork handlers are called in this case in a program using the
+LinuxThreads threading library.
+(See
+<B><A HREF="/man/index.html?7+pthreads">pthreads</A></B>(7)
+
+for a description of Linux threading libraries.)
+<A NAME="lbAK">&nbsp;</A>
+<H3>History</H3>
+
+The
+<B>vfork</B>()
+
+system call appeared in 3.0BSD.
+
+
+In 4.4BSD it was made synonymous to
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2)
+
+but NetBSD introduced it again,
+cf. <A HREF="http://www.netbsd.org/Documentation/kernel/vfork.html">http://www.netbsd.org/Documentation/kernel/vfork.html</A> .
+In Linux, it has been equivalent to
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2)
+
+until 2.2.0-pre6 or so.
+Since 2.2.0-pre9 (on i386, somewhat later on
+other architectures) it is an independent system call.
+Support was added in glibc 2.0.112.
+<A NAME="lbAL">&nbsp;</A>
+<H2>BUGS</H2>
+
+It is rather unfortunate that Linux revived this specter from the past.
+The BSD man page states:
+&quot;This system call will be eliminated when proper system sharing mechanisms
+are implemented.
+Users should not depend on the memory sharing semantics of
+<B>vfork</B>()
+
+as it will, in that case, be made synonymous to
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2).&quot;
+<P>
+Details of the signal handling are obscure and differ between systems.
+The BSD man page states:
+&quot;To avoid a possible deadlock situation, processes that are children
+in the middle of a
+<B>vfork</B>()
+
+are never sent
+<B>SIGTTOU</B>
+
+or
+<B>SIGTTIN</B>
+
+signals; rather, output or
+<I>ioctl</I>s
+
+are allowed and input attempts result in an end-of-file indication.&quot;
+
+
+
+
+
+
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+clone">clone</A></B>(2),
+
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2),
+
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2),
+
+<B><A HREF="/man/index.html?2+unshare">unshare</A></B>(2),
+
+<B><A HREF="/man/index.html?2+wait">wait</A></B>(2)
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Standard Description</A><DD>
+<DT><A HREF="#lbAF">Linux Description</A><DD>
+<DT><A HREF="#lbAG">Historic Description</A><DD>
+</DL>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DL>
+<DT><A HREF="#lbAJ">Linux Notes</A><DD>
+<DT><A HREF="#lbAK">History</A><DD>
+</DL>
+<DT><A HREF="#lbAL">BUGS</A><DD>
+<DT><A HREF="#lbAM">SEE ALSO</A><DD>
+<DT><A HREF="#lbAN">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:06 GMT, December 24, 2015
+</div></body>
+</HTML>

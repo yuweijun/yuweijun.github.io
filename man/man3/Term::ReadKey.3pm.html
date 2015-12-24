@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of ReadKey</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>ReadKey</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2005-01-11<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Term::ReadKey - A perl module for simple terminal control
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+        use Term::ReadKey;
+        ReadMode 4; # Turn off controls keys
+        while (not defined ($key = ReadKey(-1))) {
+                # No key yet
+        }
+        print &quot;Get key $key\n&quot;;
+        ReadMode 0; # Reset tty mode before exiting
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Term::ReadKey is a compiled perl module dedicated to providing simple
+control over terminal driver modes (cbreak, raw, cooked, etc.,) support for
+non-blocking reads, if the architecture allows, and some generalized handy
+functions for working with terminals. One of the main goals is to have the
+functions as portable as possible, so you can just plug in ``use
+Term::ReadKey'' on any architecture and have a good likelyhood of it working.
+<DL COMPACT>
+<DT>ReadMode <FONT SIZE="-1">MODE</FONT> [, Filehandle]<DD>
+<A NAME="ixAAE"></A>
+Takes an integer argument, which can currently be one of the following 
+values:
+
+
+<P>
+
+
+
+
+<PRE>
+    0    Restore original settings.
+    1    Change to cooked mode.
+    2    Change to cooked mode with echo off. 
+          (Good for passwords)
+    3    Change to cbreak mode.
+    4    Change to raw mode.
+    5    Change to ultra-raw mode. 
+          (LF to CR/LF translation turned off) 
+          
+    Or, you may use the synonyms:
+    
+    restore
+    normal
+    noecho
+    cbreak
+    raw
+    ultra-raw
+
+</PRE>
+
+
+
+
+<P>
+
+
+These functions are automatically applied to the <FONT SIZE="-1">STDIN</FONT> handle if no
+other handle is supplied. Modes 0 and 5 have some special properties
+worth mentioning: not only will mode 0 restore original settings, but it
+cause the next ReadMode call to save a new set of default settings. Mode
+5 is similar to mode 4, except no <FONT SIZE="-1">CR/LF</FONT> translation is performed, and if
+possible, parity will be disabled (only if not being used by the terminal,
+however. It is no different from mode 4 under Windows.)
+
+
+<P>
+
+
+If you are executing another program that may be changing the terminal mode,
+you will either want to say
+
+
+<P>
+
+
+
+
+<PRE>
+    ReadMode 1
+    system('someprogram');
+    ReadMode 1;
+
+</PRE>
+
+
+
+
+<P>
+
+
+which resets the settings after the program has run, or:
+
+
+<P>
+
+
+
+
+<PRE>
+    $somemode=1;
+    ReadMode 0;
+    system('someprogram');
+    ReadMode 1;
+
+</PRE>
+
+
+
+
+<P>
+
+
+which records any changes the program may have made, before resetting the
+mode.
+<DT>ReadKey <FONT SIZE="-1">MODE</FONT> [, Filehandle]<DD>
+<A NAME="ixAAF"></A>
+Takes an integer argument, which can currently be one of the following 
+values:
+
+
+<P>
+
+
+
+
+<PRE>
+    0    Perform a normal read using getc
+    -1   Perform a non-blocked read
+    &gt;0   Perform a timed read
+
+</PRE>
+
+
+
+
+<P>
+
+
+(If the filehandle is not supplied, it will default to <FONT SIZE="-1">STDIN</FONT>.) If there is
+nothing waiting in the buffer during a non-blocked read, then undef will be
+returned. Note that if the <FONT SIZE="-1">OS</FONT> does not provide any known mechanism for
+non-blocking reads, then a <TT>&quot;ReadKey -1&quot;</TT> can die with a fatal error. This
+will hopefully not be common.
+
+
+<P>
+
+
+If <FONT SIZE="-1">MODE</FONT> is greater then zero, then ReadKey will use it as a timeout value in
+seconds (fractional seconds are allowed), and won't return <TT>&quot;undef&quot;</TT> until
+that time expires. (Note, again, that some <FONT SIZE="-1">OS</FONT>'s may not support this timeout
+behaviour.) If <FONT SIZE="-1">MODE</FONT> is less then zero, then this is treated as a timeout
+of zero, and thus will return immediately if no character is waiting. A <FONT SIZE="-1">MODE</FONT>
+of zero, however, will act like a normal getc.
+
+
+<P>
+
+
+There are currently some limitations with this call under Windows. It may be
+possible that non-blocking reads will fail when reading repeating keys from
+more then one console.
+<DT>ReadLine <FONT SIZE="-1">MODE</FONT> [, Filehandle]<DD>
+<A NAME="ixAAG"></A>
+Takes an integer argument, which can currently be one of the following 
+values:
+
+
+<P>
+
+
+
+
+<PRE>
+    0    Perform a normal read using scalar(&lt;FileHandle&gt;)
+    -1   Perform a non-blocked read
+    &gt;0   Perform a timed read
+
+</PRE>
+
+
+
+
+<P>
+
+
+If there is nothing waiting in the buffer during a non-blocked read, then
+undef will be returned. Note that if the <FONT SIZE="-1">OS</FONT> does not provide any known
+mechanism for non-blocking reads, then a <TT>&quot;ReadLine 1&quot;</TT> can die with a fatal
+error. This will hopefully not be common. Note that a non-blocking test is
+only performed for the first character in the line, not the entire line.
+This call will probably <B>not</B> do what you assume, especially with
+ReadMode's higher then 1. For example, pressing Space and then Backspace
+would appear to leave you where you started, but any timeouts would now
+be suspended.
+
+
+<P>
+
+
+This call is currently not available under Windows.
+<DT>GetTerminalSize [Filehandle]<DD>
+<A NAME="ixAAH"></A>
+Returns either an empty array if this operation is unsupported, or a four
+element array containing: the width of the terminal in characters, the
+height of the terminal in character, the width in pixels, and the height in
+pixels. (The pixel size will only be valid in some environments.)
+
+
+<P>
+
+
+Under Windows, this function must be called with an ``output'' filehandle,
+such as <FONT SIZE="-1">STDOUT</FONT>, or a handle opened to <FONT SIZE="-1">CONOUT$</FONT>.
+<DT>SetTerminalSize <FONT SIZE="-1">WIDTH</FONT>,HEIGHT,XPIX,YPIX [, Filehandle]<DD>
+<A NAME="ixAAI"></A>
+Return -1 on failure, 0 otherwise. Note that this terminal size is only for
+<B>informative</B> value, and changing the size via this mechanism will <B>not</B>
+change the size of the screen. For example, XTerm uses a call like this when
+it resizes the screen. If any of the new measurements vary from the old, the
+<FONT SIZE="-1">OS</FONT> will probably send a <FONT SIZE="-1">SIGWINCH</FONT> signal to anything reading that tty or pty.
+
+
+<P>
+
+
+This call does not work under Windows.
+<DT>GetSpeeds [, Filehandle]<DD>
+<A NAME="ixAAJ"></A>
+Returns either an empty array if the operation is unsupported, or a two
+value array containing the terminal in and out speeds, in <B>decimal</B>. E.g,
+an in speed of 9600 baud and an out speed of 4800 baud would be returned as
+(9600,4800). Note that currently the in and out speeds will always be
+identical in some <FONT SIZE="-1">OS</FONT>'s. No speeds are reported under Windows.
+<DT>GetControlChars [, Filehandle]<DD>
+<A NAME="ixAAK"></A>
+Returns an array containing key/value pairs suitable for a hash. The pairs
+consist of a key, the name of the control character/signal, and the value
+of that character, as a single character. This call does nothing under Windows.
+
+
+<P>
+
+
+Each key will be an entry from the following list:
+
+
+<P>
+
+
+
+
+<PRE>
+        DISCARD
+        DSUSPEND
+        EOF
+        EOL
+        EOL2
+        ERASE
+        ERASEWORD
+        INTERRUPT
+        KILL
+        MIN
+        QUIT
+        QUOTENEXT
+        REPRINT
+        START
+        STATUS
+        STOP
+        SUSPEND
+        SWITCH
+        TIME
+
+</PRE>
+
+
+
+
+<P>
+
+
+Thus, the following will always return the current interrupt character,
+regardless of platform.
+
+
+<P>
+
+
+
+
+<PRE>
+        %keys = GetControlChars;
+        $int = $keys{INTERRUPT};
+
+</PRE>
+
+
+<DT>SetControlChars [, Filehandle]<DD>
+<A NAME="ixAAL"></A>
+Takes an array containing key/value pairs, as a hash will produce. The pairs
+should consist of a key that is the name of a legal control
+character/signal, and the value should be either a single character, or a
+number in the range 0-255. SetControlChars will die with a runtime error if
+an invalid character name is passed or there is an error changing the
+settings. The list of valid names is easily available via
+
+
+<P>
+
+
+
+
+<PRE>
+        %cchars = GetControlChars();
+        @cnames = keys %cchars;
+
+</PRE>
+
+
+
+
+<P>
+
+
+This call does nothing under Windows.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAM"></A>
+Kenneth Albanowski &lt;<A HREF="mailto:kjahds@kjahds.com">kjahds@kjahds.com</A>&gt;
+<P>
+
+Currently maintained by Jonathan Stowe &lt;<A HREF="mailto:jns@gellyfish.com">jns@gellyfish.com</A>&gt;
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:43 GMT, December 24, 2015
+</div></body>
+</HTML>

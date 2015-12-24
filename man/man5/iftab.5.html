@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of IFTAB</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>IFTAB</H1>
+Section: Linux Programmer's Manual (5)<BR>Updated: 26 February 2007<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+iftab - static information about the network interfaces
+
+
+
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The file
+<B>/etc/iftab</B>
+
+contains descriptive information about the various network interfaces.
+<B>iftab</B>
+
+is only used by the program
+<I><A HREF="/man/index.html?8+ifrename">ifrename</A></I>(8)
+
+to assign a consistent network interface name to each network interface.
+<P>
+
+<B>/etc/iftab</B>
+
+defines a set of
+<I>mappings</I>.
+
+Each mapping contains an interface name and a set of selectors. The
+selectors allow
+<B>ifrename</B>
+
+to identify each network interface on the system. If a network
+interface matches all descriptors of a mapping,
+<B>ifrename</B>
+
+attempt to change the name of the interface to the interface name
+given by the mapping.
+
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>MAPPINGS</H2>
+
+Each mapping is described on a separate line, it starts with an
+<I>interface name</I>,
+
+and contains a set of
+<I>descriptors</I>,
+
+separated by space or tabs.
+<P>
+
+The relationship between descriptors of a mapping is a
+<I>logical and</I>.
+
+A mapping matches a network interface only is all the descriptors
+match. If a network interface doesn't support a specific descriptor,
+it won't match any mappings using this descriptor.
+<P>
+
+If you want to use alternate descriptors for an interface name
+(logical or), specify two different mappings with the same interface
+name (one on each line).
+<B>Ifrename</B>
+
+always use the first matching mapping starting from the
+<I>end</I>
+
+of
+<B>iftab</B>,
+
+therefore more restrictive mapping should be specified last.
+
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>INTERFACE NAME</H2>
+
+The first part of each mapping is an interface name. If a network
+interface matches all descriptors of a mapping,
+<B>ifrename</B>
+
+attempt to change the name of the interface to the interface name
+given by the mapping.
+<P>
+
+The interface name of a mapping is either a plain interface name (such as
+<I>eth2</I> or <I>wlan1</I>)
+
+or a interface name pattern containing a single wildcard (such as
+<I>eth*</I> or <I>wlan*</I>).
+
+In case of wildcard, the kernel replace the '*' with the lowest
+available integer making this interface name unique. Note that
+wildcard is only supported for kernel 2.6.1 and 2.4.30 and later.
+<P>
+
+It is discouraged to try to map interfaces to default interfaces names
+such as
+<I>eth0</I>, <I>wlan0</I> or <I>ppp0</I>.
+
+The kernel use those as the default name for any new interface,
+therefore most likely an interface will already use this name and
+prevent ifrename to use it. Even if you use takeover, the interface
+may already be up in some cases. Not using those name will allow you
+to immediately spot unconfigured or new interfaces.
+<BR>
+
+Good names are either totally unique and meaningfull,
+such as
+<I>mydsl</I> or <I>privatehub</I>,
+
+or use larger integer, such as
+<I>eth5</I> or <I>wlan5</I>.
+
+The second type is usually easier to integrate in various network utilities.
+
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>DESCRIPTORS</H2>
+
+Each descriptor is composed of a descriptor name and descriptor
+value. Descriptors specify a static attribute of a network interface,
+the goal is to uniquely identify each piece of hardware.
+<P>
+
+Most users will only use the
+<B>mac</B>
+
+selector despite its potential problems, other selectors are for more
+specialised setup. Most selectors accept a '*' in the selector value
+for wilcard matching, and most selectors are case insensitive.
+<DL COMPACT>
+<DT><B>mac</B><I> mac address</I>
+
+<DD>
+Matches the MAC Address of the interface with the specified MAC
+address. The MAC address of the interface can be shown using
+<I><A HREF="/man/index.html?8+ifconfig">ifconfig</A></I>(8)
+
+or
+<I><A HREF="/man/index.html?8+ip">ip</A></I>(8).
+
+<BR>
+
+This is the most common selector, as most interfaces have a unique MAC
+address allowing to identify network interfaces without ambiguity.
+However, some interfaces don't have a valid MAC address until they are
+brought up, in such case using this selector is tricky or impossible.
+<DT><B>arp</B><I> arp type</I>
+
+<DD>
+Matches the ARP Type (also called Link Type) of the interface with the
+specified ARP type as a number. The ARP Type of the interface can be
+shown using
+<I><A HREF="/man/index.html?8+ifconfig">ifconfig</A></I>(8)
+
+or
+<I><A HREF="/man/index.html?8+ip">ip</A></I>(8),
+
+the
+<B>link/ether</B>
+
+type correspond to
+<B>1</B>
+
+and the
+<B>link/ieee802.11</B>
+
+type correspond to
+<B>801</B>.
+
+<BR>
+
+This selector is useful when a driver create multiple network
+interfaces for a single network card.
+<DT><B>driver</B><I> driver name</I>
+
+<DD>
+Matches the Driver Name of the interface with the specified driver
+name. The Driver Name of the interface can be shown using
+<I>ethtool <A HREF="/man/index.html?8+-i">-i</A></I>(8).
+
+<DT><B>businfo</B><I> bus information</I>
+
+<DD>
+Matches the Bus Information of the interface with the specified bus
+information. The Bus Information of the interface can be shown using
+<I>ethtool <A HREF="/man/index.html?8+-i">-i</A></I>(8).
+
+<DT><B>firmware</B><I> firmware revision</I>
+
+<DD>
+Matches the Firmware Revision of the interface with the firmware
+revision information. The Firmware Revision of the interface can be
+shown using
+<I>ethtool <A HREF="/man/index.html?8+-i">-i</A></I>(8).
+
+<DT><B>baseaddress</B><I> base address</I>
+
+<DD>
+Matches the Base Address of the interface with the specified base
+address. The Base Address of the interface can be shown using
+<I><A HREF="/man/index.html?8+ifconfig">ifconfig</A></I>(8).
+
+<BR>
+
+Because most cards use dynamic allocation of the Base Address, this
+selector is only useful for ISA and EISA cards.
+<DT><B>irq</B><I> irq line</I>
+
+<DD>
+Matches the IRQ Line (interrupt) of the interface with the specified
+IRQ line. The IRQ Line of the interface can be shown using
+<I><A HREF="/man/index.html?8+ifconfig">ifconfig</A></I>(8).
+
+<BR>
+
+Because there are IRQ Lines may be shared, this selector is usually
+not sufficient to uniquely identify an interface.
+<DT><B>iwproto</B><I> wireless protocol</I>
+
+<DD>
+Matches the Wireless Protocol of the interface with the specified
+wireless protocol. The Wireless Protocol of the interface can be shown
+using
+<I><A HREF="/man/index.html?8+iwconfig">iwconfig</A></I>(8)
+
+or
+<I><A HREF="/man/index.html?8+iwgetid">iwgetid</A></I>(8).
+
+<BR>
+
+This selector is only supported on wireless interfaces and is not
+sufficient to uniquely identify an interface.
+<DT><B>pcmciaslot</B><I> pcmcia slot</I>
+
+<DD>
+Matches the Pcmcia Socket number of the interface with the specified
+slot number. Pcmcia Socket number of the interface can be shown
+using
+<I>cardctl <A HREF="/man/index.html?8+ident">ident</A></I>(8).
+
+<BR>
+
+This selector is usually only supported on 16 bits cards, for 32 bits
+cards it is advised to use the selector
+<B>businfo</B>.
+
+<DT><B>prevname</B><I> previous interface name</I>
+
+<DD>
+Matches the name of the interface prior to renaming with the specified
+oldname.
+<BR>
+
+This selector should be avoided as the previous interface name may
+vary depending on various condition. A system/kernel/driver update may
+change the original name. Then, ifrename or another tool may rename it
+prior to the execution of this selector.
+<DT><B>SYSFS{</B><I>filename</I><B>}</B><I> value</I>
+
+<DD>
+Matches the content the sysfs attribute given by filename to the
+specified value. For symlinks and parents directories, match the
+actual directory name of the sysfs attribute given by filename to the
+specified value.
+<BR>
+
+A list of the most useful sysfs attributes is given in the next
+section.
+
+
+
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>SYSFS DESCRIPTORS</H2>
+
+Sysfs attributes for a specific interface are located on most systems
+in the directory named after that interface at
+<I>/sys/class/net/</I>.
+
+Most sysfs attribute are files, and their values can be read using
+<I><A HREF="/man/index.html?1+cat">cat</A></I>(1) or <I><A HREF="http://localhost/cgi-bin/man/man2html?1+more">more</A></I>(1).
+
+It is also possible to match attributes in subdirectories.
+<P>
+
+Some sysfs attributes are symlinks, pointing to another directory in
+sysfs. If the attribute filename is a symlink the sysfs attribute
+resolves to the name of the directory pointed by the symlink using
+<I><A HREF="/man/index.html?1+readlink">readlink</A></I>(1).
+
+The location is a directory in the sysfs tree is also important. If
+the attribute filename ends with
+<I>/..</I>,
+
+the sysfs attribute resolves to the real name of the parent directory
+using
+<I><A HREF="/man/index.html?1+pwd">pwd</A></I>(1).
+
+<P>
+
+The sysfs filesystem is only supported with 2.6.X kernel and need to
+be mounted (usually in 
+<I>/sys</I>).
+
+sysfs selectors are not as efficient as other selectors, therefore
+they should be avoided for maximum performance.
+<P>
+
+These are common sysfs attributes and their corresponding ifrename
+descriptors.
+<DL COMPACT>
+<DT><B>SYSFS{address}</B><I> value</I>
+
+<DD>
+Same as the
+<B>mac</B>
+
+descriptor.
+<DT><B>SYSFS{type}</B><I> value</I>
+
+<DD>
+Same as the
+<B>arp</B>
+
+descriptor.
+<DT><B>SYSFS{device}</B><I> value</I>
+
+<DD>
+Valid only up to kernel 2.6.20. Same as the
+<B>businfo</B>
+
+descriptor.
+<DT><B>SYSFS{..}</B><I> value</I>
+
+<DD>
+Valid only from kernel 2.6.21. Same as the
+<B>businfo</B>
+
+descriptor.
+<DT><B>SYSFS{device/driver}</B><I> value</I>
+
+<DD>
+Valid only up to kernel 2.6.20. Same as the
+<B>driver</B>
+
+descriptor.
+<DT><B>SYSFS{../driver}</B><I> value</I>
+
+<DD>
+Valid only from kernel 2.6.21. Same as the
+<B>driver</B>
+
+descriptor.
+<DT><B>SYSFS{device/irq}</B><I> value</I>
+
+<DD>
+Valid only up to kernel 2.6.20. Same as the
+<B>irq</B>
+
+descriptor.
+<DT><B>SYSFS{../irq}</B><I> value</I>
+
+<DD>
+Valid only from kernel 2.6.21. Same as the
+<B>irq</B>
+
+descriptor.
+
+
+
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+# This is a comment
+<BR>
+
+eth2<TT>&nbsp;&nbsp;&nbsp;</TT><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT>mac 08:00:09:DE:82:0E<BR>
+<BR>
+
+eth3<TT>&nbsp;&nbsp;&nbsp;</TT><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT>driver wavelan interrupt 15 baseaddress 0x390<BR>
+<BR>
+
+eth4<TT>&nbsp;&nbsp;&nbsp;</TT><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT>driver pcnet32 businfo 0000:02:05.0<BR>
+<BR>
+
+air*<TT>&nbsp;&nbsp;&nbsp;</TT><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT>mac 00:07:0E:* arp 1<BR>
+<BR>
+
+myvpn<TT>&nbsp;&nbsp;</TT>SYSFS{address} 00:10:83:* SYSFS{type} 1<BR>
+<BR>
+
+bcm*<TT>&nbsp;&nbsp;&nbsp;</TT><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT>SYSFS{device} 0000:03:00.0 SYSFS{device/driver} bcm43xx<BR>
+<BR>
+
+bcm*<TT>&nbsp;&nbsp;&nbsp;</TT><TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT>SYSFS{..} 0000:03:00.0 SYSFS{../driver} bcm43xx<BR>
+
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Jean Tourrilhes - <A HREF="mailto:jt@hpl.hp.com">jt@hpl.hp.com</A>
+
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>FILES</H2>
+
+<I>/etc/iftab</I>
+
+
+
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?8+ifrename">ifrename</A></B>(8),
+
+<B><A HREF="/man/index.html?8+ifconfig">ifconfig</A></B>(8),
+
+<B><A HREF="/man/index.html?8+ip">ip</A></B>(8),
+
+<B><A HREF="/man/index.html?8+ethtool">ethtool</A></B>(8),
+
+<B><A HREF="/man/index.html?8+iwconfig">iwconfig</A></B>(8).
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">MAPPINGS</A><DD>
+<DT><A HREF="#lbAE">INTERFACE NAME</A><DD>
+<DT><A HREF="#lbAF">DESCRIPTORS</A><DD>
+<DT><A HREF="#lbAG">SYSFS DESCRIPTORS</A><DD>
+<DT><A HREF="#lbAH">EXAMPLES</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+<DT><A HREF="#lbAJ">FILES</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

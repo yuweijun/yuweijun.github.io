@@ -1,0 +1,2036 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERLDELTA</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERLDELTA</H1>
+Section: Perl Programmers Reference Guide (1)<BR>Updated: 2009-08-22<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perldelta - what is new for perl v5.10.1
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+This document describes differences between the 5.10.0 release and
+the 5.10.1 release.
+<P>
+
+If you are upgrading from an earlier release such as 5.8.8, first read
+the perl5100delta, which describes differences between 5.8.8 and
+5.10.0
+<A NAME="lbAD">&nbsp;</A>
+<H2>Incompatible Changes</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Switch statement changes</H3>
+
+<A NAME="ixAAE"></A>
+The handling of complex expressions by the <TT>&quot;given&quot;</TT>/<TT>&quot;when&quot;</TT> switch
+statement has been enhanced. There are two new cases where <TT>&quot;when&quot;</TT> now
+interprets its argument as a boolean, instead of an expression to be used
+in a smart match:
+<DL COMPACT>
+<DT>flip-flop operators<DD>
+<A NAME="ixAAF"></A>
+The <TT>&quot;..&quot;</TT> and <TT>&quot;...&quot;</TT> flip-flop operators are now evaluated in boolean
+context, following their usual semantics; see ``Range Operators'' in perlop.
+
+
+<P>
+
+
+Note that, as in perl 5.10.0, <TT>&quot;when (1..10)&quot;</TT> will not work to test
+whether a given value is an integer between 1 and 10; you should use
+<TT>&quot;when ([1..10])&quot;</TT> instead (note the array reference).
+
+
+<P>
+
+
+However, contrary to 5.10.0, evaluating the flip-flop operators in boolean
+context ensures it can now be useful in a <TT>&quot;when()&quot;</TT>, notably for
+implementing bistable conditions, like in:
+
+
+<P>
+
+
+
+
+<PRE>
+    when (/^=begin/ .. /^=end/) {
+      # do something
+    }
+
+</PRE>
+
+
+<DT>defined-or operator<DD>
+<A NAME="ixAAG"></A>
+A compound expression involving the defined-or operator, as in
+<TT>&quot;when (expr1 // expr2)&quot;</TT>, will be treated as boolean if the first
+expression is boolean. (This just extends the existing rule that applies
+to the regular or operator, as in <TT>&quot;when (expr1 || expr2)&quot;</TT>.)
+</DL>
+<P>
+
+The next section details more changes brought to the semantics to
+the smart match operator, that naturally also modify the behaviour
+of the switch statements where smart matching is implicitly used.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Smart match changes</H3>
+
+<A NAME="ixAAH"></A>
+<I>Changes to type-based dispatch</I>
+<A NAME="ixAAI"></A>
+<P>
+
+The smart match operator <TT>&quot;~~&quot;</TT> is no longer commutative. The behaviour of
+a smart match now depends primarily on the type of its right hand
+argument. Moreover, its semantics have been adjusted for greater
+consistency or usefulness in several cases. While the general backwards
+compatibility is maintained, several changes must be noted:
+<DL COMPACT>
+<DT>*<DD>
+Code references with an empty prototype are no longer treated specially.
+They are passed an argument like the other code references (even if they
+choose to ignore it).
+<DT>*<DD>
+<TT>&quot;%hash ~~ sub {}&quot;</TT> and <TT>&quot;@array ~~ sub {}&quot;</TT> now test that the subroutine
+returns a true value for each key of the hash (or element of the
+array), instead of passing the whole hash or array as a reference to
+the subroutine.
+<DT>*<DD>
+Due to the commutativity breakage, code references are no longer
+treated specially when appearing on the left of the <TT>&quot;~~&quot;</TT> operator,
+but like any vulgar scalar.
+<DT>*<DD>
+<TT>&quot;undef ~~ %hash&quot;</TT> is always false (since <TT>&quot;undef&quot;</TT> can't be a key in a
+hash). No implicit conversion to <TT>&quot;&quot;</TT> is done (as was the case in perl
+5.10.0).
+<DT>*<DD>
+<TT>&quot;$scalar ~~ @array&quot;</TT> now always distributes the smart match across the
+elements of the array. It's true if one element in <TT>@array</TT> verifies
+<TT>&quot;$scalar ~~ $element&quot;</TT>. This is a generalization of the old behaviour
+that tested whether the array contained the scalar.
+</DL>
+<P>
+
+The full dispatch table for the smart match operator is given in
+``Smart matching in detail'' in perlsyn.
+<P>
+
+<I>Smart match and overloading</I>
+<A NAME="ixAAJ"></A>
+<P>
+
+According to the rule of dispatch based on the rightmost argument type,
+when an object overloading <TT>&quot;~~&quot;</TT> appears on the right side of the
+operator, the overload routine will always be called (with a 3rd argument
+set to a true value, see overload.) However, when the object will
+appear on the left, the overload routine will be called only when the
+rightmost argument is a simple scalar. This way distributivity of smart match
+across arrays is not broken, as well as the other behaviours with complex
+types (coderefs, hashes, regexes). Thus, writers of overloading routines
+for smart match mostly need to worry only with comparing against a scalar,
+and possibly with stringification overloading; the other common cases
+will be automatically handled consistently.
+<P>
+
+<TT>&quot;~~&quot;</TT> will now refuse to work on objects that do not overload it (in order
+to avoid relying on the object's underlying structure). (However, if the
+object overloads the stringification or the numification operators, and
+if overload fallback is active, it will be used instead, as usual.)
+<A NAME="lbAG">&nbsp;</A>
+<H3>Other incompatible changes</H3>
+
+<A NAME="ixAAK"></A>
+<DL COMPACT>
+<DT>*<DD>
+The semantics of <TT>&quot;use feature :5.10*&quot;</TT> have changed slightly.
+See ``Modules and Pragmata'' for more information.
+<DT>*<DD>
+It is now a run-time error to use the smart match operator <TT>&quot;~~&quot;</TT>
+with an object that has no overload defined for it. (This way
+<TT>&quot;~~&quot;</TT> will not break encapsulation by matching against the
+object's internal representation as a reference.)
+<DT>*<DD>
+The version control system used for the development of the perl
+interpreter has been switched from Perforce to git.  This is mainly an
+internal issue that only affects people actively working on the perl core;
+but it may have minor external visibility, for example in some of details
+of the output of <TT>&quot;perl -V&quot;</TT>. See perlrepository for more information.
+<DT>*<DD>
+The internal structure of the <TT>&quot;ext/&quot;</TT> directory in the perl source has
+been reorganised. In general, a module <TT>&quot;Foo::Bar&quot;</TT> whose source was
+stored under <I>ext/Foo/Bar/</I> is now located under <I>ext/Foo-Bar/</I>. Also,
+some modules have been moved from <I>lib/</I> to <I>ext/</I>. This is purely a
+source tarball change, and should make no difference to the compilation or
+installation of perl, unless you have a very customised build process that
+explicitly relies on this structure, or which hard-codes the <TT>&quot;nonxs_ext&quot;</TT>
+<I>Configure</I> parameter. Specifically, this change does not by default
+alter the location of any files in the final installation.
+<DT>*<DD>
+As part of the <TT>&quot;Test::Harness&quot;</TT> 2.x to 3.x upgrade, the experimental
+<TT>&quot;Test::Harness::Straps&quot;</TT> module has been removed.
+See ``Updated Modules'' for more details.
+<DT>*<DD>
+As part of the <TT>&quot;ExtUtils::MakeMaker&quot;</TT> upgrade, the
+<TT>&quot;ExtUtils::MakeMaker::bytes&quot;</TT> and <TT>&quot;ExtUtils::MakeMaker::vmsish&quot;</TT> modules
+have been removed from this distribution.
+<DT>*<DD>
+<TT>&quot;Module::CoreList&quot;</TT> no longer contains the <TT>%:patchlevel</TT> hash.
+<DT>*<DD>
+This one is actually a change introduced in 5.10.0, but it was missed
+from that release's perldelta, so it is mentioned here instead.
+
+
+<P>
+
+
+A bugfix related to the handling of the <TT>&quot;/m&quot;</TT> modifier and <TT>&quot;qr&quot;</TT> resulted
+in a change of behaviour between 5.8.x and 5.10.0:
+
+
+<P>
+
+
+
+
+<PRE>
+    # matches in 5.8.x, doesn't match in 5.10.0
+    $re = qr/^bar/; &quot;foo\nbar&quot; =~ /$re/m;
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>Core Enhancements</H2>
+
+<A NAME="ixAAL"></A>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Unicode Character Database 5.1.0</H3>
+
+<A NAME="ixAAM"></A>
+The copy of the Unicode Character Database included in Perl 5.10.1 has
+been updated to 5.1.0 from 5.0.0. See
+&lt;<A HREF="http://www.unicode.org/versions/Unicode5.1.0/#NotableChanges">http://www.unicode.org/versions/Unicode5.1.0/#NotableChanges</A>&gt; for the
+notable changes.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>A proper interface for pluggable Method Resolution Orders</H3>
+
+<A NAME="ixAAN"></A>
+As of Perl 5.10.1 there is a new interface for plugging and using method
+resolution orders other than the default (linear depth first search).
+The C3 method resolution order added in 5.10.0 has been re-implemented as
+a plugin, without changing its Perl-space interface. See perlmroapi for
+more information.
+<A NAME="lbAK">&nbsp;</A>
+<H3>The overloading pragma</H3>
+
+
+
+<A NAME="ixAAO"></A>
+This pragma allows you to lexically disable or enable overloading
+for some or all operations. (Yuval Kogman)
+<A NAME="lbAL">&nbsp;</A>
+<H3>Parallel tests</H3>
+
+<A NAME="ixAAP"></A>
+The core distribution can now run its regression tests in parallel on
+Unix-like platforms. Instead of running <TT>&quot;make test&quot;</TT>, set <TT>&quot;TEST_JOBS&quot;</TT> in
+your environment to the number of tests to run in parallel, and run
+<TT>&quot;make test_harness&quot;</TT>. On a Bourne-like shell, this can be done as
+<P>
+
+
+
+<PRE>
+    TEST_JOBS=3 make test_harness  # Run 3 tests in parallel
+
+</PRE>
+
+
+<P>
+
+An environment variable is used, rather than parallel make itself, because
+TAP::Harness needs to be able to schedule individual non-conflicting test
+scripts itself, and there is no standard interface to <TT>&quot;make&quot;</TT> utilities to
+interact with their job schedulers.
+<P>
+
+Note that currently some test scripts may fail when run in parallel (most
+notably <TT>&quot;ext/IO/t/io_dir.t&quot;</TT>). If necessary run just the failing scripts
+again sequentially and see if the failures go away.
+<A NAME="lbAM">&nbsp;</A>
+<H3>DTrace support</H3>
+
+<A NAME="ixAAQ"></A>
+Some support for DTrace has been added. See ``DTrace support'' in <I></I><FONT SIZE="-1"><I>INSTALL</I></FONT><I></I>.
+<A NAME="lbAN">&nbsp;</A>
+<H3>Support for configure_requires in <FONT SIZE="-1">CPAN</FONT> module metadata</H3>
+
+
+
+<A NAME="ixAAR"></A>
+Both <TT>&quot;CPAN&quot;</TT> and <TT>&quot;CPANPLUS&quot;</TT> now support the <TT>&quot;configure_requires&quot;</TT> keyword
+in the <TT>&quot;META.yml&quot;</TT> metadata file included in most recent <FONT SIZE="-1">CPAN</FONT> distributions.
+This allows distribution authors to specify configuration prerequisites that
+must be installed before running <I>Makefile.PL</I> or <I>Build.PL</I>.
+<P>
+
+See the documentation for <TT>&quot;ExtUtils::MakeMaker&quot;</TT> or <TT>&quot;Module::Build&quot;</TT> for more
+on how to specify <TT>&quot;configure_requires&quot;</TT> when creating a distribution for <FONT SIZE="-1">CPAN</FONT>.
+<A NAME="lbAO">&nbsp;</A>
+<H2>Modules and Pragmata</H2>
+
+<A NAME="ixAAS"></A>
+<A NAME="lbAP">&nbsp;</A>
+<H3>New Modules and Pragmata</H3>
+
+<A NAME="ixAAT"></A>
+<DL COMPACT>
+<DT>autodie<DD>
+
+
+<A NAME="ixAAU"></A>
+This is a new lexically-scoped alternative for the <TT>&quot;Fatal&quot;</TT> module.
+The bundled version is 2.06_01. Note that in this release, using a string
+eval when <TT>&quot;autodie&quot;</TT> is in effect can cause the autodie behaviour to leak
+into the surrounding scope. See ``<FONT SIZE="-1">BUGS</FONT>'' in autodie for more details.
+<DT>Compress::Raw::Bzip2<DD>
+
+
+<A NAME="ixAAV"></A>
+This has been added to the core (version 2.020).
+<DT>parent<DD>
+
+
+<A NAME="ixAAW"></A>
+This pragma establishes an <FONT SIZE="-1">ISA</FONT> relationship with base classes at compile
+time. It provides the key feature of <TT>&quot;base&quot;</TT> without the feature creep.
+<DT>Parse::CPAN::Meta<DD>
+
+
+<A NAME="ixAAX"></A>
+This has been added to the core (version 1.39).
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H3>Pragmata Changes</H3>
+
+<A NAME="ixAAY"></A>
+<DL COMPACT>
+<DT>attributes<DD>
+
+
+<A NAME="ixAAZ"></A>
+Upgraded from version 0.08 to 0.09.
+<DT>attrs<DD>
+
+
+<A NAME="ixABA"></A>
+Upgraded from version 1.02 to 1.03.
+<DT>base<DD>
+
+
+<A NAME="ixABB"></A>
+Upgraded from version 2.13 to 2.14. See parent for a replacement.
+<DT>bigint<DD>
+
+
+<A NAME="ixABC"></A>
+Upgraded from version 0.22 to 0.23.
+<DT>bignum<DD>
+
+
+<A NAME="ixABD"></A>
+Upgraded from version 0.22 to 0.23.
+<DT>bigrat<DD>
+
+
+<A NAME="ixABE"></A>
+Upgraded from version 0.22 to 0.23.
+<DT>charnames<DD>
+
+
+<A NAME="ixABF"></A>
+Upgraded from version 1.06 to 1.07.
+
+
+<P>
+
+
+The Unicode <I>NameAliases.txt</I> database file has been added. This has the
+effect of adding some extra <TT>&quot;\N&quot;</TT> character names that formerly wouldn't
+have been recognised; for example, <TT>&quot;\N{LATIN CAPITAL LETTER GHA}&quot;</TT>.
+<DT>constant<DD>
+
+
+<A NAME="ixABG"></A>
+Upgraded from version 1.13 to 1.17.
+<DT>feature<DD>
+
+
+<A NAME="ixABH"></A>
+The meaning of the <TT>&quot;:5.10&quot;</TT> and <TT>&quot;:5.10.X&quot;</TT> feature bundles has
+changed slightly. The last component, if any (i.e. <TT>&quot;X&quot;</TT>) is simply ignored.
+This is predicated on the assumption that new features will not, in
+general, be added to maintenance releases. So <TT>&quot;:5.10&quot;</TT> and <TT>&quot;:5.10.X&quot;</TT>
+have identical effect. This is a change to the behaviour documented for
+5.10.0.
+<DT>fields<DD>
+
+
+<A NAME="ixABI"></A>
+Upgraded from version 2.13 to 2.14 (this was just a version bump; there
+were no functional changes).
+<DT>lib<DD>
+
+
+<A NAME="ixABJ"></A>
+Upgraded from version 0.5565 to 0.62.
+<DT>open<DD>
+
+
+<A NAME="ixABK"></A>
+Upgraded from version 1.06 to 1.07.
+<DT>overload<DD>
+
+
+<A NAME="ixABL"></A>
+Upgraded from version 1.06 to 1.07.
+<DT>overloading<DD>
+
+
+<A NAME="ixABM"></A>
+See &quot;The <TT>&quot;overloading&quot;</TT> pragma&quot; above.
+<DT>version<DD>
+
+
+<A NAME="ixABN"></A>
+Upgraded from version 0.74 to 0.77.
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H3>Updated Modules</H3>
+
+<A NAME="ixABO"></A>
+<DL COMPACT>
+<DT>Archive::Extract<DD>
+
+
+<A NAME="ixABP"></A>
+Upgraded from version 0.24 to 0.34.
+<DT>Archive::Tar<DD>
+
+
+<A NAME="ixABQ"></A>
+Upgraded from version 1.38 to 1.52.
+<DT>Attribute::Handlers<DD>
+
+
+<A NAME="ixABR"></A>
+Upgraded from version 0.79 to 0.85.
+<DT>AutoLoader<DD>
+
+
+<A NAME="ixABS"></A>
+Upgraded from version 5.63 to 5.68.
+<DT>AutoSplit<DD>
+
+
+<A NAME="ixABT"></A>
+Upgraded from version 1.05 to 1.06.
+<DT>B<DD>
+
+
+<A NAME="ixABU"></A>
+Upgraded from version 1.17 to 1.22.
+<DT>B::Debug<DD>
+
+
+<A NAME="ixABV"></A>
+Upgraded from version 1.05 to 1.11.
+<DT>B::Deparse<DD>
+
+
+<A NAME="ixABW"></A>
+Upgraded from version 0.83 to 0.89.
+<DT>B::Lint<DD>
+
+
+<A NAME="ixABX"></A>
+Upgraded from version 1.09 to 1.11.
+<DT>B::Xref<DD>
+
+
+<A NAME="ixABY"></A>
+Upgraded from version 1.01 to 1.02.
+<DT>Benchmark<DD>
+
+
+<A NAME="ixABZ"></A>
+Upgraded from version 1.10 to 1.11.
+<DT>Carp<DD>
+
+
+<A NAME="ixACA"></A>
+Upgraded from version 1.08 to 1.11.
+<DT>CGI<DD>
+
+
+<A NAME="ixACB"></A>
+Upgraded from version 3.29 to 3.43.
+(also includes the ``default_value for <I>popup_menu()</I>'' fix from 3.45).
+<DT>Compress::Zlib<DD>
+
+
+<A NAME="ixACC"></A>
+Upgraded from version 2.008 to 2.020.
+<DT>CPAN<DD>
+
+
+<A NAME="ixACD"></A>
+Upgraded from version 1.9205 to 1.9402. <TT>&quot;CPAN::FTP&quot;</TT> has a local fix to
+stop it being too verbose on download failure.
+<DT>CPANPLUS<DD>
+
+
+<A NAME="ixACE"></A>
+Upgraded from version 0.84 to 0.88.
+<DT>CPANPLUS::Dist::Build<DD>
+
+
+<A NAME="ixACF"></A>
+Upgraded from version 0.06_02 to 0.36.
+<DT>Cwd<DD>
+
+
+<A NAME="ixACG"></A>
+Upgraded from version 3.25_01 to 3.30.
+<DT>Data::Dumper<DD>
+
+
+<A NAME="ixACH"></A>
+Upgraded from version 2.121_14 to 2.124.
+<DT>DB<DD>
+
+
+<A NAME="ixACI"></A>
+Upgraded from version 1.01 to 1.02.
+<DT>DB_File<DD>
+
+
+<A NAME="ixACJ"></A>
+Upgraded from version 1.816_1 to 1.820.
+<DT>Devel::PPPort<DD>
+
+
+<A NAME="ixACK"></A>
+Upgraded from version 3.13 to 3.19.
+<DT>Digest::MD5<DD>
+
+
+<A NAME="ixACL"></A>
+Upgraded from version 2.36_01 to 2.39.
+<DT>Digest::SHA<DD>
+
+
+<A NAME="ixACM"></A>
+Upgraded from version 5.45 to 5.47.
+<DT>DirHandle<DD>
+
+
+<A NAME="ixACN"></A>
+Upgraded from version 1.01 to 1.03.
+<DT>Dumpvalue<DD>
+
+
+<A NAME="ixACO"></A>
+Upgraded from version 1.12 to 1.13.
+<DT>DynaLoader<DD>
+
+
+<A NAME="ixACP"></A>
+Upgraded from version 1.08 to 1.10.
+<DT>Encode<DD>
+
+
+<A NAME="ixACQ"></A>
+Upgraded from version 2.23 to 2.35.
+<DT>Errno<DD>
+
+
+<A NAME="ixACR"></A>
+Upgraded from version 1.10 to 1.11.
+<DT>Exporter<DD>
+
+
+<A NAME="ixACS"></A>
+Upgraded from version 5.62 to 5.63.
+<DT>ExtUtils::CBuilder<DD>
+
+
+<A NAME="ixACT"></A>
+Upgraded from version 0.21 to 0.2602.
+<DT>ExtUtils::Command<DD>
+
+
+<A NAME="ixACU"></A>
+Upgraded from version 1.13 to 1.16.
+<DT>ExtUtils::Constant<DD>
+
+
+<A NAME="ixACV"></A>
+Upgraded from 0.20 to 0.22. (Note that neither of these versions are
+available on <FONT SIZE="-1">CPAN</FONT>.)
+<DT>ExtUtils::Embed<DD>
+
+
+<A NAME="ixACW"></A>
+Upgraded from version 1.27 to 1.28.
+<DT>ExtUtils::Install<DD>
+
+
+<A NAME="ixACX"></A>
+Upgraded from version 1.44 to 1.54.
+<DT>ExtUtils::MakeMaker<DD>
+
+
+<A NAME="ixACY"></A>
+Upgraded from version 6.42 to 6.55_02.
+
+
+<P>
+
+
+Note that <TT>&quot;ExtUtils::MakeMaker::bytes&quot;</TT> and <TT>&quot;ExtUtils::MakeMaker::vmsish&quot;</TT>
+have been removed from this distribution.
+<DT>ExtUtils::Manifest<DD>
+
+
+<A NAME="ixACZ"></A>
+Upgraded from version 1.51_01 to 1.56.
+<DT>ExtUtils::ParseXS<DD>
+
+
+<A NAME="ixADA"></A>
+Upgraded from version 2.18_02 to 2.2002.
+<DT>Fatal<DD>
+
+
+<A NAME="ixADB"></A>
+Upgraded from version 1.05 to 2.06_01. See also the new pragma <TT>&quot;autodie&quot;</TT>.
+<DT>File::Basename<DD>
+
+
+<A NAME="ixADC"></A>
+Upgraded from version 2.76 to 2.77.
+<DT>File::Compare<DD>
+
+
+<A NAME="ixADD"></A>
+Upgraded from version 1.1005 to 1.1006.
+<DT>File::Copy<DD>
+
+
+<A NAME="ixADE"></A>
+Upgraded from version 2.11 to 2.14.
+<DT>File::Fetch<DD>
+
+
+<A NAME="ixADF"></A>
+Upgraded from version 0.14 to 0.20.
+<DT>File::Find<DD>
+
+
+<A NAME="ixADG"></A>
+Upgraded from version 1.12 to 1.14.
+<DT>File::Path<DD>
+
+
+<A NAME="ixADH"></A>
+Upgraded from version 2.04 to 2.07_03.
+<DT>File::Spec<DD>
+
+
+<A NAME="ixADI"></A>
+Upgraded from version 3.2501 to 3.30.
+<DT>File::stat<DD>
+
+
+<A NAME="ixADJ"></A>
+Upgraded from version 1.00 to 1.01.
+<DT>File::Temp<DD>
+
+
+<A NAME="ixADK"></A>
+Upgraded from version 0.18 to 0.22.
+<DT>FileCache<DD>
+
+
+<A NAME="ixADL"></A>
+Upgraded from version 1.07 to 1.08.
+<DT>FileHandle<DD>
+
+
+<A NAME="ixADM"></A>
+Upgraded from version 2.01 to 2.02.
+<DT>Filter::Simple<DD>
+
+
+<A NAME="ixADN"></A>
+Upgraded from version 0.82 to 0.84.
+<DT>Filter::Util::Call<DD>
+
+
+<A NAME="ixADO"></A>
+Upgraded from version 1.07 to 1.08.
+<DT>FindBin<DD>
+
+
+<A NAME="ixADP"></A>
+Upgraded from version 1.49 to 1.50.
+<DT>GDBM_File<DD>
+
+
+<A NAME="ixADQ"></A>
+Upgraded from version 1.08 to 1.09.
+<DT>Getopt::Long<DD>
+
+
+<A NAME="ixADR"></A>
+Upgraded from version 2.37 to 2.38.
+<DT>Hash::Util::FieldHash<DD>
+
+
+<A NAME="ixADS"></A>
+Upgraded from version 1.03 to 1.04. This fixes a memory leak.
+<DT>I18N::Collate<DD>
+
+
+<A NAME="ixADT"></A>
+Upgraded from version 1.00 to 1.01.
+<DT>IO<DD>
+
+
+<A NAME="ixADU"></A>
+Upgraded from version 1.23_01 to 1.25.
+
+
+<P>
+
+
+This makes non-blocking mode work on Windows in <TT>&quot;IO::Socket::INET&quot;</TT>
+[<FONT SIZE="-1">CPAN</FONT> #43573].
+<DT>IO::Compress::*<DD>
+
+
+<A NAME="ixADV"></A>
+Upgraded from version 2.008 to 2.020.
+<DT>IO::Dir<DD>
+
+
+<A NAME="ixADW"></A>
+Upgraded from version 1.06 to 1.07.
+<DT>IO::Handle<DD>
+
+
+<A NAME="ixADX"></A>
+Upgraded from version 1.27 to 1.28.
+<DT>IO::Socket<DD>
+
+
+<A NAME="ixADY"></A>
+Upgraded from version 1.30_01 to 1.31.
+<DT>IO::Zlib<DD>
+
+
+<A NAME="ixADZ"></A>
+Upgraded from version 1.07 to 1.09.
+<DT>IPC::Cmd<DD>
+
+
+<A NAME="ixAEA"></A>
+Upgraded from version 0.40_1 to 0.46.
+<DT>IPC::Open3<DD>
+
+
+<A NAME="ixAEB"></A>
+Upgraded from version 1.02 to 1.04.
+<DT>IPC::SysV<DD>
+
+
+<A NAME="ixAEC"></A>
+Upgraded from version 1.05 to 2.01.
+<DT>lib<DD>
+
+
+<A NAME="ixAED"></A>
+Upgraded from version 0.5565 to 0.62.
+<DT>List::Util<DD>
+
+
+<A NAME="ixAEE"></A>
+Upgraded from version 1.19 to 1.21.
+<DT>Locale::MakeText<DD>
+
+
+<A NAME="ixAEF"></A>
+Upgraded from version 1.12 to 1.13.
+<DT>Log::Message<DD>
+
+
+<A NAME="ixAEG"></A>
+Upgraded from version 0.01 to 0.02.
+<DT>Math::BigFloat<DD>
+
+
+<A NAME="ixAEH"></A>
+Upgraded from version 1.59 to 1.60.
+<DT>Math::BigInt<DD>
+
+
+<A NAME="ixAEI"></A>
+Upgraded from version 1.88 to 1.89.
+<DT>Math::BigInt::FastCalc<DD>
+
+
+<A NAME="ixAEJ"></A>
+Upgraded from version 0.16 to 0.19.
+<DT>Math::BigRat<DD>
+
+
+<A NAME="ixAEK"></A>
+Upgraded from version 0.21 to 0.22.
+<DT>Math::Complex<DD>
+
+
+<A NAME="ixAEL"></A>
+Upgraded from version 1.37 to 1.56.
+<DT>Math::Trig<DD>
+
+
+<A NAME="ixAEM"></A>
+Upgraded from version 1.04 to 1.20.
+<DT>Memoize<DD>
+
+
+<A NAME="ixAEN"></A>
+Upgraded from version 1.01_02 to 1.01_03 (just a minor documentation
+change).
+<DT>Module::Build<DD>
+
+
+<A NAME="ixAEO"></A>
+Upgraded from version 0.2808_01 to 0.34_02.
+<DT>Module::CoreList<DD>
+
+
+<A NAME="ixAEP"></A>
+Upgraded from version 2.13 to 2.18. This release no longer contains the
+<TT>%Module::CoreList::patchlevel</TT> hash.
+<DT>Module::Load<DD>
+
+
+<A NAME="ixAEQ"></A>
+Upgraded from version 0.12 to 0.16.
+<DT>Module::Load::Conditional<DD>
+
+
+<A NAME="ixAER"></A>
+Upgraded from version 0.22 to 0.30.
+<DT>Module::Loaded<DD>
+
+
+<A NAME="ixAES"></A>
+Upgraded from version 0.01 to 0.02.
+<DT>Module::Pluggable<DD>
+
+
+<A NAME="ixAET"></A>
+Upgraded from version 3.6 to 3.9.
+<DT>NDBM_File<DD>
+
+
+<A NAME="ixAEU"></A>
+Upgraded from version 1.07 to 1.08.
+<DT>Net::Ping<DD>
+
+
+<A NAME="ixAEV"></A>
+Upgraded from version 2.33 to 2.36.
+<DT>NEXT<DD>
+
+
+<A NAME="ixAEW"></A>
+Upgraded from version 0.60_01 to 0.64.
+<DT>Object::Accessor<DD>
+
+
+<A NAME="ixAEX"></A>
+Upgraded from version 0.32 to 0.34.
+<DT>OS2::REXX<DD>
+
+
+<A NAME="ixAEY"></A>
+Upgraded from version 1.03 to 1.04.
+<DT>Package::Constants<DD>
+
+
+<A NAME="ixAEZ"></A>
+Upgraded from version 0.01 to 0.02.
+<DT>PerlIO<DD>
+
+
+<A NAME="ixAFA"></A>
+Upgraded from version 1.04 to 1.06.
+<DT>PerlIO::via<DD>
+
+
+<A NAME="ixAFB"></A>
+Upgraded from version 0.04 to 0.07.
+<DT>Pod::Man<DD>
+
+
+<A NAME="ixAFC"></A>
+Upgraded from version 2.16 to 2.22.
+<DT>Pod::Parser<DD>
+
+
+<A NAME="ixAFD"></A>
+Upgraded from version 1.35 to 1.37.
+<DT>Pod::Simple<DD>
+
+
+<A NAME="ixAFE"></A>
+Upgraded from version 3.05 to 3.07.
+<DT>Pod::Text<DD>
+
+
+<A NAME="ixAFF"></A>
+Upgraded from version 3.08 to 3.13.
+<DT>POSIX<DD>
+
+
+<A NAME="ixAFG"></A>
+Upgraded from version 1.13 to 1.17.
+<DT>Safe<DD>
+
+
+<A NAME="ixAFH"></A>
+Upgraded from 2.12 to 2.18.
+<DT>Scalar::Util<DD>
+
+
+<A NAME="ixAFI"></A>
+Upgraded from version 1.19 to 1.21.
+<DT>SelectSaver<DD>
+
+
+<A NAME="ixAFJ"></A>
+Upgraded from 1.01 to 1.02.
+<DT>SelfLoader<DD>
+
+
+<A NAME="ixAFK"></A>
+Upgraded from 1.11 to 1.17.
+<DT>Socket<DD>
+
+
+<A NAME="ixAFL"></A>
+Upgraded from 1.80 to 1.82.
+<DT>Storable<DD>
+
+
+<A NAME="ixAFM"></A>
+Upgraded from 2.18 to 2.20.
+<DT>Switch<DD>
+
+
+<A NAME="ixAFN"></A>
+Upgraded from version 2.13 to 2.14. Please see ``Deprecations''.
+<DT>Symbol<DD>
+
+
+<A NAME="ixAFO"></A>
+Upgraded from version 1.06 to 1.07.
+<DT>Sys::Syslog<DD>
+
+
+<A NAME="ixAFP"></A>
+Upgraded from version 0.22 to 0.27.
+<DT>Term::ANSIColor<DD>
+
+
+<A NAME="ixAFQ"></A>
+Upgraded from version 1.12 to 2.00.
+<DT>Term::ReadLine<DD>
+
+
+<A NAME="ixAFR"></A>
+Upgraded from version 1.03 to 1.04.
+<DT>Term::UI<DD>
+
+
+<A NAME="ixAFS"></A>
+Upgraded from version 0.18 to 0.20.
+<DT>Test::Harness<DD>
+
+
+<A NAME="ixAFT"></A>
+Upgraded from version 2.64 to 3.17.
+
+
+<P>
+
+
+Note that one side-effect of the 2.x to 3.x upgrade is that the
+experimental <TT>&quot;Test::Harness::Straps&quot;</TT> module (and its supporting
+<TT>&quot;Assert&quot;</TT>, <TT>&quot;Iterator&quot;</TT>, <TT>&quot;Point&quot;</TT> and <TT>&quot;Results&quot;</TT> modules) have been
+removed. If you still need this, then they are available in the
+(unmaintained) <TT>&quot;Test-Harness-Straps&quot;</TT> distribution on <FONT SIZE="-1">CPAN</FONT>.
+<DT>Test::Simple<DD>
+
+
+<A NAME="ixAFU"></A>
+Upgraded from version 0.72 to 0.92.
+<DT>Text::ParseWords<DD>
+
+
+<A NAME="ixAFV"></A>
+Upgraded from version 3.26 to 3.27.
+<DT>Text::Tabs<DD>
+
+
+<A NAME="ixAFW"></A>
+Upgraded from version 2007.1117 to 2009.0305.
+<DT>Text::Wrap<DD>
+
+
+<A NAME="ixAFX"></A>
+Upgraded from version 2006.1117 to 2009.0305.
+<DT>Thread::Queue<DD>
+
+
+<A NAME="ixAFY"></A>
+Upgraded from version 2.00 to 2.11.
+<DT>Thread::Semaphore<DD>
+
+
+<A NAME="ixAFZ"></A>
+Upgraded from version 2.01 to 2.09.
+<DT>threads<DD>
+
+
+<A NAME="ixAGA"></A>
+Upgraded from version 1.67 to 1.72.
+<DT>threads::shared<DD>
+
+
+<A NAME="ixAGB"></A>
+Upgraded from version 1.14 to 1.29.
+<DT>Tie::RefHash<DD>
+
+
+<A NAME="ixAGC"></A>
+Upgraded from version 1.37 to 1.38.
+<DT>Tie::StdHandle<DD>
+
+
+<A NAME="ixAGD"></A>
+This has documentation changes, and has been assigned a version for the
+first time: version 4.2.
+<DT>Time::HiRes<DD>
+
+
+<A NAME="ixAGE"></A>
+Upgraded from version 1.9711 to 1.9719.
+<DT>Time::Local<DD>
+
+
+<A NAME="ixAGF"></A>
+Upgraded from version 1.18 to 1.1901.
+<DT>Time::Piece<DD>
+
+
+<A NAME="ixAGG"></A>
+Upgraded from version 1.12 to 1.15.
+<DT>Unicode::Normalize<DD>
+
+
+<A NAME="ixAGH"></A>
+Upgraded from version 1.02 to 1.03.
+<DT>Unicode::UCD<DD>
+
+
+<A NAME="ixAGI"></A>
+Upgraded from version 0.25 to 0.27.
+
+
+<P>
+
+
+<TT>&quot;charinfo()&quot;</TT> now works on Unified <FONT SIZE="-1">CJK</FONT> code points added to later versions
+of Unicode.
+
+
+<P>
+
+
+<TT>&quot;casefold()&quot;</TT> has new fields returned to provide both a simpler interface
+and previously missing information. The old fields are retained for
+backwards compatibility. Information about Turkic-specific code points is
+now returned.
+
+
+<P>
+
+
+The documentation has been corrected and expanded.
+<DT>UNIVERSAL<DD>
+
+
+<A NAME="ixAGJ"></A>
+Upgraded from version 1.04 to 1.05.
+<DT>Win32<DD>
+
+
+<A NAME="ixAGK"></A>
+Upgraded from version 0.34 to 0.39.
+<DT>Win32API::File<DD>
+
+
+<A NAME="ixAGL"></A>
+Upgraded from version 0.1001_01 to 0.1101.
+<DT>XSLoader<DD>
+
+
+<A NAME="ixAGM"></A>
+Upgraded from version 0.08 to 0.10.
+</DL>
+<A NAME="lbAS">&nbsp;</A>
+<H2>Utility Changes</H2>
+
+<A NAME="ixAGN"></A>
+<DL COMPACT>
+<DT><I>h2ph</I><DD>
+<A NAME="ixAGO"></A>
+Now looks in <TT>&quot;include-fixed&quot;</TT> too, which is a recent addition to gcc's
+search path.
+<DT><I>h2xs</I><DD>
+<A NAME="ixAGP"></A>
+No longer incorrectly treats enum values like macros (Daniel Burr).
+
+
+<P>
+
+
+Now handles C<FONT SIZE="-2">++</FONT> style constants (<TT>&quot;//&quot;</TT>) properly in enums. (A patch from
+Rainer Weikusat was used; Daniel Burr also proposed a similar fix).
+<DT><I>perl5db.pl</I><DD>
+<A NAME="ixAGQ"></A>
+<TT>&quot;LVALUE&quot;</TT> subroutines now work under the debugger.
+
+
+<P>
+
+
+The debugger now correctly handles proxy constant subroutines, and
+subroutine stubs.
+<DT><I>perlthanks</I><DD>
+<A NAME="ixAGR"></A>
+Perl 5.10.1 adds a new utility <I>perlthanks</I>, which is a variant of
+<I>perlbug</I>, but for sending non-bug-reports to the authors and maintainers
+of Perl. Getting nothing but bug reports can become a bit demoralising:
+we'll see if this changes things.
+</DL>
+<A NAME="lbAT">&nbsp;</A>
+<H2>New Documentation</H2>
+
+<A NAME="ixAGS"></A>
+<DL COMPACT>
+<DT>perlhaiku<DD>
+<A NAME="ixAGT"></A>
+This contains instructions on how to build perl for the Haiku platform.
+<DT>perlmroapi<DD>
+<A NAME="ixAGU"></A>
+This describes the new interface for pluggable Method Resolution Orders.
+<DT>perlperf<DD>
+<A NAME="ixAGV"></A>
+This document, by Richard Foley, provides an introduction to the use of
+performance and optimization techniques which can be used with particular
+reference to perl programs.
+<DT>perlrepository<DD>
+<A NAME="ixAGW"></A>
+This describes how to access the perl source using the <I>git</I> version
+control system.
+<DT>perlthanks<DD>
+<A NAME="ixAGX"></A>
+This describes the new <I>perlthanks</I> utility.
+</DL>
+<A NAME="lbAU">&nbsp;</A>
+<H2>Changes to Existing Documentation</H2>
+
+<A NAME="ixAGY"></A>
+The various large <TT>&quot;Changes*&quot;</TT> files (which listed every change made to perl
+over the last 18 years) have been removed, and replaced by a small file,
+also called <TT>&quot;Changes&quot;</TT>, which just explains how that same information may
+be extracted from the git version control system.
+<P>
+
+The file <I>Porting/patching.pod</I> has been deleted, as it mainly described
+interacting with the old Perforce-based repository, which is now obsolete.
+Information still relevant has been moved to perlrepository.
+<P>
+
+perlapi, perlintern, perlmodlib and perltoc are now all
+generated at build time, rather than being shipped as part of the release.
+<A NAME="lbAV">&nbsp;</A>
+<H2>Performance Enhancements</H2>
+
+<A NAME="ixAGZ"></A>
+<DL COMPACT>
+<DT>*<DD>
+A new internal cache means that <TT>&quot;isa()&quot;</TT> will often be faster.
+<DT>*<DD>
+Under <TT>&quot;use locale&quot;</TT>, the locale-relevant information is now cached on
+read-only values, such as the list returned by <TT>&quot;keys %hash&quot;</TT>. This makes
+operations such as <TT>&quot;sort keys %hash&quot;</TT> in the scope of <TT>&quot;use locale&quot;</TT> much
+faster.
+<DT>*<DD>
+Empty <TT>&quot;DESTROY&quot;</TT> methods are no longer called.
+</DL>
+<A NAME="lbAW">&nbsp;</A>
+<H2>Installation and Configuration Improvements</H2>
+
+<A NAME="ixAHA"></A>
+<A NAME="lbAX">&nbsp;</A>
+<H3><I>ext/</I> reorganisation</H3>
+
+<A NAME="ixAHB"></A>
+The layout of directories in <I>ext</I> has been revised. Specifically, all
+extensions are now flat, and at the top level, with <TT>&quot;/&quot;</TT> in pathnames
+replaced by <TT>&quot;-&quot;</TT>, so that <I>ext/Data/Dumper/</I> is now <I>ext/Data-Dumper/</I>,
+etc.  The names of the extensions as specified to <I>Configure</I>, and as
+reported by <TT>%Config::Config</TT> under the keys <TT>&quot;dynamic_ext&quot;</TT>,
+<TT>&quot;known_extensions&quot;</TT>, <TT>&quot;nonxs_ext&quot;</TT> and <TT>&quot;static_ext&quot;</TT> have not changed, and
+still use <TT>&quot;/&quot;</TT>. Hence this change will not have any affect once perl is
+installed. However, <TT>&quot;Attribute::Handlers&quot;</TT>, <TT>&quot;Safe&quot;</TT> and <TT>&quot;mro&quot;</TT> have now
+become extensions in their own right, so if you run <I>Configure</I> with
+options to specify an exact list of extensions to build, you will need to
+change it to account for this.
+<P>
+
+For 5.10.2, it is planned that many dual-life modules will have been moved
+from <I>lib</I> to <I>ext</I>; again this will have no effect on an installed
+perl, but will matter if you invoke <I>Configure</I> with a pre-canned list of
+extensions to build.
+<A NAME="lbAY">&nbsp;</A>
+<H3>Configuration improvements</H3>
+
+<A NAME="ixAHC"></A>
+If <TT>&quot;vendorlib&quot;</TT> and <TT>&quot;vendorarch&quot;</TT> are the same, then they are only added to
+<TT>@INC</TT> once.
+<P>
+
+<TT>$Config{usedevel}</TT> and the C-level <TT>&quot;PERL_USE_DEVEL&quot;</TT> are now defined if
+perl is built with  <TT>&quot;-Dusedevel&quot;</TT>.
+<P>
+
+<I>Configure</I> will enable use of <TT>&quot;-fstack-protector&quot;</TT>, to provide protection
+against stack-smashing attacks, if the compiler supports it.
+<P>
+
+<I>Configure</I> will now determine the correct prototypes for re-entrant
+functions, and for <TT>&quot;gconvert&quot;</TT>, if you are using a C<FONT SIZE="-2">++</FONT> compiler rather
+than a C compiler.
+<P>
+
+On Unix, if you build from a tree containing a git repository, the
+configuration process will note the commit hash you have checked out, for
+display in the output of <TT>&quot;perl -v&quot;</TT> and <TT>&quot;perl -V&quot;</TT>. Unpushed local commits
+are automatically added to the list of local patches displayed by
+<TT>&quot;perl -V&quot;</TT>.
+<A NAME="lbAZ">&nbsp;</A>
+<H3>Compilation improvements</H3>
+
+<A NAME="ixAHD"></A>
+As part of the flattening of <I>ext</I>, all extensions on all platforms are
+built by <I>make_ext.pl</I>. This replaces the Unix-specific
+<I>ext/util/make_ext</I>, VMS-specific <I>make_ext.com</I> and Win32-specific
+<I>win32/buildext.pl</I>.
+<A NAME="lbBA">&nbsp;</A>
+<H3>Platform Specific Changes</H3>
+
+<A NAME="ixAHE"></A>
+<DL COMPACT>
+<DT><FONT SIZE="-1">AIX</FONT><DD>
+<A NAME="ixAHF"></A>
+Removed <I>libbsd</I> for <FONT SIZE="-1">AIX</FONT> 5L and 6.1. Only <I>flock()</I> was used from <I>libbsd</I>.
+
+
+<P>
+
+
+Removed <I>libgdbm</I> for <FONT SIZE="-1">AIX</FONT> 5L and 6.1. The <I>libgdbm</I> is delivered as an
+optional package with the <FONT SIZE="-1">AIX</FONT> Toolbox. Unfortunately the 64 bit version 
+is broken.
+
+
+<P>
+
+
+Hints changes mean that <FONT SIZE="-1">AIX</FONT> 4.2 should work again.
+<DT>Cygwin<DD>
+<A NAME="ixAHG"></A>
+On Cygwin we now strip the last number from the <FONT SIZE="-1">DLL</FONT>. This has been the
+behaviour in the cygwin.com build for years. The hints files have been
+updated.
+<DT>FreeBSD<DD>
+<A NAME="ixAHH"></A>
+The hints files now identify the correct threading libraries on FreeBSD 7
+and later.
+<DT>Irix<DD>
+<A NAME="ixAHI"></A>
+We now work around a bizarre preprocessor bug in the Irix 6.5 compiler:
+<TT>&quot;cc -E -&quot;</TT> unfortunately goes into K&amp;R mode, but <TT>&quot;cc -E file.c&quot;</TT> doesn't.
+<DT>Haiku<DD>
+<A NAME="ixAHJ"></A>
+Patches from the Haiku maintainers have been merged in. Perl should now
+build on Haiku.
+<DT>MirOS <FONT SIZE="-1">BSD</FONT><DD>
+<A NAME="ixAHK"></A>
+Perl should now build on MirOS <FONT SIZE="-1">BSD</FONT>.
+<DT>NetBSD<DD>
+<A NAME="ixAHL"></A>
+Hints now supports versions 5.*.
+<DT>Stratus <FONT SIZE="-1">VOS</FONT><DD>
+<A NAME="ixAHM"></A>
+Various changes from Stratus have been merged in.
+<DT>Symbian<DD>
+<A NAME="ixAHN"></A>
+There is now support for Symbian S60 3.2 <FONT SIZE="-1">SDK</FONT> and S60 5.0 <FONT SIZE="-1">SDK</FONT>.
+<DT>Win32<DD>
+<A NAME="ixAHO"></A>
+Improved message window handling means that <TT>&quot;alarm&quot;</TT> and <TT>&quot;kill&quot;</TT> messages
+will no longer be dropped under race conditions.
+<DT><FONT SIZE="-1">VMS</FONT><DD>
+<A NAME="ixAHP"></A>
+Reads from the in-memory temporary files of <TT>&quot;PerlIO::scalar&quot;</TT> used to fail
+if <TT>$/</TT> was set to a numeric reference (to indicate record-style reads).
+This is now fixed.
+
+
+<P>
+
+
+<FONT SIZE="-1">VMS</FONT> now supports <TT>&quot;getgrgid&quot;</TT>.
+
+
+<P>
+
+
+Many improvements and cleanups have been made to the <FONT SIZE="-1">VMS</FONT> file name handling
+and conversion code.
+
+
+<P>
+
+
+Enabling the <TT>&quot;PERL_VMS_POSIX_EXIT&quot;</TT> logical name now encodes a <FONT SIZE="-1">POSIX</FONT> exit
+status in a <FONT SIZE="-1">VMS</FONT> condition value for better interaction with <FONT SIZE="-1">GNV</FONT>'s bash
+shell and other utilities that depend on <FONT SIZE="-1">POSIX</FONT> exit values.  See
+``$?'' in perlvms for details.
+</DL>
+<A NAME="lbBB">&nbsp;</A>
+<H2>Selected Bug Fixes</H2>
+
+<A NAME="ixAHQ"></A>
+<DL COMPACT>
+<DT>*<DD>
+5.10.0 inadvertently disabled an optimisation, which caused a measurable
+performance drop in list assignment, such as is often used to assign
+function parameters from <TT>@_</TT>. The optimisation has been re-instated, and
+the performance regression fixed.
+<DT>*<DD>
+Fixed memory leak on <TT>&quot;while (1) { map 1, 1 }&quot;</TT> [<FONT SIZE="-1">RT</FONT> #53038].
+<DT>*<DD>
+Some potential coredumps in PerlIO fixed [<FONT SIZE="-1">RT</FONT> #57322,54828].
+<DT>*<DD>
+The debugger now works with lvalue subroutines.
+<DT>*<DD>
+The debugger's <TT>&quot;m&quot;</TT> command was broken on modules that defined constants
+[<FONT SIZE="-1">RT</FONT> #61222].
+<DT>*<DD>
+<TT>&quot;crypt()&quot;</TT> and string complement could return tainted values for untainted
+arguments [<FONT SIZE="-1">RT</FONT> #59998].
+<DT>*<DD>
+The <TT>&quot;-i.suffix&quot;</TT> command-line switch now recreates the file using
+restricted permissions, before changing its mode to match the original
+file. This eliminates a potential race condition [<FONT SIZE="-1">RT</FONT> #60904].
+<DT>*<DD>
+On some <FONT SIZE="-1">UNIX</FONT> systems, the value in <TT>$?</TT> would not have the top bit set
+(<TT>&quot;$? &amp; 128&quot;</TT>) even if the child core dumped.
+<DT>*<DD>
+Under some circumstances, $^R could incorrectly become undefined
+[<FONT SIZE="-1">RT</FONT> #57042].
+<DT>*<DD>
+(<FONT SIZE="-1">XS</FONT>) In various hash functions, passing a pre-computed hash to when the
+key is <FONT SIZE="-1">UTF-8</FONT> might result in an incorrect lookup.
+<DT>*<DD>
+(<FONT SIZE="-1">XS</FONT>) Including <I></I><FONT SIZE="-1"><I>XSUB</I></FONT><I>.h</I> before <I>perl.h</I> gave a compile-time error
+[<FONT SIZE="-1">RT</FONT> #57176].
+<DT>*<DD>
+<TT>&quot;$object-&gt;isa('Foo')&quot;</TT> would report false if the package <TT>&quot;Foo&quot;</TT> didn't
+exist, even if the object's <TT>@ISA</TT> contained <TT>&quot;Foo&quot;</TT>.
+<DT>*<DD>
+Various bugs in the new-to 5.10.0 mro code, triggered by manipulating
+<TT>@ISA</TT>, have been found and fixed.
+<DT>*<DD>
+Bitwise operations on references could crash the interpreter, e.g.
+<TT>&quot;$x=\$y; $x |= &quot;foo&quot;&quot;</TT> [<FONT SIZE="-1">RT</FONT> #54956].
+<DT>*<DD>
+Patterns including alternation might be sensitive to the internal <FONT SIZE="-1">UTF-8</FONT>
+representation, e.g.
+
+
+<P>
+
+
+
+
+<PRE>
+    my $byte = chr(192);
+    my $utf8 = chr(192); utf8::upgrade($utf8);
+    $utf8 =~ /$byte|X}/i;       # failed in 5.10.0
+
+</PRE>
+
+
+<DT>*<DD>
+Within UTF8-encoded Perl source files (i.e. where <TT>&quot;use utf8&quot;</TT> is in
+effect), double-quoted literal strings could be corrupted where a <TT>&quot;\xNN&quot;</TT>,
+<TT>&quot;\0NNN&quot;</TT> or <TT>&quot;\N{}&quot;</TT> is followed by a literal character with ordinal value
+greater than 255 [<FONT SIZE="-1">RT</FONT> #59908].
+<DT>*<DD>
+<TT>&quot;B::Deparse&quot;</TT> failed to correctly deparse various constructs:
+<TT>&quot;readpipe STRING&quot;</TT> [<FONT SIZE="-1">RT</FONT> #62428], <TT>&quot;CORE::require(STRING)&quot;</TT> [<FONT SIZE="-1">RT</FONT> #62488],
+<TT>&quot;sub foo(_)&quot;</TT> [<FONT SIZE="-1">RT</FONT> #62484].
+<DT>*<DD>
+Using <TT>&quot;setpgrp()&quot;</TT> with no arguments could corrupt the perl stack.
+<DT>*<DD>
+The block form of <TT>&quot;eval&quot;</TT> is now specifically trappable by <TT>&quot;Safe&quot;</TT> and
+<TT>&quot;ops&quot;</TT>.  Previously it was erroneously treated like string <TT>&quot;eval&quot;</TT>.
+<DT>*<DD>
+In 5.10.0, the two characters <TT>&quot;[~&quot;</TT> were sometimes parsed as the smart
+match operator (<TT>&quot;~~&quot;</TT>) [<FONT SIZE="-1">RT</FONT> #63854].
+<DT>*<DD>
+In 5.10.0, the <TT>&quot;*&quot;</TT> quantifier in patterns was sometimes treated as
+<TT>&quot;{0,32767}&quot;</TT> [<FONT SIZE="-1">RT</FONT> #60034, #60464]. For example, this match would fail:
+
+
+<P>
+
+
+
+
+<PRE>
+    (&quot;ab&quot; x 32768) =~ /^(ab)*$/
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>&quot;shmget&quot;</TT> was limited to a 32 bit segment size on a 64 bit <FONT SIZE="-1">OS</FONT> [<FONT SIZE="-1">RT</FONT> #63924].
+<DT>*<DD>
+Using <TT>&quot;next&quot;</TT> or <TT>&quot;last&quot;</TT> to exit a <TT>&quot;given&quot;</TT> block no longer produces a
+spurious warning like the following:
+
+
+<P>
+
+
+
+
+<PRE>
+    Exiting given via last at foo.pl line 123
+
+</PRE>
+
+
+<DT>*<DD>
+On Windows, <TT>'.\foo'</TT> and <TT>'..\foo'</TT>  were treated differently than
+<TT>'./foo'</TT> and <TT>'../foo'</TT> by <TT>&quot;do&quot;</TT> and <TT>&quot;require&quot;</TT> [<FONT SIZE="-1">RT</FONT> #63492].
+<DT>*<DD>
+Assigning a format to a glob could corrupt the format; e.g.:
+
+
+<P>
+
+
+
+
+<PRE>
+     *bar=*foo{FORMAT}; # foo format now bad
+
+</PRE>
+
+
+<DT>*<DD>
+Attempting to coerce a typeglob to a string or number could cause an
+assertion failure. The correct error message is now generated,
+<TT>&quot;Can't coerce GLOB to </TT>$type<TT>&quot;</TT>.
+<DT>*<DD>
+Under <TT>&quot;use filetest 'access'&quot;</TT>, <TT>&quot;-x&quot;</TT> was using the wrong access mode. This
+has been fixed [<FONT SIZE="-1">RT</FONT> #49003].
+<DT>*<DD>
+<TT>&quot;length&quot;</TT> on a tied scalar that returned a Unicode value would not be
+correct the first time. This has been fixed.
+<DT>*<DD>
+Using an array <TT>&quot;tie&quot;</TT> inside in array <TT>&quot;tie&quot;</TT> could <FONT SIZE="-1">SEGV</FONT>. This has been
+fixed. [<FONT SIZE="-1">RT</FONT> #51636]
+<DT>*<DD>
+A race condition inside <TT>&quot;PerlIOStdio_close()&quot;</TT> has been identified and
+fixed. This used to cause various threading issues, including SEGVs.
+<DT>*<DD>
+In <TT>&quot;unpack&quot;</TT>, the use of <TT>&quot;()&quot;</TT> groups in scalar context was internally
+placing a list on the interpreter's stack, which manifested in various
+ways, including SEGVs.  This is now fixed [<FONT SIZE="-1">RT</FONT> #50256].
+<DT>*<DD>
+Magic was called twice in <TT>&quot;substr&quot;</TT>, <TT>&quot;\&amp;$x&quot;</TT>, <TT>&quot;tie $x, $m&quot;</TT> and <TT>&quot;chop&quot;</TT>.
+These have all been fixed.
+<DT>*<DD>
+A 5.10.0 optimisation to clear the temporary stack within the implicit
+loop of <TT>&quot;s///ge&quot;</TT> has been reverted, as it turned out to be the cause of
+obscure bugs in seemingly unrelated parts of the interpreter [commit 
+ef0d4e17921ee3de].
+<DT>*<DD>
+The line numbers for warnings inside <TT>&quot;elsif&quot;</TT> are now correct.
+<DT>*<DD>
+The <TT>&quot;..&quot;</TT> operator now works correctly with ranges whose ends are at or
+close to the values of the smallest and largest integers.
+<DT>*<DD>
+<TT>&quot;binmode STDIN, ':raw'&quot;</TT> could lead to segmentation faults on some platforms.
+This has been fixed [<FONT SIZE="-1">RT</FONT> #54828].
+<DT>*<DD>
+An off-by-one error meant that <TT>&quot;index $str, ...&quot;</TT> was effectively being
+executed as <TT>&quot;index &quot;$str\0&quot;, ...&quot;</TT>. This has been fixed [<FONT SIZE="-1">RT</FONT> #53746].
+<DT>*<DD>
+Various leaks associated with named captures in regexes have been fixed
+[<FONT SIZE="-1">RT</FONT> #57024].
+<DT>*<DD>
+A weak reference to a hash would leak. This was affecting <TT>&quot;DBI&quot;</TT>
+[<FONT SIZE="-1">RT</FONT> #56908].
+<DT>*<DD>
+Using (?|) in a regex could cause a segfault [<FONT SIZE="-1">RT</FONT> #59734].
+<DT>*<DD>
+Use of a <FONT SIZE="-1">UTF-8</FONT> <TT>&quot;tr//&quot;</TT> within a closure could cause a segfault [<FONT SIZE="-1">RT</FONT> #61520].
+<DT>*<DD>
+Calling <TT>&quot;sv_chop()&quot;</TT> or otherwise upgrading an <FONT SIZE="-1">SV</FONT> could result in an
+unaligned 64-bit access on the <FONT SIZE="-1">SPARC</FONT> architecture [<FONT SIZE="-1">RT</FONT> #60574].
+<DT>*<DD>
+In the 5.10.0 release, <TT>&quot;inc_version_list&quot;</TT> would incorrectly list
+<TT>&quot;5.10.*&quot;</TT> after <TT>&quot;5.8.*&quot;</TT>; this affected the <TT>@INC</TT> search order
+[<FONT SIZE="-1">RT</FONT> #67628].
+<DT>*<DD>
+In 5.10.0, <TT>&quot;pack &quot;a*&quot;, $tainted_value&quot;</TT> returned a non-tainted value
+[<FONT SIZE="-1">RT</FONT> #52552].
+<DT>*<DD>
+In 5.10.0, <TT>&quot;printf&quot;</TT> and <TT>&quot;sprintf&quot;</TT> could produce the fatal error
+<TT>&quot;panic: utf8_mg_pos_cache_update&quot;</TT> when printing <FONT SIZE="-1">UTF-8</FONT> strings
+[<FONT SIZE="-1">RT</FONT> #62666].
+<DT>*<DD>
+In the 5.10.0 release, a dynamically created <TT>&quot;AUTOLOAD&quot;</TT> method might be
+missed (method cache issue) [<FONT SIZE="-1">RT</FONT> #60220,60232].
+<DT>*<DD>
+In the 5.10.0 release, a combination of <TT>&quot;use feature&quot;</TT> and <TT>&quot;//ee&quot;</TT> could
+cause a memory leak [<FONT SIZE="-1">RT</FONT> #63110].
+<DT>*<DD>
+<TT>&quot;-C&quot;</TT> on the shebang (<TT>&quot;#!&quot;</TT>) line is once more permitted if it is also
+specified on the command line. <TT>&quot;-C&quot;</TT> on the shebang line used to be a
+silent no-op <I>if</I> it was not also on the command line, so perl 5.10.0
+disallowed it, which broke some scripts. Now perl checks whether it is
+also on the command line and only dies if it is not [<FONT SIZE="-1">RT</FONT> #67880].
+<DT>*<DD>
+In 5.10.0, certain types of re-entrant regular expression could crash,
+or cause the following assertion failure [<FONT SIZE="-1">RT</FONT> #60508]:
+
+
+<P>
+
+
+
+
+<PRE>
+    Assertion rx-&gt;sublen &gt;= (s - rx-&gt;subbeg) + i failed
+
+</PRE>
+
+
+</DL>
+<A NAME="lbBC">&nbsp;</A>
+<H2>New or Changed Diagnostics</H2>
+
+<A NAME="ixAHR"></A>
+<DL COMPACT>
+<DT>panic: sv_chop %s<DD>
+
+
+<A NAME="ixAHS"></A>
+This new fatal error occurs when the C routine <TT>&quot;Perl_sv_chop()&quot;</TT> was
+passed a position that is not within the scalar's string buffer. This
+could be caused by buggy <FONT SIZE="-1">XS</FONT> code, and at this point recovery is not
+possible.
+<DT>Can't locate package %s for the parents of %s<DD>
+
+
+<A NAME="ixAHT"></A>
+This warning has been removed. In general, it only got produced in
+conjunction with other warnings, and removing it allowed an <FONT SIZE="-1">ISA</FONT> lookup
+optimisation to be added.
+<DT>v-string in use/require is non-portable<DD>
+
+
+<A NAME="ixAHU"></A>
+This warning has been removed.
+<DT>Deep recursion on subroutine %s<DD>
+
+
+<A NAME="ixAHV"></A>
+It is now possible to change the depth threshold for this warning from the
+default of 100, by recompiling the <I>perl</I> binary, setting the C
+pre-processor macro <TT>&quot;PERL_SUB_DEPTH_WARN&quot;</TT> to the desired value.
+</DL>
+<A NAME="lbBD">&nbsp;</A>
+<H2>Changed Internals</H2>
+
+<A NAME="ixAHW"></A>
+<DL COMPACT>
+<DT>*<DD>
+The J.R.R. Tolkien quotes at the head of C source file have been checked and
+proper citations added, thanks to a patch from Tom Christiansen.
+<DT>*<DD>
+<TT>&quot;vcroak()&quot;</TT> now accepts a null first argument. In addition, a full audit
+was made of the ``not <FONT SIZE="-1">NULL</FONT>'' compiler annotations, and those for several
+other internal functions were corrected.
+<DT>*<DD>
+New macros <TT>&quot;dSAVEDERRNO&quot;</TT>, <TT>&quot;dSAVE_ERRNO&quot;</TT>, <TT>&quot;SAVE_ERRNO&quot;</TT>, <TT>&quot;RESTORE_ERRNO&quot;</TT>
+have been added to formalise the temporary saving of the <TT>&quot;errno&quot;</TT>
+variable.
+<DT>*<DD>
+The function <TT>&quot;Perl_sv_insert_flags&quot;</TT> has been added to augment
+<TT>&quot;Perl_sv_insert&quot;</TT>.
+<DT>*<DD>
+The function <TT>&quot;Perl_newSV_type(type)&quot;</TT> has been added, equivalent to
+<TT>&quot;Perl_newSV()&quot;</TT> followed by <TT>&quot;Perl_sv_upgrade(type)&quot;</TT>.
+<DT>*<DD>
+The function <TT>&quot;Perl_newSVpvn_flags()&quot;</TT> has been added, equivalent to
+<TT>&quot;Perl_newSVpvn()&quot;</TT> and then performing the action relevant to the flag.
+
+
+<P>
+
+
+Two flag bits are currently supported.
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>SVf_UTF8<DD>
+
+
+<A NAME="ixAHX"></A>
+This will call <TT>&quot;SvUTF8_on()&quot;</TT> for you. (Note that this does not convert an
+sequence of <FONT SIZE="-1">ISO</FONT> 8859-1 characters to <FONT SIZE="-1">UTF-8</FONT>). A wrapper, <TT>&quot;newSVpvn_utf8()&quot;</TT>
+is available for this.
+<DT>SVs_TEMP<DD>
+
+
+<A NAME="ixAHY"></A>
+Call <TT>&quot;sv_2mortal()&quot;</TT> on the new <FONT SIZE="-1">SV</FONT>.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+There is also a wrapper that takes constant strings, <TT>&quot;newSVpvs_flags()&quot;</TT>.
+</DL>
+
+<DT>*<DD>
+The function <TT>&quot;Perl_croak_xs_usage&quot;</TT> has been added as a wrapper to
+<TT>&quot;Perl_croak&quot;</TT>.
+<DT>*<DD>
+The functions <TT>&quot;PerlIO_find_layer&quot;</TT> and <TT>&quot;PerlIO_list_alloc&quot;</TT> are now
+exported.
+<DT>*<DD>
+<TT>&quot;PL_na&quot;</TT> has been exterminated from the core code, replaced by local <FONT SIZE="-1">STRLEN</FONT>
+temporaries, or <TT>&quot;*_nolen()&quot;</TT> calls. Either approach is faster than <TT>&quot;PL_na&quot;</TT>,
+which is a pointer deference into the interpreter structure under ithreads,
+and a global variable otherwise.
+<DT>*<DD>
+<TT>&quot;Perl_mg_free()&quot;</TT> used to leave freed memory accessible via <I>SvMAGIC()</I> on
+the scalar. It now updates the linked list to remove each piece of magic
+as it is freed.
+<DT>*<DD>
+Under ithreads, the regex in <TT>&quot;PL_reg_curpm&quot;</TT> is now reference counted. This
+eliminates a lot of hackish workarounds to cope with it not being reference
+counted.
+<DT>*<DD>
+<TT>&quot;Perl_mg_magical()&quot;</TT> would sometimes incorrectly turn on <TT>&quot;SvRMAGICAL()&quot;</TT>.
+This has been fixed.
+<DT>*<DD>
+The <I>public</I> <FONT SIZE="-1">IV</FONT> and <FONT SIZE="-1">NV</FONT> flags are now not set if the string value has
+trailing ``garbage''. This behaviour is consistent with not setting the
+public <FONT SIZE="-1">IV</FONT> or <FONT SIZE="-1">NV</FONT> flags if the value is out of range for the type.
+<DT>*<DD>
+<FONT SIZE="-1">SV</FONT> allocation tracing has been added to the diagnostics enabled by <TT>&quot;-Dm&quot;</TT>.
+The tracing can alternatively output via the <TT>&quot;PERL_MEM_LOG&quot;</TT> mechanism, if
+that was enabled when the <I>perl</I> binary was compiled.
+<DT>*<DD>
+Uses of <TT>&quot;Nullav&quot;</TT>, <TT>&quot;Nullcv&quot;</TT>, <TT>&quot;Nullhv&quot;</TT>, <TT>&quot;Nullop&quot;</TT>, <TT>&quot;Nullsv&quot;</TT> etc have been
+replaced by <TT>&quot;NULL&quot;</TT> in the core code, and non-dual-life modules, as <TT>&quot;NULL&quot;</TT>
+is clearer to those unfamiliar with the core code.
+<DT>*<DD>
+A macro <TT>MUTABLE_PTR(p)</TT> has been added, which on (non-pedantic) gcc will
+not cast away <TT>&quot;const&quot;</TT>, returning a <TT>&quot;void *&quot;</TT>. Macros <TT>&quot;MUTABLE_SV(av)&quot;</TT>,
+<TT>&quot;MUTABLE_SV(cv)&quot;</TT> etc build on this, casting to <TT>&quot;AV *&quot;</TT> etc without
+casting away <TT>&quot;const&quot;</TT>. This allows proper compile-time auditing of
+<TT>&quot;const&quot;</TT> correctness in the core, and helped picked up some errors (now
+fixed).
+<DT>*<DD>
+Macros <TT>&quot;mPUSHs()&quot;</TT> and <TT>&quot;mXPUSHs()&quot;</TT> have been added, for pushing SVs on the
+stack and mortalizing them.
+<DT>*<DD>
+Use of the private structure <TT>&quot;mro_meta&quot;</TT> has changed slightly. Nothing
+outside the core should be accessing this directly anyway.
+<DT>*<DD>
+A new tool, <TT>&quot;Porting/expand-macro.pl&quot;</TT> has been added, that allows you
+to view how a C preprocessor macro would be expanded when compiled.
+This is handy when trying to decode the macro hell that is the perl
+guts.
+</DL>
+<A NAME="lbBE">&nbsp;</A>
+<H2>New Tests</H2>
+
+<A NAME="ixAHZ"></A>
+Many modules updated from <FONT SIZE="-1">CPAN</FONT> incorporate new tests.
+<P>
+
+Several tests that have the potential to hang forever if they fail now
+incorporate a ``watchdog'' functionality that will kill them after a timeout,
+which helps ensure that <TT>&quot;make test&quot;</TT> and <TT>&quot;make test_harness&quot;</TT> run to
+completion automatically. (Jerry Hedden).
+<P>
+
+Some core-specific tests have been added:
+<DL COMPACT>
+<DT>t/comp/retainedlines.t<DD>
+<A NAME="ixAIA"></A>
+Check that the debugger can retain source lines from <TT>&quot;eval&quot;</TT>.
+<DT>t/io/perlio_fail.t<DD>
+<A NAME="ixAIB"></A>
+Check that bad layers fail.
+<DT>t/io/perlio_leaks.t<DD>
+<A NAME="ixAIC"></A>
+Check that PerlIO layers are not leaking.
+<DT>t/io/perlio_open.t<DD>
+<A NAME="ixAID"></A>
+Check that certain special forms of open work.
+<DT>t/io/perlio.t<DD>
+<A NAME="ixAIE"></A>
+General PerlIO tests.
+<DT>t/io/pvbm.t<DD>
+<A NAME="ixAIF"></A>
+Check that there is no unexpected interaction between the internal types
+<TT>&quot;PVBM&quot;</TT> and <TT>&quot;PVGV&quot;</TT>.
+<DT>t/mro/package_aliases.t<DD>
+<A NAME="ixAIG"></A>
+Check that mro works properly in the presence of aliased packages.
+<DT>t/op/dbm.t<DD>
+<A NAME="ixAIH"></A>
+Tests for <TT>&quot;dbmopen&quot;</TT> and <TT>&quot;dbmclose&quot;</TT>.
+<DT>t/op/index_thr.t<DD>
+<A NAME="ixAII"></A>
+Tests for the interaction of <TT>&quot;index&quot;</TT> and threads.
+<DT>t/op/pat_thr.t<DD>
+<A NAME="ixAIJ"></A>
+Tests for the interaction of esoteric patterns and threads.
+<DT>t/op/qr_gc.t<DD>
+<A NAME="ixAIK"></A>
+Test that <TT>&quot;qr&quot;</TT> doesn't leak.
+<DT>t/op/reg_email_thr.t<DD>
+<A NAME="ixAIL"></A>
+Tests for the interaction of regex recursion and threads.
+<DT>t/op/regexp_qr_embed_thr.t<DD>
+<A NAME="ixAIM"></A>
+Tests for the interaction of patterns with embedded <TT>&quot;qr//&quot;</TT> and threads.
+<DT>t/op/regexp_unicode_prop.t<DD>
+<A NAME="ixAIN"></A>
+Tests for Unicode properties in regular expressions.
+<DT>t/op/regexp_unicode_prop_thr.t<DD>
+<A NAME="ixAIO"></A>
+Tests for the interaction of Unicode properties and threads.
+<DT>t/op/reg_nc_tie.t<DD>
+<A NAME="ixAIP"></A>
+Test the tied methods of <TT>&quot;Tie::Hash::NamedCapture&quot;</TT>.
+<DT>t/op/reg_posixcc.t<DD>
+<A NAME="ixAIQ"></A>
+Check that <FONT SIZE="-1">POSIX</FONT> character classes behave consistently.
+<DT>t/op/re.t<DD>
+<A NAME="ixAIR"></A>
+Check that exportable <TT>&quot;re&quot;</TT> functions in <I>universal.c</I> work.
+<DT>t/op/setpgrpstack.t<DD>
+<A NAME="ixAIS"></A>
+Check that <TT>&quot;setpgrp&quot;</TT> works.
+<DT>t/op/substr_thr.t<DD>
+<A NAME="ixAIT"></A>
+Tests for the interaction of <TT>&quot;substr&quot;</TT> and threads.
+<DT>t/op/upgrade.t<DD>
+<A NAME="ixAIU"></A>
+Check that upgrading and assigning scalars works.
+<DT>t/uni/lex_utf8.t<DD>
+<A NAME="ixAIV"></A>
+Check that Unicode in the lexer works.
+<DT>t/uni/tie.t<DD>
+<A NAME="ixAIW"></A>
+Check that Unicode and <TT>&quot;tie&quot;</TT> work.
+</DL>
+<A NAME="lbBF">&nbsp;</A>
+<H2>Known Problems</H2>
+
+<A NAME="ixAIX"></A>
+This is a list of some significant unfixed bugs, which are regressions
+from either 5.10.0 or 5.8.x.
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;List::Util::first&quot;</TT> misbehaves in the presence of a lexical <TT>$_</TT>
+(typically introduced by <TT>&quot;my $_&quot;</TT> or implicitly by <TT>&quot;given&quot;</TT>). The variable
+which gets set for each iteration is the package variable <TT>$_</TT>, not the
+lexical <TT>$_</TT> [<FONT SIZE="-1">RT</FONT> #67694].
+
+
+<P>
+
+
+A similar issue may occur in other modules that provide functions which
+take a block as their first argument, like
+
+
+<P>
+
+
+
+
+<PRE>
+    foo { ... $_ ...} list
+
+</PRE>
+
+
+<DT>*<DD>
+The <TT>&quot;charnames&quot;</TT> pragma may generate a run-time error when a regex is
+interpolated [<FONT SIZE="-1">RT</FONT> #56444]:
+
+
+<P>
+
+
+
+
+<PRE>
+    use charnames ':full';
+    my $r1 = qr/\N{THAI CHARACTER SARA I}/;
+    &quot;foo&quot; =~ $r1;    # okay
+    &quot;foo&quot; =~ /$r1+/; # runtime error
+
+</PRE>
+
+
+
+
+<P>
+
+
+A workaround is to generate the character outside of the regex:
+
+
+<P>
+
+
+
+
+<PRE>
+    my $a = &quot;\N{THAI CHARACTER SARA I}&quot;;
+    my $r1 = qr/$a/;
+
+</PRE>
+
+
+<DT>*<DD>
+Some regexes may run much more slowly when run in a child thread compared
+with the thread the pattern was compiled into [<FONT SIZE="-1">RT</FONT> #55600].
+</DL>
+<A NAME="lbBG">&nbsp;</A>
+<H2>Deprecations</H2>
+
+<A NAME="ixAIY"></A>
+The following items are now deprecated.
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;Switch&quot;</TT> is buggy and should be avoided. From perl 5.11.0 onwards, it is
+intended that any use of the core version of this module will emit a
+warning, and that the module will eventually be removed from the core
+(probably in perl 5.14.0). See ``Switch statements'' in perlsyn for its
+replacement.
+<DT>*<DD>
+<TT>&quot;suidperl&quot;</TT> will be removed in 5.12.0. This provides a mechanism to
+emulate setuid permission bits on systems that don't support it properly.
+</DL>
+<A NAME="lbBH">&nbsp;</A>
+<H2>Acknowledgements</H2>
+
+<A NAME="ixAIZ"></A>
+Some of the work in this release was funded by a <FONT SIZE="-1">TPF</FONT> grant.
+<P>
+
+Nicholas Clark officially retired from maintenance pumpking duty at the
+end of 2008; however in reality he has put much effort in since then to
+help get 5.10.1 into a fit state to be released, including writing a
+considerable chunk of this perldelta.
+<P>
+
+Steffen Mueller and David Golden in particular helped getting <FONT SIZE="-1">CPAN</FONT> modules
+polished and synchronised with their in-core equivalents.
+<P>
+
+Craig Berry was tireless in getting maint to run under <FONT SIZE="-1">VMS</FONT>, no matter how
+many times we broke it for him.
+<P>
+
+The other core committers contributed most of the changes, and applied most
+of the patches sent in by the hundreds of contributors listed in <I></I><FONT SIZE="-1"><I>AUTHORS</I></FONT><I></I>.
+<P>
+
+(Sorry to all the people I haven't mentioned by name).
+<P>
+
+Finally, thanks to Larry Wall, without whom none of this would be
+necessary.
+<A NAME="lbBI">&nbsp;</A>
+<H2>Reporting Bugs</H2>
+
+<A NAME="ixAJA"></A>
+If you find what you think is a bug, you might check the articles
+recently posted to the comp.lang.perl.misc newsgroup and the perl
+bug database at <A HREF="http://rt.perl.org/perlbug/">http://rt.perl.org/perlbug/</A> .  There may also be
+information at <A HREF="http://www.perl.org/">http://www.perl.org/</A> , the Perl Home Page.
+<P>
+
+If you believe you have an unreported bug, please run the <B>perlbug</B>
+program included with your release.  Be sure to trim your bug down
+to a tiny but sufficient test case.  Your bug report, along with the
+output of <TT>&quot;perl -V&quot;</TT>, will be sent off to <A HREF="mailto:perlbug@perl.org">perlbug@perl.org</A> to be
+analysed by the Perl porting team.
+<P>
+
+If the bug you are reporting has security implications, which make it
+inappropriate to send to a publicly archived mailing list, then please send
+it to <A HREF="mailto:perl5-security-report@perl.org">perl5-security-report@perl.org</A>. This points to a closed subscription
+unarchived mailing list, which includes all the core committers, who be able
+to help assess the impact of issues, figure out a resolution, and help
+co-ordinate the release of patches to mitigate or fix the problem across all
+platforms on which Perl is supported. Please only use this address for
+security issues in the Perl core, not for modules independently
+distributed on <FONT SIZE="-1">CPAN</FONT>.
+<A NAME="lbBJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAJB"></A>
+The <I>Changes</I> file for an explanation of how to view exhaustive details
+on what changed.
+<P>
+
+The <I></I><FONT SIZE="-1"><I>INSTALL</I></FONT><I></I> file for how to build Perl.
+<P>
+
+The <I></I><FONT SIZE="-1"><I>README</I></FONT><I></I> file for general stuff.
+<P>
+
+The <I>Artistic</I> and <I>Copying</I> files for copyright information.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">Incompatible Changes</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Switch statement changes</A><DD>
+<DT><A HREF="#lbAF">Smart match changes</A><DD>
+<DT><A HREF="#lbAG">Other incompatible changes</A><DD>
+</DL>
+<DT><A HREF="#lbAH">Core Enhancements</A><DD>
+<DL>
+<DT><A HREF="#lbAI">Unicode Character Database 5.1.0</A><DD>
+<DT><A HREF="#lbAJ">A proper interface for pluggable Method Resolution Orders</A><DD>
+<DT><A HREF="#lbAK">The overloading pragma</A><DD>
+<DT><A HREF="#lbAL">Parallel tests</A><DD>
+<DT><A HREF="#lbAM">DTrace support</A><DD>
+<DT><A HREF="#lbAN">Support for configure_requires in <FONT SIZE="-1">CPAN</FONT> module metadata</A><DD>
+</DL>
+<DT><A HREF="#lbAO">Modules and Pragmata</A><DD>
+<DL>
+<DT><A HREF="#lbAP">New Modules and Pragmata</A><DD>
+<DT><A HREF="#lbAQ">Pragmata Changes</A><DD>
+<DT><A HREF="#lbAR">Updated Modules</A><DD>
+</DL>
+<DT><A HREF="#lbAS">Utility Changes</A><DD>
+<DT><A HREF="#lbAT">New Documentation</A><DD>
+<DT><A HREF="#lbAU">Changes to Existing Documentation</A><DD>
+<DT><A HREF="#lbAV">Performance Enhancements</A><DD>
+<DT><A HREF="#lbAW">Installation and Configuration Improvements</A><DD>
+<DL>
+<DT><A HREF="#lbAX"><I>ext/</I> reorganisation</A><DD>
+<DT><A HREF="#lbAY">Configuration improvements</A><DD>
+<DT><A HREF="#lbAZ">Compilation improvements</A><DD>
+<DT><A HREF="#lbBA">Platform Specific Changes</A><DD>
+</DL>
+<DT><A HREF="#lbBB">Selected Bug Fixes</A><DD>
+<DT><A HREF="#lbBC">New or Changed Diagnostics</A><DD>
+<DT><A HREF="#lbBD">Changed Internals</A><DD>
+<DT><A HREF="#lbBE">New Tests</A><DD>
+<DT><A HREF="#lbBF">Known Problems</A><DD>
+<DT><A HREF="#lbBG">Deprecations</A><DD>
+<DT><A HREF="#lbBH">Acknowledgements</A><DD>
+<DT><A HREF="#lbBI">Reporting Bugs</A><DD>
+<DT><A HREF="#lbBJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:08 GMT, December 24, 2015
+</div></body>
+</HTML>

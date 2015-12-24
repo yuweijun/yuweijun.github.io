@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of HTTP::Cookies</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>HTTP::Cookies</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-10-06<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+HTTP::Cookies - HTTP cookie jars
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use HTTP::Cookies;
+  $cookie_jar = HTTP::Cookies-&gt;new(
+    file =&gt; &quot;$ENV{'HOME'}/lwp_cookies.dat',
+    autosave =&gt; 1,
+  );
+
+  use LWP;
+  my $browser = LWP::UserAgent-&gt;new;
+  $browser-&gt;cookie_jar($cookie_jar);
+
+</PRE>
+
+
+<P>
+
+Or for an empty and temporary cookie jar:
+<P>
+
+
+
+<PRE>
+  use LWP;
+  my $browser = LWP::UserAgent-&gt;new;
+  $browser-&gt;cookie_jar( {} );
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This class is for objects that represent a ``cookie jar'' --- that is, a
+database of all the <FONT SIZE="-1">HTTP</FONT> cookies that a given LWP::UserAgent object
+knows about.
+<P>
+
+Cookies are a general mechanism which server side connections can use
+to both store and retrieve information on the client side of the
+connection.  For more information about cookies refer to
+&lt;URL:<A HREF="http://curl.haxx.se/rfc/cookie_spec.html">http://curl.haxx.se/rfc/cookie_spec.html</A>&gt; and
+&lt;URL:<A HREF="http://www.cookiecentral.com/">http://www.cookiecentral.com/</A>&gt;.  This module also implements the
+new style cookies described in <I></I><FONT SIZE="-1"><I>RFC</I></FONT><I> 2965</I>.
+The two variants of cookies are supposed to be able to coexist happily.
+<P>
+
+Instances of the class <I>HTTP::Cookies</I> are able to store a collection
+of Set-Cookie2: and Set-Cookie: headers and are able to use this
+information to initialize Cookie-headers in <I>HTTP::Request</I> objects.
+The state of a <I>HTTP::Cookies</I> object can be saved in and restored from
+files.
+<A NAME="lbAE">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAE"></A>
+The following methods are provided:
+<DL COMPACT>
+<DT>$cookie_jar = HTTP::Cookies-&gt;new<DD>
+
+
+<A NAME="ixAAF"></A>
+The constructor takes hash style parameters.  The following
+parameters are recognized:
+
+
+<P>
+
+
+
+
+<PRE>
+  file:            name of the file to restore cookies from and save cookies to
+  autosave:        save during destruction (bool)
+  ignore_discard:  save even cookies that are requested to be discarded (bool)
+  hide_cookie2:    do not add Cookie2 header to requests
+
+</PRE>
+
+
+
+
+<P>
+
+
+Future parameters might include (not yet implemented):
+
+
+<P>
+
+
+
+
+<PRE>
+  max_cookies               300
+  max_cookies_per_domain    20
+  max_cookie_size           4096
+
+  no_cookies   list of domain names that we never return cookies to
+
+</PRE>
+
+
+<DT>$cookie_jar-&gt;add_cookie_header( $request )<DD>
+
+
+<A NAME="ixAAG"></A>
+The <I>add_cookie_header()</I> method will set the appropriate Cookie:-header
+for the <I>HTTP::Request</I> object given as argument.  The <TT>$request</TT> must
+have a valid url attribute before this method is called.
+<DT>$cookie_jar-&gt;extract_cookies( $response )<DD>
+
+
+<A NAME="ixAAH"></A>
+The <I>extract_cookies()</I> method will look for Set-Cookie: and
+Set-Cookie2: headers in the <I>HTTP::Response</I> object passed as
+argument.  Any of these headers that are found are used to update
+the state of the <TT>$cookie_jar</TT>.
+<DT>$cookie_jar-&gt;set_cookie( $version, $key, $val, $path, $domain, $port, $path_spec, $secure, $maxage, $discard, \%rest )<DD>
+
+
+<A NAME="ixAAI"></A>
+The <I>set_cookie()</I> method updates the state of the <TT>$cookie_jar</TT>.  The
+<TT>$key</TT>, <TT>$val</TT>, <TT>$domain</TT>, <TT>$port</TT> and <TT>$path</TT> arguments are strings.  The
+<TT>$path_spec</TT>, <TT>$secure</TT>, <TT>$discard</TT> arguments are boolean values. The <TT>$maxage</TT>
+value is a number indicating number of seconds that this cookie will
+live.  A value &lt;= 0 will delete this cookie.  <TT>%rest</TT> defines
+various other attributes like ``Comment'' and ``CommentURL''.
+<DT>$cookie_jar-&gt;save<DD>
+
+
+<A NAME="ixAAJ"></A>
+
+<DT>$cookie_jar-&gt;save( $file )<DD>
+
+
+<A NAME="ixAAK"></A>
+
+This method file saves the state of the <TT>$cookie_jar</TT> to a file.
+The state can then be restored later using the <I>load()</I> method.  If a
+filename is not specified we will use the name specified during
+construction.  If the attribute <I>ignore_discard</I> is set, then we
+will even save cookies that are marked to be discarded.
+
+
+<P>
+
+
+The default is to save a sequence of ``Set-Cookie3'' lines.
+``Set-Cookie3'' is a proprietary <FONT SIZE="-1">LWP</FONT> format, not known to be compatible
+with any browser.  The <I>HTTP::Cookies::Netscape</I> sub-class can
+be used to save in a format compatible with Netscape.
+<DT>$cookie_jar-&gt;load<DD>
+
+
+<A NAME="ixAAL"></A>
+
+<DT>$cookie_jar-&gt;load( $file )<DD>
+
+
+<A NAME="ixAAM"></A>
+
+This method reads the cookies from the file and adds them to the
+<TT>$cookie_jar</TT>.  The file must be in the format written by the <I>save()</I>
+method.
+<DT>$cookie_jar-&gt;revert<DD>
+
+
+<A NAME="ixAAN"></A>
+This method empties the <TT>$cookie_jar</TT> and re-loads the <TT>$cookie_jar</TT>
+from the last save file.
+<DT>$cookie_jar-&gt;clear<DD>
+
+
+<A NAME="ixAAO"></A>
+
+<DT>$cookie_jar-&gt;clear( $domain )<DD>
+
+
+<A NAME="ixAAP"></A>
+<DT>$cookie_jar-&gt;clear( $domain, $path )<DD>
+
+
+<A NAME="ixAAQ"></A>
+<DT>$cookie_jar-&gt;clear( $domain, $path, $key )<DD>
+
+
+<A NAME="ixAAR"></A>
+
+Invoking this method without arguments will empty the whole
+<TT>$cookie_jar</TT>.  If given a single argument only cookies belonging to
+that domain will be removed.  If given two arguments, cookies
+belonging to the specified path within that domain are removed.  If
+given three arguments, then the cookie with the specified key, path
+and domain is removed.
+<DT>$cookie_jar-&gt;clear_temporary_cookies<DD>
+
+
+<A NAME="ixAAS"></A>
+Discard all temporary cookies. Scans for all cookies in the jar
+with either no expire field or a true <TT>&quot;discard&quot;</TT> flag. To be
+called when the user agent shuts down according to <FONT SIZE="-1">RFC</FONT> 2965.
+<DT>$cookie_jar-&gt;scan( \&amp;callback )<DD>
+
+
+<A NAME="ixAAT"></A>
+The argument is a subroutine that will be invoked for each cookie
+stored in the <TT>$cookie_jar</TT>.  The subroutine will be invoked with
+the following arguments:
+
+
+<P>
+
+
+
+
+<PRE>
+  0  version
+  1  key
+  2  val
+  3  path
+  4  domain
+  5  port
+  6  path_spec
+  7  secure
+  8  expires
+  9  discard
+ 10  hash
+
+</PRE>
+
+
+<DT>$cookie_jar-&gt;as_string<DD>
+
+
+<A NAME="ixAAU"></A>
+
+<DT>$cookie_jar-&gt;as_string( $skip_discardables )<DD>
+
+
+<A NAME="ixAAV"></A>
+
+The <I>as_string()</I> method will return the state of the <TT>$cookie_jar</TT>
+represented as a sequence of ``Set-Cookie3'' header lines separated by
+``\n''.  If <TT>$skip_discardables</TT> is <FONT SIZE="-1">TRUE</FONT>, it will not return lines for
+cookies with the <I>Discard</I> attribute.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAW"></A>
+HTTP::Cookies::Netscape, HTTP::Cookies::Microsoft
+<A NAME="lbAG">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAX"></A>
+Copyright 1997-2002 Gisle Aas
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">METHODS</A><DD>
+<DT><A HREF="#lbAF">SEE ALSO</A><DD>
+<DT><A HREF="#lbAG">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:29 GMT, December 24, 2015
+</div></body>
+</HTML>

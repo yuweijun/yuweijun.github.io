@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of USERDEL</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>USERDEL</H1>
+Section: System Management Commands (8)<BR>Updated: 07/24/2009<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+userdel - delete a user account and related files
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<DL COMPACT>
+<DT>
+<B>userdel</B> [options] <I>LOGIN</I>
+</DL>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<DD>The
+<B>userdel</B>
+command modifies the system account files, deleting all entries that refer to the user name
+<I>LOGIN</I>. The named user must exist.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+
+The options which apply to the
+<B>userdel</B>
+command are:
+<P>
+
+<B>-f</B>, <B>--force</B>
+<DL COMPACT><DT><DD>
+This option forces the removal of the user account, even if the user is still logged in. It also forces
+<B>userdel</B>
+to remove the user's home directory and mail spool, even if another user uses the same home directory or if the mail spool is not owned by the specified user. If
+<B>USERGROUPS_ENAB</B>
+is defined to
+<I>yes</I>
+in
+/etc/login.defs
+and if a group exists with the same name as the deleted user, then this group will be removed, even if it is still the primary group of another user.
+<P>
+<P>
+<I>Note:</I>
+This option is dangerous and may leave your system in an inconsistent state.
+</DL>
+
+<P>
+
+<B>-h</B>, <B>--help</B>
+<DL COMPACT><DT><DD>
+Display help message and exit.
+</DL>
+
+<P>
+
+<B>-r</B>, <B>--remove</B>
+<DL COMPACT><DT><DD>
+Files in the user's home directory will be removed along with the home directory itself and the user's mail spool. Files located in other file systems will have to be searched for and deleted manually.
+<P>
+The mail spool is defined by the
+<B>MAIL_DIR</B>
+variable in the
+login.defs
+file.
+</DL>
+
+<P>
+
+<B>-Z</B>, <B>--selinux-user</B>
+<DL COMPACT><DT><DD>
+Remove SELinux user assigned to the user´s login from SELinux login mapping.
+</DL>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONFIGURATION</H2>
+
+<P>
+
+The following configuration variables in
+/etc/login.defs
+change the behavior of this tool:
+<P>
+
+<B>MAIL_DIR</B> (string)
+<DL COMPACT><DT><DD>
+The mail spool directory. This is needed to manipulate the mailbox when its corresponding user account is modified or deleted. If not specified, a compile-time default is used.
+</DL>
+
+<P>
+
+<B>MAIL_FILE</B> (string)
+<DL COMPACT><DT><DD>
+Defines the location of the users mail spool files relatively to their home directory.
+</DL>
+
+<P>
+
+The
+<B>MAIL_DIR</B>
+and
+<B>MAIL_FILE</B>
+variables are used by
+<B>useradd</B>,
+<B>usermod</B>, and
+<B>userdel</B>
+to create, move, or delete the user's mail spool.
+<P>
+
+If
+<B>MAIL_CHECK_ENAB</B>
+is set to
+<I>yes</I>, they are also used to define the
+<B>MAIL</B>
+environment variable.
+<P>
+
+<B>MAX_MEMBERS_PER_GROUP</B> (number)
+<DL COMPACT><DT><DD>
+Maximum members per group entry. When the maximum is reached, a new group entry (line) is started in
+/etc/group
+(with the same name, same password, and same GID).
+<P>
+The default value is 0, meaning that there are no limits in the number of members in a group.
+<P>
+This feature (split group) permits to limit the length of lines in the group file. This is useful to make sure that lines for NIS groups are not larger than 1024 characters.
+<P>
+If you need to enforce such limit, you can use 25.
+<P>
+Note: split groups may not be supported by all tools (even in the Shadow toolsuite). You should not use this variable unless you really need it.
+</DL>
+
+<P>
+
+<B>USERDEL_CMD</B> (string)
+<DL COMPACT><DT><DD>
+If defined, this command is run when removing a user. It should remove any at/cron/print jobs etc. owned by the user to be removed (passed as the first argument).
+<P>
+The return code of the script is not taken into account.
+<P>
+Here is an example script, which removes the user's cron, at and print jobs:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+#! /bin/sh
+
+# Check for the required argument.
+if [ $# != 1 ]; then
+        echo &quot;Usage: $0 username&quot;
+        exit 1
+fi
+
+# Remove cron jobs.
+crontab -r -u $1
+
+# Remove at jobs.
+# Note that it will remove any jobs owned by the same UID,
+# even if it was shared by a different username.
+AT_SPOOL_DIR=/var/spool/cron/atjobs
+find $AT_SPOOL_DIR -name &quot;[^.]*&quot; -type f -user $1 -delete \;
+
+# Remove print jobs.
+lprm $1
+
+# All done.
+exit 0
+      
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+</DL>
+
+<P>
+
+<B>USERGROUPS_ENAB</B> (boolean)
+<DL COMPACT><DT><DD>
+Enable setting of the umask group bits to be the same as owner bits (examples: 022 -&gt; 002, 077 -&gt; 007) for non-root users, if the uid is the same as gid, and username is the same as the primary group name.
+<P>
+If set to
+<I>yes</I>,
+<B>userdel</B>
+will remove the user's group if it contains no more members, and
+<B>useradd</B>
+will create by default a group with the name of the user.
+</DL>
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>FILES</H2>
+
+<P>
+
+/etc/group
+<DL COMPACT><DT><DD>
+Group account information.
+</DL>
+
+<P>
+
+/etc/login.defs
+<DL COMPACT><DT><DD>
+Shadow password suite configuration.
+</DL>
+
+<P>
+
+/etc/passwd
+<DL COMPACT><DT><DD>
+User account information.
+</DL>
+
+<P>
+
+/etc/shadow
+<DL COMPACT><DT><DD>
+Secure user account information.
+</DL>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXIT VALUES</H2>
+
+<P>
+
+The
+<B>userdel</B>
+command exits with the following values:
+<P>
+
+<I>0</I>
+<DL COMPACT><DT><DD>
+success
+</DL>
+
+<P>
+
+<I>1</I>
+<DL COMPACT><DT><DD>
+can't update password file
+</DL>
+
+<P>
+
+<I>2</I>
+<DL COMPACT><DT><DD>
+invalid command syntax
+</DL>
+
+<P>
+
+<I>6</I>
+<DL COMPACT><DT><DD>
+specified user doesn't exist
+</DL>
+
+<P>
+
+<I>8</I>
+<DL COMPACT><DT><DD>
+user currently logged in
+</DL>
+
+<P>
+
+<I>10</I>
+<DL COMPACT><DT><DD>
+can't update group file
+</DL>
+
+<P>
+
+<I>12</I>
+<DL COMPACT><DT><DD>
+can't remove home directory
+</DL>
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>CAVEATS</H2>
+
+<P>
+
+<P>
+<B>userdel</B>
+will not allow you to remove an account if there are running processes which belong to this account. In that case, you may have to kill those processes or lock the user's password or account and remove the account later. The
+<B>-f</B>
+option can force the deletion of this account.
+<P>
+
+You should manually check all file systems to ensure that no files remain owned by this user.
+<P>
+
+You may not remove any NIS attributes on a NIS client. This must be performed on the NIS server.
+<P>
+
+If
+<B>USERGROUPS_ENAB</B>
+is defined to
+<I>yes</I>
+in
+/etc/login.defs,
+<B>userdel</B>
+will delete the group with the same name as the user. To avoid inconsistencies in the passwd and group databases,
+<B>userdel</B>
+will check that this group is not used as a primary group for another user, and will just warn without deleting the group otherwise. The
+<B>-f</B>
+option can force the deletion of this group.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<B><A HREF="/man/index.html?1+chfn">chfn</A></B>(1),
+<B><A HREF="/man/index.html?1+chsh">chsh</A></B>(1),
+<B><A HREF="/man/index.html?1+passwd">passwd</A></B>(1),
+<B><A HREF="/man/index.html?5+login.defs">login.defs</A></B>(5),
+<B><A HREF="/man/index.html?8+gpasswd">gpasswd</A></B>(8),
+<B><A HREF="/man/index.html?8+groupadd">groupadd</A></B>(8),
+<B><A HREF="/man/index.html?8+groupdel">groupdel</A></B>(8),
+<B><A HREF="/man/index.html?8+groupmod">groupmod</A></B>(8),
+<B><A HREF="/man/index.html?8+useradd">useradd</A></B>(8),
+<B><A HREF="/man/index.html?8+usermod">usermod</A></B>(8).
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">CONFIGURATION</A><DD>
+<DT><A HREF="#lbAG">FILES</A><DD>
+<DT><A HREF="#lbAH">EXIT VALUES</A><DD>
+<DT><A HREF="#lbAI">CAVEATS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:31 GMT, December 24, 2015
+</div></body>
+</HTML>

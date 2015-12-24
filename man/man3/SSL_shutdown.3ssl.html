@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SSL_shutdown</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SSL_shutdown</H1>
+Section: OpenSSL (3)<BR>Updated: 2004-11-14<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+SSL_shutdown - shut down a TLS/SSL connection
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/ssl.h">openssl/ssl.h</A>&gt;
+
+ int SSL_shutdown(SSL *ssl);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<I>SSL_shutdown()</I> shuts down an active <FONT SIZE="-1">TLS/SSL</FONT> connection. It sends the 
+``close notify'' shutdown alert to the peer.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+<I>SSL_shutdown()</I> tries to send the ``close notify'' shutdown alert to the peer.
+Whether the operation succeeds or not, the <FONT SIZE="-1">SSL_SENT_SHUTDOWN</FONT> flag is set and
+a currently open session is considered closed and good and will be kept in the
+session cache for further reuse.
+<P>
+
+The shutdown procedure consists of 2 steps: the sending of the ``close notify''
+shutdown alert and the reception of the peer's ``close notify'' shutdown
+alert. According to the <FONT SIZE="-1">TLS</FONT> standard, it is acceptable for an application
+to only send its shutdown alert and then close the underlying connection
+without waiting for the peer's response (this way resources can be saved,
+as the process can already terminate or serve another connection).
+When the underlying connection shall be used for more communications, the
+complete shutdown procedure (bidirectional ``close notify'' alerts) must be
+performed, so that the peers stay synchronized.
+<P>
+
+<I>SSL_shutdown()</I> supports both uni- and bidirectional shutdown by its 2 step
+behaviour.
+<DL COMPACT>
+<DT>When the application is the first party to send the close notify alert, <I>SSL_shutdown()</I> will only send the alert and then set the <FONT SIZE="-1">SSL_SENT_SHUTDOWN</FONT> flag (so that the session is considered good and will be kept in cache). <I>SSL_shutdown()</I> will then return with 0. If a unidirectional shutdown is enough (the underlying connection shall be closed anyway), this first call to <I>SSL_shutdown()</I> is sufficient. In order to complete the bidirectional shutdown handshake, <I>SSL_shutdown()</I> must be called again. The second call will make <I>SSL_shutdown()</I> wait for the peer's close notify shutdown alert. On success, the second call to <I>SSL_shutdown()</I> will return with 1.<DD>
+
+
+<A NAME="ixAAF"></A>
+
+<DT>If the peer already sent the close notify alert <B>and</B> it was already processed implicitly inside another function (<I><A HREF="/man/index.html?3+SSL_read">SSL_read</A></I>(3)), the <FONT SIZE="-1">SSL_RECEIVED_SHUTDOWN</FONT> flag is set. <I>SSL_shutdown()</I> will send the close notify alert, set the <FONT SIZE="-1">SSL_SENT_SHUTDOWN</FONT> flag and will immediately return with 1. Whether <FONT SIZE="-1">SSL_RECEIVED_SHUTDOWN</FONT> is already set can be checked using the <I>SSL_get_shutdown()</I> (see also <I><A HREF="http://localhost/cgi-bin/man/man2html?3+SSL_set_shutdown">SSL_set_shutdown</A></I>(3) call.<DD>
+
+
+<A NAME="ixAAG"></A>
+
+</DL>
+<P>
+
+It is therefore recommended, to check the return value of <I>SSL_shutdown()</I>
+and call <I>SSL_shutdown()</I> again, if the bidirectional shutdown is not yet
+complete (return value of the first call is 0). As the shutdown is not
+specially handled in the SSLv2 protocol, <I>SSL_shutdown()</I> will succeed on
+the first call.
+<P>
+
+The behaviour of <I>SSL_shutdown()</I> additionally depends on the underlying <FONT SIZE="-1">BIO</FONT>.
+<P>
+
+If the underlying <FONT SIZE="-1">BIO</FONT> is <B>blocking</B>, <I>SSL_shutdown()</I> will only return once the
+handshake step has been finished or an error occurred.
+<P>
+
+If the underlying <FONT SIZE="-1">BIO</FONT> is <B>non-blocking</B>, <I>SSL_shutdown()</I> will also return
+when the underlying <FONT SIZE="-1">BIO</FONT> could not satisfy the needs of <I>SSL_shutdown()</I>
+to continue the handshake. In this case a call to <I>SSL_get_error()</I> with the
+return value of <I>SSL_shutdown()</I> will yield <B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_READ</B></FONT><B></B> or
+<B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_WRITE</B></FONT><B></B>. The calling process then must repeat the call after
+taking appropriate action to satisfy the needs of <I>SSL_shutdown()</I>.
+The action depends on the underlying <FONT SIZE="-1">BIO</FONT>. When using a non-blocking socket,
+nothing is to be done, but <I>select()</I> can be used to check for the required
+condition. When using a buffering <FONT SIZE="-1">BIO</FONT>, like a <FONT SIZE="-1">BIO</FONT> pair, data must be written
+into or retrieved out of the <FONT SIZE="-1">BIO</FONT> before being able to continue.
+<P>
+
+<I>SSL_shutdown()</I> can be modified to only set the connection to ``shutdown''
+state but not actually send the ``close notify'' alert messages,
+see <I><A HREF="/man/index.html?3+SSL_CTX_set_quiet_shutdown">SSL_CTX_set_quiet_shutdown</A></I>(3).
+When ``quiet shutdown'' is enabled, <I>SSL_shutdown()</I> will always succeed
+and return 1.
+<A NAME="lbAF">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<A NAME="ixAAH"></A>
+The following return values can occur:
+<DL COMPACT>
+<DT>1.<DD>
+The shutdown was successfully completed. The ``close notify'' alert was sent
+and the peer's ``close notify'' alert was received.
+<DT>2.<DD>
+The shutdown is not yet finished. Call <I>SSL_shutdown()</I> for a second time,
+if a bidirectional shutdown shall be performed.
+The output of <I><A HREF="/man/index.html?3+SSL_get_error">SSL_get_error</A></I>(3) may be misleading, as an
+erroneous <FONT SIZE="-1">SSL_ERROR_SYSCALL</FONT> may be flagged even though no error occurred.
+<DT>3.<DD>
+-1
+
+
+<P>
+
+
+The shutdown was not successful because a fatal error occurred either
+at the protocol level or a connection failure occurred. It can also occur if
+action is need to continue the operation for non-blocking BIOs.
+Call <I><A HREF="/man/index.html?3+SSL_get_error">SSL_get_error</A></I>(3) with the return value <B>ret</B>
+to find out the reason.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAI"></A>
+<I><A HREF="/man/index.html?3+SSL_get_error">SSL_get_error</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+SSL_connect">SSL_connect</A></I>(3),
+<I><A HREF="/man/index.html?3+SSL_accept">SSL_accept</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+SSL_set_shutdown">SSL_set_shutdown</A></I>(3),
+<I><A HREF="/man/index.html?3+SSL_CTX_set_quiet_shutdown">SSL_CTX_set_quiet_shutdown</A></I>(3),
+<I><A HREF="/man/index.html?3+SSL_clear">SSL_clear</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+SSL_free">SSL_free</A></I>(3),
+<I><A HREF="/man/index.html?3+ssl">ssl</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+bio">bio</A></I>(3)
+<A NAME="lbAH">&nbsp;</A>
+<H2>POD ERRORS</H2>
+
+<A NAME="ixAAJ"></A>
+Hey! <B>The above document had some coding errors, which are explained below:</B>
+<DL COMPACT>
+<DT>Around line 100:<DD>
+<A NAME="ixAAK"></A>
+You have '=item 0' instead of the expected '=item 2'
+<DT>Around line 107:<DD>
+<A NAME="ixAAL"></A>
+Expected '=item 3'
+<P>
+</DL>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">POD ERRORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:42 GMT, December 24, 2015
+</div></body>
+</HTML>

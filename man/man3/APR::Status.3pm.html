@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of docs::api::APR::Status</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>docs::api::APR::Status</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-11-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+APR::Status - Perl Interface to the APR_STATUS_IS_* macros
+<A NAME="lbAC">&nbsp;</A>
+<H2>Synopsis</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use APR::Status ();
+  eval { $obj-&gt;mp_method() };
+  if ($@ &amp;&amp; $ref $@ eq 'APR::Error' &amp;&amp; APR::Status::is_EAGAIN($@)) {
+      # APR_STATUS_IS_EAGAIN(s) of apr_errno.h is satisfied
+  }
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>Description</H2>
+
+<A NAME="ixAAD"></A>
+An interface to <I>apr_errno.h</I> composite error codes.
+<P>
+
+As discussed in the <TT>&quot;APR::Error&quot;</TT>
+manpage, it is possible to handle APR/Apache/mod_perl exceptions in
+the following way:
+<P>
+
+
+
+<PRE>
+  eval { $obj-&gt;mp_method() };
+  if ($@ &amp;&amp; $ref $@ eq 'APR::Error' &amp;&amp; $@ == $some_code)
+      warn &quot;handled exception: $@&quot;;
+  }
+
+</PRE>
+
+
+<P>
+
+However, in cases where <TT>$some_code</TT> is an APR::Const
+constant, there may be more than one
+condition satisfying the intent of this exception. For this purpose
+the <FONT SIZE="-1">APR</FONT> C library provides in <I>apr_errno.h</I> a series of macros,
+<TT>&quot;APR_STATUS_IS_*&quot;</TT>, which are the recommended way to check for such
+conditions. For example, the <TT>&quot;APR_STATUS_IS_EAGAIN&quot;</TT> macro is defined
+as
+<P>
+
+
+
+<PRE>
+  #define APR_STATUS_IS_EAGAIN(s)         ((s) == APR_EAGAIN \
+                  || (s) == APR_OS_START_SYSERR + ERROR_NO_DATA \
+                  || (s) == APR_OS_START_SYSERR + SOCEWOULDBLOCK \
+                  || (s) == APR_OS_START_SYSERR + ERROR_LOCK_VIOLATION)
+
+</PRE>
+
+
+<P>
+
+The purpose of <TT>&quot;APR::Status&quot;</TT> is to provide functions corresponding
+to these macros.
+<A NAME="lbAE">&nbsp;</A>
+<H2>Functions</H2>
+
+<A NAME="ixAAE"></A>
+<A NAME="lbAF">&nbsp;</A>
+<H3>is_EACCES</H3>
+
+
+
+<A NAME="ixAAF"></A>
+Check if the error is matching <TT>&quot;EACCES&quot;</TT> and its variants (corresponds
+to the <TT>&quot;APR_STATUS_IS_EACCES&quot;</TT> macro).
+<P>
+
+
+
+<PRE>
+  $status = APR::Status::is_EACCES($error_code);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $error_code (integer or APR::Error object )<DD>
+
+
+<A NAME="ixAAG"></A>
+The error code or to check, normally <TT>$@</TT> blessed into <TT>&quot;APR::Error
+object&quot;</TT>.
+<DT>ret: $status ( boolean )<DD>
+
+
+<A NAME="ixAAH"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAI"></A>
+
+</DL>
+<P>
+
+An example of using <TT>&quot;is_EACCES&quot;</TT> is when reading the contents of a
+file where access may be forbidden:
+<P>
+
+
+
+<PRE>
+  eval { $obj-&gt;slurp_filename(0) };
+  if ($@) {
+      return Apache2::Const::FORBIDDEN
+          if ref $@ eq 'APR::Error' &amp;&amp; APR::Status::is_EACCES($@);
+      die $@;
+   }
+
+</PRE>
+
+
+<P>
+
+Due to possible variants in conditions matching <TT>&quot;EACCES&quot;</TT>,
+the use of this function is recommended for checking error codes
+against this value, rather than just using
+<TT>&quot;APR::Const::EACCES&quot;</TT>
+directly.
+<A NAME="lbAG">&nbsp;</A>
+<H3>is_EAGAIN</H3>
+
+
+
+<A NAME="ixAAJ"></A>
+Check if the error is matching <TT>&quot;EAGAIN&quot;</TT> and its variants (corresponds
+to the <TT>&quot;APR_STATUS_IS_EAGAIN&quot;</TT> macro).
+<P>
+
+
+
+<PRE>
+  $status = APR::Status::is_EAGAIN($error_code);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $error_code (integer or APR::Error object )<DD>
+
+
+<A NAME="ixAAK"></A>
+The error code or to check, normally <TT>$@</TT> blessed into <TT>&quot;APR::Error
+object&quot;</TT>.
+<DT>ret: $status ( boolean )<DD>
+
+
+<A NAME="ixAAL"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAM"></A>
+
+</DL>
+<P>
+
+For example, here is how you may want to handle socket read exceptions
+and do retries:
+<P>
+
+
+
+<PRE>
+  use APR::Status ();
+  # ....
+  my $tries = 0;
+  my $buffer;
+  RETRY: my $rlen = eval { $socket-&gt;recv($buffer, SIZE) };
+  if ($@ &amp;&amp; ref($@) &amp;&amp; APR::Status::is_EAGAIN($@)) {
+      if ($tries++ &lt; 3) {
+          goto RETRY;
+      }
+      else {
+          # do something else
+      }
+  }
+  else {
+      die &quot;eval block has failed: $@&quot;;
+  }
+
+</PRE>
+
+
+<P>
+
+Notice that just checking against
+<TT>&quot;APR::Const::EAGAIN&quot;</TT>
+may work on some Unices, but then it will certainly break on
+win32. Thefore make sure to use this macro and not
+<TT>&quot;APR::Const::EAGAIN&quot;</TT> unless you know what you are doing.
+<A NAME="lbAH">&nbsp;</A>
+<H3>is_ENOENT</H3>
+
+
+
+<A NAME="ixAAN"></A>
+Check if the error is matching <TT>&quot;ENOENT&quot;</TT> and its variants (corresponds
+to the <TT>&quot;APR_STATUS_IS_ENOENT&quot;</TT> macro).
+<P>
+
+
+
+<PRE>
+  $status = APR::Status::is_ENOENT($error_code);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $error_code (integer or APR::Error object )<DD>
+
+
+<A NAME="ixAAO"></A>
+The error code or to check, normally <TT>$@</TT> blessed into <TT>&quot;APR::Error
+object&quot;</TT>.
+<DT>ret: $status ( boolean )<DD>
+
+
+<A NAME="ixAAP"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAQ"></A>
+
+</DL>
+<P>
+
+An example of using <TT>&quot;is_ENOENT&quot;</TT> is when reading the contents of a
+file which may not exist:
+<P>
+
+
+
+<PRE>
+  eval { $obj-&gt;slurp_filename(0) };
+  if ($@) {
+      return Apache2::Const::NOT_FOUND
+          if ref $@ eq 'APR::Error' &amp;&amp; APR::Status::is_ENOENT($@);
+      die $@;
+  }
+
+</PRE>
+
+
+<P>
+
+Due to possible variants in conditions matching <TT>&quot;ENOENT&quot;</TT>,
+the use of this function is recommended for checking error codes
+against this value, rather than just using
+<TT>&quot;APR::Const::ENOENT&quot;</TT>
+directly.
+<A NAME="lbAI">&nbsp;</A>
+<H3>is_EOF</H3>
+
+
+
+<A NAME="ixAAR"></A>
+Check if the error is matching <TT>&quot;EOF&quot;</TT> and its variants (corresponds
+to the <TT>&quot;APR_STATUS_IS_EOF&quot;</TT> macro).
+<P>
+
+
+
+<PRE>
+  $status = APR::Status::is_EOF($error_code);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $error_code (integer or APR::Error object )<DD>
+
+
+<A NAME="ixAAS"></A>
+The error code or to check, normally <TT>$@</TT> blessed into <TT>&quot;APR::Error
+object&quot;</TT>.
+<DT>ret: $status ( boolean )<DD>
+
+
+<A NAME="ixAAT"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAU"></A>
+
+</DL>
+<P>
+
+Due to possible variants in conditions matching <TT>&quot;EOF&quot;</TT>,
+the use of this function is recommended for checking error codes
+against this value, rather than just using
+<TT>&quot;APR::Const::EOF&quot;</TT>
+directly.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>is_ECONNABORTED</H3>
+
+
+
+<A NAME="ixAAV"></A>
+Check if the error is matching <TT>&quot;ECONNABORTED&quot;</TT> and its variants (corresponds
+to the <TT>&quot;APR_STATUS_IS_ECONNABORTED&quot;</TT> macro).
+<P>
+
+
+
+<PRE>
+  $status = APR::Status::is_ECONNABORTED($error_code);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $error_code (integer or APR::Error object )<DD>
+
+
+<A NAME="ixAAW"></A>
+The error code or to check, normally <TT>$@</TT> blessed into <TT>&quot;APR::Error
+object&quot;</TT>.
+<DT>ret: $status ( boolean )<DD>
+
+
+<A NAME="ixAAX"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAY"></A>
+
+</DL>
+<P>
+
+Due to possible variants in conditions matching <TT>&quot;ECONNABORTED&quot;</TT>,
+the use of this function is recommended for checking error codes
+against this value, rather than just using
+<TT>&quot;APR::Const::ECONNABORTED&quot;</TT> directly.
+<A NAME="lbAK">&nbsp;</A>
+<H3>is_ECONNRESET</H3>
+
+
+
+<A NAME="ixAAZ"></A>
+Check if the error is matching <TT>&quot;ECONNRESET&quot;</TT> and its variants
+(corresponds to the <TT>&quot;APR_STATUS_IS_ECONNRESET&quot;</TT> macro).
+<P>
+
+
+
+<PRE>
+  $status = APR::Status::is_ECONNRESET($error_code);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $error_code (integer or APR::Error object )<DD>
+
+
+<A NAME="ixABA"></A>
+The error code or to check, normally <TT>$@</TT> blessed into <TT>&quot;APR::Error
+object&quot;</TT>.
+<DT>ret: $status ( boolean )<DD>
+
+
+<A NAME="ixABB"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixABC"></A>
+
+</DL>
+<P>
+
+Due to possible variants in conditions matching <TT>&quot;ECONNRESET&quot;</TT>, the use
+of this function is recommended for checking error codes against this
+value, rather than just using
+<TT>&quot;APR::Const::ECONNRESET&quot;</TT>
+directly.
+<A NAME="lbAL">&nbsp;</A>
+<H3>is_TIMEUP</H3>
+
+
+
+<A NAME="ixABD"></A>
+Check if the error is matching <TT>&quot;TIMEUP&quot;</TT> and its variants (corresponds
+to the <TT>&quot;APR_STATUS_IS_TIMEUP&quot;</TT> macro).
+<P>
+
+
+
+<PRE>
+  $status = APR::Status::is_TIMEUP($error_code);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>arg1: $error_code (integer or APR::Error object )<DD>
+
+
+<A NAME="ixABE"></A>
+The error code or to check, normally <TT>$@</TT> blessed into <TT>&quot;APR::Error
+object&quot;</TT>.
+<DT>ret: $status ( boolean )<DD>
+
+
+<A NAME="ixABF"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixABG"></A>
+
+</DL>
+<P>
+
+Due to possible variants in conditions matching <TT>&quot;TIMEUP&quot;</TT>,
+the use of this function is recommended for checking error codes
+against this value, rather than just using
+<TT>&quot;APR::Const::TIMEUP&quot;</TT>
+directly.
+<A NAME="lbAM">&nbsp;</A>
+<H2>See Also</H2>
+
+<A NAME="ixABH"></A>
+mod_perl 2.0 documentation.
+<A NAME="lbAN">&nbsp;</A>
+<H2>Copyright</H2>
+
+<A NAME="ixABI"></A>
+mod_perl 2.0 and its core modules are copyrighted under
+The Apache Software License, Version 2.0.
+<A NAME="lbAO">&nbsp;</A>
+<H2>Authors</H2>
+
+<A NAME="ixABJ"></A>
+The mod_perl development team and numerous
+contributors.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">Synopsis</A><DD>
+<DT><A HREF="#lbAD">Description</A><DD>
+<DT><A HREF="#lbAE">Functions</A><DD>
+<DL>
+<DT><A HREF="#lbAF">is_EACCES</A><DD>
+<DT><A HREF="#lbAG">is_EAGAIN</A><DD>
+<DT><A HREF="#lbAH">is_ENOENT</A><DD>
+<DT><A HREF="#lbAI">is_EOF</A><DD>
+<DT><A HREF="#lbAJ">is_ECONNABORTED</A><DD>
+<DT><A HREF="#lbAK">is_ECONNRESET</A><DD>
+<DT><A HREF="#lbAL">is_TIMEUP</A><DD>
+</DL>
+<DT><A HREF="#lbAM">See Also</A><DD>
+<DT><A HREF="#lbAN">Copyright</A><DD>
+<DT><A HREF="#lbAO">Authors</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

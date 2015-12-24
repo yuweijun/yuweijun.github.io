@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERLPRAGMA</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERLPRAGMA</H1>
+Section: Perl Programmers Reference Guide (1)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perlpragma - how to write a user pragma
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+A pragma is a module which influences some aspect of the compile time or run
+time behaviour of Perl, such as <TT>&quot;strict&quot;</TT> or <TT>&quot;warnings&quot;</TT>. With Perl 5.10 you
+are no longer limited to the built in pragmata; you can now create user
+pragmata that modify the behaviour of user functions within a lexical scope.
+<A NAME="lbAD">&nbsp;</A>
+<H2>A basic example</H2>
+
+<A NAME="ixAAD"></A>
+For example, say you need to create a class implementing overloaded
+mathematical operators, and would like to provide your own pragma that
+functions much like <TT>&quot;use integer;&quot;</TT> You'd like this code
+<P>
+
+
+
+<PRE>
+    use MyMaths;
+    
+    my $l = MyMaths-&gt;new(1.2);
+    my $r = MyMaths-&gt;new(3.4);
+    
+    print &quot;A: &quot;, $l + $r, &quot;\n&quot;;
+    
+    use myint;
+    print &quot;B: &quot;, $l + $r, &quot;\n&quot;;
+    
+    {
+        no myint;
+        print &quot;C: &quot;, $l + $r, &quot;\n&quot;;
+    }
+    
+    print &quot;D: &quot;, $l + $r, &quot;\n&quot;;
+    
+    no myint;
+    print &quot;E: &quot;, $l + $r, &quot;\n&quot;;
+
+</PRE>
+
+
+<P>
+
+to give the output
+<P>
+
+
+
+<PRE>
+    A: 4.6
+    B: 4
+    C: 4.6
+    D: 4
+    E: 4.6
+
+</PRE>
+
+
+<P>
+
+<I>i.e.</I>, where <TT>&quot;use myint;&quot;</TT> is in effect, addition operations are forced
+to integer, whereas by default they are not, with the default behaviour being
+restored via <TT>&quot;no myint;&quot;</TT>
+<P>
+
+The minimal implementation of the package <TT>&quot;MyMaths&quot;</TT> would be something like
+this:
+<P>
+
+
+
+<PRE>
+    package MyMaths;
+    use warnings;
+    use strict;
+    use myint();
+    use overload '+' =&gt; sub {
+        my ($l, $r) = @_;
+        # Pass 1 to check up one call level from here
+        if (<A HREF="/man/index.html?1+myint::in_effect">myint::in_effect</A>(1)) {
+            int($$l) + int($$r);
+        } else {
+            $$l + $$r;
+        }
+    };
+    
+    sub new {
+        my ($class, $value) = @_;
+        bless \$value, $class;
+    }
+    
+    1;
+
+</PRE>
+
+
+<P>
+
+Note how we load the user pragma <TT>&quot;myint&quot;</TT> with an empty list <TT>&quot;()&quot;</TT> to
+prevent its <TT>&quot;import&quot;</TT> being called.
+<P>
+
+The interaction with the Perl compilation happens inside package <TT>&quot;myint&quot;</TT>:
+<P>
+
+
+
+<PRE>
+    package myint;
+    
+    use strict;
+    use warnings;
+    
+    sub import {
+        $^H{myint} = 1;
+    }
+    
+    sub unimport {
+        $^H{myint} = 0;
+    }
+    
+    sub in_effect {
+        my $level = shift // 0;
+        my $hinthash = (caller($level))[10];
+        return $hinthash-&gt;{myint};
+    }
+    
+    1;
+
+</PRE>
+
+
+<P>
+
+As pragmata are implemented as modules, like any other module, <TT>&quot;use myint;&quot;</TT>
+becomes
+<P>
+
+
+
+<PRE>
+    BEGIN {
+        require myint;
+        myint-&gt;import();
+    }
+
+</PRE>
+
+
+<P>
+
+and <TT>&quot;no myint;&quot;</TT> is
+<P>
+
+
+
+<PRE>
+    BEGIN {
+        require myint;
+        myint-&gt;unimport();
+    }
+
+</PRE>
+
+
+<P>
+
+Hence the <TT>&quot;import&quot;</TT> and <TT>&quot;unimport&quot;</TT> routines are called at <B>compile time</B>
+for the user's code.
+<P>
+
+User pragmata store their state by writing to the magical hash <TT>&quot;%^H&quot;</TT>,
+hence these two routines manipulate it. The state information in <TT>&quot;%^H&quot;</TT> is
+stored in the optree, and can be retrieved at runtime with <TT>&quot;caller()&quot;</TT>, at
+index 10 of the list of returned results. In the example pragma, retrieval
+is encapsulated into the routine <TT>&quot;in_effect()&quot;</TT>, which takes as parameter
+the number of call frames to go up to find the value of the pragma in the
+user's script. This uses <TT>&quot;caller()&quot;</TT> to determine the value of
+<TT>$^H{myint}</TT> when each line of the user's script was called, and
+therefore provide the correct semantics in the subroutine implementing the
+overloaded addition.
+<A NAME="lbAE">&nbsp;</A>
+<H2>Implementation details</H2>
+
+<A NAME="ixAAE"></A>
+The optree is shared between threads.  This means there is a possibility that
+the optree will outlive the particular thread (and therefore the interpreter
+instance) that created it, so true Perl scalars cannot be stored in the
+optree.  Instead a compact form is used, which can only store values that are
+integers (signed and unsigned), strings or <TT>&quot;undef&quot;</TT> - references and
+floating point values are stringified.  If you need to store multiple values
+or complex structures, you should serialise them, for example with <TT>&quot;pack&quot;</TT>.
+The deletion of a hash key from <TT>&quot;%^H&quot;</TT> is recorded, and as ever can be
+distinguished from the existence of a key with value <TT>&quot;undef&quot;</TT> with
+<TT>&quot;exists&quot;</TT>.
+<P>
+
+<B>Don't</B> attempt to store references to data structures as integers which
+are retrieved via <TT>&quot;caller&quot;</TT> and converted back, as this will not be threadsafe.
+Accesses would be to the structure without locking (which is not safe for
+Perl's scalars), and either the structure has to leak, or it has to be
+freed when its creating thread terminates, which may be before the optree
+referencing it is deleted, if other threads outlive it.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">A basic example</A><DD>
+<DT><A HREF="#lbAE">Implementation details</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:08 GMT, December 24, 2015
+</div></body>
+</HTML>

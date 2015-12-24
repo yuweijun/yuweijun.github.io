@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of BIND</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>BIND</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2007-12-28<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+bind - bind a name to a socket
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;</B>          /* See NOTES */
+<B>#include &lt;<A HREF="file:/usr/include/sys/socket.h">sys/socket.h</A>&gt;</B>
+
+<B>int bind(int </B><I>sockfd</I><B>, const struct sockaddr *</B><I>addr</I><B>,</B>
+<B>         socklen_t </B><I>addrlen</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+When a socket is created with
+<B><A HREF="/man/index.html?2+socket">socket</A></B>(2),
+
+it exists in a name space (address family) but has no address assigned to it.
+<B>bind</B>()
+
+assigns the address specified to by
+<I>addr</I>
+
+to the socket referred to by the file descriptor
+<I>sockfd</I>.
+
+<I>addrlen</I>
+
+specifies the size, in bytes, of the address structure pointed to by
+<I>addr</I>.
+
+Traditionally, this operation is called lqassigning a name to a socketrq.
+<P>
+
+It is normally necessary to assign a local address using
+<B>bind</B>()
+
+before a
+<B>SOCK_STREAM</B>
+
+socket may receive connections (see
+<B><A HREF="/man/index.html?2+accept">accept</A></B>(2)).
+
+<P>
+The rules used in name binding vary between address families.
+Consult the manual entries in Section 7 for detailed information.
+For
+<B>AF_INET</B>
+
+see
+<B><A HREF="/man/index.html?7+ip">ip</A></B>(7),
+
+for
+<B>AF_INET6</B>
+
+see
+<B><A HREF="/man/index.html?7+ipv6">ipv6</A></B>(7),
+
+for
+<B>AF_UNIX</B>
+
+see
+<B><A HREF="/man/index.html?7+unix">unix</A></B>(7),
+
+for
+<B>AF_APPLETALK</B>
+
+see
+<B><A HREF="/man/index.html?7+ddp">ddp</A></B>(7),
+
+for
+<B>AF_PACKET</B>
+
+see
+<B><A HREF="/man/index.html?7+packet">packet</A></B>(7),
+
+for
+<B>AF_X25</B>
+
+see
+<B><A HREF="/man/index.html?7+x25">x25</A></B>(7)
+
+and for
+<B>AF_NETLINK</B>
+
+see
+<B><A HREF="/man/index.html?7+netlink">netlink</A></B>(7).
+
+<P>
+The actual structure passed for the
+<I>addr</I>
+
+argument will depend on the address family.
+The
+<I>sockaddr</I>
+
+structure is defined as something like:
+
+<PRE>
+
+struct sockaddr {
+    sa_family_t sa_family;
+    char        sa_data[14];
+}
+
+</PRE>
+
+
+The only purpose of this structure is to cast the structure
+pointer passed in
+<I>addr</I>
+
+in order to avoid compiler warnings.
+See EXAMPLE below.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success, zero is returned.
+On error, -1 is returned, and
+<I>errno</I>
+
+is set appropriately.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EACCES</B>
+
+<DD>
+
+The address is protected, and the user is not the superuser.
+<DT><B>EADDRINUSE</B>
+
+<DD>
+The given address is already in use.
+<DT><B>EBADF</B>
+
+<DD>
+<I>sockfd</I>
+
+is not a valid descriptor.
+<DT><B>EINVAL</B>
+
+<DD>
+The socket is already bound to an address.
+
+
+<DT><B>ENOTSOCK</B>
+
+<DD>
+<I>sockfd</I>
+
+is a descriptor for a file, not a socket.
+</DL>
+<P>
+
+The following errors are specific to Unix domain
+(<B>AF_UNIX</B>)
+
+sockets:
+<DL COMPACT>
+<DT><B>EACCES</B>
+
+<DD>
+Search permission is denied on a component of the path prefix.
+(See also
+<B><A HREF="/man/index.html?7+path_resolution">path_resolution</A></B>(7).)
+
+<DT><B>EADDRNOTAVAIL</B>
+
+<DD>
+A nonexistent interface was requested or the requested
+address was not local.
+<DT><B>EFAULT</B>
+
+<DD>
+<I>addr</I>
+
+points outside the user's accessible address space.
+<DT><B>EINVAL</B>
+
+<DD>
+The
+<I>addrlen</I>
+
+is wrong, or the socket was not in the
+<B>AF_UNIX</B>
+
+family.
+<DT><B>ELOOP</B>
+
+<DD>
+Too many symbolic links were encountered in resolving
+<I>addr</I>.
+
+<DT><B>ENAMETOOLONG</B>
+
+<DD>
+<I>addr</I>
+
+is too long.
+<DT><B>ENOENT</B>
+
+<DD>
+The file does not exist.
+<DT><B>ENOMEM</B>
+
+<DD>
+Insufficient kernel memory was available.
+<DT><B>ENOTDIR</B>
+
+<DD>
+A component of the path prefix is not a directory.
+<DT><B>EROFS</B>
+
+<DD>
+The socket inode would reside on a read-only file system.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+SVr4, 4.4BSD, POSIX.1-2001
+(<B>bind</B>()
+
+first appeared in 4.2BSD).
+
+
+
+
+
+
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+POSIX.1-2001 does not require the inclusion of
+<I>&lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;</I>,
+
+and this header file is not required on Linux.
+However, some historical (BSD) implementations required this header
+file, and portable applications are probably wise to include it.
+<P>
+The third argument of
+<B>bind</B>()
+
+is in reality an
+<I>int</I>
+
+(and this is what 4.x BSD and libc4 and libc5 have).
+Some POSIX confusion resulted in the present
+<I>socklen_t</I>,
+
+also used by glibc.
+See also
+<B><A HREF="/man/index.html?2+accept">accept</A></B>(2).
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+The transparent proxy options are not described.
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+An example of the use of
+<B>bind</B>()
+
+with Internet domain sockets can be found in
+<B><A HREF="/man/index.html?3+getaddrinfo">getaddrinfo</A></B>(3).
+
+<P>
+The following example shows how to bind a stream socket in the Unix
+(<B>AF_UNIX</B>)
+
+domain, and accept connections:
+
+
+
+<P>
+<PRE>
+#include &lt;<A HREF="file:/usr/include/sys/socket.h">sys/socket.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/sys/un.h">sys/un.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/string.h">string.h</A>&gt;
+
+#define MY_SOCK_PATH &quot;/somepath&quot;
+#define LISTEN_BACKLOG 50
+
+#define handle_error(msg) \
+    do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
+int
+main(int argc, char *argv[])
+{
+    int sfd, cfd;
+    struct sockaddr_un my_addr, peer_addr;
+    socklen_t peer_addr_size;
+
+    sfd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sfd == -1)
+        handle_error(&quot;socket&quot;);
+
+    memset(&amp;my_addr, 0, sizeof(struct sockaddr_un));
+                        /* Clear structure */
+    my_addr.sun_family = AF_UNIX;
+    strncpy(my_addr.sun_path, MY_SOCK_PATH,
+            sizeof(my_addr.sun_path) - 1);
+
+    if (bind(sfd, (struct sockaddr *) &amp;my_addr,
+            sizeof(struct sockaddr_un)) == -1)
+        handle_error(&quot;bind&quot;);
+
+    if (listen(sfd, LISTEN_BACKLOG) == -1)
+        handle_error(&quot;listen&quot;);
+
+    /* Now we can accept incoming connections one
+       at a time using <A HREF="/man/index.html?2+accept">accept</A>(2) */
+
+    peer_addr_size = sizeof(struct sockaddr_un);
+    cfd = accept(sfd, (struct sockaddr *) &amp;peer_addr,
+                 &amp;peer_addr_size);
+    if (cfd == -1)
+        handle_error(&quot;accept&quot;);
+
+    /* Code to deal with incoming connection(s)... */
+
+    /* When no longer required, the socket pathname, MY_SOCK_PATH
+       should be deleted using <A HREF="/man/index.html?2+unlink">unlink</A>(2) or <A HREF="http://localhost/cgi-bin/man/man2html?3+remove">remove</A>(3) */
+}
+</PRE>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+accept">accept</A></B>(2),
+
+<B><A HREF="/man/index.html?2+connect">connect</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getsockname">getsockname</A></B>(2),
+
+<B><A HREF="/man/index.html?2+listen">listen</A></B>(2),
+
+<B><A HREF="/man/index.html?2+socket">socket</A></B>(2),
+
+<B><A HREF="/man/index.html?3+getaddrinfo">getaddrinfo</A></B>(3),
+
+<B><A HREF="/man/index.html?3+getifaddrs">getifaddrs</A></B>(3),
+
+<B><A HREF="/man/index.html?7+ip">ip</A></B>(7),
+
+<B><A HREF="/man/index.html?7+ipv6">ipv6</A></B>(7),
+
+<B><A HREF="/man/index.html?7+path_resolution">path_resolution</A></B>(7),
+
+<B><A HREF="/man/index.html?7+socket">socket</A></B>(7),
+
+<B><A HREF="/man/index.html?7+unix">unix</A></B>(7)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">EXAMPLE</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:03 GMT, December 24, 2015
+</div></body>
+</HTML>

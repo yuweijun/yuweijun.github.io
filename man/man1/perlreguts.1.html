@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERLREGUTS</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERLREGUTS</H1>
+Section: Perl Programmers Reference Guide (1)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perlreguts - Description of the Perl regular expression engine.
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+This document is an attempt to shine some light on the guts of the regex
+engine and how it works. The regex engine represents a significant chunk
+of the perl codebase, but is relatively poorly understood. This document
+is a meagre attempt at addressing this situation. It is derived from the
+author's experience, comments in the source code, other papers on the
+regex engine, feedback on the perl5-porters mail list, and no doubt other
+places as well.
+<P>
+
+<B></B><FONT SIZE="-1"><B>NOTICE</B></FONT><B>!</B> It should be clearly understood that the behavior and
+structures discussed in this represents the state of the engine as the
+author understood it at the time of writing. It is <B></B><FONT SIZE="-1"><B>NOT</B></FONT><B></B> an <FONT SIZE="-1">API</FONT>
+definition, it is purely an internals guide for those who want to hack
+the regex engine, or understand how the regex engine works. Readers of
+this document are expected to understand perl's regex syntax and its
+usage in detail. If you want to learn about the basics of Perl's
+regular expressions, see perlre. And if you want to replace the
+regex engine with your own see see perlreapi.
+<A NAME="lbAD">&nbsp;</A>
+<H2>OVERVIEW</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3>A quick note on terms</H3>
+
+<A NAME="ixAAE"></A>
+There is some debate as to whether to say ``regexp'' or ``regex''. In this
+document we will use the term ``regex'' unless there is a special reason
+not to, in which case we will explain why.
+<P>
+
+When speaking about regexes we need to distinguish between their source
+code form and their internal form. In this document we will use the term
+``pattern'' when we speak of their textual, source code form, and the term
+``program'' when we speak of their internal representation. These
+correspond to the terms <I>S-regex</I> and <I>B-regex</I> that Mark Jason
+Dominus employs in his paper on ``Rx'' ([1] in ``<FONT SIZE="-1">REFERENCES</FONT>'').
+<A NAME="lbAF">&nbsp;</A>
+<H3>What is a regular expression engine?</H3>
+
+<A NAME="ixAAF"></A>
+A regular expression engine is a program that takes a set of constraints
+specified in a mini-language, and then applies those constraints to a
+target string, and determines whether or not the string satisfies the
+constraints. See perlre for a full definition of the language.
+<P>
+
+In less grandiose terms, the first part of the job is to turn a pattern into
+something the computer can efficiently use to find the matching point in
+the string, and the second part is performing the search itself.
+<P>
+
+To do this we need to produce a program by parsing the text. We then
+need to execute the program to find the point in the string that
+matches. And we need to do the whole thing efficiently.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Structure of a Regexp Program</H3>
+
+<A NAME="ixAAG"></A>
+<I>High Level</I>
+<A NAME="ixAAH"></A>
+<P>
+
+Although it is a bit confusing and some people object to the terminology, it
+is worth taking a look at a comment that has
+been in <I>regexp.h</I> for years:
+<P>
+
+<I>This is essentially a linear encoding of a nondeterministic
+finite-state machine (aka syntax charts or ``railroad normal form'' in
+parsing technology).</I>
+<P>
+
+The term ``railroad normal form'' is a bit esoteric, with ``syntax
+diagram/charts'', or ``railroad diagram/charts'' being more common terms.
+Nevertheless it provides a useful mental image of a regex program: each
+node can be thought of as a unit of track, with a single entry and in
+most cases a single exit point (there are pieces of track that fork, but
+statistically not many), and the whole forms a layout with a
+single entry and single exit point. The matching process can be thought
+of as a car that moves along the track, with the particular route through
+the system being determined by the character read at each possible
+connector point. A car can fall off the track at any point but it may
+only proceed as long as it matches the track.
+<P>
+
+Thus the pattern <TT>&quot;/foo(?:\w+|\d+|\s+)bar/&quot;</TT> can be thought of as the
+following chart:
+<P>
+
+
+
+<PRE>
+                      [start]
+                         |
+                       &lt;foo&gt;
+                         |
+                   +-----+-----+
+                   |     |     |
+                 &lt;\w+&gt; &lt;\d+&gt; &lt;\s+&gt;
+                   |     |     |
+                   +-----+-----+
+                         |
+                       &lt;bar&gt;
+                         |
+                       [end]
+
+</PRE>
+
+
+<P>
+
+The truth of the matter is that perl's regular expressions these days are
+much more complex than this kind of structure, but visualising it this way
+can help when trying to get your bearings, and it matches the
+current implementation pretty closely.
+<P>
+
+To be more precise, we will say that a regex program is an encoding
+of a graph. Each node in the graph corresponds to part of
+the original regex pattern, such as a literal string or a branch,
+and has a pointer to the nodes representing the next component
+to be matched. Since ``node'' and ``opcode'' already have other meanings in the
+perl source, we will call the nodes in a regex program ``regops''.
+<P>
+
+The program is represented by an array of <TT>&quot;regnode&quot;</TT> structures, one or
+more of which represent a single regop of the program. Struct
+<TT>&quot;regnode&quot;</TT> is the smallest struct needed, and has a field structure which is
+shared with all the other larger structures.
+<P>
+
+The ``next'' pointers of all regops except <TT>&quot;BRANCH&quot;</TT> implement concatenation;
+a ``next'' pointer with a <TT>&quot;BRANCH&quot;</TT> on both ends of it is connecting two
+alternatives.  [Here we have one of the subtle syntax dependencies: an
+individual <TT>&quot;BRANCH&quot;</TT> (as opposed to a collection of them) is never
+concatenated with anything because of operator precedence.]
+<P>
+
+The operand of some types of regop is a literal string; for others,
+it is a regop leading into a sub-program.  In particular, the operand
+of a <TT>&quot;BRANCH&quot;</TT> node is the first regop of the branch.
+<P>
+
+<B></B><FONT SIZE="-1"><B>NOTE</B></FONT><B></B>: As the railroad metaphor suggests, this is <B>not</B> a tree
+structure:  the tail of the branch connects to the thing following the
+set of <TT>&quot;BRANCH&quot;</TT>es.  It is a like a single line of railway track that
+splits as it goes into a station or railway yard and rejoins as it comes
+out the other side.
+<P>
+
+<I>Regops</I>
+<A NAME="ixAAI"></A>
+<P>
+
+The base structure of a regop is defined in <I>regexp.h</I> as follows:
+<P>
+
+
+
+<PRE>
+    struct regnode {
+        U8  flags;    /* Various purposes, sometimes overridden */
+        U8  type;     /* Opcode value as specified by regnodes.h */
+        U16 next_off; /* Offset in size regnode */
+    };
+
+</PRE>
+
+
+<P>
+
+Other larger <TT>&quot;regnode&quot;</TT>-like structures are defined in <I>regcomp.h</I>. They
+are almost like subclasses in that they have the same fields as
+<TT>&quot;regnode&quot;</TT>, with possibly additional fields following in
+the structure, and in some cases the specific meaning (and name)
+of some of base fields are overridden. The following is a more
+complete description.
+<DL COMPACT>
+<DT>regnode_1<DD>
+
+
+<A NAME="ixAAJ"></A>
+
+<DT>regnode_2<DD>
+
+
+<A NAME="ixAAK"></A>
+
+<TT>&quot;regnode_1&quot;</TT> structures have the same header, followed by a single
+four-byte argument; <TT>&quot;regnode_2&quot;</TT> structures contain two two-byte
+arguments instead:
+
+
+<P>
+
+
+
+
+<PRE>
+    regnode_1                U32 arg1;
+    regnode_2                U16 arg1;  U16 arg2;
+
+</PRE>
+
+
+<DT>regnode_string<DD>
+
+
+<A NAME="ixAAL"></A>
+<TT>&quot;regnode_string&quot;</TT> structures, used for literal strings, follow the header
+with a one-byte length and then the string data. Strings are padded on
+the end with zero bytes so that the total length of the node is a
+multiple of four bytes:
+
+
+<P>
+
+
+
+
+<PRE>
+    regnode_string           char string[1];
+                             U8 str_len; /* overrides flags */
+
+</PRE>
+
+
+<DT>regnode_charclass<DD>
+
+
+<A NAME="ixAAM"></A>
+Character classes are represented by <TT>&quot;regnode_charclass&quot;</TT> structures,
+which have a four-byte argument and then a 32-byte (256-bit) bitmap
+indicating which characters are included in the class.
+
+
+<P>
+
+
+
+
+<PRE>
+    regnode_charclass        U32 arg1;
+                             char bitmap[ANYOF_BITMAP_SIZE];
+
+</PRE>
+
+
+<DT>regnode_charclass_class<DD>
+
+
+<A NAME="ixAAN"></A>
+There is also a larger form of a char class structure used to represent
+<FONT SIZE="-1">POSIX</FONT> char classes called <TT>&quot;regnode_charclass_class&quot;</TT> which has an
+additional 4-byte (32-bit) bitmap indicating which <FONT SIZE="-1">POSIX</FONT> char classes
+have been included.
+
+
+<P>
+
+
+
+
+<PRE>
+    regnode_charclass_class  U32 arg1;
+                             char bitmap[ANYOF_BITMAP_SIZE];
+                             char classflags[ANYOF_CLASSBITMAP_SIZE];
+
+</PRE>
+
+
+</DL>
+<P>
+
+<I>regnodes.h</I> defines an array called <TT>&quot;regarglen[]&quot;</TT> which gives the size
+of each opcode in units of <TT>&quot;size regnode&quot;</TT> (4-byte). A macro is used
+to calculate the size of an <TT>&quot;EXACT&quot;</TT> node based on its <TT>&quot;str_len&quot;</TT> field.
+<P>
+
+The regops are defined in <I>regnodes.h</I> which is generated from
+<I>regcomp.sym</I> by <I>regcomp.pl</I>. Currently the maximum possible number
+of distinct regops is restricted to 256, with about a quarter already
+used.
+<P>
+
+A set of macros makes accessing the fields
+easier and more consistent. These include <TT>&quot;OP()&quot;</TT>, which is used to determine
+the type of a <TT>&quot;regnode&quot;</TT>-like structure; <TT>&quot;NEXT_OFF()&quot;</TT>, which is the offset to
+the next node (more on this later); <TT>&quot;ARG()&quot;</TT>, <TT>&quot;ARG1()&quot;</TT>, <TT>&quot;ARG2()&quot;</TT>, <TT>&quot;ARG_SET()&quot;</TT>,
+and equivalents for reading and setting the arguments; and <TT>&quot;STR_LEN()&quot;</TT>,
+<TT>&quot;STRING()&quot;</TT> and <TT>&quot;OPERAND()&quot;</TT> for manipulating strings and regop bearing
+types.
+<P>
+
+<I>What regop is next?</I>
+<A NAME="ixAAO"></A>
+<P>
+
+There are three distinct concepts of ``next'' in the regex engine, and
+it is important to keep them clear.
+<DL COMPACT>
+<DT>*<DD>
+There is the ``next regnode'' from a given regnode, a value which is
+rarely useful except that sometimes it matches up in terms of value
+with one of the others, and that sometimes the code assumes this to
+always be so.
+<DT>*<DD>
+There is the ``next regop'' from a given regop/regnode. This is the
+regop physically located after the the current one, as determined by
+the size of the current regop. This is often useful, such as when
+dumping the structure we use this order to traverse. Sometimes the code
+assumes that the ``next regnode'' is the same as the ``next regop'', or in
+other words assumes that the sizeof a given regop type is always going
+to be one regnode large.
+<DT>*<DD>
+There is the ``regnext'' from a given regop. This is the regop which
+is reached by jumping forward by the value of <TT>&quot;NEXT_OFF()&quot;</TT>,
+or in a few cases for longer jumps by the <TT>&quot;arg1&quot;</TT> field of the <TT>&quot;regnode_1&quot;</TT>
+structure. The subroutine <TT>&quot;regnext()&quot;</TT> handles this transparently.
+This is the logical successor of the node, which in some cases, like
+that of the <TT>&quot;BRANCH&quot;</TT> regop, has special meaning.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>Process Overview</H2>
+
+<A NAME="ixAAP"></A>
+Broadly speaking, performing a match of a string against a pattern
+involves the following steps:
+<DL COMPACT>
+<DT>A. Compilation<DD>
+<A NAME="ixAAQ"></A>
+<DL COMPACT><DT><DD>
+
+<DL COMPACT>
+<DT>1. Parsing for size<DD>
+<A NAME="ixAAR"></A>
+<DT>2. Parsing for construction<DD>
+<A NAME="ixAAS"></A>
+<DT>3. Peep-hole optimisation and analysis<DD>
+<A NAME="ixAAT"></A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>B. Execution<DD>
+<A NAME="ixAAU"></A>
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>4. Start position and no-match optimisations<DD>
+<A NAME="ixAAV"></A>
+<DT>5. Program execution<DD>
+<A NAME="ixAAW"></A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+
+</DL>
+<P>
+
+Where these steps occur in the actual execution of a perl program is
+determined by whether the pattern involves interpolating any string
+variables. If interpolation occurs, then compilation happens at run time. If it
+does not, then compilation is performed at compile time. (The <TT>&quot;/o&quot;</TT> modifier changes this,
+as does <TT>&quot;qr//&quot;</TT> to a certain extent.) The engine doesn't really care that
+much.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Compilation</H3>
+
+<A NAME="ixAAX"></A>
+This code resides primarily in <I>regcomp.c</I>, along with the header files
+<I>regcomp.h</I>, <I>regexp.h</I> and <I>regnodes.h</I>.
+<P>
+
+Compilation starts with <TT>&quot;pregcomp()&quot;</TT>, which is mostly an initialisation
+wrapper which farms work out to two other routines for the heavy lifting: the
+first is <TT>&quot;reg()&quot;</TT>, which is the start point for parsing; the second,
+<TT>&quot;study_chunk()&quot;</TT>, is responsible for optimisation.
+<P>
+
+Initialisation in <TT>&quot;pregcomp()&quot;</TT> mostly involves the creation and data-filling
+of a special structure, <TT>&quot;RExC_state_t&quot;</TT> (defined in <I>regcomp.c</I>).
+Almost all internally-used routines in <I>regcomp.h</I> take a pointer to one
+of these structures as their first argument, with the name <TT>&quot;pRExC_state&quot;</TT>.
+This structure is used to store the compilation state and contains many
+fields. Likewise there are many macros which operate on this
+variable: anything that looks like <TT>&quot;RExC_xxxx&quot;</TT> is a macro that operates on
+this pointer/structure.
+<P>
+
+<I>Parsing for size</I>
+<A NAME="ixAAY"></A>
+<P>
+
+In this pass the input pattern is parsed in order to calculate how much
+space is needed for each regop we would need to emit. The size is also
+used to determine whether long jumps will be required in the program.
+<P>
+
+This stage is controlled by the macro <TT>&quot;SIZE_ONLY&quot;</TT> being set.
+<P>
+
+The parse proceeds pretty much exactly as it does during the
+construction phase, except that most routines are short-circuited to
+change the size field <TT>&quot;RExC_size&quot;</TT> and not do anything else.
+<P>
+
+<I>Parsing for construction</I>
+<A NAME="ixAAZ"></A>
+<P>
+
+Once the size of the program has been determined, the pattern is parsed
+again, but this time for real. Now <TT>&quot;SIZE_ONLY&quot;</TT> will be false, and the
+actual construction can occur.
+<P>
+
+<TT>&quot;reg()&quot;</TT> is the start of the parse process. It is responsible for
+parsing an arbitrary chunk of pattern up to either the end of the
+string, or the first closing parenthesis it encounters in the pattern.
+This means it can be used to parse the top-level regex, or any section
+inside of a grouping parenthesis. It also handles the ``special parens''
+that perl's regexes have. For instance when parsing <TT>&quot;/x(?:foo)y/&quot;</TT> <TT>&quot;reg()&quot;</TT>
+will at one point be called to parse from the ``?'' symbol up to and
+including the ``)''.
+<P>
+
+Additionally, <TT>&quot;reg()&quot;</TT> is responsible for parsing the one or more
+branches from the pattern, and for ``finishing them off'' by correctly
+setting their next pointers. In order to do the parsing, it repeatedly
+calls out to <TT>&quot;regbranch()&quot;</TT>, which is responsible for handling up to the
+first <TT>&quot;|&quot;</TT> symbol it sees.
+<P>
+
+<TT>&quot;regbranch()&quot;</TT> in turn calls <TT>&quot;regpiece()&quot;</TT> which
+handles ``things'' followed by a quantifier. In order to parse the
+``things'', <TT>&quot;regatom()&quot;</TT> is called. This is the lowest level routine, which
+parses out constant strings, character classes, and the
+various special symbols like <TT>&quot;$&quot;</TT>. If <TT>&quot;regatom()&quot;</TT> encounters a ``(''
+character it in turn calls <TT>&quot;reg()&quot;</TT>.
+<P>
+
+The routine <TT>&quot;regtail()&quot;</TT> is called by both <TT>&quot;reg()&quot;</TT> and <TT>&quot;regbranch()&quot;</TT>
+in order to ``set the tail pointer'' correctly. When executing and
+we get to the end of a branch, we need to go to the node following the
+grouping parens. When parsing, however, we don't know where the end will
+be until we get there, so when we do we must go back and update the
+offsets as appropriate. <TT>&quot;regtail&quot;</TT> is used to make this easier.
+<P>
+
+A subtlety of the parsing process means that a regex like <TT>&quot;/foo/&quot;</TT> is
+originally parsed into an alternation with a single branch. It is only
+afterwards that the optimiser converts single branch alternations into the
+simpler form.
+<P>
+
+<I>Parse Call Graph and a Grammar</I>
+<A NAME="ixABA"></A>
+<P>
+
+The call graph looks like this:
+<P>
+
+
+
+<PRE>
+    reg()                        # parse a top level regex, or inside of parens
+        regbranch()              # parse a single branch of an alternation
+            regpiece()           # parse a pattern followed by a quantifier
+                regatom()        # parse a simple pattern
+                    regclass()   #   used to handle a class
+                    reg()        #   used to handle a parenthesised subpattern
+                    ....
+            ...
+            regtail()            # finish off the branch
+        ...
+        regtail()                # finish off the branch sequence. Tie each
+                                 # branch's tail to the tail of the sequence
+                                 # (NEW) In Debug mode this is
+                                 # regtail_study().
+
+</PRE>
+
+
+<P>
+
+A grammar form might be something like this:
+<P>
+
+
+
+<PRE>
+    atom  : constant | class
+    quant : '*' | '+' | '?' | '{min,max}'
+    _branch: piece
+           | piece _branch
+           | nothing
+    branch: _branch
+          | _branch '|' branch
+    group : '(' branch ')'
+    _piece: atom | group
+    piece : _piece
+          | _piece quant
+
+</PRE>
+
+
+<P>
+
+<I>Debug Output</I>
+<A NAME="ixABB"></A>
+<P>
+
+In the 5.9.x development version of perl you can <TT>&quot;use re Debug =&gt; 'PARSE'&quot;</TT>
+to see some trace information about the parse process. We will start with some
+simple patterns and build up to more complex patterns.
+<P>
+
+So when we parse <TT>&quot;/foo/&quot;</TT> we see something like the following table. The
+left shows what is being parsed, and the number indicates where the next regop
+would go. The stuff on the right is the trace output of the graph. The
+names are chosen to be short to make it less dense on the screen. 'tsdy'
+is a special form of <TT>&quot;regtail()&quot;</TT> which does some extra analysis.
+<P>
+
+
+
+<PRE>
+ &gt;foo&lt;             1    reg
+                          brnc
+                            piec
+                              atom
+ &gt;&lt;                4      tsdy~ EXACT &lt;foo&gt; (EXACT) (1)
+                              ~ attach to END (3) offset to 2
+
+</PRE>
+
+
+<P>
+
+The resulting program then looks like:
+<P>
+
+
+
+<PRE>
+   1: EXACT &lt;foo&gt;(3)
+   3: END(0)
+
+</PRE>
+
+
+<P>
+
+As you can see, even though we parsed out a branch and a piece, it was ultimately
+only an atom. The final program shows us how things work. We have an <TT>&quot;EXACT&quot;</TT> regop,
+followed by an <TT>&quot;END&quot;</TT> regop. The number in parens indicates where the <TT>&quot;regnext&quot;</TT> of
+the node goes. The <TT>&quot;regnext&quot;</TT> of an <TT>&quot;END&quot;</TT> regop is unused, as <TT>&quot;END&quot;</TT> regops mean
+we have successfully matched. The number on the left indicates the position of
+the regop in the regnode array.
+<P>
+
+Now let's try a harder pattern. We will add a quantifier, so now we have the pattern
+<TT>&quot;/foo+/&quot;</TT>. We will see that <TT>&quot;regbranch()&quot;</TT> calls <TT>&quot;regpiece()&quot;</TT> twice.
+<P>
+
+
+
+<PRE>
+ &gt;foo+&lt;            1    reg
+                          brnc
+                            piec
+                              atom
+ &gt;o+&lt;              3        piec
+                              atom
+ &gt;&lt;                6        tail~ EXACT &lt;fo&gt; (1)
+                   7      tsdy~ EXACT &lt;fo&gt; (EXACT) (1)
+                              ~ PLUS (END) (3)
+                              ~ attach to END (6) offset to 3
+
+</PRE>
+
+
+<P>
+
+And we end up with the program:
+<P>
+
+
+
+<PRE>
+   1: EXACT &lt;fo&gt;(3)
+   3: <A HREF="/man/index.html?6+PLUS">PLUS</A>(6)
+   4:   EXACT &lt;o&gt;(0)
+   6: END(0)
+
+</PRE>
+
+
+<P>
+
+Now we have a special case. The <TT>&quot;EXACT&quot;</TT> regop has a <TT>&quot;regnext&quot;</TT> of 0. This is
+because if it matches it should try to match itself again. The <TT>&quot;PLUS&quot;</TT> regop
+handles the actual failure of the <TT>&quot;EXACT&quot;</TT> regop and acts appropriately (going
+to regnode 6 if the <TT>&quot;EXACT&quot;</TT> matched at least once, or failing if it didn't).
+<P>
+
+Now for something much more complex: <TT>&quot;/x(?:foo*|b[a][rR])(foo|bar)$/&quot;</TT>
+<P>
+
+
+
+<PRE>
+ &gt;x(?:foo*|b...    1    reg
+                          brnc
+                            piec
+                              atom
+ &gt;(?:foo*|b[...    3        piec
+                              atom
+ &gt;?:foo*|b[a...                 reg
+ &gt;foo*|b[a][...                   brnc
+                                    piec
+                                      atom
+ &gt;o*|b[a][rR...    5                piec
+                                      atom
+ &gt;|b[a][rR])...    8                tail~ EXACT &lt;fo&gt; (3)
+ &gt;b[a][rR])(...    9              brnc
+                  10                piec
+                                      atom
+ &gt;[a][rR])(f...   12                piec
+                                      atom
+ &gt;a][rR])(fo...                         clas
+ &gt;[rR])(foo|...   14                tail~ EXACT &lt;b&gt; (10)
+                                    piec
+                                      atom
+ &gt;rR])(foo|b...                         clas
+ &gt;)(foo|bar)...   25                tail~ EXACT &lt;a&gt; (12)
+                                  tail~ BRANCH (3)
+                  26              tsdy~ BRANCH (END) (9)
+                                      ~ attach to TAIL (25) offset to 16
+                                  tsdy~ EXACT &lt;fo&gt; (EXACT) (4)
+                                      ~ STAR (END) (6)
+                                      ~ attach to TAIL (25) offset to 19
+                                  tsdy~ EXACT &lt;b&gt; (EXACT) (10)
+                                      ~ EXACT &lt;a&gt; (EXACT) (12)
+                                      ~ ANYOF[Rr] (END) (14)
+                                      ~ attach to TAIL (25) offset to 11
+ &gt;(foo|bar)$&lt;               tail~ EXACT &lt;x&gt; (1)
+                            piec
+                              atom
+ &gt;foo|bar)$&lt;                    reg
+                  28              brnc
+                                    piec
+                                      atom
+ &gt;|bar)$&lt;         31              tail~ OPEN1 (26)
+ &gt;bar)$&lt;                          brnc
+                  32                piec
+                                      atom
+ &gt;)$&lt;             34              tail~ BRANCH (28)
+                  36              tsdy~ BRANCH (END) (31)
+                                      ~ attach to CLOSE1 (34) offset to 3
+                                  tsdy~ EXACT &lt;foo&gt; (EXACT) (29)
+                                      ~ attach to CLOSE1 (34) offset to 5
+                                  tsdy~ EXACT &lt;bar&gt; (EXACT) (32)
+                                      ~ attach to CLOSE1 (34) offset to 2
+ &gt;$&lt;                        tail~ BRANCH (3)
+                                ~ BRANCH (9)
+                                ~ TAIL (25)
+                            piec
+                              atom
+ &gt;&lt;               37        tail~ OPEN1 (26)
+                                ~ BRANCH (28)
+                                ~ BRANCH (31)
+                                ~ CLOSE1 (34)
+                  38      tsdy~ EXACT &lt;x&gt; (EXACT) (1)
+                              ~ BRANCH (END) (3)
+                              ~ BRANCH (END) (9)
+                              ~ TAIL (END) (25)
+                              ~ OPEN1 (END) (26)
+                              ~ BRANCH (END) (28)
+                              ~ BRANCH (END) (31)
+                              ~ CLOSE1 (END) (34)
+                              ~ EOL (END) (36)
+                              ~ attach to END (37) offset to 1
+
+</PRE>
+
+
+<P>
+
+Resulting in the program
+<P>
+
+
+
+<PRE>
+   1: EXACT &lt;x&gt;(3)
+   3: <A HREF="/man/index.html?9+BRANCH">BRANCH</A>(9)
+   4:   EXACT &lt;fo&gt;(6)
+   6:   STAR(26)
+   7:     EXACT &lt;o&gt;(0)
+   9: BRANCH(25)
+  10:   EXACT &lt;ba&gt;(14)
+  12:   OPTIMIZED (2 nodes)
+  14:   ANYOF[Rr](26)
+  25: TAIL(26)
+  26: OPEN1(28)
+  28:   TRIE-EXACT(34)
+        [StS:1 Wds:2 Cs:6 Uq:5 #Sts:7 Mn:3 Mx:3 Stcls:bf]
+          &lt;foo&gt;
+          &lt;bar&gt;
+  30:   OPTIMIZED (4 nodes)
+  34: CLOSE1(36)
+  36: EOL(37)
+  37: END(0)
+
+</PRE>
+
+
+<P>
+
+Here we can see a much more complex program, with various optimisations in
+play. At regnode 10 we see an example where a character class with only
+one character in it was turned into an <TT>&quot;EXACT&quot;</TT> node. We can also see where
+an entire alternation was turned into a <TT>&quot;TRIE-EXACT&quot;</TT> node. As a consequence,
+some of the regnodes have been marked as optimised away. We can see that
+the <TT>&quot;$&quot;</TT> symbol has been converted into an <TT>&quot;EOL&quot;</TT> regop, a special piece of
+code that looks for <TT>&quot;\n&quot;</TT> or the end of the string.
+<P>
+
+The next pointer for <TT>&quot;BRANCH&quot;</TT>es is interesting in that it points at where
+execution should go if the branch fails. When executing, if the engine
+tries to traverse from a branch to a <TT>&quot;regnext&quot;</TT> that isn't a branch then
+the engine will know that the entire set of branches has failed.
+<P>
+
+<I>Peep-hole Optimisation and Analysis</I>
+<A NAME="ixABC"></A>
+<P>
+
+The regular expression engine can be a weighty tool to wield. On long
+strings and complex patterns it can end up having to do a lot of work
+to find a match, and even more to decide that no match is possible.
+Consider a situation like the following pattern.
+<P>
+
+
+
+<PRE>
+   'ababababababababababab' =~ /(a|b)*z/
+
+</PRE>
+
+
+<P>
+
+The <TT>&quot;(a|b)*&quot;</TT> part can match at every char in the string, and then fail
+every time because there is no <TT>&quot;z&quot;</TT> in the string. So obviously we can
+avoid using the regex engine unless there is a <TT>&quot;z&quot;</TT> in the string.
+Likewise in a pattern like:
+<P>
+
+
+
+<PRE>
+   /foo(\w+)bar/
+
+</PRE>
+
+
+<P>
+
+In this case we know that the string must contain a <TT>&quot;foo&quot;</TT> which must be
+followed by <TT>&quot;bar&quot;</TT>. We can use Fast Boyer-Moore matching as implemented
+in <TT>&quot;fbm_instr()&quot;</TT> to find the location of these strings. If they don't exist
+then we don't need to resort to the much more expensive regex engine.
+Even better, if they do exist then we can use their positions to
+reduce the search space that the regex engine needs to cover to determine
+if the entire pattern matches.
+<P>
+
+There are various aspects of the pattern that can be used to facilitate
+optimisations along these lines:
+<DL COMPACT>
+<DT>*<DD>
+anchored fixed strings
+<DT>*<DD>
+floating fixed strings
+<DT>*<DD>
+minimum and maximum length requirements
+<DT>*<DD>
+start class
+<DT>*<DD>
+Beginning/End of line positions
+</DL>
+<P>
+
+Another form of optimisation that can occur is the post-parse ``peep-hole''
+optimisation, where inefficient constructs are replaced by more efficient
+constructs. The <TT>&quot;TAIL&quot;</TT> regops which are used during parsing to mark the end
+of branches and the end of groups are examples of this. These regops are used
+as place-holders during construction and ``always match'' so they can be
+``optimised away'' by making the things that point to the <TT>&quot;TAIL&quot;</TT> point to the
+thing that <TT>&quot;TAIL&quot;</TT> points to, thus ``skipping'' the node.
+<P>
+
+Another optimisation that can occur is that of &quot;<TT>&quot;EXACT&quot;</TT> merging&quot; which is
+where two consecutive <TT>&quot;EXACT&quot;</TT> nodes are merged into a single
+regop. An even more aggressive form of this is that a branch
+sequence of the form <TT>&quot;EXACT BRANCH ... EXACT&quot;</TT> can be converted into a
+<TT>&quot;TRIE-EXACT&quot;</TT> regop.
+<P>
+
+All of this occurs in the routine <TT>&quot;study_chunk()&quot;</TT> which uses a special
+structure <TT>&quot;scan_data_t&quot;</TT> to store the analysis that it has performed, and
+does the ``peep-hole'' optimisations as it goes.
+<P>
+
+The code involved in <TT>&quot;study_chunk()&quot;</TT> is extremely cryptic. Be careful. :-)
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Execution</H3>
+
+<A NAME="ixABD"></A>
+Execution of a regex generally involves two phases, the first being
+finding the start point in the string where we should match from,
+and the second being running the regop interpreter.
+<P>
+
+If we can tell that there is no valid start point then we don't bother running
+interpreter at all. Likewise, if we know from the analysis phase that we
+cannot detect a short-cut to the start position, we go straight to the
+interpreter.
+<P>
+
+The two entry points are <TT>&quot;re_intuit_start()&quot;</TT> and <TT>&quot;pregexec()&quot;</TT>. These routines
+have a somewhat incestuous relationship with overlap between their functions,
+and <TT>&quot;pregexec()&quot;</TT> may even call <TT>&quot;re_intuit_start()&quot;</TT> on its own. Nevertheless
+other parts of the the perl source code may call into either, or both.
+<P>
+
+Execution of the interpreter itself used to be recursive, but thanks to the
+efforts of Dave Mitchell in the 5.9.x development track, that has changed: now an
+internal stack is maintained on the heap and the routine is fully
+iterative. This can make it tricky as the code is quite conservative
+about what state it stores, with the result that that two consecutive lines in the
+code can actually be running in totally different contexts due to the
+simulated recursion.
+<P>
+
+<I>Start position and no-match optimisations</I>
+<A NAME="ixABE"></A>
+<P>
+
+<TT>&quot;re_intuit_start()&quot;</TT> is responsible for handling start points and no-match
+optimisations as determined by the results of the analysis done by
+<TT>&quot;study_chunk()&quot;</TT> (and described in ``Peep-hole Optimisation and Analysis'').
+<P>
+
+The basic structure of this routine is to try to find the start- and/or
+end-points of where the pattern could match, and to ensure that the string
+is long enough to match the pattern. It tries to use more efficient
+methods over less efficient methods and may involve considerable
+cross-checking of constraints to find the place in the string that matches.
+For instance it may try to determine that a given fixed string must be
+not only present but a certain number of chars before the end of the
+string, or whatever.
+<P>
+
+It calls several other routines, such as <TT>&quot;fbm_instr()&quot;</TT> which does
+Fast Boyer Moore matching and <TT>&quot;find_byclass()&quot;</TT> which is responsible for
+finding the start using the first mandatory regop in the program.
+<P>
+
+When the optimisation criteria have been satisfied, <TT>&quot;reg_try()&quot;</TT> is called
+to perform the match.
+<P>
+
+<I>Program execution</I>
+<A NAME="ixABF"></A>
+<P>
+
+<TT>&quot;pregexec()&quot;</TT> is the main entry point for running a regex. It contains
+support for initialising the regex interpreter's state, running
+<TT>&quot;re_intuit_start()&quot;</TT> if needed, and running the interpreter on the string
+from various start positions as needed. When it is necessary to use
+the regex interpreter <TT>&quot;pregexec()&quot;</TT> calls <TT>&quot;regtry()&quot;</TT>.
+<P>
+
+<TT>&quot;regtry()&quot;</TT> is the entry point into the regex interpreter. It expects
+as arguments a pointer to a <TT>&quot;regmatch_info&quot;</TT> structure and a pointer to
+a string.  It returns an integer 1 for success and a 0 for failure.
+It is basically a set-up wrapper around <TT>&quot;regmatch()&quot;</TT>.
+<P>
+
+<TT>&quot;regmatch&quot;</TT> is the main ``recursive loop'' of the interpreter. It is
+basically a giant switch statement that implements a state machine, where
+the possible states are the regops themselves, plus a number of additional
+intermediate and failure states. A few of the states are implemented as
+subroutines but the bulk are inline code.
+<A NAME="lbAK">&nbsp;</A>
+<H2>MISCELLANEOUS</H2>
+
+<A NAME="ixABG"></A>
+<A NAME="lbAL">&nbsp;</A>
+<H3>Unicode and Localisation Support</H3>
+
+<A NAME="ixABH"></A>
+When dealing with strings containing characters that cannot be represented
+using an eight-bit character set, perl uses an internal representation
+that is a permissive version of Unicode's <FONT SIZE="-1">UTF-8</FONT> encoding[2]. This uses single
+bytes to represent characters from the <FONT SIZE="-1">ASCII</FONT> character set, and sequences
+of two or more bytes for all other characters. (See perlunitut
+for more information about the relationship between <FONT SIZE="-1">UTF-8</FONT> and perl's
+encoding, utf8 --- the difference isn't important for this discussion.)
+<P>
+
+No matter how you look at it, Unicode support is going to be a pain in a
+regex engine. Tricks that might be fine when you have 256 possible
+characters often won't scale to handle the size of the <FONT SIZE="-1">UTF-8</FONT> character
+set.  Things you can take for granted with <FONT SIZE="-1">ASCII</FONT> may not be true with
+Unicode. For instance, in <FONT SIZE="-1">ASCII</FONT>, it is safe to assume that
+<TT>&quot;sizeof(char1) == sizeof(char2)&quot;</TT>, but in <FONT SIZE="-1">UTF-8</FONT> it isn't. Unicode case folding is
+vastly more complex than the simple rules of <FONT SIZE="-1">ASCII</FONT>, and even when not
+using Unicode but only localised single byte encodings, things can get
+tricky (for example, <B></B><FONT SIZE="-1"><B>LATIN</B></FONT><B> </B><FONT SIZE="-1"><B>SMALL</B></FONT><B> </B><FONT SIZE="-1"><B>LETTER</B></FONT><B> </B><FONT SIZE="-1"><B>SHARP</B></FONT><B> S</B> (U+00DF, beta)
+should match '<FONT SIZE="-1">SS</FONT>' in localised case-insensitive matching).
+<P>
+
+Making things worse is that <FONT SIZE="-1">UTF-8</FONT> support was a later addition to the
+regex engine (as it was to perl) and this necessarily  made things a lot
+more complicated. Obviously it is easier to design a regex engine with
+Unicode support in mind from the beginning than it is to retrofit it to
+one that wasn't.
+<P>
+
+Nearly all regops that involve looking at the input string have
+two cases, one for <FONT SIZE="-1">UTF-8</FONT>, and one not. In fact, it's often more complex
+than that, as the pattern may be <FONT SIZE="-1">UTF-8</FONT> as well.
+<P>
+
+Care must be taken when making changes to make sure that you handle
+<FONT SIZE="-1">UTF-8</FONT> properly, both at compile time and at execution time, including
+when the string and pattern are mismatched.
+<P>
+
+The following comment in <I>regcomp.h</I> gives an example of exactly how
+tricky this can be:
+<P>
+
+
+
+<PRE>
+    Two problematic code points in Unicode casefolding of EXACT nodes:
+
+    U+0390 - GREEK SMALL LETTER IOTA WITH DIALYTIKA AND TONOS
+    U+03B0 - GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND TONOS
+
+    which casefold to
+
+    Unicode                      UTF-8
+
+    U+03B9 U+0308 U+0301         0xCE 0xB9 0xCC 0x88 0xCC 0x81
+    U+03C5 U+0308 U+0301         0xCF 0x85 0xCC 0x88 0xCC 0x81
+
+    This means that in case-insensitive matching (or &quot;loose matching&quot;,
+    as Unicode calls it), an EXACTF of length six (the UTF-8 encoded
+    byte length of the above casefolded versions) can match a target
+    string of length two (the byte length of UTF-8 encoded U+0390 or
+    U+03B0). This would rather mess up the minimum length computation.
+
+    What we'll do is to look for the tail four bytes, and then peek
+    at the preceding two bytes to see whether we need to decrease
+    the minimum length by four (six minus two).
+
+    Thanks to the design of UTF-8, there cannot be false matches:
+    A sequence of valid UTF-8 bytes cannot be a subsequence of
+    another valid sequence of UTF-8 bytes.
+
+</PRE>
+
+
+<A NAME="lbAM">&nbsp;</A>
+<H3>Base Structures</H3>
+
+<A NAME="ixABI"></A>
+The <TT>&quot;regexp&quot;</TT> structure described in perlreapi is common to all
+regex engines. Two of its fields that are intended for the private use
+of the regex engine that compiled the pattern. These are the
+<TT>&quot;intflags&quot;</TT> and pprivate members. The <TT>&quot;pprivate&quot;</TT> is a void pointer to
+an arbitrary structure whose use and management is the responsibility
+of the compiling engine. perl will never modify either of these
+values. In the case of the stock engine the structure pointed to by
+<TT>&quot;pprivate&quot;</TT> is called <TT>&quot;regexp_internal&quot;</TT>.
+<P>
+
+Its <TT>&quot;pprivate&quot;</TT> and <TT>&quot;intflags&quot;</TT> fields contain data
+specific to each engine.
+<P>
+
+There are two structures used to store a compiled regular expression.
+One, the <TT>&quot;regexp&quot;</TT> structure described in perlreapi is populated by
+the engine currently being. used and some of its fields read by perl to
+implement things such as the stringification of <TT>&quot;qr//&quot;</TT>.
+<P>
+
+The other structure is pointed to be the <TT>&quot;regexp&quot;</TT> struct's
+<TT>&quot;pprivate&quot;</TT> and is in addition to <TT>&quot;intflags&quot;</TT> in the same struct
+considered to be the property of the regex engine which compiled the
+regular expression;
+<P>
+
+The regexp structure contains all the data that perl needs to be aware of
+to properly work with the regular expression. It includes data about
+optimisations that perl can use to determine if the regex engine should
+really be used, and various other control info that is needed to properly
+execute patterns in various contexts such as is the pattern anchored in
+some way, or what flags were used during the compile, or whether the
+program contains special constructs that perl needs to be aware of.
+<P>
+
+In addition it contains two fields that are intended for the private use
+of the regex engine that compiled the pattern. These are the <TT>&quot;intflags&quot;</TT>
+and pprivate members. The <TT>&quot;pprivate&quot;</TT> is a void pointer to an arbitrary
+structure whose use and management is the responsibility of the compiling
+engine. perl will never modify either of these values.
+<P>
+
+As mentioned earlier, in the case of the default engines, the <TT>&quot;pprivate&quot;</TT>
+will be a pointer to a regexp_internal structure which holds the compiled
+program and any additional data that is private to the regex engine
+implementation.
+<P>
+
+<I>Perl's </I>&quot;pprivate&quot;<I> structure</I>
+<A NAME="ixABJ"></A>
+<P>
+
+The following structure is used as the <TT>&quot;pprivate&quot;</TT> struct by perl's
+regex engine. Since it is specific to perl it is only of curiosity
+value to other engine implementations.
+<P>
+
+
+
+<PRE>
+    typedef struct regexp_internal {
+            regexp_paren_ofs *swap; /* Swap copy of *startp / *endp */
+            U32 *offsets;           /* offset annotations 20001228 MJD 
+                                       data about mapping the program to the 
+                                       string*/
+            regnode *regstclass;    /* Optional startclass as identified or constructed
+                                       by the optimiser */
+            struct reg_data *data;  /* Additional miscellaneous data used by the program.
+                                       Used to make it easier to clone and free arbitrary
+                                       data that the regops need. Often the ARG field of
+                                       a regop is an index into this structure */
+            regnode program[1];     /* Unwarranted chumminess with compiler. */
+    } regexp_internal;
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>swap<DD>
+
+
+<A NAME="ixABK"></A>
+<TT>&quot;swap&quot;</TT> formerly was an extra set of startp/endp stored in a
+<TT>&quot;regexp_paren_ofs&quot;</TT> struct. This was used when the last successful match
+was from the same pattern as the current pattern, so that a partial
+match didn't overwrite the previous match's results, but it caused a
+problem with re-entrant code such as trying to build the <FONT SIZE="-1">UTF-8</FONT> swashes.
+Currently unused and left for backward compatibility with 5.10.0.
+<DT>offsets<DD>
+
+
+<A NAME="ixABL"></A>
+Offsets holds a mapping of offset in the <TT>&quot;program&quot;</TT>
+to offset in the <TT>&quot;precomp&quot;</TT> string. This is only used by ActiveState's
+visual regex debugger.
+<DT>regstclass<DD>
+
+
+<A NAME="ixABM"></A>
+Special regop that is used by <TT>&quot;re_intuit_start()&quot;</TT> to check if a pattern
+can match at a certain position. For instance if the regex engine knows
+that the pattern must start with a 'Z' then it can scan the string until
+it finds one and then launch the regex engine from there. The routine
+that handles this is called <TT>&quot;find_by_class()&quot;</TT>. Sometimes this field
+points at a regop embedded in the program, and sometimes it points at
+an independent synthetic regop that has been constructed by the optimiser.
+<DT>data<DD>
+
+
+<A NAME="ixABN"></A>
+This field points at a reg_data structure, which is defined as follows
+
+
+<P>
+
+
+
+
+<PRE>
+    struct reg_data {
+        U32 count;
+        U8 *what;
+        void* data[1];
+    };
+
+</PRE>
+
+
+
+
+<P>
+
+
+This structure is used for handling data structures that the regex engine
+needs to handle specially during a clone or free operation on the compiled
+product. Each element in the data array has a corresponding element in the
+what array. During compilation regops that need special structures stored
+will add an element to each array using the <I>add_data()</I> routine and then store
+the index in the regop.
+<DT>program<DD>
+
+
+<A NAME="ixABO"></A>
+Compiled program. Inlined into the structure so the entire struct can be
+treated as a single blob.
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABP"></A>
+perlreapi
+<P>
+
+perlre
+<P>
+
+perlunitut
+<A NAME="lbAO">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABQ"></A>
+by Yves Orton, 2006.
+<P>
+
+With excerpts from Perl, and contributions and suggestions from
+Ronald J. Kimball, Dave Mitchell, Dominic Dunlop, Mark Jason Dominus,
+Stephen McCamant, and David Landgren.
+<A NAME="lbAP">&nbsp;</A>
+<H2>LICENCE</H2>
+
+<A NAME="ixABR"></A>
+Same terms as Perl.
+<A NAME="lbAQ">&nbsp;</A>
+<H2>REFERENCES</H2>
+
+<A NAME="ixABS"></A>
+[1] &lt;<A HREF="http://perl.plover.com/Rx/paper/">http://perl.plover.com/Rx/paper/</A>&gt;
+<P>
+
+[2] &lt;<A HREF="http://www.unicode.org">http://www.unicode.org</A>&gt;
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">OVERVIEW</A><DD>
+<DL>
+<DT><A HREF="#lbAE">A quick note on terms</A><DD>
+<DT><A HREF="#lbAF">What is a regular expression engine?</A><DD>
+<DT><A HREF="#lbAG">Structure of a Regexp Program</A><DD>
+</DL>
+<DT><A HREF="#lbAH">Process Overview</A><DD>
+<DL>
+<DT><A HREF="#lbAI">Compilation</A><DD>
+<DT><A HREF="#lbAJ">Execution</A><DD>
+</DL>
+<DT><A HREF="#lbAK">MISCELLANEOUS</A><DD>
+<DL>
+<DT><A HREF="#lbAL">Unicode and Localisation Support</A><DD>
+<DT><A HREF="#lbAM">Base Structures</A><DD>
+</DL>
+<DT><A HREF="#lbAN">SEE ALSO</A><DD>
+<DT><A HREF="#lbAO">AUTHOR</A><DD>
+<DT><A HREF="#lbAP">LICENCE</A><DD>
+<DT><A HREF="#lbAQ">REFERENCES</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:08 GMT, December 24, 2015
+</div></body>
+</HTML>

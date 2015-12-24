@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERLUNIFAQ</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERLUNIFAQ</H1>
+Section: Perl Programmers Reference Guide (1)<BR>Updated: 2009-02-25<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perlunifaq - Perl Unicode FAQ
+<A NAME="lbAC">&nbsp;</A>
+<H2>Q and A</H2>
+
+<A NAME="ixAAC"></A>
+This is a list of questions and answers about Unicode in Perl, intended to be
+read after perlunitut.
+<A NAME="lbAD">&nbsp;</A>
+<H3>perlunitut isn't really a Unicode tutorial, is it?</H3>
+
+<A NAME="ixAAD"></A>
+No, and this isn't really a Unicode <FONT SIZE="-1">FAQ</FONT>.
+<P>
+
+Perl has an abstracted interface for all supported character encodings, so they
+is actually a generic <TT>&quot;Encode&quot;</TT> tutorial and <TT>&quot;Encode&quot;</TT> <FONT SIZE="-1">FAQ</FONT>. But many people
+think that Unicode is special and magical, and I didn't want to disappoint
+them, so I decided to call the document a Unicode tutorial.
+<A NAME="lbAE">&nbsp;</A>
+<H3>What character encodings does Perl support?</H3>
+
+<A NAME="ixAAE"></A>
+To find out which character encodings your Perl supports, run:
+<P>
+
+
+
+<PRE>
+    perl -MEncode -le &quot;print for Encode-&gt;encodings(':all')&quot;
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H3>Which version of perl should I use?</H3>
+
+<A NAME="ixAAF"></A>
+Well, if you can, upgrade to the most recent, but certainly <TT>5.8.1</TT> or newer.
+The tutorial and <FONT SIZE="-1">FAQ</FONT> are based on the status quo as of <TT>5.8.8</TT>.
+<P>
+
+You should also check your modules, and upgrade them if necessary. For example,
+HTML::Entities requires version &gt;= 1.32 to function correctly, even though the
+changelog is silent about this.
+<A NAME="lbAG">&nbsp;</A>
+<H3>What about binary data, like images?</H3>
+
+<A NAME="ixAAG"></A>
+Well, apart from a bare <TT>&quot;binmode $fh&quot;</TT>, you shouldn't treat them specially.
+(The binmode is needed because otherwise Perl may convert line endings on Win32
+systems.)
+<P>
+
+Be careful, though, to never combine text strings with binary strings. If you
+need text in a binary stream, encode your text strings first using the
+appropriate encoding, then join them with binary strings. See also: ``What if I
+don't encode?''.
+<A NAME="lbAH">&nbsp;</A>
+<H3>When should I decode or encode?</H3>
+
+<A NAME="ixAAH"></A>
+Whenever you're communicating text with anything that is external to your perl
+process, like a database, a text file, a socket, or another program. Even if
+the thing you're communicating with is also written in Perl.
+<A NAME="lbAI">&nbsp;</A>
+<H3>What if I don't decode?</H3>
+
+<A NAME="ixAAI"></A>
+Whenever your encoded, binary string is used together with a text string, Perl
+will assume that your binary string was encoded with <FONT SIZE="-1">ISO-8859-1</FONT>, also known as
+latin-1. If it wasn't latin-1, then your data is unpleasantly converted. For
+example, if it was <FONT SIZE="-1">UTF-8</FONT>, the individual bytes of multibyte characters are seen
+as separate characters, and then again converted to <FONT SIZE="-1">UTF-8</FONT>. Such double encoding
+can be compared to double <FONT SIZE="-1">HTML</FONT> encoding (<TT>&quot;&amp;amp;gt;&quot;</TT>), or double <FONT SIZE="-1">URI</FONT> encoding
+(<TT>%253E</TT>).
+<P>
+
+This silent implicit decoding is known as ``upgrading''. That may sound
+positive, but it's best to avoid it.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>What if I don't encode?</H3>
+
+<A NAME="ixAAJ"></A>
+Your text string will be sent using the bytes in Perl's internal format. In
+some cases, Perl will warn you that you're doing something wrong, with a
+friendly warning:
+<P>
+
+
+
+<PRE>
+    Wide character in print at example.pl line 2.
+
+</PRE>
+
+
+<P>
+
+Because the internal format is often <FONT SIZE="-1">UTF-8</FONT>, these bugs are hard to spot,
+because <FONT SIZE="-1">UTF-8</FONT> is usually the encoding you wanted! But don't be lazy, and don't
+use the fact that Perl's internal format is <FONT SIZE="-1">UTF-8</FONT> to your advantage. Encode
+explicitly to avoid weird bugs, and to show to maintenance programmers that you
+thought this through.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Is there a way to automatically decode or encode?</H3>
+
+<A NAME="ixAAK"></A>
+If all data that comes from a certain handle is encoded in exactly the same
+way, you can tell the PerlIO system to automatically decode everything, with
+the <TT>&quot;encoding&quot;</TT> layer. If you do this, you can't accidentally forget to decode
+or encode anymore, on things that use the layered handle.
+<P>
+
+You can provide this layer when <TT>&quot;open&quot;</TT>ing the file:
+<P>
+
+
+
+<PRE>
+    open my $fh, '&gt;:encoding(UTF-8)', $filename;  # auto encoding on write
+    open my $fh, '&lt;:encoding(UTF-8)', $filename;  # auto decoding on read
+
+</PRE>
+
+
+<P>
+
+Or if you already have an open filehandle:
+<P>
+
+
+
+<PRE>
+    binmode $fh, ':encoding(UTF-8)';
+
+</PRE>
+
+
+<P>
+
+Some database drivers for <FONT SIZE="-1">DBI</FONT> can also automatically encode and decode, but
+that is sometimes limited to the <FONT SIZE="-1">UTF-8</FONT> encoding.
+<A NAME="lbAL">&nbsp;</A>
+<H3>What if I don't know which encoding was used?</H3>
+
+<A NAME="ixAAL"></A>
+Do whatever you can to find out, and if you have to: guess. (Don't forget to
+document your guess with a comment.)
+<P>
+
+You could open the document in a web browser, and change the character set or
+character encoding until you can visually confirm that all characters look the
+way they should.
+<P>
+
+There is no way to reliably detect the encoding automatically, so if people
+keep sending you data without charset indication, you may have to educate them.
+<A NAME="lbAM">&nbsp;</A>
+<H3>Can I use Unicode in my Perl sources?</H3>
+
+<A NAME="ixAAM"></A>
+Yes, you can! If your sources are <FONT SIZE="-1">UTF-8</FONT> encoded, you can indicate that with the
+<TT>&quot;use utf8&quot;</TT> pragma.
+<P>
+
+
+
+<PRE>
+    use utf8;
+
+</PRE>
+
+
+<P>
+
+This doesn't do anything to your input, or to your output. It only influences
+the way your sources are read. You can use Unicode in string literals, in
+identifiers (but they still have to be ``word characters'' according to <TT>&quot;\w&quot;</TT>),
+and even in custom delimiters.
+<A NAME="lbAN">&nbsp;</A>
+<H3>Data::Dumper doesn't restore the <FONT SIZE="-1">UTF8</FONT> flag; is it broken?</H3>
+
+<A NAME="ixAAN"></A>
+No, Data::Dumper's Unicode abilities are as they should be. There have been
+some complaints that it should restore the <FONT SIZE="-1">UTF8</FONT> flag when the data is read
+again with <TT>&quot;eval&quot;</TT>. However, you should really not look at the flag, and
+nothing indicates that Data::Dumper should break this rule.
+<P>
+
+Here's what happens: when Perl reads in a string literal, it sticks to 8 bit
+encoding as long as it can. (But perhaps originally it was internally encoded
+as <FONT SIZE="-1">UTF-8</FONT>, when you dumped it.) When it has to give that up because other
+characters are added to the text string, it silently upgrades the string to
+<FONT SIZE="-1">UTF-8</FONT>.
+<P>
+
+If you properly encode your strings for output, none of this is of your
+concern, and you can just <TT>&quot;eval&quot;</TT> dumped data as always.
+<A NAME="lbAO">&nbsp;</A>
+<H3>Why do regex character classes sometimes match only in the <FONT SIZE="-1">ASCII</FONT> range?</H3>
+
+<A NAME="ixAAO"></A>
+<A NAME="lbAP">&nbsp;</A>
+<H3>Why do some characters not uppercase or lowercase correctly?</H3>
+
+<A NAME="ixAAP"></A>
+It seemed like a good idea at the time, to keep the semantics the same for
+standard strings, when Perl got Unicode support. While it might be repaired
+in the future, we now have to deal with the fact that Perl treats equal
+strings differently, depending on the internal state.
+<P>
+
+Affected are <TT>&quot;uc&quot;</TT>, <TT>&quot;lc&quot;</TT>, <TT>&quot;ucfirst&quot;</TT>, <TT>&quot;lcfirst&quot;</TT>, <TT>&quot;\U&quot;</TT>, <TT>&quot;\L&quot;</TT>, <TT>&quot;\u&quot;</TT>, <TT>&quot;\l&quot;</TT>,
+<TT>&quot;\d&quot;</TT>, <TT>&quot;\s&quot;</TT>, <TT>&quot;\w&quot;</TT>, <TT>&quot;\D&quot;</TT>, <TT>&quot;\S&quot;</TT>, <TT>&quot;\W&quot;</TT>, <TT>&quot;/.../i&quot;</TT>, <TT>&quot;(?i:...)&quot;</TT>,
+<TT>&quot;/[[:posix:]]/&quot;</TT>, and <TT>&quot;quotemeta&quot;</TT> (though this last should not cause any real
+problems).
+<P>
+
+To force Unicode semantics, you can upgrade the internal representation to
+by doing <TT>&quot;utf8::upgrade($string)&quot;</TT>. This can be used
+safely on any string, as it checks and does not change strings that have
+already been upgraded.
+<P>
+
+For a more detailed discussion, see Unicode::Semantics on <FONT SIZE="-1">CPAN</FONT>.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>How can I determine if a string is a text string or a binary string?</H3>
+
+<A NAME="ixAAQ"></A>
+You can't. Some use the <FONT SIZE="-1">UTF8</FONT> flag for this, but that's misuse, and makes well
+behaved modules like Data::Dumper look bad. The flag is useless for this
+purpose, because it's off when an 8 bit encoding (by default <FONT SIZE="-1">ISO-8859-1</FONT>) is
+used to store the string.
+<P>
+
+This is something you, the programmer, has to keep track of; sorry. You could
+consider adopting a kind of ``Hungarian notation'' to help with this.
+<A NAME="lbAR">&nbsp;</A>
+<H3>How do I convert from encoding <FONT SIZE="-1">FOO</FONT> to encoding <FONT SIZE="-1">BAR</FONT>?</H3>
+
+<A NAME="ixAAR"></A>
+By first converting the FOO-encoded byte string to a text string, and then the
+text string to a BAR-encoded byte string:
+<P>
+
+
+
+<PRE>
+    my $text_string = decode('FOO', $foo_string);
+    my $bar_string  = encode('BAR', $text_string);
+
+</PRE>
+
+
+<P>
+
+or by skipping the text string part, and going directly from one binary
+encoding to the other:
+<P>
+
+
+
+<PRE>
+    use Encode qw(from_to);
+    from_to($string, 'FOO', 'BAR');  # changes contents of $string
+
+</PRE>
+
+
+<P>
+
+or by letting automatic decoding and encoding do all the work:
+<P>
+
+
+
+<PRE>
+    open my $foofh, '&lt;:encoding(FOO)', 'example.foo.txt';
+    open my $barfh, '&gt;:encoding(BAR)', 'example.bar.txt';
+    print { $barfh } $_ while &lt;$foofh&gt;;
+
+</PRE>
+
+
+<A NAME="lbAS">&nbsp;</A>
+<H3>What are decode_utf8 and encode_utf8?</H3>
+
+
+
+<A NAME="ixAAS"></A>
+These are alternate syntaxes for <TT>&quot;decode('utf8', ...)&quot;</TT> and <TT>&quot;encode('utf8',
+...)&quot;</TT>.
+<A NAME="lbAT">&nbsp;</A>
+<H3>What is a wide character?</H3>
+
+
+
+<A NAME="ixAAT"></A>
+This is a term used both for characters with an ordinal value greater than 127,
+characters with an ordinal value greater than 255, or any character occupying
+than one byte, depending on the context.
+<P>
+
+The Perl warning ``Wide character in ...'' is caused by a character with an
+ordinal value greater than 255. With no specified encoding layer, Perl tries to
+fit things in <FONT SIZE="-1">ISO-8859-1</FONT> for backward compatibility reasons. When it can't, it
+emits this warning (if warnings are enabled), and outputs <FONT SIZE="-1">UTF-8</FONT> encoded data
+instead.
+<P>
+
+To avoid this warning and to avoid having different output encodings in a single
+stream, always specify an encoding explicitly, for example with a PerlIO layer:
+<P>
+
+
+
+<PRE>
+    binmode STDOUT, &quot;:encoding(UTF-8)&quot;;
+
+</PRE>
+
+
+<A NAME="lbAU">&nbsp;</A>
+<H2>INTERNALS</H2>
+
+<A NAME="ixAAU"></A>
+<A NAME="lbAV">&nbsp;</A>
+<H3>What is the <FONT SIZE="-1">UTF8</FONT> flag?</H3>
+
+
+
+<A NAME="ixAAV"></A>
+Please, unless you're hacking the internals, or debugging weirdness, don't
+think about the <FONT SIZE="-1">UTF8</FONT> flag at all. That means that you very probably shouldn't
+use <TT>&quot;is_utf8&quot;</TT>, <TT>&quot;_utf8_on&quot;</TT> or <TT>&quot;_utf8_off&quot;</TT> at all.
+<P>
+
+The <FONT SIZE="-1">UTF8</FONT> flag, also called SvUTF8, is an internal flag that indicates that the
+current internal representation is <FONT SIZE="-1">UTF-8</FONT>. Without the flag, it is assumed to be
+<FONT SIZE="-1">ISO-8859-1</FONT>. Perl converts between these automatically.
+<P>
+
+One of Perl's internal formats happens to be <FONT SIZE="-1">UTF-8</FONT>. Unfortunately, Perl can't
+keep a secret, so everyone knows about this. That is the source of much
+confusion. It's better to pretend that the internal format is some unknown
+encoding, and that you always have to encode and decode explicitly.
+<A NAME="lbAW">&nbsp;</A>
+<H3>What about the use bytes pragma?</H3>
+
+
+
+<A NAME="ixAAW"></A>
+Don't use it. It makes no sense to deal with bytes in a text string, and it
+makes no sense to deal with characters in a byte string. Do the proper
+conversions (by decoding/encoding), and things will work out well: you get
+character counts for decoded data, and byte counts for encoded data.
+<P>
+
+<TT>&quot;use bytes&quot;</TT> is usually a failed attempt to do something useful. Just forget
+about it.
+<A NAME="lbAX">&nbsp;</A>
+<H3>What about the use encoding pragma?</H3>
+
+
+
+<A NAME="ixAAX"></A>
+Don't use it. Unfortunately, it assumes that the programmer's environment and
+that of the user will use the same encoding. It will use the same encoding for
+the source code and for <FONT SIZE="-1">STDIN</FONT> and <FONT SIZE="-1">STDOUT</FONT>. When a program is copied to another
+machine, the source code does not change, but the <FONT SIZE="-1">STDIO</FONT> environment might.
+<P>
+
+If you need non-ASCII characters in your source code, make it a <FONT SIZE="-1">UTF-8</FONT> encoded
+file and <TT>&quot;use utf8&quot;</TT>.
+<P>
+
+If you need to set the encoding for <FONT SIZE="-1">STDIN</FONT>, <FONT SIZE="-1">STDOUT</FONT>, and <FONT SIZE="-1">STDERR</FONT>, for example
+based on the user's locale, <TT>&quot;use open&quot;</TT>.
+<A NAME="lbAY">&nbsp;</A>
+<H3>What is the difference between :encoding and :utf8?</H3>
+
+
+
+<A NAME="ixAAY"></A>
+Because <FONT SIZE="-1">UTF-8</FONT> is one of Perl's internal formats, you can often just skip the
+encoding or decoding step, and manipulate the <FONT SIZE="-1">UTF8</FONT> flag directly.
+<P>
+
+Instead of <TT>&quot;:encoding(UTF-8)&quot;</TT>, you can simply use <TT>&quot;:utf8&quot;</TT>, which skips the
+encoding step if the data was already represented as <FONT SIZE="-1">UTF8</FONT> internally. This is
+widely accepted as good behavior when you're writing, but it can be dangerous
+when reading, because it causes internal inconsistency when you have invalid
+byte sequences. Using <TT>&quot;:utf8&quot;</TT> for input can sometimes result in security
+breaches, so please use <TT>&quot;:encoding(UTF-8)&quot;</TT> instead.
+<P>
+
+Instead of <TT>&quot;decode&quot;</TT> and <TT>&quot;encode&quot;</TT>, you could use <TT>&quot;_utf8_on&quot;</TT> and <TT>&quot;_utf8_off&quot;</TT>,
+but this is considered bad style. Especially <TT>&quot;_utf8_on&quot;</TT> can be dangerous, for
+the same reason that <TT>&quot;:utf8&quot;</TT> can.
+<P>
+
+There are some shortcuts for oneliners; see <TT>&quot;-C&quot;</TT> in perlrun.
+<A NAME="lbAZ">&nbsp;</A>
+<H3>What's the difference between UTF-8 and utf8?</H3>
+
+
+
+<A NAME="ixAAZ"></A>
+<TT>&quot;UTF-8&quot;</TT> is the official standard. <TT>&quot;utf8&quot;</TT> is Perl's way of being liberal in
+what it accepts. If you have to communicate with things that aren't so liberal,
+you may want to consider using <TT>&quot;UTF-8&quot;</TT>. If you have to communicate with things
+that are too liberal, you may have to use <TT>&quot;utf8&quot;</TT>. The full explanation is in
+Encode.
+<P>
+
+<TT>&quot;UTF-8&quot;</TT> is internally known as <TT>&quot;utf-8-strict&quot;</TT>. The tutorial uses <FONT SIZE="-1">UTF-8</FONT>
+consistently, even where utf8 is actually used internally, because the
+distinction can be hard to make, and is mostly irrelevant.
+<P>
+
+For example, utf8 can be used for code points that don't exist in Unicode, like
+9999999, but if you encode that to <FONT SIZE="-1">UTF-8</FONT>, you get a substitution character (by
+default; see ``Handling Malformed Data'' in Encode for more ways of dealing with
+this.)
+<P>
+
+Okay, if you insist: the ``internal format'' is utf8, not <FONT SIZE="-1">UTF-8</FONT>. (When it's not
+some other encoding.)
+<A NAME="lbBA">&nbsp;</A>
+<H3>I lost track; what encoding is the internal format really?</H3>
+
+<A NAME="ixABA"></A>
+It's good that you lost track, because you shouldn't depend on the internal
+format being any specific encoding. But since you asked: by default, the
+internal format is either <FONT SIZE="-1">ISO-8859-1</FONT> (latin-1), or utf8, depending on the
+history of the string. On <FONT SIZE="-1">EBCDIC</FONT> platforms, this may be different even.
+<P>
+
+Perl knows how it stored the string internally, and will use that knowledge
+when you <TT>&quot;encode&quot;</TT>. In other words: don't try to find out what the internal
+encoding for a certain string is, but instead just encode it into the encoding
+that you want.
+<A NAME="lbBB">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABB"></A>
+Juerd Waalboer &lt;#####@juerd.nl&gt;
+<A NAME="lbBC">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABC"></A>
+perlunicode, perluniintro, Encode
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">Q and A</A><DD>
+<DL>
+<DT><A HREF="#lbAD">perlunitut isn't really a Unicode tutorial, is it?</A><DD>
+<DT><A HREF="#lbAE">What character encodings does Perl support?</A><DD>
+<DT><A HREF="#lbAF">Which version of perl should I use?</A><DD>
+<DT><A HREF="#lbAG">What about binary data, like images?</A><DD>
+<DT><A HREF="#lbAH">When should I decode or encode?</A><DD>
+<DT><A HREF="#lbAI">What if I don't decode?</A><DD>
+<DT><A HREF="#lbAJ">What if I don't encode?</A><DD>
+<DT><A HREF="#lbAK">Is there a way to automatically decode or encode?</A><DD>
+<DT><A HREF="#lbAL">What if I don't know which encoding was used?</A><DD>
+<DT><A HREF="#lbAM">Can I use Unicode in my Perl sources?</A><DD>
+<DT><A HREF="#lbAN">Data::Dumper doesn't restore the <FONT SIZE="-1">UTF8</FONT> flag; is it broken?</A><DD>
+<DT><A HREF="#lbAO">Why do regex character classes sometimes match only in the <FONT SIZE="-1">ASCII</FONT> range?</A><DD>
+<DT><A HREF="#lbAP">Why do some characters not uppercase or lowercase correctly?</A><DD>
+<DT><A HREF="#lbAQ">How can I determine if a string is a text string or a binary string?</A><DD>
+<DT><A HREF="#lbAR">How do I convert from encoding <FONT SIZE="-1">FOO</FONT> to encoding <FONT SIZE="-1">BAR</FONT>?</A><DD>
+<DT><A HREF="#lbAS">What are decode_utf8 and encode_utf8?</A><DD>
+<DT><A HREF="#lbAT">What is a wide character?</A><DD>
+</DL>
+<DT><A HREF="#lbAU">INTERNALS</A><DD>
+<DL>
+<DT><A HREF="#lbAV">What is the <FONT SIZE="-1">UTF8</FONT> flag?</A><DD>
+<DT><A HREF="#lbAW">What about the use bytes pragma?</A><DD>
+<DT><A HREF="#lbAX">What about the use encoding pragma?</A><DD>
+<DT><A HREF="#lbAY">What is the difference between :encoding and :utf8?</A><DD>
+<DT><A HREF="#lbAZ">What's the difference between UTF-8 and utf8?</A><DD>
+<DT><A HREF="#lbBA">I lost track; what encoding is the internal format really?</A><DD>
+</DL>
+<DT><A HREF="#lbBB">AUTHOR</A><DD>
+<DT><A HREF="#lbBC">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:09 GMT, December 24, 2015
+</div></body>
+</HTML>

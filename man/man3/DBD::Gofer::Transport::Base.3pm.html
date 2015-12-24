@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DBD::Gofer::Transport::Base</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DBD::Gofer::Transport::Base</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-02-24<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+DBD::Gofer::Transport::Base - base class for DBD::Gofer client transports
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  my $remote_dsn = &quot;...&quot;
+  DBI-&gt;connect(&quot;dbi:Gofer:transport=...;url=...;timeout=...;retry_limit=...;dsn=$remote_dsn&quot;,...)
+
+</PRE>
+
+
+<P>
+
+or, enable by setting the <FONT SIZE="-1">DBI_AUTOPROXY</FONT> environment variable:
+<P>
+
+
+
+<PRE>
+  export DBI_AUTOPROXY='dbi:Gofer:transport=...;url=...'
+
+</PRE>
+
+
+<P>
+
+which will force <I>all</I> <FONT SIZE="-1">DBI</FONT> connections to be made via that Gofer server.
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This is the base class for all DBD::Gofer client transports.
+<A NAME="lbAE">&nbsp;</A>
+<H2>ATTRIBUTES</H2>
+
+<A NAME="ixAAE"></A>
+Gofer transport attributes can be specified either in the attributes parameter
+of the <I>connect()</I> method call, or in the <FONT SIZE="-1">DSN</FONT> string. When used in the <FONT SIZE="-1">DSN</FONT>
+string, attribute names don't have the <TT>&quot;go_&quot;</TT> prefix.
+<A NAME="lbAF">&nbsp;</A>
+<H3>go_dsn</H3>
+
+<A NAME="ixAAF"></A>
+The full <FONT SIZE="-1">DBI</FONT> <FONT SIZE="-1">DSN</FONT> that the Gofer server should connect to on your behalf.
+<P>
+
+When used in the <FONT SIZE="-1">DSN</FONT> it must be the last element in the <FONT SIZE="-1">DSN</FONT> string.
+<A NAME="lbAG">&nbsp;</A>
+<H3>go_timeout</H3>
+
+<A NAME="ixAAG"></A>
+A time limit for sending a request and receiving a response. Some drivers may
+implement sending and receiving as separate steps, in which case (currently)
+the timeout applies to each separately.
+<P>
+
+If a request needs to be resent then the timeout is restarted for each sending
+of a request and receiving of a response.
+<A NAME="lbAH">&nbsp;</A>
+<H3>go_retry_limit</H3>
+
+<A NAME="ixAAH"></A>
+The maximum number of times an request may be retried. The default is 2.
+<A NAME="lbAI">&nbsp;</A>
+<H3>go_retry_hook</H3>
+
+<A NAME="ixAAI"></A>
+This subroutine reference is called, if defined, for each response received where <TT>$response</TT>-&gt;err is true.
+<P>
+
+The subroutine is pass three parameters: the request object, the response object, and the transport object.
+<P>
+
+If it returns an undefined value then the default retry behaviour is used. See ``<FONT SIZE="-1">RETRY</FONT> <FONT SIZE="-1">ON</FONT> <FONT SIZE="-1">ERROR</FONT>'' below.
+<P>
+
+If it returns a defined but false value then the request is not resent.
+<P>
+
+If it returns true value then the request is resent, so long as the number of retries does not exceed <TT>&quot;go_retry_limit&quot;</TT>.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>RETRY ON ERROR</H2>
+
+<A NAME="ixAAJ"></A>
+The default retry on error behaviour is:
+<P>
+
+
+
+<PRE>
+ - Retry if the error was due to DBI_GOFER_RANDOM. See L&lt;DBI::Gofer::Execute&gt;.
+
+ - Retry if $request-&gt;is_idempotent returns true. See L&lt;DBI::Gofer::Request&gt;.
+
+</PRE>
+
+
+<P>
+
+A retry won't be allowed if the number of previous retries has reached <TT>&quot;go_retry_limit&quot;</TT>.
+<A NAME="lbAK">&nbsp;</A>
+<H2>TRACING</H2>
+
+<A NAME="ixAAK"></A>
+Tracing of gofer requests and reponses can be enabled by setting the
+<TT>&quot;DBD_GOFER_TRACE&quot;</TT> environment variable. A value of 1 gives a reasonably
+compact summary of each request and response. A value of 2 or more gives a
+detailed, and voluminous, dump.
+<P>
+
+The trace is written using <FONT SIZE="-1">DBI-</FONT>&gt;<I>trace_msg()</I> and so is written to the default
+<FONT SIZE="-1">DBI</FONT> trace output, which is usually <FONT SIZE="-1">STDERR</FONT>.
+<A NAME="lbAL">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAL"></A>
+<I>This section is currently far from complete.</I>
+<A NAME="lbAM">&nbsp;</A>
+<H3>response_retry_preference</H3>
+
+<A NAME="ixAAM"></A>
+
+
+<PRE>
+  $retry = $transport-&gt;response_retry_preference($request, $response);
+
+</PRE>
+
+
+<P>
+
+The response_retry_preference is called by DBD::Gofer when considering if a
+request should be retried after an error.
+<P>
+
+Returns true (would like to retry), false (must not retry), undef (no preference).
+<P>
+
+If a true value is returned in the form of a <FONT SIZE="-1">CODE</FONT> ref then, if DBD::Gofer does
+decide to retry the request, it calls the code ref passing <TT>$retry_count</TT>, <TT>$retry_limit</TT>.
+Can be used for logging and/or to implement exponential backoff behaviour.
+Currently the called code must return using <TT>&quot;return;&quot;</TT> to allow for future extensions.
+<A NAME="lbAN">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAN"></A>
+Tim Bunce, &lt;<A HREF="http://www.tim.bunce.name">http://www.tim.bunce.name</A>&gt;
+<A NAME="lbAO">&nbsp;</A>
+<H2>LICENCE AND COPYRIGHT</H2>
+
+<A NAME="ixAAO"></A>
+Copyright (c) 2007-2008, Tim Bunce, Ireland. All rights reserved.
+<P>
+
+This module is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself. See perlartistic.
+<A NAME="lbAP">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAP"></A>
+DBD::Gofer, DBI::Gofer::Request, DBI::Gofer::Response, DBI::Gofer::Execute.
+<P>
+
+and some example transports:
+<P>
+
+DBD::Gofer::Transport::stream
+<P>
+
+DBD::Gofer::Transport::http
+<P>
+
+DBI::Gofer::Transport::mod_perl
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">ATTRIBUTES</A><DD>
+<DL>
+<DT><A HREF="#lbAF">go_dsn</A><DD>
+<DT><A HREF="#lbAG">go_timeout</A><DD>
+<DT><A HREF="#lbAH">go_retry_limit</A><DD>
+<DT><A HREF="#lbAI">go_retry_hook</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">RETRY ON ERROR</A><DD>
+<DT><A HREF="#lbAK">TRACING</A><DD>
+<DT><A HREF="#lbAL">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAM">response_retry_preference</A><DD>
+</DL>
+<DT><A HREF="#lbAN">AUTHOR</A><DD>
+<DT><A HREF="#lbAO">LICENCE AND COPYRIGHT</A><DD>
+<DT><A HREF="#lbAP">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:22 GMT, December 24, 2015
+</div></body>
+</HTML>

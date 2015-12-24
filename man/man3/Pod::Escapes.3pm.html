@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Pod::Escapes</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Pod::Escapes</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Pod::Escapes -- for resolving Pod E&lt;...&gt; sequences
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Pod::Escapes qw(e2char);
+  ...la la la, parsing POD, la la la...
+  $text = e2char($e_node-&gt;label);
+  unless(defined $text) {
+    print &quot;Unknown E sequence \&quot;&quot;, $e_node-&gt;label, &quot;\&quot;!&quot;;
+  }
+  ...else print/interpolate $text...
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This module provides things that are useful in decoding
+Pod E&lt;...&gt; sequences.  Presumably, it should be used
+only by Pod parsers and/or formatters.
+<P>
+
+By default, Pod::Escapes exports none of its symbols.  But
+you can request any of them to be exported.
+Either request them individually, as with
+<TT>&quot;use Pod::Escapes qw(symbolname symbolname2...);&quot;</TT>,
+or you can do <TT>&quot;use Pod::Escapes qw(:ALL);&quot;</TT> to get all
+exportable symbols.
+<A NAME="lbAE">&nbsp;</A>
+<H2>GOODIES</H2>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT>e2char($e_content)<DD>
+<A NAME="ixAAF"></A>
+Given a name or number that could appear in a
+<TT>&quot;E&lt;name_or_num&gt;&quot;</TT> sequence, this returns the string that
+it stands for.  For example, <TT>&quot;e2char('sol')&quot;</TT>, <TT>&quot;e2char('47')&quot;</TT>,
+<TT>&quot;e2char('0x2F')&quot;</TT>, and <TT>&quot;e2char('057')&quot;</TT> all return ``/'',
+because <TT>&quot;E&lt;sol&gt;&quot;</TT>, <TT>&quot;E&lt;47&gt;&quot;</TT>, <TT>&quot;E&lt;0x2f&gt;&quot;</TT>,
+and <TT>&quot;E&lt;057&gt;&quot;</TT>, all mean ``/''.  If
+the name has no known value (as with a name of ``qacute'') or is
+syntactally invalid (as with a name of ``1/4''), this returns undef.
+<DT>e2charnum($e_content)<DD>
+<A NAME="ixAAG"></A>
+Given a name or number that could appear in a
+<TT>&quot;E&lt;name_or_num&gt;&quot;</TT> sequence, this returns the number of
+the Unicode character that this stands for.  For example,
+<TT>&quot;e2char('sol')&quot;</TT>, <TT>&quot;e2char('47')&quot;</TT>,
+<TT>&quot;e2char('0x2F')&quot;</TT>, and <TT>&quot;e2char('057')&quot;</TT> all return 47,
+because <TT>&quot;E&lt;sol&gt;&quot;</TT>, <TT>&quot;E&lt;47&gt;&quot;</TT>, <TT>&quot;E&lt;0x2f&gt;&quot;</TT>,
+and <TT>&quot;E&lt;057&gt;&quot;</TT>, all mean ``/'', whose Unicode number is 47.  If
+the name has no known value (as with a name of ``qacute'') or is
+syntactally invalid (as with a name of ``1/4''), this returns undef.
+<DT>$Name2character{<I>name</I>}<DD>
+
+
+<A NAME="ixAAH"></A>
+Maps from names (as in <TT>&quot;E&lt;</TT>name<TT>&gt;&quot;</TT>) like ``eacute'' or ``sol''
+to the string that each stands for.  Note that this does not
+include numerics (like ``64'' or ``x981c'').  Under old Perl versions
+(before 5.7) you get a ``?'' in place of characters whose Unicode
+value is over 255.
+<DT>$Name2character_number{<I>name</I>}<DD>
+
+
+<A NAME="ixAAI"></A>
+Maps from names (as in <TT>&quot;E&lt;</TT>name<TT>&gt;&quot;</TT>) like ``eacute'' or ``sol''
+to the Unicode value that each stands for.  For example,
+<TT>$Name2character_number{'eacute'}</TT> is 201, and
+<TT>$Name2character_number{'eacute'}</TT> is 8364.  You get the correct
+Unicode value, regardless of the version of Perl you're using ---
+which differs from <TT>%Name2character</TT>'s behavior under pre-5.7 Perls.
+
+
+<P>
+
+
+Note that this hash does not
+include numerics (like ``64'' or ``x981c'').
+<DT>$Latin1Code_to_fallback{<I>integer</I>}<DD>
+
+
+<A NAME="ixAAJ"></A>
+For numbers in the range 160 (0x00A0) to 255 (0x00FF), this maps
+from the character code for a Latin-1 character (like 233 for
+lowercase e-acute) to the US-ASCII character that best aproximates
+it (like ``e'').  You may find this useful if you are rendering
+<FONT SIZE="-1">POD</FONT> in a format that you think deals well only with US-ASCII
+characters.
+<DT>$Latin1Char_to_fallback{<I>character</I>}<DD>
+
+
+<A NAME="ixAAK"></A>
+Just as above, but maps from characters (like ``\xE9'', 
+lowercase e-acute) to characters (like ``e'').
+<DT>$Code2USASCII{<I>integer</I>}<DD>
+
+
+<A NAME="ixAAL"></A>
+This maps from US-ASCII codes (like 32) to the corresponding
+character (like space, for 32).  Only characters 32 to 126 are
+defined.  This is meant for use by <TT>&quot;e2char($x)&quot;</TT> when it senses
+that it's running on a non-ASCII platform (where chr(32) doesn't
+get you a space --- but <TT>$Code2USASCII</TT>{32} will).  It's
+documented here just in case you might find it useful.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>CAVEATS</H2>
+
+<A NAME="ixAAM"></A>
+On Perl versions before 5.7, Unicode characters with a value
+over 255 (like lambda or emdash) can't be conveyed.  This
+module does work under such early Perl versions, but in the
+place of each such character, you get a ``?''.  Latin-1
+characters (characters 160-255) are unaffected.
+<P>
+
+Under <FONT SIZE="-1">EBCDIC</FONT> platforms, <TT>&quot;e2char($n)&quot;</TT> may not always be the
+same as <TT>&quot;chr(e2charnum($n))&quot;</TT>, and ditto for
+<TT>$Name2character{$name}</TT> and
+<TT>&quot;chr($Name2character_number{$name})&quot;</TT>.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAN"></A>
+perlpod
+<P>
+
+perlpodspec
+<P>
+
+Text::Unidecode
+<A NAME="lbAH">&nbsp;</A>
+<H2>COPYRIGHT AND DISCLAIMERS</H2>
+
+<A NAME="ixAAO"></A>
+Copyright (c) 2001-2004 Sean M. Burke.  All rights reserved.
+<P>
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+<P>
+
+This program is distributed in the hope that it will be useful, but
+without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose.
+<P>
+
+Portions of the data tables in this module are derived from the
+entity declarations in the W3C <FONT SIZE="-1">XHTML</FONT> specification.
+<P>
+
+Currently (October 2001), that's these three:
+<P>
+
+
+
+<PRE>
+ <A HREF="http://www.w3.org/TR/xhtml1/DTD/xhtml-lat1.ent">http://www.w3.org/TR/xhtml1/DTD/xhtml-lat1.ent</A>
+ <A HREF="http://www.w3.org/TR/xhtml1/DTD/xhtml-special.ent">http://www.w3.org/TR/xhtml1/DTD/xhtml-special.ent</A>
+ <A HREF="http://www.w3.org/TR/xhtml1/DTD/xhtml-symbol.ent">http://www.w3.org/TR/xhtml1/DTD/xhtml-symbol.ent</A>
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAP"></A>
+Sean M. Burke <TT>&quot;<A HREF="mailto:sburke@cpan.org">sburke@cpan.org</A>&quot;</TT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">GOODIES</A><DD>
+<DT><A HREF="#lbAF">CAVEATS</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">COPYRIGHT AND DISCLAIMERS</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:36 GMT, December 24, 2015
+</div></body>
+</HTML>

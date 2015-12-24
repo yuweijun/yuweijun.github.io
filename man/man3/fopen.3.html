@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of FOPEN</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>FOPEN</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2009-02-23<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+fopen, fdopen, freopen - stream open functions
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;</B>
+
+<B>FILE *fopen(const char *</B><I>path</I><B>, const char *</B><I>mode</I><B>);</B>
+
+<B>FILE *fdopen(int </B><I>fd</I><B>, const char *</B><I>mode</I><B>);</B>
+
+<B>FILE *freopen(const char *</B><I>path</I><B>, const char *</B><I>mode</I><B>, FILE *</B><I>stream</I><B>);</B>
+</PRE>
+
+<P>
+
+Feature Test Macro Requirements for glibc (see
+<B><A HREF="/man/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)):
+
+
+<P>
+<B>fdopen</B>():
+
+_POSIX_C_SOURCE&nbsp;&gt;=&nbsp;1 || _XOPEN_SOURCE || _POSIX_SOURCE
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>fopen</B>()
+
+function opens the file whose name is the string pointed to by
+<I>path</I>
+
+and associates a stream with it.
+<P>
+
+The argument
+<I>mode</I>
+
+points to a string beginning with one of the following sequences
+(Additional characters may follow these sequences.):
+<DL COMPACT>
+<DT><B>r</B>
+
+<DD>
+Open text file for reading.
+The stream is positioned at the beginning of the file.
+<DT><B>r+</B>
+
+<DD>
+Open for reading and writing.
+The stream is positioned at the beginning of the file.
+<DT><B>w</B>
+
+<DD>
+Truncate file to zero length or create text file for writing.
+The stream is positioned at the beginning of the file.
+<DT><B>w+</B>
+
+<DD>
+Open for reading and writing.
+The file is created if it does not exist, otherwise it is truncated.
+The stream is positioned at the beginning of
+the file.
+<DT><B>a</B>
+
+<DD>
+Open for appending (writing at end of file).
+The file is created if it does not exist.
+The stream is positioned at the end of the file.
+<DT><B>a+</B>
+
+<DD>
+Open for reading and appending (writing at end of file).
+The file is created if it does not exist.
+The initial file position for reading is at the beginning of the file,
+but output is always appended to the end of the file.
+</DL>
+<P>
+
+The
+<I>mode</I>
+
+string can also include the letter aqbaq either as a last character or as
+a character between the characters in any of the two-character strings
+described above.
+This is strictly for compatibility with C89
+and has no effect; the aqbaq is ignored on all POSIX
+conforming systems, including Linux.
+(Other systems may treat text files and binary files differently,
+and adding the aqbaq may be a good idea if you do I/O to a binary
+file and expect that your program may be ported to non-Unix
+environments.)
+<P>
+
+See NOTES below for details of glibc extensions for
+<I>mode</I>.
+
+<P>
+
+Any created files will have mode
+<B>S_IRUSR</B> | <B>S_IWUSR</B> | <B>S_IRGRP</B> | <B>S_IWGRP</B> | <B>S_IROTH</B> | <B>S_IWOTH</B>
+
+(0666), as modified by the process's umask value (see
+<B><A HREF="/man/index.html?2+umask">umask</A></B>(2)).
+
+<P>
+
+Reads and writes may be intermixed on read/write streams in any order.
+Note that ANSI C requires that a file positioning function intervene
+between output and input, unless an input operation encounters end-of-file.
+(If this condition is not met, then a read is allowed to return the
+result of writes other than the most recent.)
+Therefore it is good practice (and indeed sometimes necessary
+under Linux) to put an
+<B><A HREF="/man/index.html?3+fseek">fseek</A></B>(3)
+
+or
+<B><A HREF="/man/index.html?3+fgetpos">fgetpos</A></B>(3)
+
+operation between write and read operations on such a stream.
+This operation may be an apparent no-op
+(as in <I>fseek(..., 0L, SEEK_CUR)</I>
+called for its synchronizing side effect.
+<P>
+
+Opening a file in append mode (<B>a</B> as the first character of
+<I>mode</I>)
+
+causes all subsequent write operations to this stream to occur
+at end-of-file, as if preceded by an
+<PRE>
+
+    fseek(stream,0,SEEK_END);
+</PRE>
+
+<P>
+
+call.
+<P>
+
+The
+<B>fdopen</B>()
+
+function associates a stream with the existing file descriptor,
+<I>fd</I>.
+
+The
+<I>mode</I>
+
+of the stream (one of the values &quot;r&quot;, &quot;r+&quot;, &quot;w&quot;, &quot;w+&quot;, &quot;a&quot;, &quot;a+&quot;)
+must be compatible with the mode of the file descriptor.
+The file position indicator of the new stream is set to that
+belonging to
+<I>fd</I>,
+
+and the error and end-of-file indicators are cleared.
+Modes &quot;w&quot; or &quot;w+&quot; do not cause truncation of the file.
+The file descriptor is not dup'ed, and will be closed when
+the stream created by
+<B>fdopen</B>()
+
+is closed.
+The result of applying
+<B>fdopen</B>()
+
+to a shared memory object is undefined.
+<P>
+
+The
+<B>freopen</B>()
+
+function opens the file whose name is the string pointed to by
+<I>path</I>
+
+and associates the stream pointed to by
+<I>stream</I>
+
+with it.
+The original stream (if it exists) is closed.
+The
+<I>mode</I>
+
+argument is used just as in the
+<B>fopen</B>()
+
+function.
+The primary use of the
+<B>freopen</B>()
+
+function is to change the file associated with a standard text stream
+(<I>stderr</I>, <I>stdin</I>, or <I>stdout</I>).
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+Upon successful completion
+<B>fopen</B>(),
+
+<B>fdopen</B>()
+
+and
+<B>freopen</B>()
+
+return a
+<I>FILE</I>
+
+pointer.
+Otherwise, NULL is returned and
+<I>errno</I>
+
+is set to indicate the error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EINVAL</B>
+
+<DD>
+The
+<I>mode</I>
+
+provided to
+<B>fopen</B>(),
+
+<B>fdopen</B>(),
+
+or
+<B>freopen</B>()
+
+was invalid.
+</DL>
+<P>
+
+The
+<B>fopen</B>(),
+
+<B>fdopen</B>()
+
+and
+<B>freopen</B>()
+
+functions may also fail and set
+<I>errno</I>
+
+for any of the errors specified for the routine
+<B><A HREF="/man/index.html?3+malloc">malloc</A></B>(3).
+
+<P>
+
+The
+<B>fopen</B>()
+
+function may also fail and set
+<I>errno</I>
+
+for any of the errors specified for the routine
+<B><A HREF="/man/index.html?2+open">open</A></B>(2).
+
+<P>
+
+The
+<B>fdopen</B>()
+
+function may also fail and set
+<I>errno</I>
+
+for any of the errors specified for the routine
+<B><A HREF="/man/index.html?2+fcntl">fcntl</A></B>(2).
+
+<P>
+
+The
+<B>freopen</B>()
+
+function may also fail and set
+<I>errno</I>
+
+for any of the errors specified for the routines
+<B><A HREF="/man/index.html?2+open">open</A></B>(2),
+
+<B><A HREF="/man/index.html?3+fclose">fclose</A></B>(3)
+
+and
+<B><A HREF="/man/index.html?3+fflush">fflush</A></B>(3).
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+The
+<B>fopen</B>()
+
+and
+<B>freopen</B>()
+
+functions conform to C89.
+The
+<B>fdopen</B>()
+
+function conforms to POSIX.1-1990.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Glibc Notes</H3>
+
+The GNU C library allows the following extensions for the string specified in
+<I>mode</I>:
+
+<DL COMPACT>
+<DT><B>c</B> (since glibc 2.3.3)
+
+<DD>
+Do not make the open operation,
+or subsequent read and write operations,
+thread cancellation points.
+<DT><B>e</B> (since glibc 2.7)
+
+<DD>
+Open the file with the
+<B>O_CLOEXEC</B>
+
+flag.
+See
+<B><A HREF="/man/index.html?2+open">open</A></B>(2)
+
+for more information.
+<DT><B>m</B> (since glibc 2.3)
+
+<DD>
+Attempt to access the file using
+<B><A HREF="/man/index.html?2+mmap">mmap</A></B>(2),
+
+rather than I/O system calls
+(<B><A HREF="/man/index.html?2+read">read</A></B>(2),
+
+<B><A HREF="/man/index.html?2+write">write</A></B>(2)).
+
+Currently,
+
+use of
+<B><A HREF="/man/index.html?2+mmap">mmap</A></B>(2)
+
+is only attempted for a file opened for reading.
+<DT><B>x</B>
+
+<DD>
+
+Open the file exclusively
+(like the
+<B>O_EXCL</B>
+
+flag of
+<B><A HREF="/man/index.html?2+open">open</A></B>(2)).
+
+If the file already exists,
+<B>fopen</B>()
+
+fails, and sets
+<I>errno</I>
+
+to
+<B>EEXIST</B>.
+
+This flag is ignored for
+<B>fdopen</B>().
+
+
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+open">open</A></B>(2),
+
+<B><A HREF="/man/index.html?3+fclose">fclose</A></B>(3),
+
+<B><A HREF="/man/index.html?3+fileno">fileno</A></B>(3),
+
+<B><A HREF="/man/index.html?3+fmemopen">fmemopen</A></B>(3),
+
+<B><A HREF="/man/index.html?3+fopencookie">fopencookie</A></B>(3)
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DL>
+<DT><A HREF="#lbAI">Glibc Notes</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:27 GMT, December 24, 2015
+</div></body>
+</HTML>

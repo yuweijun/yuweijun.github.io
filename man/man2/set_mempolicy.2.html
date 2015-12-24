@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SET_MEMPOLICY</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SET_MEMPOLICY</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2008-08-15<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+set_mempolicy - set default NUMA memory policy for a process and its children
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/numaif.h">numaif.h</A>&gt;</B>
+
+<B>int set_mempolicy(int </B><I>mode</I><B>, unsigned long *</B><I>nodemask</I><B>,</B>
+<B>                  unsigned long </B><I>maxnode</I><B>);</B>
+
+Link with <I>-lnuma</I>.
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>set_mempolicy</B>()
+
+sets the NUMA memory policy of the calling process,
+which consists of a policy mode and zero or more nodes,
+to the values specified by the
+<I>mode</I>,
+
+<I>nodemask</I>
+
+and
+<I>maxnode</I>
+
+arguments.
+<P>
+A NUMA machine has different
+memory controllers with different distances to specific CPUs.
+The memory policy defines from which node memory is allocated for
+the process.
+<P>
+This system call defines the default policy for the process.
+The process policy governs allocation of pages in the process's
+address space outside of memory ranges
+controlled by a more specific policy set by
+<B><A HREF="/man/index.html?2+mbind">mbind</A></B>(2).
+
+The process default policy also controls allocation of any pages for
+memory mapped files mapped using the
+<B><A HREF="/man/index.html?2+mmap">mmap</A></B>(2)
+
+call with the
+<B>MAP_PRIVATE</B>
+
+flag and that are only read [loaded] from by the process
+and of memory mapped files mapped using the
+<B><A HREF="/man/index.html?2+mmap">mmap</A></B>(2)
+
+call with the
+<B>MAP_SHARED</B>
+
+flag, regardless of the access type.
+The policy is only applied when a new page is allocated
+for the process.
+For anonymous memory this is when the page is first
+touched by the application.
+<P>
+The
+<I>mode</I>
+
+argument must specify one of
+<B>MPOL_DEFAULT</B>,
+
+<B>MPOL_BIND</B>,
+
+<B>MPOL_INTERLEAVE</B>
+
+or
+<B>MPOL_PREFERRED</B>.
+
+All modes except
+<B>MPOL_DEFAULT</B>
+
+require the caller to specify via the
+<I>nodemask</I>
+
+argument one or more nodes.
+<P>
+The
+<I>mode</I>
+
+argument may also include an optional
+<I>mode flag</I>.
+
+The supported
+<I>mode flags</I>
+
+are:
+<DL COMPACT>
+<DT><B>MPOL_F_STATIC_NODES</B> (since Linux 2.6.26)
+
+<DD>
+A non-empty
+<I>nodemask</I>
+
+specifies physical node ids.
+Linux does will not remap the
+<I>nodemask</I>
+
+when the process moves to a different cpuset context,
+nor when the set of nodes allowed by the process's
+current cpuset context changes.
+<DT><B>MPOL_F_RELATIVE_NODES</B> (since Linux 2.6.26)
+
+<DD>
+A non-empty
+<I>nodemask</I>
+
+specifies node ids that are relative to the set of
+node ids allowed  by the process's current cpuset.
+</DL>
+<P>
+
+<I>nodemask</I>
+
+points to a bit mask of node IDs that contains up to
+<I>maxnode</I>
+
+bits.
+The bit mask size is rounded to the next multiple of
+<I>sizeof(unsigned long)</I>,
+
+but the kernel will only use bits up to
+<I>maxnode</I>.
+
+A NULL value of
+<I>nodemask</I>
+
+or a
+<I>maxnode</I>
+
+value of zero specifies the empty set of nodes.
+If the value of
+<I>maxnode</I>
+
+is zero,
+the
+<I>nodemask</I>
+
+argument is ignored.
+<P>
+Where a
+<I>nodemask</I>
+
+is required, it must contain at least one node that is on-line,
+allowed by the process's current cpuset context,
+[unless the
+<B>MPOL_F_STATIC_NODES</B>
+
+mode flag is specified],
+and contains memory.
+If the
+<B>MPOL_F_STATIC_NODES</B>
+
+is set in
+<I>mode</I>
+
+and a required
+<I>nodemask</I>
+
+contains no nodes that are allowed by the process's current cpuset context,
+the memory policy reverts to
+<I>local allocation</I>.
+
+This effectively overrides the specified policy until the process's
+cpuset context includes one or more of the nodes specified by
+<I>nodemask.</I>
+
+<P>
+The
+<B>MPOL_DEFAULT</B>
+
+mode specifies that any non-default process memory policy be removed,
+so that the memory policy &quot;falls back&quot; to the system default policy.
+The system default policy is &quot;local allocation&quot;--
+i.e., allocate memory on the node of the CPU that triggered the allocation.
+<I>nodemask</I>
+
+must be specified as NULL.
+If the &quot;local node&quot; contains no free memory, the system will
+attempt to allocate memory from a &quot;near by&quot; node.
+<P>
+The
+<B>MPOL_BIND</B>
+
+mode defines a strict policy that restricts memory allocation to the
+nodes specified in
+<I>nodemask</I>.
+
+If
+<I>nodemask</I>
+
+specifies more than one node, page allocations will come from
+the node with the lowest numeric node ID first, until that node
+contains no free memory.
+Allocations will then come from the node with the next highest
+node ID specified in
+<I>nodemask</I>
+
+and so forth, until none of the specified nodes contain free memory.
+Pages will not be allocated from any node not specified in the
+<I>nodemask</I>.
+
+<P>
+<B>MPOL_INTERLEAVE</B>
+
+interleaves page allocations across the nodes specified in
+<I>nodemask</I>
+
+in numeric node ID order.
+This optimizes for bandwidth instead of latency
+by spreading out pages and memory accesses to those pages across
+multiple nodes.
+However, accesses to a single page will still be limited to
+the memory bandwidth of a single node.
+
+
+
+
+<P>
+<B>MPOL_PREFERRED</B>
+
+sets the preferred node for allocation.
+The kernel will try to allocate pages from this node first
+and fall back to &quot;near by&quot; nodes if the preferred node is low on free
+memory.
+If
+<I>nodemask</I>
+
+specifies more than one node ID, the first node in the
+mask will be selected as the preferred node.
+If the
+<I>nodemask</I>
+
+and
+<I>maxnode</I>
+
+arguments specify the empty set, then the policy
+specifies &quot;local allocation&quot;
+(like the system default policy discussed above).
+<P>
+The process memory policy is preserved across an
+<B><A HREF="/man/index.html?2+execve">execve</A></B>(2),
+
+and is inherited by child processes created using
+<B><A HREF="/man/index.html?2+fork">fork</A></B>(2)
+
+or
+<B><A HREF="/man/index.html?2+clone">clone</A></B>(2).
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success,
+<B>set_mempolicy</B>()
+
+returns 0;
+on error, -1 is returned and
+<I>errno</I>
+
+is set to indicate the error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EFAULT</B>
+
+<DD>
+Part of all of the memory range specified by
+<I>nodemask</I>
+
+and
+<I>maxnode</I>
+
+points outside your accessible address space.
+<DT><B>EINVAL</B>
+
+<DD>
+<I>mode</I>
+
+is invalid.
+Or,
+<I>mode</I>
+
+is
+<B>MPOL_DEFAULT</B>
+
+and
+<I>nodemask</I>
+
+is non-empty,
+or
+<I>mode</I>
+
+is
+<B>MPOL_BIND</B>
+
+or
+<B>MPOL_INTERLEAVE</B>
+
+and
+<I>nodemask</I>
+
+is empty.
+Or,
+<I>maxnode</I>
+
+specifies more than a page worth of bits.
+Or,
+<I>nodemask</I>
+
+specifies one or more node IDs that are
+greater than the maximum supported node ID.
+Or, none of the node IDs specified by
+<I>nodemask</I>
+
+are on-line and allowed by the process's current cpuset context,
+or none of the specified nodes contain memory.
+Or, the
+<I>mode</I>
+
+argument specified both
+<B>MPOL_F_STATIC_NODES</B>
+
+and
+<B>MPOL_F_RELATIVE_NODES</B>.
+
+<DT><B>ENOMEM</B>
+
+<DD>
+Insufficient kernel memory was available.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+The
+<B>set_mempolicy</B>(),
+
+system call was added to the Linux kernel in version 2.6.7.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+This system call is Linux-specific.
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+Process policy is not remembered if the page is swapped out.
+When such a page is paged back in, it will use the policy of
+the process or memory range that is in effect at the time the
+page is allocated.
+<P>
+For information on library support, see
+<B><A HREF="/man/index.html?7+numa">numa</A></B>(7).
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/man/index.html?2+get_mempolicy">get_mempolicy</A></B>(2),
+
+<B><A HREF="/man/index.html?2+getcpu">getcpu</A></B>(2),
+
+<B><A HREF="/man/index.html?2+mbind">mbind</A></B>(2),
+
+<B><A HREF="/man/index.html?2+mmap">mmap</A></B>(2),
+
+<B><A HREF="/man/index.html?3+numa">numa</A></B>(3),
+
+<B><A HREF="/man/index.html?7+cpuset">cpuset</A></B>(7),
+
+<B><A HREF="/man/index.html?7+numa">numa</A></B>(7),
+
+<B><A HREF="/man/index.html?8+numactl">numactl</A></B>(8)
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">VERSIONS</A><DD>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:05 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of encoding::warnings</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/man/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>encoding::warnings</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/man/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+encoding::warnings - Warn on implicit encoding conversions
+<A NAME="lbAC">&nbsp;</A>
+<H2>VERSION</H2>
+
+<A NAME="ixAAC"></A>
+This document describes version 0.11 of encoding::warnings, released
+June 5, 2007.
+<A NAME="lbAD">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAD"></A>
+
+
+<PRE>
+    use encoding::warnings; # or 'FATAL' to raise fatal exceptions
+
+    utf8::encode($a = chr(20000));  # a byte-string (raw bytes)
+    $b = chr(20000);                # a unicode-string (wide characters)
+
+    # &quot;Bytes implicitly upgraded into wide characters as iso-8859-1&quot;
+    $c = $a . $b;
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAE"></A>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Overview of the problem</H3>
+
+<A NAME="ixAAF"></A>
+By default, there is a fundamental asymmetry in Perl's unicode model:
+implicit upgrading from byte-strings to unicode-strings assumes that
+they were encoded in <I></I><FONT SIZE="-1"><I>ISO</I></FONT><I> 8859-1 (Latin-1)</I>, but unicode-strings are
+downgraded with <FONT SIZE="-1">UTF-8</FONT> encoding.  This happens because the first 256
+codepoints in Unicode happens to agree with Latin-1.
+<P>
+
+However, this silent upgrading can easily cause problems, if you happen
+to mix unicode strings with non-Latin1 data --- i.e. byte-strings encoded
+in <FONT SIZE="-1">UTF-8</FONT> or other encodings.  The error will not manifest until the
+combined string is written to output, at which time it would be impossible
+to see where did the silent upgrading occur.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Detecting the problem</H3>
+
+<A NAME="ixAAG"></A>
+This module simplifies the process of diagnosing such problems.  Just put
+this line on top of your main program:
+<P>
+
+
+
+<PRE>
+    use encoding::warnings;
+
+</PRE>
+
+
+<P>
+
+Afterwards, implicit upgrading of high-bit bytes will raise a warning.
+Ex.: <TT>&quot;Bytes implicitly upgraded into wide characters as iso-8859-1 at
+- line 7&quot;</TT>.
+<P>
+
+However, strings composed purely of <FONT SIZE="-1">ASCII</FONT> code points (<TT>0x00</TT>..<TT>0x7F</TT>)
+will <I>not</I> trigger this warning.
+<P>
+
+You can also make the warnings fatal by importing this module as:
+<P>
+
+
+
+<PRE>
+    use encoding::warnings 'FATAL';
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>Solving the problem</H3>
+
+<A NAME="ixAAH"></A>
+Most of the time, this warning occurs when a byte-string is concatenated
+with a unicode-string.  There are a number of ways to solve it:
+<DL COMPACT>
+<DT>*<DD>
+Upgrade both sides to unicode-strings
+
+
+<P>
+
+
+If your program does not need compatibility for Perl 5.6 and earlier,
+the recommended approach is to apply appropriate <FONT SIZE="-1">IO</FONT> disciplines, so all
+data in your program become unicode-strings.  See encoding, open and
+``binmode'' in perlfunc for how.
+<DT>*<DD>
+Downgrade both sides to byte-strings
+
+
+<P>
+
+
+The other way works too, especially if you are sure that all your data
+are under the same encoding, or if compatibility with older versions
+of Perl is desired.
+
+
+<P>
+
+
+You may downgrade strings with <TT>&quot;Encode::encode&quot;</TT> and <TT>&quot;utf8::encode&quot;</TT>.
+See Encode and utf8 for details.
+<DT>*<DD>
+Specify the encoding for implicit byte-string upgrading
+
+
+<P>
+
+
+If you are confident that all byte-strings will be in a specific
+encoding like <FONT SIZE="-1">UTF-8</FONT>, <I>and</I> need not support older versions of Perl,
+use the <TT>&quot;encoding&quot;</TT> pragma:
+
+
+<P>
+
+
+
+
+<PRE>
+    use encoding 'utf8';
+
+</PRE>
+
+
+
+
+<P>
+
+
+Similarly, this will silence warnings from this module, and preserve the
+default behaviour:
+
+
+<P>
+
+
+
+
+<PRE>
+    use encoding 'iso-8859-1';
+
+</PRE>
+
+
+
+
+<P>
+
+
+However, note that <TT>&quot;use encoding&quot;</TT> actually had three distinct effects:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+PerlIO layers for <B></B><FONT SIZE="-1"><B>STDIN</B></FONT><B></B> and <B></B><FONT SIZE="-1"><B>STDOUT</B></FONT><B></B>
+
+
+<P>
+
+
+This is similar to what open pragma does.
+<DT>*<DD>
+Literal conversions
+
+
+<P>
+
+
+This turns <I>all</I> literal string in your program into unicode-strings
+(equivalent to a <TT>&quot;use utf8&quot;</TT>), by decoding them using the specified
+encoding.
+<DT>*<DD>
+Implicit upgrading for byte-strings
+
+
+<P>
+
+
+This will silence warnings from this module, as shown above.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+Because literal conversions also work on empty strings, it may surprise
+some people:
+
+
+<P>
+
+
+
+
+<PRE>
+    use encoding 'big5';
+
+    my $byte_string = pack(&quot;C*&quot;, 0xA4, 0x40);
+    print length $a;    # 2 here.
+    $a .= &quot;&quot;;           # concatenating with a unicode string...
+    print length $a;    # 1 here!
+
+</PRE>
+
+
+
+
+<P>
+
+
+In other words, do not <TT>&quot;use encoding&quot;</TT> unless you are certain that the
+program will not deal with any raw, 8-bit binary data at all.
+
+
+<P>
+
+
+However, the <TT>&quot;Filter =&gt; 1&quot;</TT> flavor of <TT>&quot;use encoding&quot;</TT> will <I>not</I>
+affect implicit upgrading for byte-strings, and is thus incapable of
+silencing warnings from this module.  See encoding for more details.
+</DL>
+
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>CAVEATS</H2>
+
+<A NAME="ixAAI"></A>
+For Perl 5.9.4 or later, this module's effect is lexical.
+<P>
+
+For Perl versions prior to 5.9.4, this module affects the whole script,
+instead of inside its lexical block.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAJ"></A>
+perlunicode, perluniintro
+<P>
+
+open, utf8, encoding, Encode
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<A NAME="ixAAK"></A>
+Audrey Tang
+<A NAME="lbAL">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAL"></A>
+Copyright 2004, 2005, 2006, 2007 by Audrey Tang &lt;<A HREF="mailto:cpan@audreyt.org">cpan@audreyt.org</A>&gt;.
+<P>
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+<P>
+
+See &lt;<A HREF="http://www.perl.com/perl/misc/Artistic.html">http://www.perl.com/perl/misc/Artistic.html</A>&gt;
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">VERSION</A><DD>
+<DT><A HREF="#lbAD">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAE">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAF">Overview of the problem</A><DD>
+<DT><A HREF="#lbAG">Detecting the problem</A><DD>
+<DT><A HREF="#lbAH">Solving the problem</A><DD>
+</DL>
+<DT><A HREF="#lbAI">CAVEATS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">AUTHORS</A><DD>
+<DT><A HREF="#lbAL">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/man/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:24 GMT, December 24, 2015
+</div></body>
+</HTML>
