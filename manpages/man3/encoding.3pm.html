@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of encoding</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>encoding</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-04-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+encoding - allows you to write your script in non-ascii or non-utf8
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use encoding &quot;greek&quot;;  # Perl like Greek to you?
+  use encoding &quot;euc-jp&quot;; # Jperl!
+
+  # or you can even do this if your shell supports your native encoding
+
+  perl -Mencoding=latin2 -e'...' # Feeling centrally European?
+  perl -Mencoding=euc-kr -e'...' # Or Korean?
+
+  # more control
+
+  # A simple euc-cn =&gt; utf-8 converter
+  use encoding &quot;euc-cn&quot;, STDOUT =&gt; &quot;utf8&quot;;  while(&lt;&gt;){print};
+
+  # &quot;no encoding;&quot; supported (but not scoped!)
+  no encoding;
+
+  # an alternate way, Filter
+  use encoding &quot;euc-jp&quot;, Filter=&gt;1;
+  # now you can use kanji identifiers -- in euc-jp!
+
+  # switch on locale -
+  # note that this probably means that unless you have a complete control
+  # over the environments the application is ever going to be run, you should
+  # NOT use the feature of encoding pragma allowing you to write your script
+  # in any recognized encoding because changing locale settings will wreck
+  # the script; you can of course still use the other features of the pragma.
+  use encoding ':locale';
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>ABSTRACT</H2>
+
+<A NAME="ixAAD"></A>
+Let's start with a bit of history: Perl 5.6.0 introduced Unicode
+support.  You could apply <TT>&quot;substr()&quot;</TT> and regexes even to complex <FONT SIZE="-1">CJK</FONT>
+characters --- so long as the script was written in <FONT SIZE="-1">UTF-8</FONT>.  But back
+then, text editors that supported <FONT SIZE="-1">UTF-8</FONT> were still rare and many users
+instead chose to write scripts in legacy encodings, giving up a whole
+new feature of Perl 5.6.
+<P>
+
+Rewind to the future: starting from perl 5.8.0 with the <B>encoding</B>
+pragma, you can write your script in any encoding you like (so long
+as the <TT>&quot;Encode&quot;</TT> module supports it) and still enjoy Unicode support.
+This pragma achieves that by doing the following:
+<DL COMPACT>
+<DT>*<DD>
+Internally converts all literals (<TT>&quot;q//,qq//,qr//,qw///, qx//&quot;</TT>) from
+the encoding specified to utf8.  In Perl 5.8.1 and later, literals in
+<TT>&quot;tr///&quot;</TT> and <TT>&quot;DATA&quot;</TT> pseudo-filehandle are also converted.
+<DT>*<DD>
+Changing PerlIO layers of <TT>&quot;STDIN&quot;</TT> and <TT>&quot;STDOUT&quot;</TT> to the encoding
+<BR>&nbsp;specified.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Literal Conversions</H3>
+
+<A NAME="ixAAE"></A>
+You can write code in EUC-JP as follows:
+<P>
+
+
+
+<PRE>
+  my $Rakuda = &quot;\xF1\xD1\xF1\xCC&quot;; # Camel in Kanji
+               #&lt;-char-&gt;&lt;-char-&gt;   # 4 octets
+  s/\bCamel\b/$Rakuda/;
+
+</PRE>
+
+
+<P>
+
+And with <TT>&quot;use encoding &quot;euc-jp&quot;&quot;</TT> in effect, it is the same thing as
+the code in <FONT SIZE="-1">UTF-8:</FONT>
+<P>
+
+
+
+<PRE>
+  my $Rakuda = &quot;\x{99F1}\x{99DD}&quot;; # two Unicode Characters
+  s/\bCamel\b/$Rakuda/;
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H3>PerlIO layers for STD(IN|OUT)</H3>
+
+
+
+<A NAME="ixAAF"></A>
+The <B>encoding</B> pragma also modifies the filehandle layers of
+<FONT SIZE="-1">STDIN</FONT> and <FONT SIZE="-1">STDOUT</FONT> to the specified encoding.  Therefore,
+<P>
+
+
+
+<PRE>
+  use encoding &quot;euc-jp&quot;;
+  my $message = &quot;Camel is the symbol of perl.\n&quot;;
+  my $Rakuda = &quot;\xF1\xD1\xF1\xCC&quot;; # Camel in Kanji
+  $message =~ s/\bCamel\b/$Rakuda/;
+  print $message;
+
+</PRE>
+
+
+<P>
+
+Will print ``\xF1\xD1\xF1\xCC is the symbol of perl.\n'',
+not ``\x{99F1}\x{99DD} is the symbol of perl.\n''.
+<P>
+
+You can override this by giving extra arguments; see below.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Implicit upgrading for byte strings</H3>
+
+<A NAME="ixAAG"></A>
+By default, if strings operating under byte semantics and strings
+with Unicode character data are concatenated, the new string will
+be created by decoding the byte strings as <I></I><FONT SIZE="-1"><I>ISO</I></FONT><I> 8859-1 (Latin-1)</I>.
+<P>
+
+The <B>encoding</B> pragma changes this to use the specified encoding
+instead.  For example:
+<P>
+
+
+
+<PRE>
+    use encoding 'utf8';
+    my $string = chr(20000); # a Unicode string
+    utf8::encode($string);   # now it's a UTF-8 encoded byte string
+    # concatenate with another Unicode string
+    print length($string . chr(20000));
+
+</PRE>
+
+
+<P>
+
+Will print <TT>2</TT>, because <TT>$string</TT> is upgraded as <FONT SIZE="-1">UTF-8</FONT>.  Without
+<TT>&quot;use encoding 'utf8';&quot;</TT>, it will print <TT>4</TT> instead, since <TT>$string</TT>
+is three octets when interpreted as Latin-1.
+<A NAME="lbAH">&nbsp;</A>
+<H3>Side effects</H3>
+
+<A NAME="ixAAH"></A>
+If the <TT>&quot;encoding&quot;</TT> pragma is in scope then the lengths returned are
+calculated from the length of <TT>$/</TT> in Unicode characters, which is not
+always the same as the length of <TT>$/</TT> in the native encoding.
+<P>
+
+This pragma affects utf8::upgrade, but not utf8::downgrade.
+<A NAME="lbAI">&nbsp;</A>
+<H2>FEATURES THAT REQUIRE 5.8.1</H2>
+
+<A NAME="ixAAI"></A>
+Some of the features offered by this pragma requires perl 5.8.1.  Most
+of these are done by Inaba Hiroto.  Any other features and changes
+are good for 5.8.0.
+<DL COMPACT>
+<DT>NON-EUC doublebyte encodings<DD>
+
+
+<A NAME="ixAAJ"></A>
+Because perl needs to parse script before applying this pragma, such
+encodings as Shift_JIS and Big-5 that may contain '\' (<FONT SIZE="-1">BACKSLASH</FONT>;
+\x5c) in the second byte fails because the second byte may
+accidentally escape the quoting character that follows.  Perl 5.8.1
+or later fixes this problem.
+<DT>tr//<DD>
+<A NAME="ixAAK"></A>
+<TT>&quot;tr//&quot;</TT> was overlooked by Perl 5 porters when they released perl 5.8.0
+See the section below for details.
+<DT><FONT SIZE="-1">DATA</FONT> pseudo-filehandle<DD>
+<A NAME="ixAAL"></A>
+Another feature that was overlooked was <TT>&quot;DATA&quot;</TT>.
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>USAGE</H2>
+
+<A NAME="ixAAM"></A>
+<DL COMPACT>
+<DT>use encoding [<I></I><FONT SIZE="-1"><I>ENCNAME</I></FONT><I></I>] ;<DD>
+<A NAME="ixAAN"></A>
+Sets the script encoding to <I></I><FONT SIZE="-1"><I>ENCNAME</I></FONT><I></I>.  And unless ${^UNICODE}
+exists and non-zero, PerlIO layers of <FONT SIZE="-1">STDIN</FONT> and <FONT SIZE="-1">STDOUT</FONT> are set to
+&quot;:encoding(<I></I><FONT SIZE="-1"><I>ENCNAME</I></FONT><I></I>)&quot;.
+
+
+<P>
+
+
+Note that <FONT SIZE="-1">STDERR</FONT> <FONT SIZE="-1">WILL</FONT> <FONT SIZE="-1">NOT</FONT> be changed.
+
+
+<P>
+
+
+Also note that non-STD file handles remain unaffected.  Use <TT>&quot;use
+open&quot;</TT> or <TT>&quot;binmode&quot;</TT> to change layers of those.
+
+
+<P>
+
+
+If no encoding is specified, the environment variable <FONT SIZE="-1">PERL_ENCODING</FONT>
+is consulted.  If no encoding can be found, the error <TT>&quot;Unknown encoding
+'</TT>ENCNAME<TT>'&quot;</TT> will be thrown.
+<DT>use encoding <I></I><FONT SIZE="-1"><I>ENCNAME</I></FONT><I></I> [ <FONT SIZE="-1">STDIN</FONT> =&gt; <I></I><FONT SIZE="-1"><I>ENCNAME_IN</I></FONT><I></I> ...] ;<DD>
+<A NAME="ixAAO"></A>
+You can also individually set encodings of <FONT SIZE="-1">STDIN</FONT> and <FONT SIZE="-1">STDOUT</FONT> via the
+<TT>&quot;STDIN =&gt; I&lt;ENCNAME&gt;&quot;</TT> form.  In this case, you cannot omit the
+first <I></I><FONT SIZE="-1"><I>ENCNAME</I></FONT><I></I>.  <TT>&quot;STDIN =&gt; undef&quot;</TT> turns the <FONT SIZE="-1">IO</FONT> transcoding
+completely off.
+
+
+<P>
+
+
+When ${^UNICODE} exists and non-zero, these options will completely
+ignored.  ${^UNICODE} is a variable introduced in perl 5.8.1.  See
+perlrun see ``${^UNICODE}'' in perlvar and ``-C'' in perlrun for
+details (perl 5.8.1 and later).
+<DT>use encoding <I></I><FONT SIZE="-1"><I>ENCNAME</I></FONT><I></I> Filter=&gt;1;<DD>
+<A NAME="ixAAP"></A>
+This turns the encoding pragma into a source filter.  While the
+default approach just decodes interpolated literals (in <I>qq()</I> and
+<I>qr()</I>), this will apply a source filter to the entire source code.  See
+``The Filter Option'' below for details.
+<DT>no encoding;<DD>
+<A NAME="ixAAQ"></A>
+Unsets the script encoding. The layers of <FONT SIZE="-1">STDIN</FONT>, <FONT SIZE="-1">STDOUT</FONT> are
+reset to ``:raw'' (the default unprocessed raw stream of bytes).
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H2>The Filter Option</H2>
+
+<A NAME="ixAAR"></A>
+The magic of <TT>&quot;use encoding&quot;</TT> is not applied to the names of
+identifiers.  In order to make <TT>&quot;${&quot;\x{4eba}&quot;}++&quot;</TT> ($human++, where human
+is a single Han ideograph) work, you still need to write your script
+in <FONT SIZE="-1">UTF-8</FONT> --- or use a source filter.  That's what 'Filter=&gt;1' does.
+<P>
+
+What does this mean?  Your source code behaves as if it is written in
+<FONT SIZE="-1">UTF-8</FONT> with 'use utf8' in effect.  So even if your editor only supports
+Shift_JIS, for example, you can still try examples in Chapter 15 of
+<TT>&quot;Programming Perl, 3rd Ed.&quot;</TT>.  For instance, you can use <FONT SIZE="-1">UTF-8</FONT>
+identifiers.
+<P>
+
+This option is significantly slower and (as of this writing) non-ASCII
+identifiers are not very stable <FONT SIZE="-1">WITHOUT</FONT> this option and with the
+source code written in <FONT SIZE="-1">UTF-8</FONT>.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Filter-related changes at Encode version 1.87</H3>
+
+<A NAME="ixAAS"></A>
+<DL COMPACT>
+<DT>*<DD>
+The Filter option now sets <FONT SIZE="-1">STDIN</FONT> and <FONT SIZE="-1">STDOUT</FONT> like non-filter options.
+And <TT>&quot;STDIN=&gt;I&lt;ENCODING&gt;&quot;</TT> and <TT>&quot;STDOUT=&gt;I&lt;ENCODING&gt;&quot;</TT> work like
+non-filter version.
+<DT>*<DD>
+<TT>&quot;use utf8&quot;</TT> is implicitly declared so you no longer have to <TT>&quot;use
+utf8&quot;</TT> to <TT>&quot;${&quot;\x{4eba}&quot;}++&quot;</TT>.
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H2>CAVEATS</H2>
+
+<A NAME="ixAAT"></A>
+<A NAME="lbAN">&nbsp;</A>
+<H3><FONT SIZE="-1">NOT</FONT> <FONT SIZE="-1">SCOPED</FONT></H3>
+
+<A NAME="ixAAU"></A>
+The pragma is a per script, not a per block lexical.  Only the last
+<TT>&quot;use encoding&quot;</TT> or <TT>&quot;no encoding&quot;</TT> matters, and it affects
+<B>the whole script</B>.  However, the &lt;no encoding&gt; pragma is supported and
+<B>use encoding</B> can appear as many times as you want in a given script.
+The multiple use of this pragma is discouraged.
+<P>
+
+By the same reason, the use this pragma inside modules is also
+discouraged (though not as strongly discouraged as the case above.
+See below).
+<P>
+
+If you still have to write a module with this pragma, be very careful
+of the load order.  See the codes below;
+<P>
+
+
+
+<PRE>
+  # called module
+  package Module_IN_BAR;
+  use encoding &quot;bar&quot;;
+  # stuff in &quot;bar&quot; encoding here
+  1;
+
+  # caller script
+  use encoding &quot;foo&quot;
+  use Module_IN_BAR;
+  # surprise! use encoding &quot;bar&quot; is in effect.
+
+</PRE>
+
+
+<P>
+
+The best way to avoid this oddity is to use this pragma <FONT SIZE="-1">RIGHT</FONT> <FONT SIZE="-1">AFTER</FONT>
+other modules are loaded.  i.e.
+<P>
+
+
+
+<PRE>
+  use Module_IN_BAR;
+  use encoding &quot;foo&quot;;
+
+</PRE>
+
+
+<A NAME="lbAO">&nbsp;</A>
+<H3><FONT SIZE="-1">DO</FONT> <FONT SIZE="-1">NOT</FONT> <FONT SIZE="-1">MIX</FONT> <FONT SIZE="-1">MULTIPLE</FONT> <FONT SIZE="-1">ENCODINGS</FONT></H3>
+
+<A NAME="ixAAV"></A>
+Notice that only literals (string or regular expression) having only
+legacy code points are affected: if you mix data like this
+<P>
+
+
+
+<PRE>
+    \xDF\x{100}
+
+</PRE>
+
+
+<P>
+
+the data is assumed to be in (Latin 1 and) Unicode, not in your native
+encoding.  In other words, this will match in ``greek'':
+<P>
+
+
+
+<PRE>
+    &quot;\xDF&quot; =~ /\x{3af}/
+
+</PRE>
+
+
+<P>
+
+but this will not
+<P>
+
+
+
+<PRE>
+    &quot;\xDF\x{100}&quot; =~ /\x{3af}\x{100}/
+
+</PRE>
+
+
+<P>
+
+since the <TT>&quot;\xDF&quot;</TT> (<FONT SIZE="-1">ISO</FONT> 8859-7 <FONT SIZE="-1">GREEK</FONT> <FONT SIZE="-1">SMALL</FONT> <FONT SIZE="-1">LETTER</FONT> <FONT SIZE="-1">IOTA</FONT> <FONT SIZE="-1">WITH</FONT> <FONT SIZE="-1">TONOS</FONT>) on
+the left will <B>not</B> be upgraded to <TT>&quot;\x{3af}&quot;</TT> (Unicode <FONT SIZE="-1">GREEK</FONT> <FONT SIZE="-1">SMALL</FONT>
+<FONT SIZE="-1">LETTER</FONT> <FONT SIZE="-1">IOTA</FONT> <FONT SIZE="-1">WITH</FONT> <FONT SIZE="-1">TONOS</FONT>) because of the <TT>&quot;\x{100}&quot;</TT> on the left.  You
+should not be mixing your legacy data and Unicode in the same string.
+<P>
+
+This pragma also affects encoding of the 0x80..0xFF code point range:
+normally characters in that range are left as eight-bit bytes (unless
+they are combined with characters with code points 0x100 or larger,
+in which case all characters need to become <FONT SIZE="-1">UTF-8</FONT> encoded), but if
+the <TT>&quot;encoding&quot;</TT> pragma is present, even the 0x80..0xFF range always
+gets <FONT SIZE="-1">UTF-8</FONT> encoded.
+<P>
+
+After all, the best thing about this pragma is that you don't have to
+resort to \x{....} just to spell your name in a native encoding.
+So feel free to put your strings in your encoding in quotes and
+regexes.
+<A NAME="lbAP">&nbsp;</A>
+<H3>tr/// with ranges</H3>
+
+<A NAME="ixAAW"></A>
+The <B>encoding</B> pragma works by decoding string literals in
+<TT>&quot;q//,qq//,qr//,qw///, qx//&quot;</TT> and so forth.  In perl 5.8.0, this
+does not apply to <TT>&quot;tr///&quot;</TT>.  Therefore,
+<P>
+
+
+
+<PRE>
+  use encoding 'euc-jp';
+  #....
+  $kana =~ tr/\xA4\xA1-\xA4\xF3/\xA5\xA1-\xA5\xF3/;
+  #           -------- -------- -------- --------
+
+</PRE>
+
+
+<P>
+
+Does not work as
+<P>
+
+
+
+<PRE>
+  $kana =~ tr/\x{3041}-\x{3093}/\x{30a1}-\x{30f3}/;
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>Legend of characters above<DD>
+<A NAME="ixAAX"></A>
+
+
+<PRE>
+  utf8     euc-jp   charnames::viacode()
+  -----------------------------------------
+  \x{3041} \xA4\xA1 HIRAGANA LETTER SMALL A
+  \x{3093} \xA4\xF3 HIRAGANA LETTER N
+  \x{30a1} \xA5\xA1 KATAKANA LETTER SMALL A
+  \x{30f3} \xA5\xF3 KATAKANA LETTER N
+
+</PRE>
+
+
+</DL>
+<P>
+
+This counterintuitive behavior has been fixed in perl 5.8.1.
+<P>
+
+<I>workaround to tr///;</I>
+<A NAME="ixAAY"></A>
+<P>
+
+In perl 5.8.0, you can work around as follows;
+<P>
+
+
+
+<PRE>
+  use encoding 'euc-jp';
+  #  ....
+  eval qq{ \$kana =~ tr/\xA4\xA1-\xA4\xF3/\xA5\xA1-\xA5\xF3/ };
+
+</PRE>
+
+
+<P>
+
+Note the <TT>&quot;tr//&quot;</TT> expression is surrounded by <TT>&quot;qq{}&quot;</TT>.  The idea behind
+is the same as classic idiom that makes <TT>&quot;tr///&quot;</TT> 'interpolate'.
+<P>
+
+
+
+<PRE>
+   tr/$from/$to/;            # wrong!
+   eval qq{ tr/$from/$to/ }; # workaround.
+
+</PRE>
+
+
+<P>
+
+Nevertheless, in case of <B>encoding</B> pragma even <TT>&quot;q//&quot;</TT> is affected so
+<TT>&quot;tr///&quot;</TT> not being decoded was obviously against the will of Perl5
+Porters so it has been fixed in Perl 5.8.1 or later.
+<A NAME="lbAQ">&nbsp;</A>
+<H2>EXAMPLE - Greekperl</H2>
+
+<A NAME="ixAAZ"></A>
+
+
+<PRE>
+    use encoding &quot;iso 8859-7&quot;;
+
+    # \xDF in ISO 8859-7 (Greek) is \x{3af} in Unicode.
+
+    $a = &quot;\xDF&quot;;
+    $b = &quot;\x{100}&quot;;
+
+    printf &quot;%#x\n&quot;, ord($a); # will print 0x3af, not 0xdf
+
+    $c = $a . $b;
+
+    # $c will be &quot;\x{3af}\x{100}&quot;, not &quot;\x{df}\x{100}&quot;.
+
+    # chr() is affected, and ...
+
+    print &quot;mega\n&quot;  if ord(chr(0xdf)) == 0x3af;
+
+    # ... ord() is affected by the encoding pragma ...
+
+    print &quot;tera\n&quot; if ord(pack(&quot;C&quot;, 0xdf)) == 0x3af;
+
+    # ... as are eq and cmp ...
+
+    print &quot;peta\n&quot; if &quot;\x{3af}&quot; eq  pack(&quot;C&quot;, 0xdf);
+    print &quot;exa\n&quot;  if &quot;\x{3af}&quot; cmp pack(&quot;C&quot;, 0xdf) == 0;
+
+    # ... but pack/unpack C are not affected, in case you still
+    # want to go back to your native encoding
+
+    print &quot;zetta\n&quot; if unpack(&quot;C&quot;, (pack(&quot;C&quot;, 0xdf))) == 0xdf;
+
+</PRE>
+
+
+<A NAME="lbAR">&nbsp;</A>
+<H2>KNOWN PROBLEMS</H2>
+
+<A NAME="ixABA"></A>
+<DL COMPACT>
+<DT>literals in regex that are longer than 127 bytes<DD>
+<A NAME="ixABB"></A>
+For native multibyte encodings (either fixed or variable length),
+the current implementation of the regular expressions may introduce
+recoding errors for regular expression literals longer than 127 bytes.
+<DT><FONT SIZE="-1">EBCDIC</FONT><DD>
+<A NAME="ixABC"></A>
+The encoding pragma is not supported on <FONT SIZE="-1">EBCDIC</FONT> platforms.
+(Porters who are willing and able to remove this limitation are
+welcome.)
+<DT>format<DD>
+<A NAME="ixABD"></A>
+This pragma doesn't work well with format because PerlIO does not
+get along very well with it.  When format contains non-ascii
+characters it prints funny or gets ``wide character warnings''.
+To understand it, try the code below.
+
+
+<P>
+
+
+
+
+<PRE>
+  # Save this one in utf8
+  # replace *non-ascii* with a non-ascii string
+  my $camel;
+  format STDOUT =
+  *non-ascii*@&gt;&gt;&gt;&gt;&gt;&gt;&gt;
+  $camel
+  .
+  $camel = &quot;*non-ascii*&quot;;
+  binmode(STDOUT=&gt;':encoding(utf8)'); # bang!
+  write;              # funny
+  print $camel, &quot;\n&quot;; # fine
+
+</PRE>
+
+
+
+
+<P>
+
+
+Without binmode this happens to work but without binmode, <I>print()</I>
+fails instead of <I>write()</I>.
+
+
+<P>
+
+
+At any rate, the very use of format is questionable when it comes to
+unicode characters since you have to consider such things as character
+width (i.e. double-width for ideographs) and directions (i.e. <FONT SIZE="-1">BIDI</FONT> for
+Arabic and Hebrew).
+<DT>Thread safety<DD>
+<A NAME="ixABE"></A>
+<TT>&quot;use encoding ...&quot;</TT> is not thread-safe (i.e., do not use in threaded
+applications).
+</DL>
+<A NAME="lbAS">&nbsp;</A>
+<H3>The Logic of :locale</H3>
+
+<A NAME="ixABF"></A>
+The logic of <TT>&quot;:locale&quot;</TT> is as follows:
+<DL COMPACT>
+<DT>1.<DD>
+If the platform supports the langinfo(<FONT SIZE="-1">CODESET</FONT>) interface, the codeset
+returned is used as the default encoding for the open pragma.
+<DT>2.<DD>
+If 1. didn't work but we are under the locale pragma, the environment
+variables <FONT SIZE="-1">LC_ALL</FONT> and <FONT SIZE="-1">LANG</FONT> (in that order) are matched for encodings
+(the part after <TT>&quot;.&quot;</TT>, if any), and if any found, that is used
+as the default encoding for the open pragma.
+<DT>3.<DD>
+If 1. and 2. didn't work, the environment variables <FONT SIZE="-1">LC_ALL</FONT> and <FONT SIZE="-1">LANG</FONT>
+(in that order) are matched for anything looking like <FONT SIZE="-1">UTF-8</FONT>, and if
+any found, <TT>&quot;:utf8&quot;</TT> is used as the default encoding for the open
+pragma.
+</DL>
+<P>
+
+If your locale environment variables (<FONT SIZE="-1">LC_ALL</FONT>, <FONT SIZE="-1">LC_CTYPE</FONT>, <FONT SIZE="-1">LANG</FONT>)
+contain the strings '<FONT SIZE="-1">UTF-8</FONT>' or '<FONT SIZE="-1">UTF8</FONT>' (case-insensitive matching),
+the default encoding of your <FONT SIZE="-1">STDIN</FONT>, <FONT SIZE="-1">STDOUT</FONT>, and <FONT SIZE="-1">STDERR</FONT>, and of
+<B>any subsequent file open</B>, is <FONT SIZE="-1">UTF-8</FONT>.
+<A NAME="lbAT">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<A NAME="ixABG"></A>
+This pragma first appeared in Perl 5.8.0.  For features that require
+5.8.1 and better, see above.
+<P>
+
+The <TT>&quot;:locale&quot;</TT> subpragma was implemented in 2.01, or Perl 5.8.6.
+<A NAME="lbAU">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABH"></A>
+perlunicode, Encode, open, Filter::Util::Call,
+<P>
+
+Ch. 15 of <TT>&quot;Programming Perl (3rd Edition)&quot;</TT>
+by Larry Wall, Tom Christiansen, Jon Orwant;
+O'Reilly &amp; Associates; <FONT SIZE="-1">ISBN</FONT> 0-596-00027-8
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">ABSTRACT</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Literal Conversions</A><DD>
+<DT><A HREF="#lbAF">PerlIO layers for STD(IN|OUT)</A><DD>
+<DT><A HREF="#lbAG">Implicit upgrading for byte strings</A><DD>
+<DT><A HREF="#lbAH">Side effects</A><DD>
+</DL>
+<DT><A HREF="#lbAI">FEATURES THAT REQUIRE 5.8.1</A><DD>
+<DT><A HREF="#lbAJ">USAGE</A><DD>
+<DT><A HREF="#lbAK">The Filter Option</A><DD>
+<DL>
+<DT><A HREF="#lbAL">Filter-related changes at Encode version 1.87</A><DD>
+</DL>
+<DT><A HREF="#lbAM">CAVEATS</A><DD>
+<DL>
+<DT><A HREF="#lbAN"><FONT SIZE="-1">NOT</FONT> <FONT SIZE="-1">SCOPED</FONT></A><DD>
+<DT><A HREF="#lbAO"><FONT SIZE="-1">DO</FONT> <FONT SIZE="-1">NOT</FONT> <FONT SIZE="-1">MIX</FONT> <FONT SIZE="-1">MULTIPLE</FONT> <FONT SIZE="-1">ENCODINGS</FONT></A><DD>
+<DT><A HREF="#lbAP">tr/// with ranges</A><DD>
+</DL>
+<DT><A HREF="#lbAQ">EXAMPLE - Greekperl</A><DD>
+<DT><A HREF="#lbAR">KNOWN PROBLEMS</A><DD>
+<DL>
+<DT><A HREF="#lbAS">The Logic of :locale</A><DD>
+</DL>
+<DT><A HREF="#lbAT">HISTORY</A><DD>
+<DT><A HREF="#lbAU">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:24 GMT, December 24, 2015
+</div></body>
+</HTML>

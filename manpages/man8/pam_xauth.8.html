@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PAM_XAUTH</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PAM_XAUTH</H1>
+Section: Linux\-PAM Manual (8)<BR>Updated: 06/16/2009<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pam_xauth - PAM module to forward xauth keys between users
+<A NAME="lbAB">&nbsp;</A>
+<H2>Synopsis</H2>
+
+
+<DL COMPACT>
+<DT>
+<B>pam_xauth.so</B> [debug] [xauthpath=<I>/path/to/xauth</I>] [systemuser=<I>UID</I>] [targetuser=<I>UID</I>]
+
+</DL>
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<DD>The pam_xauth PAM module is designed to forward xauth keys (sometimes referred to as &quot;cookies&quot;) between users.
+<P>
+
+Without pam_xauth, when xauth is enabled and a user uses the
+<B><A HREF="/manpages/index.html?1+su">su</A></B>(1)
+command to assume another user's privileges, that user is no longer able to access the original user's X display because the new user does not have the key needed to access the display. pam_xauth solves the problem by forwarding the key from the user running su (the source user) to the user whose identity the source user is assuming (the target user) when the session is created, and destroying the key when the session is torn down.
+<P>
+
+This means, for example, that when you run
+<B><A HREF="/manpages/index.html?1+su">su</A></B>(1)
+from an xterm session, you will be able to run X programs without explicitly dealing with the
+<B><A HREF="/manpages/index.html?1+xauth">xauth</A></B>(1)
+xauth command or ~/.Xauthority files.
+<P>
+
+pam_xauth will only forward keys if xauth can list a key connected to the $DISPLAY environment variable.
+<P>
+
+Primitive access control is provided by
+FC~/.xauth/exportF[]
+in the invoking user's home directory and
+FC~/.xauth/importF[]
+in the target user's home directory.
+<P>
+
+If a user has a
+FC~/.xauth/importF[]
+file, the user will only receive cookies from users listed in the file. If there is no
+FC~/.xauth/importF[]
+file, the user will accept cookies from any other user.
+<P>
+
+If a user has a
+FC.xauth/exportF[]
+file, the user will only forward cookies to users listed in the file. If there is no
+FC~/.xauth/exportF[]
+file, and the invoking user is not
+<B>root</B>, the user will forward cookies to any other user. If there is no
+FC~/.xauth/exportF[]
+file, and the invoking user is
+<B>root</B>, the user will
+<I>not</I>
+forward cookies to other users.
+<P>
+
+Both the import and export files support wildcards (such as
+<I>*</I>). Both the import and export files can be empty, signifying that no users are allowed.
+<A NAME="lbAD">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+
+<B>debug</B>
+<DL COMPACT><DT><DD>
+Print debug information.
+</DL>
+
+<P>
+
+<B>xauthpath=</B><B></B><I>/path/to/xauth</I>
+<DL COMPACT><DT><DD>
+Specify the path the xauth program (it is expected in
+FC/usr/X11R6/bin/xauthF[],
+FC/usr/bin/xauthF[], or
+FC/usr/bin/X11/xauthF[]
+by default).
+</DL>
+
+<P>
+
+<B>systemuser=</B><B></B><I>UID</I>
+<DL COMPACT><DT><DD>
+Specify the highest UID which will be assumed to belong to a &quot;system&quot; user. pam_xauth will refuse to forward credentials to users with UID less than or equal to this number, except for root and the &quot;targetuser&quot;, if specified.
+</DL>
+
+<P>
+
+<B>targetuser=</B><B></B><I>UID</I>
+<DL COMPACT><DT><DD>
+Specify a single target UID which is exempt from the systemuser check.
+</DL>
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>MODULE TYPES PROVIDED</H2>
+
+<P>
+
+Only the
+<B>session</B>
+type is provided.
+<A NAME="lbAF">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<P>
+
+PAM_BUF_ERR
+<DL COMPACT><DT><DD>
+Memory buffer error.
+</DL>
+
+<P>
+
+PAM_PERM_DENIED
+<DL COMPACT><DT><DD>
+Permission denied by import/export file.
+</DL>
+
+<P>
+
+PAM_SESSION_ERR
+<DL COMPACT><DT><DD>
+Cannot determine user name, UID or access users home directory.
+</DL>
+
+<P>
+
+PAM_SUCCESS
+<DL COMPACT><DT><DD>
+Success.
+</DL>
+
+<P>
+
+PAM_USER_UNKNOWN
+<DL COMPACT><DT><DD>
+User not known.
+</DL>
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+Add the following line to
+FC/etc/pam.d/suF[]
+to forward xauth keys between users when calling su:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+
+<FONT SIZE="-1">
+</FONT><PRE>
+
+
+session  optional  pam_xauth.so
+      
+</PRE>
+
+
+<FONT SIZE="+1">
+</DL>
+
+
+
+
+<P>
+</FONT><A NAME="lbAH">&nbsp;</A>
+<H2>IMPLEMENTATION DETAILS</H2>
+
+<P>
+
+pam_xauth will work
+<I>only</I>
+if it is used from a setuid application in which the
+<B>getuid</B>() call returns the id of the user running the application, and for which PAM can supply the name of the account that the user is attempting to assume. The typical application of this type is
+<B><A HREF="/manpages/index.html?1+su">su</A></B>(1). The application must call both
+<B>pam_open_session</B>() and
+<B>pam_close_session</B>() with the ruid set to the uid of the calling user and the euid set to root, and must have provided as the PAM_USER item the name of the target user.
+<P>
+
+pam_xauth calls
+<B><A HREF="/manpages/index.html?1+xauth">xauth</A></B>(1)
+as the source user to extract the key for $DISPLAY, then calls xauth as the target user to merge the key into the a temporary database and later remove the database.
+<P>
+
+pam_xauth cannot be told to not remove the keys when the session is closed.
+<A NAME="lbAI">&nbsp;</A>
+<H2>FILES</H2>
+
+<P>
+
+FC~/.xauth/importF[]
+<DL COMPACT><DT><DD>
+XXX
+</DL>
+
+<P>
+
+FC~/.xauth/exportF[]
+<DL COMPACT><DT><DD>
+XXX
+</DL>
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<P>
+<B><A HREF="/manpages/index.html?5+pam.conf">pam.conf</A></B>(5),
+<B><A HREF="/manpages/index.html?5+pam.d">pam.d</A></B>(5),
+<B><A HREF="/manpages/index.html?8+pam">pam</A></B>(8)
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<P>
+
+pam_xauth was written by Nalin Dahyabhai &lt;<A HREF="mailto:nalin@redhat.com">nalin@redhat.com</A>&gt;, based on original version by Michael K. Johnson &lt;<A HREF="mailto:johnsonm@redhat.com">johnsonm@redhat.com</A>&gt;.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">Synopsis</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">OPTIONS</A><DD>
+<DT><A HREF="#lbAE">MODULE TYPES PROVIDED</A><DD>
+<DT><A HREF="#lbAF">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">IMPLEMENTATION DETAILS</A><DD>
+<DT><A HREF="#lbAI">FILES</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:28 GMT, December 24, 2015
+</div></body>
+</HTML>

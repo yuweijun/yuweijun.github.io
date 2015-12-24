@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DBI::ProfileDumper</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DBI::ProfileDumper</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-08-28<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+DBI::ProfileDumper - profile DBI usage and output data to a file
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+To profile an existing program using DBI::ProfileDumper, set the
+<FONT SIZE="-1">DBI_PROFILE</FONT> environment variable and run your program as usual.  For
+example, using bash:
+<P>
+
+
+
+<PRE>
+  DBI_PROFILE=2/DBI::ProfileDumper program.pl
+
+</PRE>
+
+
+<P>
+
+Then analyze the generated file (<I>dbi.prof</I>) with dbiprof:
+<P>
+
+
+
+<PRE>
+  dbiprof
+
+</PRE>
+
+
+<P>
+
+You can also activate DBI::ProfileDumper from within your code:
+<P>
+
+
+
+<PRE>
+  use DBI;
+
+  # profile with default path (2) and output file (dbi.prof)
+  $dbh-&gt;{Profile} = &quot;!Statement/DBI::ProfileDumper&quot;;
+
+  # same thing, spelled out
+  $dbh-&gt;{Profile} = &quot;!Statement/DBI::ProfileDumper/File:dbi.prof&quot;;
+
+  # another way to say it
+  use DBI::ProfileDumper;
+  $dbh-&gt;{Profile} = DBI::ProfileDumper-&gt;new(
+                        Path =&gt; [ '!Statement' ]
+                        File =&gt; 'dbi.prof' );
+
+  # using a custom path
+  $dbh-&gt;{Profile} = DBI::ProfileDumper-&gt;new(
+      Path =&gt; [ &quot;foo&quot;, &quot;bar&quot; ],
+      File =&gt; 'dbi.prof',
+  );
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+DBI::ProfileDumper is a subclass of DBI::Profile which
+dumps profile data to disk instead of printing a summary to your
+screen.  You can then use dbiprof to analyze the data in
+a number of interesting ways, or you can roll your own analysis using
+DBI::ProfileData.
+<P>
+
+<B></B><FONT SIZE="-1"><B>NOTE:</B></FONT><B></B> For Apache/mod_perl applications, use
+DBI::ProfileDumper::Apache.
+<A NAME="lbAE">&nbsp;</A>
+<H2>USAGE</H2>
+
+<A NAME="ixAAE"></A>
+One way to use this module is just to enable it in your <TT>$dbh</TT>:
+<P>
+
+
+
+<PRE>
+  $dbh-&gt;{Profile} = &quot;1/DBI::ProfileDumper&quot;;
+
+</PRE>
+
+
+<P>
+
+This will write out profile data by statement into a file called
+<I>dbi.prof</I>.  If you want to modify either of these properties, you
+can construct the DBI::ProfileDumper object yourself:
+<P>
+
+
+
+<PRE>
+  use DBI::ProfileDumper;
+  $dbh-&gt;{Profile} = DBI::ProfileDumper-&gt;new(
+      Path =&gt; [ '!Statement' ],
+      File =&gt; 'dbi.prof'
+  );
+
+</PRE>
+
+
+<P>
+
+The <TT>&quot;Path&quot;</TT> option takes the same values as in
+DBI::Profile.  The <TT>&quot;File&quot;</TT> option gives the name of the
+file where results will be collected.  If it already exists it will be
+overwritten.
+<P>
+
+You can also activate this module by setting the <FONT SIZE="-1">DBI_PROFILE</FONT>
+environment variable:
+<P>
+
+
+
+<PRE>
+  $ENV{DBI_PROFILE} = &quot;!Statement/DBI::ProfileDumper&quot;;
+
+</PRE>
+
+
+<P>
+
+This will cause all <FONT SIZE="-1">DBI</FONT> handles to share the same profiling object.
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAF"></A>
+The following methods are available to be called using the profile
+object.  You can get access to the profile object from the Profile key
+in any <FONT SIZE="-1">DBI</FONT> handle:
+<P>
+
+
+
+<PRE>
+  my $profile = $dbh-&gt;{Profile};
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>flush_to_disk</H3>
+
+<A NAME="ixAAG"></A>
+
+
+<PRE>
+  $profile-&gt;flush_to_disk()
+
+</PRE>
+
+
+<P>
+
+Flushes all collected profile data to disk and empties the Data hash.  Returns
+the filename writen to.  If no profile data has been collected then the file is
+not written and <I>flush_to_disk()</I> returns undef.
+<P>
+
+The file is locked while it's being written. A process 'consuming' the files
+while they're being written to, should rename the file first, then lock it,
+then read it, then close and delete it. The <TT>&quot;DeleteFiles&quot;</TT> option to
+DBI::ProfileData does the right thing.
+<P>
+
+This method may be called multiple times during a program run.
+<A NAME="lbAH">&nbsp;</A>
+<H3>empty</H3>
+
+<A NAME="ixAAH"></A>
+
+
+<PRE>
+  $profile-&gt;empty()
+
+</PRE>
+
+
+<P>
+
+Clears the Data hash without writing to disk.
+<A NAME="lbAI">&nbsp;</A>
+<H3>filename</H3>
+
+<A NAME="ixAAI"></A>
+
+
+<PRE>
+  $filename = $profile-&gt;filename();
+
+</PRE>
+
+
+<P>
+
+Get or set the filename.
+<P>
+
+The filename can be specified as a <FONT SIZE="-1">CODE</FONT> reference, in which case the referenced
+code should return the filename to be used. The code will be called with the
+profile object as its first argument.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>DATA FORMAT</H2>
+
+<A NAME="ixAAJ"></A>
+The data format written by DBI::ProfileDumper starts with a header
+containing the version number of the module used to generate it.  Then
+a block of variable declarations describes the profile.  After two
+newlines, the profile data forms the body of the file.  For example:
+<P>
+
+
+
+<PRE>
+  DBI::ProfileDumper 2.003762
+  Path = [ '!Statement', '!MethodName' ]
+  Program = t/42profile_data.t
+
+  + 1 SELECT name FROM users WHERE id = ?
+  + 2 prepare
+  = 1 0.0312958955764771 0.000490069389343262 0.000176072120666504 0.00140702724456787 1023115819.83019 1023115819.86576
+  + 2 execute
+  1 0.0312958955764771 0.000490069389343262 0.000176072120666504 0.00140702724456787 1023115819.83019 1023115819.86576
+  + 2 fetchrow_hashref
+  = 1 0.0312958955764771 0.000490069389343262 0.000176072120666504 0.00140702724456787 1023115819.83019 1023115819.86576
+  + 1 UPDATE users SET name = ? WHERE id = ?
+  + 2 prepare
+  = 1 0.0312958955764771 0.000490069389343262 0.000176072120666504 0.00140702724456787 1023115819.83019 1023115819.86576
+  + 2 execute
+  = 1 0.0312958955764771 0.000490069389343262 0.000176072120666504 0.00140702724456787 1023115819.83019 1023115819.86576
+
+</PRE>
+
+
+<P>
+
+The lines beginning with <TT>&quot;+&quot;</TT> signs signify keys.  The number after
+the <TT>&quot;+&quot;</TT> sign shows the nesting level of the key.  Lines beginning
+with <TT>&quot;=&quot;</TT> are the actual profile data, in the same order as
+in DBI::Profile.
+<P>
+
+Note that the same path may be present multiple times in the data file
+since <TT>&quot;format()&quot;</TT> may be called more than once.  When read by
+DBI::ProfileData the data points will be merged to produce a single
+data set for each distinct path.
+<P>
+
+The key strings are transformed in three ways.  First, all backslashes
+are doubled.  Then all newlines and carriage-returns are transformed
+into <TT>&quot;\n&quot;</TT> and <TT>&quot;\r&quot;</TT> respectively.  Finally, any <FONT SIZE="-1">NULL</FONT> bytes (<TT>&quot;\0&quot;</TT>)
+are entirely removed.  When DBI::ProfileData reads the file the first
+two transformations will be reversed, but <FONT SIZE="-1">NULL</FONT> bytes will not be
+restored.
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAK"></A>
+Sam Tregar &lt;<A HREF="mailto:sam@tregar.com">sam@tregar.com</A>&gt;
+<A NAME="lbAL">&nbsp;</A>
+<H2>COPYRIGHT AND LICENSE</H2>
+
+<A NAME="ixAAL"></A>
+Copyright (C) 2002 Sam Tregar
+<P>
+
+This program is free software; you can redistribute it and/or modify
+it under the same terms as Perl 5 itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">USAGE</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">flush_to_disk</A><DD>
+<DT><A HREF="#lbAH">empty</A><DD>
+<DT><A HREF="#lbAI">filename</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">DATA FORMAT</A><DD>
+<DT><A HREF="#lbAK">AUTHOR</A><DD>
+<DT><A HREF="#lbAL">COPYRIGHT AND LICENSE</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:22 GMT, December 24, 2015
+</div></body>
+</HTML>

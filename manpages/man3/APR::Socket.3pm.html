@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of docs::api::APR::Socket</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>docs::api::APR::Socket</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2008-04-17<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+APR::Socket - Perl API for APR sockets
+<A NAME="lbAC">&nbsp;</A>
+<H2>Synopsis</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use APR::Socket ();
+  
+  ### set the socket to the blocking mode if it isn't already
+  ### and read in the loop and echo it back
+  use APR::Const -compile =&gt; qw(SO_NONBLOCK);
+  if ($sock-&gt;opt_get(APR::Const::SO_NONBLOCK)) {
+      $sock-&gt;opt_set(APR::Const::SO_NONBLOCK =&gt; 0);
+  }
+  # read from/write to the socket (w/o handling possible failures)
+  my $wanted = 1024;
+  while ($sock-&gt;recv(my $buff, $wanted)) {
+      $sock-&gt;send($buff);
+  }
+
+  ### get/set IO timeout and try to read some data
+  use APR::Const -compile =&gt; qw(TIMEUP);
+  # timeout is in usecs!
+  my $timeout = $sock-&gt;timeout_get();
+  if ($timeout &lt; 10_000_000) {
+      $sock-&gt;timeout_set(20_000_000); # 20 secs
+  }
+  # now read, while handling timeouts
+  my $wanted = 1024;
+  my $buff;
+  my $rlen = eval { $sock-&gt;recv($buff, $wanted) };
+  if ($@ &amp;&amp; ref $@ &amp;&amp; $@ == APR::Const::TIMEUP) {
+      # timeout, do something, e.g.
+      warn &quot;timed out, will try again later&quot;;
+  }
+  else {
+      warn &quot;asked for $wanted bytes, read $rlen bytes\n&quot;;
+      # do something with the data
+  }
+
+  # non-blocking io poll
+  $sock-&gt;opt_set(APR::Const::SO_NONBLOCK =&gt; 1);
+  my $rc = $sock-&gt;poll($c-&gt;pool, 1_000_000, APR::Const::POLLIN);
+  if ($rc == APR::Const::SUCCESS) {
+      # read the data
+  }
+  else {
+      # handle the condition
+  }
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>Description</H2>
+
+<A NAME="ixAAD"></A>
+<TT>&quot;APR::Socket&quot;</TT> provides the Perl interface to <FONT SIZE="-1">APR</FONT> sockets.
+<A NAME="lbAE">&nbsp;</A>
+<H2>API</H2>
+
+<A NAME="ixAAE"></A>
+<TT>&quot;APR::Socket&quot;</TT> provides the following methods:
+<A NAME="lbAF">&nbsp;</A>
+<H3>opt_get</H3>
+
+
+
+<A NAME="ixAAF"></A>
+Query socket options for the specified socket
+<P>
+
+
+
+<PRE>
+  $val = $sock-&gt;opt_get($opt);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object )<DD>
+
+
+<A NAME="ixAAG"></A>
+the socket object to query
+<DT>arg1: $opt ( APR::Const constant )<DD>
+
+
+<A NAME="ixAAH"></A>
+the socket option we would like to configure.  Here are the
+available socket options.
+<DT>ret: $val ( integer )<DD>
+
+
+<A NAME="ixAAI"></A>
+the currently set value for the socket
+option you've queried for
+<DT>excpt: APR::Error<DD>
+
+
+<A NAME="ixAAJ"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAK"></A>
+
+</DL>
+<P>
+
+Examples can be found in the socket options constants
+section. For example setting 
+the <FONT SIZE="-1">IO</FONT> to the blocking
+mode.
+<A NAME="lbAG">&nbsp;</A>
+<H3>opt_set</H3>
+
+
+
+<A NAME="ixAAL"></A>
+Setup socket options for the specified socket
+<P>
+
+
+
+<PRE>
+  $sock-&gt;opt_set($opt, $val);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object object )<DD>
+
+
+<A NAME="ixAAM"></A>
+the socket object to set up.
+<DT>arg1: $opt ( APR::Const constant )<DD>
+
+
+<A NAME="ixAAN"></A>
+the socket option we would like to configure.  Here are the
+available socket options.
+<DT>arg2: $val ( integer )<DD>
+
+
+<A NAME="ixAAO"></A>
+value for the option. Refer to the socket
+options section to learn about
+the expected values.
+<DT>ret: no return value<DD>
+<A NAME="ixAAP"></A>
+
+<DT>excpt: APR::Error<DD>
+
+
+<A NAME="ixAAQ"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAR"></A>
+
+</DL>
+<P>
+
+Examples can be found in the socket options constants
+section. For example setting 
+the <FONT SIZE="-1">IO</FONT> to the blocking
+mode.
+<A NAME="lbAH">&nbsp;</A>
+<H3>poll</H3>
+
+
+
+<A NAME="ixAAS"></A>
+Poll the socket for events:
+<P>
+
+
+
+<PRE>
+    $rc = $sock-&gt;poll($pool, $timeout, $events);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object )<DD>
+
+
+<A NAME="ixAAT"></A>
+The socket to poll
+<DT>arg1: $pool ( APR::Pool object )<DD>
+
+
+<A NAME="ixAAU"></A>
+usually <TT>&quot;$c-&gt;pool&quot;</TT>.
+<DT>arg2: $timeout ( integer )<DD>
+
+
+<A NAME="ixAAV"></A>
+The amount of time to wait (in milliseconds) for the specified events
+to occur.
+<DT>arg3: $events ( APR::Const :poll constants )<DD>
+
+
+<A NAME="ixAAW"></A>
+The events for which to wait.
+
+
+<P>
+
+
+For example use
+<TT>&quot;APR::Const::POLLIN&quot;</TT> to wait
+for incoming data to be available,
+<TT>&quot;APR::Const::POLLOUT&quot;</TT> to wait
+until it's possible to write data to the socket and
+<TT>&quot;APR::Const::POLLPRI&quot;</TT> to wait
+for priority data to become available.
+<DT>ret: $rc ( APR::Const constant )<DD>
+
+
+<A NAME="ixAAX"></A>
+If <TT>&quot;APR::Const::SUCCESS&quot;</TT> is received than the polling was successful. If not
+--- the error code is returned, which can be converted to the error
+string with help of
+<TT>&quot;APR::Error::strerror&quot;</TT>.
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAY"></A>
+</DL>
+<P>
+
+For example poll a non-blocking socket up to 1 second when reading
+data from the client:
+<P>
+
+
+
+<PRE>
+  use APR::Socket ();
+  use APR::Connection ();
+  use APR::Error ();
+  
+  use APR::Const -compile =&gt; qw(SO_NONBLOCK POLLIN SUCCESS TIMEUP);
+  
+  $sock-&gt;opt_set(APR::Const::SO_NONBLOCK =&gt; 1);
+  
+  my $rc = $sock-&gt;poll($c-&gt;pool, 1_000_000, APR::Const::POLLIN);
+  if ($rc == APR::Const::SUCCESS) {
+      # Data is waiting on the socket to be read.
+      # $sock-&gt;recv(my $buf, BUFF_LEN)
+  }
+  elsif ($rc == APR::Const::TIMEUP) {
+      # One second elapsed and still there is no data waiting to be
+      # read. for example could try again.
+  }
+  else {
+      die &quot;poll error: &quot; . APR::Error::strerror($rc);
+  }
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>recv</H3>
+
+
+
+<A NAME="ixAAZ"></A>
+Read incoming data from the socket
+<P>
+
+
+
+<PRE>
+  $len = $sock-&gt;recv($buffer, $wanted);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::SockAddr object object )<DD>
+
+
+<A NAME="ixABA"></A>
+The socket to read from
+<DT>arg1: $buffer ( <FONT SIZE="-1">SCALAR</FONT> )<DD>
+
+
+<A NAME="ixABB"></A>
+The buffer to fill. All previous data will be lost.
+<DT>arg2: $wanted ( int )<DD>
+
+
+<A NAME="ixABC"></A>
+How many bytes to attempt to read.
+<DT>ret: $len ( number )<DD>
+
+
+<A NAME="ixABD"></A>
+How many bytes were actually read.
+
+
+<P>
+
+
+<TT>$buffer</TT> gets populated with the string that is read. It will
+contain an empty string if there was nothing to read.
+<DT>excpt: APR::Error<DD>
+
+
+<A NAME="ixABE"></A>
+If you get the <TT>'(11) Resource temporarily unavailable'</TT> error
+(exception
+<TT>&quot;APR::Const::EAGAIN&quot;</TT>)
+(or another equivalent, which might be different on non-POSIX
+systems), then you didn't ensure that the socket is in a blocking <FONT SIZE="-1">IO</FONT>
+mode before using it. Note that you should use 
+<TT>&quot;APR::Status::is_EAGAIN&quot;</TT>
+to perform this check (since different error codes may be returned for
+the same event on different OSes). For example if the socket is set to
+the non-blocking mode and there is no data right away, you may get
+this exception thrown. So here is how to check for it and retry a few
+times after short delays:
+
+
+<P>
+
+
+
+
+<PRE>
+  use APR::Status ();
+  $sock-&gt;opt_set(APR::Const::SO_NONBLOCK, 1);
+  # ....
+  my $tries = 0;
+  my $buffer;
+  RETRY: my $rlen = eval { $socket-&gt;recv($buffer, SIZE) };
+  if ($@)
+      die $@ unless ref $@ &amp;&amp; APR::Status::is_EAGAIN($@);
+      if ($tries++ &lt; 3) {
+          # sleep 250msec
+          select undef, undef, undef, 0.25;
+          goto RETRY;
+      }
+      else {
+          # do something else
+      }
+  }
+  warn &quot;read $rlen bytes\n&quot;
+
+</PRE>
+
+
+
+
+<P>
+
+
+If timeout was set via <TT>&quot;timeout_set|/C_timeout_set_&quot;</TT>, you may need to
+catch the
+<TT>&quot;APR::Const::TIMEUP&quot;</TT>
+exception. For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  use APR::Const -compile =&gt; qw(TIMEUP);
+  $sock-&gt;timeout_set(1_000_000); # 1 sec
+  my $buffer;
+  eval { $sock-&gt;recv($buffer, $wanted) };
+  if ($@ &amp;&amp; $@ == APR::Const::TIMEUP) {
+      # timeout, do something, e.g.
+  }
+
+</PRE>
+
+
+
+
+<P>
+
+
+If not handled --- you may get the error <TT>'70007: The timeout
+specified has expired'</TT>.
+
+
+<P>
+
+
+Another error condition that may occur is the <TT>'(104) Connection
+reset by peer'</TT> error, which is up to your application logic to decide
+whether it's an error or not. This error usually happens when the
+client aborts the connection.
+
+
+<P>
+
+
+
+
+<PRE>
+  use APR::Const -compile =&gt; qw(ECONNABORTED);
+  my $buffer;
+  eval { $sock-&gt;recv($buffer, $wanted) };
+  if ($@ == APR::Const::ECONNABORTED) {
+      # ignore it or deal with it
+  }
+
+</PRE>
+
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixABF"></A>
+</DL>
+<P>
+
+Here is the quick prototype example, which doesn't handle any errors
+(mod_perl will do that for you):
+<P>
+
+
+
+<PRE>
+  use APR::Socket ();
+  
+  # set the socket to the blocking mode if it isn't already
+  use APR::Const -compile =&gt; qw(SO_NONBLOCK);
+  if ($sock-&gt;opt_get(APR::Const::SO_NONBLOCK)) {
+      $sock-&gt;opt_set(APR::Const::SO_NONBLOCK =&gt; 0);
+  }
+  # read from/write to the socket (w/o handling possible failures)
+  my $wanted = 1024;
+  while ($sock-&gt;recv(my $buffer, $wanted)) {
+      $sock-&gt;send($buffer);
+  }
+
+</PRE>
+
+
+<P>
+
+If you want to handle errors by yourself, the loop may look like:
+<P>
+
+
+
+<PRE>
+  use APR::Const -compile =&gt; qw(ECONNABORTED);
+  # ...
+  while (1) {
+      my $buf;
+      my $len = eval { $sock-&gt;recv($buf, $wanted) };
+      if ($@) {
+          # handle the error, e.g. to ignore aborted connections but
+          # rethrow any other errors:
+          if ($@ == APR::Const::ECONNABORTED) {
+              # ignore
+              last;
+          }
+          else {
+              die $@; # retrow
+          }
+      }
+  
+      if ($len) {
+          $sock-&gt;send($buffer);
+      }
+      else {
+          last;
+      }
+  }
+
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>send</H3>
+
+
+
+<A NAME="ixABG"></A>
+Write data to the socket
+<P>
+
+
+
+<PRE>
+  $wlen = $sock-&gt;send($buf, $opt_len);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object )<DD>
+
+
+<A NAME="ixABH"></A>
+The socket to write to
+<DT>arg1: $buf ( scalar )<DD>
+
+
+<A NAME="ixABI"></A>
+The data to send
+<DT>opt arg2: $opt_len ( int )<DD>
+
+
+<A NAME="ixABJ"></A>
+There is no need to pass this argument, unless you want to send less
+data than contained in <TT>$buf</TT>.
+<DT>ret: $wlen ( integer )<DD>
+
+
+<A NAME="ixABK"></A>
+How many bytes were sent
+<DT>since: 2.0.00<DD>
+<A NAME="ixABL"></A>
+</DL>
+<P>
+
+For examples see the <TT>&quot;recv&quot;</TT> item.
+<A NAME="lbAK">&nbsp;</A>
+<H3>timeout_get</H3>
+
+
+
+<A NAME="ixABM"></A>
+Get socket timeout settings
+<P>
+
+
+
+<PRE>
+  $usecs = $sock-&gt;timeout_get();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object )<DD>
+
+
+<A NAME="ixABN"></A>
+The socket to set up.
+<DT>ret: $usecs ( number)<DD>
+
+
+<A NAME="ixABO"></A>
+Currently set timeout in microseconds (and also the blocking <FONT SIZE="-1">IO</FONT>
+behavior). See (<TT>&quot;APR::timeout_set&quot;</TT>) for possible
+values and their meaning.
+<DT>excpt: APR::Error<DD>
+
+
+<A NAME="ixABP"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixABQ"></A>
+
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>timeout_set</H3>
+
+
+
+<A NAME="ixABR"></A>
+Setup socket timeout.
+<P>
+
+
+
+<PRE>
+  $sock-&gt;timeout_set($usecs);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object )<DD>
+
+
+<A NAME="ixABS"></A>
+The socket to set up.
+<DT>arg1: $usecs ( number )<DD>
+
+
+<A NAME="ixABT"></A>
+Value for the timeout in microseconds and also the blocking <FONT SIZE="-1">IO</FONT>
+behavior.
+
+
+<P>
+
+
+The possible values are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>t &gt; 0<DD>
+<A NAME="ixABU"></A>
+<TT>&quot;send()&quot;</TT> and <TT>&quot;recv()&quot;</TT> throw
+(<TT>&quot;APR::Const::TIMEUP&quot;</TT>
+exception) if specified time elapses with no data sent or received.
+
+
+<P>
+
+
+Notice that the positive value is in micro seconds. So if you want to
+set the timeout for 5 seconds, the value should be: 5_000_000.
+
+
+<P>
+
+
+This mode sets the socket into a non-blocking <FONT SIZE="-1">IO</FONT> mode.
+<DT>t == 0<DD>
+<A NAME="ixABV"></A>
+<TT>&quot;send()&quot;</TT> and <TT>&quot;recv()&quot;</TT> calls never block.
+<DT>t &lt; 0<DD>
+<A NAME="ixABW"></A>
+<TT>&quot;send()&quot;</TT> and <TT>&quot;recv()&quot;</TT> calls block.
+
+
+<P>
+
+
+Usually just -1 is used for this case, but any negative value will do.
+
+
+<P>
+
+
+This mode sets the socket into a blocking <FONT SIZE="-1">IO</FONT> mode.
+<DT>ret: no return value<DD>
+<A NAME="ixABX"></A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+
+<DT>excpt: APR::Error<DD>
+
+
+<A NAME="ixABY"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixABZ"></A>
+
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H2>Unsupported API</H2>
+
+<A NAME="ixACA"></A>
+<TT>&quot;APR::Socket&quot;</TT> also provides auto-generated Perl interface for a few
+other methods which aren't tested at the moment and therefore their
+<FONT SIZE="-1">API</FONT> is a subject to change. These methods will be finalized later as a
+need arises. If you want to rely on any of the following methods
+please contact the the mod_perl development mailing
+list so we can help each other take the steps necessary
+to shift the method to an officially supported <FONT SIZE="-1">API</FONT>.
+<A NAME="lbAN">&nbsp;</A>
+<H3>bind</H3>
+
+
+
+<A NAME="ixACB"></A>
+<FONT SIZE="-1">META:</FONT> Autogenerated - needs to be reviewed/completed
+<P>
+
+Bind the socket to its associated port
+<P>
+
+
+
+<PRE>
+  $ret = $sock-&gt;bind($sa);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object )<DD>
+
+
+<A NAME="ixACC"></A>
+The socket to bind
+<DT>arg1: $sa ( APR::SockAddr object )<DD>
+
+
+<A NAME="ixACD"></A>
+The socket address to bind to
+<DT>ret: $ret ( integer )<DD>
+
+
+<A NAME="ixACE"></A>
+
+<DT>since: subject to change<DD>
+<A NAME="ixACF"></A>
+
+</DL>
+<P>
+
+This may be where we will find out if there is any other process
+using the selected port.
+<A NAME="lbAO">&nbsp;</A>
+<H3>close</H3>
+
+
+
+<A NAME="ixACG"></A>
+<FONT SIZE="-1">META:</FONT> Autogenerated - needs to be reviewed/completed
+<P>
+
+Close a socket.
+<P>
+
+
+
+<PRE>
+  $ret = $sock-&gt;close();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object )<DD>
+
+
+<A NAME="ixACH"></A>
+The socket to close
+<DT>ret: $ret ( integer )<DD>
+
+
+<A NAME="ixACI"></A>
+
+<DT>since: subject to change<DD>
+<A NAME="ixACJ"></A>
+
+</DL>
+<A NAME="lbAP">&nbsp;</A>
+<H3>connect</H3>
+
+
+
+<A NAME="ixACK"></A>
+<FONT SIZE="-1">META:</FONT> Autogenerated - needs to be reviewed/completed
+<P>
+
+Issue a connection request to a socket either on the same machine
+or a different one.
+<P>
+
+
+
+<PRE>
+  $ret = $sock-&gt;connect($sa);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object )<DD>
+
+
+<A NAME="ixACL"></A>
+The socket we wish to use for our side of the connection
+<DT>arg1: $sa ( APR::SockAddr object )<DD>
+
+
+<A NAME="ixACM"></A>
+The address of the machine we wish to connect to.  If <FONT SIZE="-1">NULL</FONT>,
+<FONT SIZE="-1">APR</FONT> assumes that the sockaddr_in in the apr_socket is
+completely filled out.
+<DT>ret: $ret ( integer )<DD>
+
+
+<A NAME="ixACN"></A>
+
+<DT>since: subject to change<DD>
+<A NAME="ixACO"></A>
+
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H3>listen</H3>
+
+
+
+<A NAME="ixACP"></A>
+<FONT SIZE="-1">META:</FONT> Autogenerated - needs to be reviewed/completed
+<P>
+
+Listen to a bound socket for connections.
+<P>
+
+
+
+<PRE>
+  $ret = $sock-&gt;listen($backlog);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object )<DD>
+
+
+<A NAME="ixACQ"></A>
+The socket to listen on
+<DT>arg1: $backlog ( integer )<DD>
+
+
+<A NAME="ixACR"></A>
+The number of outstanding connections allowed in the sockets
+listen queue.  If this value is less than zero, the listen
+queue size is set to zero.
+<DT>ret: $ret ( integer )<DD>
+
+
+<A NAME="ixACS"></A>
+
+<DT>since: subject to change<DD>
+<A NAME="ixACT"></A>
+
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H3>recvfrom</H3>
+
+
+
+<A NAME="ixACU"></A>
+<FONT SIZE="-1">META:</FONT> Autogenerated - needs to be reviewed/completed
+<P>
+
+
+
+<PRE>
+  $ret = $from-&gt;recvfrom($sock, $flags, $buf, $len);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $from ( APR::SockAddr object )<DD>
+
+
+<A NAME="ixACV"></A>
+The apr_sockaddr_t to fill in the recipient info
+<DT>arg1: $sock ( APR::SockAddr object )<DD>
+
+
+<A NAME="ixACW"></A>
+The socket to use
+<DT>arg2: $flags ( integer )<DD>
+
+
+<A NAME="ixACX"></A>
+The flags to use
+<DT>arg3: $buf ( integer )<DD>
+
+
+<A NAME="ixACY"></A>
+The buffer to use
+<DT>arg4: $len ( string )<DD>
+
+
+<A NAME="ixACZ"></A>
+The length of the available buffer
+<DT>ret: $ret ( integer )<DD>
+
+
+<A NAME="ixADA"></A>
+
+<DT>since: subject to change<DD>
+<A NAME="ixADB"></A>
+
+</DL>
+<A NAME="lbAS">&nbsp;</A>
+<H3>sendto</H3>
+
+
+
+<A NAME="ixADC"></A>
+<FONT SIZE="-1">META:</FONT> Autogenerated - needs to be reviewed/completed
+<P>
+
+
+
+<PRE>
+  $ret = $sock-&gt;sendto($where, $flags, $buf, $len);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $sock ( APR::Socket object )<DD>
+
+
+<A NAME="ixADD"></A>
+The socket to send from
+<DT>arg1: $where ( APR::Socket object )<DD>
+
+
+<A NAME="ixADE"></A>
+The apr_sockaddr_t describing where to send the data
+<DT>arg2: $flags ( integer )<DD>
+
+
+<A NAME="ixADF"></A>
+The flags to use
+<DT>arg3: $buf ( scalar )<DD>
+
+
+<A NAME="ixADG"></A>
+The data to send
+<DT>arg4: $len ( string )<DD>
+
+
+<A NAME="ixADH"></A>
+The length of the data to send
+<DT>ret: $ret ( integer )<DD>
+
+
+<A NAME="ixADI"></A>
+
+<DT>since: subject to change<DD>
+<A NAME="ixADJ"></A>
+
+</DL>
+<A NAME="lbAT">&nbsp;</A>
+<H2>See Also</H2>
+
+<A NAME="ixADK"></A>
+mod_perl 2.0 documentation.
+<A NAME="lbAU">&nbsp;</A>
+<H2>Copyright</H2>
+
+<A NAME="ixADL"></A>
+mod_perl 2.0 and its core modules are copyrighted under
+The Apache Software License, Version 2.0.
+<A NAME="lbAV">&nbsp;</A>
+<H2>Authors</H2>
+
+<A NAME="ixADM"></A>
+The mod_perl development team and numerous
+contributors.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">Synopsis</A><DD>
+<DT><A HREF="#lbAD">Description</A><DD>
+<DT><A HREF="#lbAE">API</A><DD>
+<DL>
+<DT><A HREF="#lbAF">opt_get</A><DD>
+<DT><A HREF="#lbAG">opt_set</A><DD>
+<DT><A HREF="#lbAH">poll</A><DD>
+<DT><A HREF="#lbAI">recv</A><DD>
+<DT><A HREF="#lbAJ">send</A><DD>
+<DT><A HREF="#lbAK">timeout_get</A><DD>
+<DT><A HREF="#lbAL">timeout_set</A><DD>
+</DL>
+<DT><A HREF="#lbAM">Unsupported API</A><DD>
+<DL>
+<DT><A HREF="#lbAN">bind</A><DD>
+<DT><A HREF="#lbAO">close</A><DD>
+<DT><A HREF="#lbAP">connect</A><DD>
+<DT><A HREF="#lbAQ">listen</A><DD>
+<DT><A HREF="#lbAR">recvfrom</A><DD>
+<DT><A HREF="#lbAS">sendto</A><DD>
+</DL>
+<DT><A HREF="#lbAT">See Also</A><DD>
+<DT><A HREF="#lbAU">Copyright</A><DD>
+<DT><A HREF="#lbAV">Authors</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

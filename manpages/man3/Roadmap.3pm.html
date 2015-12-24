@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Roadmap</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Roadmap</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2005-03-25<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+DBI::Roadmap - Planned Enhancements for the DBI
+<P>
+
+Tim Bunce - 12th November 2004
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+This document gives a high level overview of the future of the Perl
+<FONT SIZE="-1">DBI</FONT> module.
+<P>
+
+The <FONT SIZE="-1">DBI</FONT> module is the standard database interface for Perl applications.
+It is used worldwide in countless applications, in every kind of
+business, and on platforms from clustered super-computers to PDAs.
+Database interface drivers are available for all common databases
+and many not-so-common ones.
+<P>
+
+The planned enhancements cover testing, performance, high availability
+and load balancing, batch statements, Unicode, database portability,
+and more.
+<P>
+
+Addressing these issues together, in coordinated way, will help
+ensure maximum future functionality with minimal disruptive
+(incompatible) upgrades.
+<A NAME="lbAD">&nbsp;</A>
+<H2>SCOPE</H2>
+
+<A NAME="ixAAD"></A>
+Broad categories of changes are outlined here along with some
+rationale, but implementation details and minor planned enhancements
+are omitted.  More details can be found in:
+&lt;<A HREF="http://svn.perl.org/modules/dbi/trunk/ToDo">http://svn.perl.org/modules/dbi/trunk/ToDo</A>&gt;
+<A NAME="lbAE">&nbsp;</A>
+<H2>CHANGES AND ENHANCEMENTS</H2>
+
+<A NAME="ixAAE"></A>
+These are grouped into categories and are not listed in any particular order.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Performance</H3>
+
+<A NAME="ixAAF"></A>
+The <FONT SIZE="-1">DBI</FONT> has always treated performance as a priority. Some parts
+of the implementation, however, remain unoptimized, especially in
+relation to threads.
+<P>
+
+* When the <FONT SIZE="-1">DBI</FONT> is used with a Perl built with thread support enabled
+(such as for Apache mod_perl 2, and some common Linux distributions)
+it runs significantly slower. There are two reasons for this and
+both can be fixed but require non-trivial changes to both the <FONT SIZE="-1">DBI</FONT>
+and drivers.
+<P>
+
+* Connection pooling in a threaded application, such as mod_perl,
+is difficult because <FONT SIZE="-1">DBI</FONT> handles cannot be passed between threads.
+An alternative mechanism for passing connections between threads
+has been defined, and an experimental connection pool module
+implemented using it, but development has stalled.
+<P>
+
+* The majority of <FONT SIZE="-1">DBI</FONT> handle creation code is implemented in Perl.
+Moving most of this to C will speed up handle creation significantly.
+<P>
+
+* The popular <I>fetchrow_hashref()</I> method is many times slower than
+<I>fetchrow_arrayref()</I>. It has to get the names of the columns, then
+create and load a new hash each time. A <TT>$h</TT>-&gt;{FetchHashReuse} attribute
+would allow the same hash to be reused each time making <I>fetchrow_hashref()</I>
+about the same speed as <I>fetchrow_arrayref()</I>.
+<P>
+
+* Support for asynchronous (non-blocking) <FONT SIZE="-1">DBI</FONT> method calls would
+enable applications to continue processing in parallel with database
+activity.  This is also relevant for <FONT SIZE="-1">GUI</FONT> and other event-driven
+applications.  The <FONT SIZE="-1">DBI</FONT> needs to define a standard interface for
+this so drivers can implement it in a portable way, where possible.
+<P>
+
+These changes would significantly enhance the performance of the
+<FONT SIZE="-1">DBI</FONT> and many applications which use the <FONT SIZE="-1">DBI</FONT>.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Testing</H3>
+
+<A NAME="ixAAG"></A>
+The <FONT SIZE="-1">DBI</FONT> has a test suite. Every driver has a test suite.  Each is
+limited in its scope.  The driver test suite is testing for behavior
+that the driver author <I>thinks</I> the <FONT SIZE="-1">DBI</FONT> specifies, but may be
+subtly incorrect.  These test suites are poorly maintained because
+the return on investment for a single driver is too low to provide
+sufficient incentive.
+<P>
+
+A common test suite that can be reused by all the drivers is needed.
+It would:
+<P>
+
+* Improve the quality of the <FONT SIZE="-1">DBI</FONT> and drivers.
+<P>
+
+* Ensure all drivers conform to the <FONT SIZE="-1">DBI</FONT> specification.  Easing the
+porting of applications between databases, and the implementation
+of database independent modules layered over the <FONT SIZE="-1">DBI</FONT>.
+<P>
+
+* Improve the <FONT SIZE="-1">DBI</FONT> specification by clarifying unclear issues in
+order to implement test cases.
+<P>
+
+* Encourage expansion of the test suite as driver authors and others
+will be motivated by the greater benefits of their contributions.
+<P>
+
+* Detect and record optional functionality that a driver has not
+yet implemented.
+<P>
+
+* Improve the testing of <FONT SIZE="-1">DBI</FONT> subclassing, DBI::PurePerl and the
+various ``transparent'' drivers, such as DBD::Proxy and DBD::Multiplex,
+by automatically running the test suite through them.
+<P>
+
+These changes would improve the quality of all applications using
+the <FONT SIZE="-1">DBI</FONT>.
+<A NAME="lbAH">&nbsp;</A>
+<H3>High Availability and Load Balancing</H3>
+
+<A NAME="ixAAH"></A>
+* The DBD::Multiplex driver provides a framework to enable a wide
+range of dynamic functionality, including support for high-availability,
+failover, load-balancing, caching, and access to distributed data.
+It is currently being enhanced but development has stalled.
+<P>
+
+* The DBD::Proxy module is complex and relatively inefficient because
+it's trying to be a complete proxy for most <FONT SIZE="-1">DBI</FONT> method calls.  For
+many applications a simpler proxy architecture that operates with
+a single round-trip to the server would be simpler, faster, and more
+flexible.
+<P>
+
+New proxy client and server classes are needed, which could be
+subclassed to support specific client to server transport mechanisms
+(such as <FONT SIZE="-1">HTTP</FONT> and Spread::Queue).  Apart from the efficiency gains,
+this would also enable the use of a load-balanced pool of stateless
+servers for greater scalability and reliability.
+<P>
+
+* The <FONT SIZE="-1">DBI</FONT> currently offers no support for distributed transactions.
+The most useful elements of the standard <FONT SIZE="-1">XA</FONT> distributed transaction
+interface standard could be included in the <FONT SIZE="-1">DBI</FONT> specification.
+Drivers for databases which support distributed transactions could
+then be extended to support it.
+<P>
+
+These changes would enable new kinds of <FONT SIZE="-1">DBI</FONT> applications for critical
+environments.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Unicode</H3>
+
+<A NAME="ixAAI"></A>
+Use of Unicode with the <FONT SIZE="-1">DBI</FONT> is growing rapidly. The <FONT SIZE="-1">DBI</FONT> should do
+more to help drivers support Unicode and help applications work
+with drivers that don't yet support Unicode directly.
+<P>
+
+* Define expected behavior for fetching data and binding parameters.
+<P>
+
+* Provide interfaces to support Unicode issues for <FONT SIZE="-1">XS</FONT> and pure Perl
+drivers and applications.
+<P>
+
+* Provide functions for applications to help diagnose inconsistencies
+between byte string contents and setting of the SvUTF8 flag.
+<P>
+
+These changes would smooth the transition to Unicode for many
+applications and drivers.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Batch Statements</H3>
+
+<A NAME="ixAAJ"></A>
+Batch statements are a sequence of <FONT SIZE="-1">SQL</FONT> statements, or a stored
+procedure containing a sequence of <FONT SIZE="-1">SQL</FONT> statements, which can be
+executed as a whole.
+<P>
+
+Currently the <FONT SIZE="-1">DBI</FONT> has no standard interface for dealing with multiple
+results from batch statements.  After considerable discussion, an
+interface design has been agreed upon with driver authors, but has
+not yet been implemented.
+<P>
+
+These changes would enable greater application portability between
+databases, and greater performance for databases that directly
+support batch statements.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Introspection</H3>
+
+<A NAME="ixAAK"></A>
+* The methods of the <FONT SIZE="-1">DBI</FONT> <FONT SIZE="-1">API</FONT> are installed dynamically when the <FONT SIZE="-1">DBI</FONT>
+is loaded.  The data structure used to define the methods and their
+dispatch behavior should be made part of the <FONT SIZE="-1">DBI</FONT> <FONT SIZE="-1">API</FONT>. This would
+enable more flexible and correct behavior by modules subclassing
+the <FONT SIZE="-1">DBI</FONT> and by dynamic drivers such as DBD::Proxy and DBD::Multiplex.
+<P>
+
+* Handle attribute information should also be made available, for
+the same reasons.
+<P>
+
+* Currently is it not possible to discover all the child statement
+handles that belong to a database handle (or all database handles
+that belong to a driver handle).  This makes certain tasks more
+difficult, especially some debugging scenarios.  A cache of weak
+references to child handles would solve the problem without creating
+reference loops.
+<P>
+
+* It is often useful to know which handle attributes have been
+changed since the handle was created (e.g., in mod_perl where a
+handle needs to be reset or cloned). This will become more important
+as developers start exploring use of the newly added
+<TT>$h1</TT>-&gt;swap_inner_handle($h2) method.
+<P>
+
+These changes would simplify and improve the stability of many
+advanced uses of the <FONT SIZE="-1">DBI</FONT>.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Extensibility</H3>
+
+<A NAME="ixAAL"></A>
+The <FONT SIZE="-1">DBI</FONT> can be extended in three main dimensions: subclassing the
+<FONT SIZE="-1">DBI</FONT>, subclassing a driver, and callback hooks. Each has different
+pros and cons, each is applicable in different situations, and
+all need enhancing.
+<P>
+
+* Subclassing the <FONT SIZE="-1">DBI</FONT> is functional but not well defined and some
+key elements are incomplete, particularly the DbTypeSubclass mechanism
+(that automatically subclasses to a class tree according to the
+type of database being used).  It also needs more thorough testing.
+<P>
+
+* Subclassing a driver is undocumented, poorly tested and very
+probably incomplete. However it's a powerful way to embed certain
+kinds of functionality 'below' applications while avoiding some of
+the side-effects of subclassing the <FONT SIZE="-1">DBI</FONT> (especially in relation to
+error handling).
+<P>
+
+* Callbacks are currently limited to error handling (the HandleError
+and HandleSetError attributes).  Providing callback hooks for more
+events, such as a row being fetched, would enable utility modules,
+for example, to modify the behavior of a handle independent of any
+subclassing in use.
+<P>
+
+These changes would enable cleaner and more powerful integration
+between applications, layered modules, and the <FONT SIZE="-1">DBI</FONT>.
+<A NAME="lbAM">&nbsp;</A>
+<H3>Debugability</H3>
+
+<A NAME="ixAAM"></A>
+* Enabling <FONT SIZE="-1">DBI</FONT> trace output at a high level of detail causes a large
+volume of output, much of it probably unrelated to the problem being
+investigated. Trace output should be controlled by the new named-topic
+mechanism instead of just the trace level.
+<P>
+
+* Calls to <FONT SIZE="-1">XS</FONT> functions (such as many <FONT SIZE="-1">DBI</FONT> and driver methods) don't
+normally appear in the call stack.  Optionally enabling that would
+enable more useful diagnostics to be produced.
+<P>
+
+* Integration with the Perl debugger would make it simpler to perform
+actions on a per-handle basis (such as breakpoint on execute,
+breakpoint on error).
+<P>
+
+These changes would enable more rapid application development and
+fault finding.
+<A NAME="lbAN">&nbsp;</A>
+<H3>Database Portability</H3>
+
+<A NAME="ixAAN"></A>
+* The <FONT SIZE="-1">DBI</FONT> has not yet addressed the issue of portability among <FONT SIZE="-1">SQL</FONT>
+dialects.  This is the main hurdle limiting database portability
+for <FONT SIZE="-1">DBI</FONT> applications.
+<P>
+
+The goal is <I>not</I> to fully parse the <FONT SIZE="-1">SQL</FONT> and rewrite it in a
+different dialect.  That's well beyond the scope of the <FONT SIZE="-1">DBI</FONT> and
+should be left to layered modules.  A simple token rewriting mechanism
+for five comment styles, two quoting styles, four placeholder styles,
+plus the <FONT SIZE="-1">ODBC</FONT> ``{foo ...}'' escape syntax, is sufficient to significantly
+raise the level of <FONT SIZE="-1">SQL</FONT> portability.
+<P>
+
+* Another problem area is date/time formatting.  Since version 1.41
+the <FONT SIZE="-1">DBI</FONT> has defined a way to express that dates should be fetched
+in <FONT SIZE="-1">SQL</FONT> standard date format (YYYY-MM-DD).  This is one example of
+the more general case where <I>bind_col()</I> needs to be called with
+particular attributes on all columns of a particular type.
+<P>
+
+A mechanism is needed whereby an application can specify default
+<I>bind_col()</I> attributes to be applied automatically for each column
+type. With a single step, all <FONT SIZE="-1">DATE</FONT> type columns, for example, can
+be set to be returned in the standard format.
+<P>
+
+These changes would enable greater database portability for
+applications and greater functionality for layered modules.
+<A NAME="lbAO">&nbsp;</A>
+<H3>Intellectual Property</H3>
+
+<A NAME="ixAAO"></A>
+* Clarify current intellectual property status, including a review
+<BR>&nbsp;&nbsp;of&nbsp;past&nbsp;contributions&nbsp;to&nbsp;ensure&nbsp;the&nbsp;<FONT SIZE="-1">DBI</FONT>&nbsp;is&nbsp;unemcumbered.
+<P>
+
+* Establish a procedure for vetting future contributions for any
+<BR>&nbsp;&nbsp;intellectual&nbsp;property&nbsp;issues.
+<P>
+
+These changes are important for companies taking a formal approach
+to assessing their risks in using Open Source software.
+<A NAME="lbAP">&nbsp;</A>
+<H3>Other Enhancements</H3>
+
+<A NAME="ixAAP"></A>
+* Reduce the work needed to create new database interface drivers.
+<P>
+
+* Definition of an interface to support scrollable cursors.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>Parrot and Perl 6</H3>
+
+<A NAME="ixAAQ"></A>
+The current <FONT SIZE="-1">DBI</FONT> implementation in C code is unlikely to run on Perl 6.
+Perl 6 will target the Parrot virtual machine and so the internal
+architecture will be radically different from Perl 5.
+<P>
+
+One of the goals of the Parrot project is to be a platform for many
+dynamic languages (including Python, <FONT SIZE="-1">PHP</FONT>, Ruby, etc) and to enable
+those languages to reuse each others modules. A database interface
+for Parrot is also a database interface for any and all languages
+that run on Parrot.
+<P>
+
+The Perl <FONT SIZE="-1">DBI</FONT> would make an excellent base for a Parrot database
+interface because it has more functionality, and is more mature and
+extensible, than the database interfaces of the other dynamic
+languages.
+<P>
+
+I plan to better define the <FONT SIZE="-1">API</FONT> between the <FONT SIZE="-1">DBI</FONT> and the drivers and
+use that <FONT SIZE="-1">API</FONT> as the primary <FONT SIZE="-1">API</FONT> for the 'raw' Parrot database
+interface.  This project is known a Parrot <FONT SIZE="-1">DBDI</FONT> (for ``DataBase
+Driver Interface'').  The announcement can be read in
+&lt;<A HREF="http://groups.google.com/groups?selm=20040127225639.GF38394@dansat.data-plan.com">http://groups.google.com/groups?selm=20040127225639.GF38394@dansat.data-plan.com</A>&gt;
+<P>
+
+The bulk of the work will be translating the <FONT SIZE="-1">DBI</FONT> C and Perl base
+class code into Parrot <FONT SIZE="-1">PIR</FONT>, or a suitable language that generates
+<FONT SIZE="-1">PIR</FONT>.  The project stalled, due to Parrot not having key functionality
+at the time.  That has been resolved but the project has not yet
+restarted.
+<P>
+
+Each language targeting Parrot would implement their own small
+'thin' language-specific method dispatcher (a ``Perl6 <FONT SIZE="-1">DBI</FONT>'', ``Python
+<FONT SIZE="-1">DBI</FONT>'', ``<FONT SIZE="-1">PHP</FONT> <FONT SIZE="-1">DBI</FONT>'' etc) layered over the common Parrot <FONT SIZE="-1">DBDI</FONT> interface
+and drivers.
+<P>
+
+The major benefit of the <FONT SIZE="-1">DBDI</FONT> project is that a much wider community
+of developers share the same database drivers. There would be more
+developers maintaining less code so the benefits of the Open Source
+model are magnified.
+<A NAME="lbAR">&nbsp;</A>
+<H2>PRIORITIES</H2>
+
+<A NAME="ixAAR"></A>
+<A NAME="lbAS">&nbsp;</A>
+<H3>Transition Drivers</H3>
+
+<A NAME="ixAAS"></A>
+The first priority is to make all the infrastructure changes that
+impact drivers and make an alpha release available for driver authors.
+<P>
+
+As far as possible, the changes will be implemented in a way that
+enables driver authors use the same code base for <FONT SIZE="-1">DBI</FONT> v1 and <FONT SIZE="-1">DBI</FONT> v2.
+<P>
+
+The main changes required by driver authors are:
+<P>
+
+* Code changes for <FONT SIZE="-1">PERL_NO_GET_CONTEXT</FONT>, plus removing <FONT SIZE="-1">PERL_POLLUTE</FONT>
+and <FONT SIZE="-1">DBIS</FONT>
+<P>
+
+* Code changes in <FONT SIZE="-1">DBI/DBD</FONT> interface (new way to create handles, new
+callbacks etc)
+<P>
+
+* Common test suite infrastructure (driver-specific test base class)
+<A NAME="lbAT">&nbsp;</A>
+<H3>Transition Applications</H3>
+
+<A NAME="ixAAT"></A>
+A small set of incompatible changes that may impact some applications
+will also be made in v2.0. See <A HREF="http://svn.perl.org/modules/dbi/trunk/ToDo">http://svn.perl.org/modules/dbi/trunk/ToDo</A>
+<A NAME="lbAU">&nbsp;</A>
+<H3>Incremental Developments</H3>
+
+<A NAME="ixAAU"></A>
+Once <FONT SIZE="-1">DBI</FONT> v2.0 is available, the other enhancements can be implemented
+incrementally on the updated foundations. Priorities for those
+changes have not been set.
+<A NAME="lbAV">&nbsp;</A>
+<H3><FONT SIZE="-1">DBI</FONT> v1</H3>
+
+<A NAME="ixAAV"></A>
+<FONT SIZE="-1">DBI</FONT> v1 will continue to be maintained on a separate branch for
+bug fixes and any enhancements that ease the transition to <FONT SIZE="-1">DBI</FONT> v2.
+<A NAME="lbAW">&nbsp;</A>
+<H2>RESOURCES AND CONTRIBUTIONS</H2>
+
+<A NAME="ixAAW"></A>
+See &lt;<A HREF="http://dbi.perl.org/contributing">http://dbi.perl.org/contributing</A>&gt; for <I>how you can help</I>.
+<P>
+
+If your company has benefited from the <FONT SIZE="-1">DBI</FONT>, please consider if
+it could make a donation to The Perl Foundation ``<FONT SIZE="-1">DBI</FONT> Development''
+fund at &lt;<A HREF="http://dbi.perl.org/donate">http://dbi.perl.org/donate</A>&gt; to secure future development.
+<P>
+
+Alternatively, if your company would benefit from a specific new
+<FONT SIZE="-1">DBI</FONT> feature, please consider sponsoring its development through my
+consulting company, Data Plan Services. Work is performed rapidly
+on a fixed-price payment-on-delivery basis. Contact me for details.
+<P>
+
+Using such targeted financing allows you to contribute to <FONT SIZE="-1">DBI</FONT>
+development and rapidly get something specific and directly valuable
+to you in return.
+<P>
+
+My company also offers annual support contracts for the <FONT SIZE="-1">DBI</FONT>, which
+provide another way to support the <FONT SIZE="-1">DBI</FONT> and get something specific
+in return. Contact me for details.
+<P>
+
+Thank you.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">SCOPE</A><DD>
+<DT><A HREF="#lbAE">CHANGES AND ENHANCEMENTS</A><DD>
+<DL>
+<DT><A HREF="#lbAF">Performance</A><DD>
+<DT><A HREF="#lbAG">Testing</A><DD>
+<DT><A HREF="#lbAH">High Availability and Load Balancing</A><DD>
+<DT><A HREF="#lbAI">Unicode</A><DD>
+<DT><A HREF="#lbAJ">Batch Statements</A><DD>
+<DT><A HREF="#lbAK">Introspection</A><DD>
+<DT><A HREF="#lbAL">Extensibility</A><DD>
+<DT><A HREF="#lbAM">Debugability</A><DD>
+<DT><A HREF="#lbAN">Database Portability</A><DD>
+<DT><A HREF="#lbAO">Intellectual Property</A><DD>
+<DT><A HREF="#lbAP">Other Enhancements</A><DD>
+<DT><A HREF="#lbAQ">Parrot and Perl 6</A><DD>
+</DL>
+<DT><A HREF="#lbAR">PRIORITIES</A><DD>
+<DL>
+<DT><A HREF="#lbAS">Transition Drivers</A><DD>
+<DT><A HREF="#lbAT">Transition Applications</A><DD>
+<DT><A HREF="#lbAU">Incremental Developments</A><DD>
+<DT><A HREF="#lbAV"><FONT SIZE="-1">DBI</FONT> v1</A><DD>
+</DL>
+<DT><A HREF="#lbAW">RESOURCES AND CONTRIBUTIONS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:38 GMT, December 24, 2015
+</div></body>
+</HTML>

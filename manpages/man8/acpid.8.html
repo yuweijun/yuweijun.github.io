@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of acpid</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>acpid</H1>
+Section: Maintenance Commands (8)<BR>Updated: <BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+acpid - Advanced Configuration and Power Interface event daemon
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>acpid</B> [<I>options</I>]
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>acpid</B> is designed to notify user-space programs of ACPI events.
+<B>acpid</B> should be started during the system boot, and will run as a
+background process, by default.  It will open an events file
+(<I>/proc/acpi/event</I> by default) and attempt to read whole lines.  When
+a line is received (an <I>event</I>), <B>acpid</B> will examine a list of rules,
+and execute the rules that match the event.
+<B>acpid</B> will ignore all incoming ACPI events if a lock file exists
+(<I>/var/lock/acpid</I> by default).
+<P>
+
+<I>Rules</I> are defined by simple configuration files.  <B>acpid</B>
+will look in a configuration directory (<I>/etc/acpi/events</I> by default),
+and parse all regular files that do not begin with a period ('.') or end
+with a tilde (~).  Each file must define two things: an <I>event</I> and an
+<I>action</I>.  Any blank lines, or lines where the first character is a
+hash ('#') are ignored.  Extraneous lines are flagged as warnings, but
+are not fatal.  Each line has three tokens: the key, a literal equal sign,
+and the value.  The key can be up to 63 characters, and is case-insensitive
+(but whitespace matters).  The value can be up to 511 characters, and is
+case and whitespace sensitive.
+<P>
+
+The event value is a regular expression (see <A HREF="/manpages/index.html?3+regcomp">regcomp</A>(3)), against which events are matched.
+<P>
+
+The action value is a commandline, which will be invoked via <I>/bin/sh</I>
+whenever an event matching the rule in question occurs.  The commandline may
+include shell-special characters, and they will be preserved.  The only special
+characters in an action value are &quot;%&quot; escaped.  The string &quot;%e&quot; will be
+replaced by the literal text of the event for which the action was invoked.
+This string may contain spaces, so the commandline must take care to quote the &quot;%e&quot; if it wants a single token.  The string &quot;%%&quot; will be replaced by a
+literal &quot;%&quot;.  All other &quot;%&quot; escapes are reserved, and will cause a rule to
+not load.
+<P>
+
+This feature allows multiple rules to be defined for the same event (though no
+ordering is guaranteed), as well as one rule to be defined for multiple events.
+To force <B>acpid</B> to reload the rule configuration, send it a SIGHUP.
+<P>
+
+In addition to rule files, <B>acpid</B> also accepts connections on a UNIX
+domain socket (<I>/var/run/acpid.socket</I> by default).  Any application may
+connect to this socket.  Once connected, <B>acpid</B> will send the text of
+all ACPI events to the client.  The client has the responsibility of filtering
+for messages about which it cares.  <B>acpid</B> will not close the client
+socket except in the case of a SIGHUP or <B>acpid</B> exiting.
+<P>
+
+<B>acpid</B>
+
+will log all of its activities, as well as the stdout and stderr of any
+actions, to syslog.
+<P>
+
+All the default files and directories can be changed with commandline options.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-c</B><I></I>, <B>--confdir</B><I> directory</I>
+
+<DD>
+This option changes the directory in which <B>acpid</B> looks for rule
+configuration files.  Default is <I>/etc/acpi/events</I>.
+<DT><B>-C</B><I></I>, <B>--clientmax</B><I> number</I>
+
+<DD>
+This option changes the maximum number of non-root socket connections which
+can be made to the <B>acpid</B> socket.  Default is <I>256</I>.
+<DT><B>-d</B><I></I>, <B>--debug</B>
+
+<DD>
+This option increases the <B>acpid</B> debug level by one.  If the debug level
+is non-zero, <B>acpid</B> will run in the foreground, and will log to
+stderr, in addition to the regular syslog.
+<DT><B>-e</B><I></I>, <B>--eventfile</B><I> filename</I>
+
+<DD>
+This option changes the event file from which <B>acpid</B> reads events.
+Default is <I>/proc/acpi/event</I>.
+<DT><B>-f</B><I></I>, <B>--foreground</B>
+
+<DD>
+This option keeps <B>acpid</B> in the foreground by not forking at startup.
+<DT><B>-l</B><I></I>, <B>--logevents</B>
+
+<DD>
+This option tells <B>acpid</B> to log information about all events and actions.
+<DT><B>-L</B><I></I>, <B>--lockfile</B><I> filename</I>
+
+<DD>
+This option changes the lock file used to stop event processing.
+Default is <I>/var/lock/acpid</I>.
+<DT><B>-g</B><I></I>, <B>--socketgroup</B><I> groupname</I>
+
+<DD>
+This option changes the group ownership of the UNIX domain socket to which
+<B>acpid</B> publishes events.
+<DT><B>-m</B><I></I>, <B>--socketmode</B><I> mode</I>
+
+<DD>
+This option changes the permissions of the UNIX domain socket to which
+<B>acpid</B> publishes events.  Default is <I>0666</I>.
+<DT><B>-s</B><I></I>, <B>--socketfile</B><I> filename</I>
+
+<DD>
+This option changes the name of the UNIX domain socket which <B>acpid</B> opens.
+Default is <I>/var/run/acpid.socket</I>.
+<DT><B>-S</B><I></I>, <B>--nosocket</B><I> filename</I>
+
+<DD>
+This option tells <B>acpid</B> not to open a UNIX domain socket.  This
+overrides the <I>-s</I> option, and negates all other socket options.
+<DT><B>-p</B><I></I>, <B>--pidfile</B><I> filename</I>
+
+<DD>
+This option tells <B>acpid</B> to use the specified file as its pidfile.  If
+the file exists, it will be removed and over-written.
+Default is <I>/var/run/acpid.pid</I>.
+<DT><B>-v</B><I></I>, <B>--version</B>
+
+<DD>
+Print version information and exit.
+<DT><B>-h</B><I></I>, <B>--help</B>
+
+<DD>
+Show help and exit.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+This example - placed in /etc/acpi/events/power - will shut down your system
+if you press the power button.
+<P>
+
+<BR>
+
+event=button/power.*
+<BR>
+
+action=/usr/local/sbin/power.sh &quot;%e&quot;
+<P>
+
+The script power.sh gets called and will see the complete event string
+as parameter $1.
+<A NAME="lbAG">&nbsp;</A>
+<H2>DEPENDENCIES</H2>
+
+<B>acpid</B> should work on any linux kernel released since 2003.
+<A NAME="lbAH">&nbsp;</A>
+<H2>FILES</H2>
+
+
+<B>/proc/acpi/event</B>
+
+<BR>
+
+<B>/etc/acpi/</B>
+
+<BR>
+
+<B>/var/run/acpid.socket</B>
+
+<BR>
+
+<B>/var/run/acpid.pid</B>
+
+<BR>
+
+<B>/var/lock/acpid</B>
+
+<BR>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+There are no known bugs.  To file bug reports, see <B>AUTHORS</B> below.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A HREF="/manpages/index.html?3+regcomp">regcomp</A>(3), <A HREF="http://localhost/cgi-bin/man/man2html?1+sh">sh</A>(1), <A HREF="http://localhost/cgi-bin/man/man2html?2+socket">socket</A>(2), <A HREF="http://localhost/cgi-bin/man/man2html?2+connect">connect</A>(2)
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+Tim Hockin &lt;<A HREF="mailto:thockin@hockin.org">thockin@hockin.org</A>&gt;
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">EXAMPLE</A><DD>
+<DT><A HREF="#lbAG">DEPENDENCIES</A><DD>
+<DT><A HREF="#lbAH">FILES</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:24 GMT, December 24, 2015
+</div></body>
+</HTML>

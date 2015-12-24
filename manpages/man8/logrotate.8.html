@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of LOGROTATE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>LOGROTATE</H1>
+Section: System Administrator's Manual (8)<BR>Updated: Wed Nov 5 2002<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+logrotate - rotates, compresses, and mails system logs
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>logrotate</B> [<B>-dv</B>] [<B>-f</B>|<B>--force</B>]
+[<B>-s</B>|<B>--state </B><I>file</I>] <I>config_file</I> ..
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>logrotate</B> is designed to ease administration of systems that generate
+large numbers of log files.  It allows automatic rotation, compression, 
+removal, and mailing of log files.  Each log file may be handled daily,
+weekly, monthly, or when it grows too large.
+
+Normally, <B>logrotate</B> is run as a daily cron job.  It will not modify
+a log multiple times in one day unless the criterion for that log is
+based on the log's size and <B>logrotate</B> is being run multiple times
+each day, or unless the <B>-f</B> or <B>--force</B> option is used. 
+
+Any number of config files may be given on the command line. Later config
+files may override the options given in earlier files, so the order
+in which the <B>logrotate</B> config files are listed is important.
+Normally, a single config file which includes any other config files
+which are needed should be used.  See below for more information on how
+to use the <B>include</B> directive to accomplish this.  If a directory
+is given on the command line, every file in that directory is used as
+a config file.
+
+If no command line arguments are given, <B>logrotate</B> will print
+version and copyright information, along with a short usage summary.  If
+any errors occur while rotating logs, <B>logrotate</B> will exit with
+non-zero status.
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-d, --debug</B><DD>
+Turns on debug mode and implies <B>-v</B>.  In debug mode, no changes will
+be made to the logs or to the <B>logrotate</B> state file.
+<P>
+<DT><B>-f</B>, <B>--force</B><DD>
+Tells <B>logrotate</B> to force the rotation, even if it doesn't think
+this is necessary.  Sometimes this is useful after adding new entries to
+a <B>logrotate</B> config file, or if old log files have been removed
+by hand, as the new files will be created, and logging will continue
+correctly.
+<P>
+<DT><B>-m</B>, <B>--mail &lt;command&gt;</B><DD>
+Tells <B>logrotate</B> which command to use when mailing logs. This
+command should accept two arguments: 1) the subject of the message, and
+2) the recipient. The command must then read a message on standard input
+and mail it to the recipient. The default mail command is <B>/bin/mail
+-s</B>.
+<P>
+<DT><B>-s, --state &lt;statefile&gt;</B><DD>
+Tells <B>logrotate</B> to use an alternate state file.  This is useful
+if logrotate is being run as a different user for various sets of
+log files.  The default state file is <I>/var/lib/logrotate.status</I>.
+<P>
+<DT><B>--usage</B><DD>
+Prints a short usage message.
+<P>
+<DT>-<B>-?</B>, <B>--help</B><DD>
+-Prints help message.
+<P>
+<DT><B>-v</B>, <B>--verbose</B><DD>
+Turns on verbose mode.
+<P>
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONFIGURATION FILE</H2>
+
+<P>
+<B>logrotate</B> reads everything about the log files it should be handling
+from the series of configuration files specified on the command line.  Each
+configuration file can set global options (local definitions override
+global ones, and later definitions override earlier ones) and specify
+logfiles to rotate. A simple configuration file looks like this:
+<P>
+<PRE>
+
+# sample logrotate configuration file
+compress
+
+/var/log/messages {
+    rotate 5
+    weekly
+    postrotate
+        /usr/bin/killall -HUP syslogd
+    endscript
+}
+
+&quot;/var/log/httpd/access.log&quot; /var/log/httpd/error.log {
+    rotate 5
+    mail <A HREF="mailto:www@my.org">www@my.org</A>
+    size 100k
+    sharedscripts
+    postrotate
+        /usr/bin/killall -HUP httpd
+    endscript
+}
+
+/var/log/news/* {
+    monthly
+    rotate 2
+    olddir /var/log/news/old
+    missingok
+    postrotate
+        kill -HUP `cat /var/run/inn.pid`
+    endscript
+    nocompress
+}
+</PRE>
+
+<P>
+<P>
+
+The first few lines set global options; in the example, logs are
+compressed after they are rotated.  Note that comments may appear
+anywhere in the config file as long as the first non-whitespace
+character on the line is a #.
+<P>
+The next section of the config files defined how to handle the log file
+<I>/var/log/messages</I>. The log will go through five weekly rotations before
+being removed. After the log file has been rotated (but before the old
+version of the log has been compressed), the command 
+<I>/sbin/killall -HUP syslogd</I> will be executed.
+<P>
+The next section defines the parameters for both
+<I>/var/log/httpd/access.log</I> and <I>/var/log/httpd/error.log</I>.
+They are rotated whenever it grows over 100k in size, and the old logs
+files are mailed (uncompressed) to <A HREF="mailto:www@my.org">www@my.org</A> after going through 5
+rotations, rather than being removed. The <B>sharedscripts</B> means that
+the <B>postrotate</B> script will only be run once (after the old logs have 
+been compressed), not once for each log which is rotated. Note that the double
+quotes around the first filename at the beginning of this section allows
+logrotate to rotate logs with spaces in the name. Normal shell quoting rules
+apply, with ', &quot;, and \ characters supported.
+<P>
+The last section defines the parameters for all of the files in
+<I>/var/log/news</I>. Each file is rotated on a monthly basis.  This is
+considered a single rotation directive and if errors occur for more than
+one file, the log files are not compressed.
+<P>
+Please use wildcards with caution.  If you specify *, <B>logrotate</B> will
+rotate all files, including previously rotated ones.  A way around this
+is to use the <B>olddir</B> directive or a more exact wildcard (such as *.log).
+<P>
+Here is more information on the directives which may be included in
+a <B>logrotate</B> configuration file:
+<P>
+<DL COMPACT>
+<DT><B>compress</B><DD>
+Old versions of log files are compressed with <B><A HREF="/manpages/index.html?1+gzip">gzip</A></B>(1) by default. See also
+<B>nocompress</B>. 
+<P>
+<DT><B>compresscmd</B><DD>
+Specifies which command to use to compress log files.  The default is
+<B>gzip</B>.  See also <B>compress</B>.
+<P>
+<DT><B>uncompresscmd</B><DD>
+Specifies which command to use to uncompress log files.  The default is
+<B>gunzip</B>.
+<P>
+<DT><B>compressext</B><DD>
+Specifies which extension to use on compressed logfiles, if compression
+is enabled.  The default follows that of the configured compression
+command.
+<P>
+<DT><B>compressoptions</B><DD>
+Command line options may be passed to the compression program, if one is
+in use.  The default, for <B><A HREF="/manpages/index.html?1+gzip">gzip</A></B>(1), is &quot;-9&quot; (maximum compression).
+<P>
+<DT><B>copy</B><DD>
+Make a copy of the log file, but don't change the original at all.
+This option can be used, for instance, to make a snapshot of the current
+log file, or when some other utility needs to truncate or parse the file.
+When this option is used, the <B>create</B> option will have no effect,
+as the old log file stays in place.
+<P>
+<DT><B>copytruncate</B><DD>
+Truncate the original log file in place after creating a copy,
+instead of moving the old log file and optionally creating a new one.
+It can be used when some program cannot be told to close its logfile
+and thus might continue writing (appending) to the previous log file forever.
+Note that there is a very small time slice between copying the file and
+truncating it, so some logging data might be lost.
+When this option is used, the <B>create</B> option will have no effect,
+as the old log file stays in place.
+<P>
+<DT><B>create </B><I>mode</I> <I>owner</I> <I>group</I><DD>
+Immediately after rotation (before the <B>postrotate</B> script is run)
+the log file is created (with the same name as the log file just rotated).
+<I>mode</I> specifies the mode for the log file in octal (the same
+as <B><A HREF="/manpages/index.html?2+chmod">chmod</A></B>(2)), <I>owner</I> specifies the user name who will own the
+log file, and <I>group</I> specifies the group the log file will belong
+to. Any of the log file attributes may be omitted, in which case those
+attributes for the new file will use the same values as the original log
+file for the omitted attributes. This option can be disabled using the
+<B>nocreate</B> option.
+<P>
+<DT><B>daily</B><DD>
+Log files are rotated every day.
+<P>
+<DT><B>dateext</B><DD>
+Archive old versions of log files adding a daily extension like YYYYMMDD
+instead of simply adding a number. The extension may be configured using
+the <B>dateformat</B> option.
+<P>
+<DT><B>dateformat</B> <I>format_string</I><DD>
+Specify the extension for <B>dateext</B> using the notation similar to
+<B><A HREF="/manpages/index.html?3+strftime">strftime</A></B>(3) function. Only %Y %m %d and %s specifiers are allowed.
+The default value is -%Y%m%d. Note that also the character separating log
+name from the extension is part of the dateformat string. The system clock
+must be set past Sep 9th 2001 for %s to work correctly.
+Note that the datestamps generated by this format must be lexically sortable
+(i.e., first the year, then the month then the day. e.g., 2001/12/01 is ok,
+but 01/12/2001 is not, since 01/11/2002 would sort lower while it is later).
+This is because when using the <B>rotate</B> option, logrotate sorts all
+rotated filenames to find out which logfiles are older and should be removed.
+<P>
+<DT><B>delaycompress</B><DD>
+Postpone compression of the previous log file to the next rotation cycle.
+This only has effect when used in combination with <B>compress</B>.
+It can be used when some program cannot be told to close its logfile
+and thus might continue writing to the previous log file for some time.
+<P>
+<DT><B>extension </B><I>ext</I><DD>
+Log files with <I>ext</I> extension can keep it after the rotation. 
+If compression  is  used,  the compression extension (normally <B>.gz</B>) 
+appears after <I>ext</I>. For example you have a logfile named mylog.foo 
+and want to rotate it to mylog.1.foo.gz instead of mylog.foo.1.gz.
+<P>
+<DT><B>ifempty</B><DD>
+Rotate the log file even if it is empty, overriding the <B>notifempty</B>
+option (<B>ifempty</B> is the default).
+<P>
+<DT><B>include </B><I>file_or_directory</I><DD>
+Reads the file given as an argument as if it was included inline
+where the <B>include</B> directive appears. If a directory is given,
+most of the files in that directory are read in alphabetic order
+before processing of the including file continues. The only files
+which are ignored are files which are not regular files (such as
+directories and named pipes) and files whose names end with one of
+the taboo extensions, as specified by the <B>tabooext</B> directive.
+The <B>include</B> directive may not appear inside a log file
+definition.
+<P>
+<DT><B>mail </B><I>address</I><DD>
+When a log is rotated out-of-existence, it is mailed to <I>address</I>. If
+no mail should be generated by a particular log, the <B>nomail</B> directive
+may be used.
+<P>
+<DT><B>mailfirst</B><DD>
+When using the <B>mail</B> command, mail the just-rotated file,
+instead of the about-to-expire file.
+<P>
+<DT><B>maillast</B><DD>
+When using the <B>mail</B> command, mail the about-to-expire file,
+instead of the just-rotated file (this is the default).
+<P>
+<DT><B>maxage</B> <I>count</I><DD>
+Remove rotated logs older than &lt;count&gt; days. The age is only checked
+if the logfile is to be rotated. The files are mailed to the
+configured address if <B>maillast</B> and <B>mail</B> are configured.
+<P>
+<DT><B>minsize</B> <I>size</I><DD>
+Log files are rotated when they grow bigger than <I>size</I> bytes, but not
+before the additionally specified time interval (<B>daily</B>, <B>weekly</B>,
+<B>monthly</B>, or <B>yearly</B>).  The related <B>size</B> option is similar
+except that it is mutually exclusive with the time interval options, and it
+causes log files to be rotated without regard for the last rotation time.
+When <B>minsize</B> is used, both the size and timestamp of a log file are
+considered.
+<P>
+<DT><B>missingok</B><DD>
+If the log file is missing, go on to the next one without issuing an error
+message. See also <B>nomissingok</B>.
+<P>
+<DT><B>monthly</B><DD>
+Log files are rotated the first time <B>logrotate</B> is run in a month
+(this is normally on the first day of the month).
+<P>
+<DT><B>nocompress</B><DD>
+Old versions of log files are not compressed. See also <B>compress</B>.
+<P>
+<DT><B>nocopy</B><DD>
+Do not copy the original log file and leave it in place.
+(this overrides the <B>copy</B> option).
+<P>
+<DT><B>nocopytruncate</B><DD>
+Do not truncate the original log file in place after creating a copy
+(this overrides the <B>copytruncate</B> option).
+<P>
+<DT><B>nocreate</B><DD>
+New log files are not created (this overrides the <B>create</B> option).
+<P>
+<DT><B>nodelaycompress</B><DD>
+Do not postpone compression of the previous log file to the next rotation cycle
+(this overrides the <B>delaycompress</B> option).
+<P>
+<DT><B>nodateext</B><DD>
+Do not archive  old versions of log files with date extension
+(this overrides the <B>dateext</B> option).
+<P>
+<DT><B>nomail</B><DD>
+Don't mail old log files to any address.
+<P>
+<DT><B>nomissingok</B><DD>
+If a log file does not exist, issue an error. This is the default.
+<P>
+<DT><B>noolddir</B><DD>
+Logs are rotated in the same directory the log normally resides in (this 
+overrides the <B>olddir</B> option).
+<P>
+<DT><B>nosharedscripts</B><DD>
+Run <B>prerotate</B> and <B>postrotate</B> scripts for every log file which
+is rotated (this is the default, and overrides the <B>sharedscripts</B>
+option). The absolute path to the log file is passed as first argument 
+to the script. If the scripts exit with error, the remaining actions will
+not be executed for the affected log only.
+<P>
+<DT><B>noshred</B><DD>
+Do not use <B>shred</B> when deleting old log files. See also <B>shred</B>. 
+<P>
+<DT><B>notifempty</B><DD>
+Do not rotate the log if it is empty (this overrides the <B>ifempty</B> option).
+<P>
+<DT><B>olddir </B><I>directory</I><DD>
+Logs are moved into <I>directory</I> for rotation. The <I>directory</I>
+must be on the same physical device as the log file being rotated,
+and is assumed to be relative to the directory holding the log file
+unless an absolute path name is specified. When this option is used all
+old versions of the log end up in <I>directory</I>.  This option may be
+overridden by the <B>noolddir</B> option.
+<P>
+<DT><B>postrotate</B>/<B>endscript</B><DD>
+The lines between <B>postrotate</B> and <B>endscript</B> (both of which
+must appear on lines by themselves) are executed (using <B>/bin/sh</B>) 
+after the log file is rotated. These directives may only appear inside 
+a log file definition. Normally, the absolute path to the log file is 
+passed as first argument to the script. If <B>sharedscripts</B> is specified, 
+whole pattern is passed to the script.
+See also <B>prerotate</B>. See <B>sharedscripts</B> and <B>nosharedscripts</B>
+for error handling.
+<P>
+<DT><B>prerotate</B>/<B>endscript</B><DD>
+The lines between <B>prerotate</B> and <B>endscript</B> (both of which
+must appear on lines by themselves) are executed (using <B>/bin/sh</B>) before 
+the log file is rotated and only if the log will actually be rotated. These 
+directives may only appear inside a log file definition. Normally, 
+the absolute path to the log file is passed as first argument to the script.
+If  <B>sharedscripts</B> is specified, whole pattern is passed to the script.
+See also <B>postrotate</B>.
+See <B>sharedscripts</B> and <B>nosharedscripts</B> for error handling.
+<P>
+<DT><B>firstaction</B>/<B>endscript</B><DD>
+The lines between <B>firstaction</B> and <B>endscript</B> (both of which
+must appear on lines by themselves) are executed (using <B>/bin/sh</B>) once 
+before all log files that match the wildcarded pattern are rotated, before 
+prerotate script is run and only if at least one log will actually be rotated. 
+These directives may only appear inside a log file definition. Whole pattern is
+passed to the script as first argument. If the script exits with error, 
+no further processing is done. See also <B>lastaction</B>.
+<P>
+<DT><B>lastaction</B>/<B>endscript</B><DD>
+The lines between <B>lastaction</B> and <B>endscript</B> (both of which
+must appear on lines by themselves) are executed (using <B>/bin/sh</B>) once 
+after all log files that match the wildcarded pattern are rotated, after 
+postrotate script is run and only if at least one log is rotated. These 
+directives may only appear inside a log file definition. Whole pattern is
+passed to the script as first argument. If the script exits 
+with error, just an error message is shown (as this is the last
+action). See also <B>firstaction</B>.
+<P>
+<DT><B>rotate </B><I>count</I><DD>
+Log files are rotated <I>count</I> times before being removed or mailed to the
+address specified in a <B>mail</B> directive. If <I>count</I> is 0, old versions
+are removed rather than rotated.
+<P>
+<DT><B>size </B><I>size</I><DD>
+Log files are rotated only if they grow bigger then <I>size</I> bytes. If
+<I>size</I> is followed by <I>k</I>, the size is assumed to be in kilobytes.
+If the <I>M</I> is used, the size is in megabytes, and if <I>G</I> is used, the
+size is in gigabytes. So <B>size 100</B>, <I>size 100k</I>, <I>size 100M</I> and
+<I>size 100G</I>are all valid.
+<P>
+<DT><B>sharedscripts</B><DD>
+Normally, <B>prerotate</B> and <B>postrotate</B> scripts are run for each
+log which is rotated and the absolute path to the log file is passed as first 
+argument to the script. That means a single script may be run multiple
+times for log file entries which match multiple files (such as the 
+<I>/var/log/news/*</I> example). If <B>sharedscripts</B> is specified, the scripts
+are only run once, no matter how many logs match the wildcarded pattern, 
+and whole pattern is passed to them.
+However, if none of the logs in the pattern require rotating, the scripts
+will not be run at all. If the scripts exit with error, the remaining
+actions will not be executed for any logs. This option overrides the
+<B>nosharedscripts</B> option and implies <B>create</B> option.
+<P>
+<DT><B>shred</B><DD>
+Delete log files using <B>shred</B> -u instead of unlink().  This should
+ensure that logs are not readable after their scheduled deletion; this is
+off by default.  See also <B>noshred</B>.
+<P>
+<DT><B>shredcycles</B> <I>count</I><DD>
+Asks GNU <B><A HREF="/manpages/index.html?1+shred">shred</A></B>(1) to overwite log files <B>count</B> times before 
+deletion.  Without this option, <B>shred</B>'s default will be used.
+<P>
+<DT><B>start </B><I>count</I><DD>
+This is the number to use as the base for rotation. For example, if
+you specify 0, the logs will be created with a .0 extension as they are
+rotated from the original log files.  If you specify 9, log files will
+be created with a .9, skipping 0-8.  Files will still be rotated the
+number of times specified with the <B>count</B> directive.
+<P>
+<DT><B>tabooext</B> [+] <I>list</I><DD>
+The current taboo extension list is changed (see the <B>include</B> directive
+for information on the taboo extensions). If a + precedes the list of
+extensions, the current taboo extension list is augmented, otherwise it
+is replaced. At startup, the taboo extension list 
+contains .rpmorig, .rpmsave, ,v, .swp, .rpmnew, ~, .cfsaved and .rhn-cfg-tmp-*.
+<P>
+<DT><B>weekly</B><DD>
+Log files are rotated if the current weekday is less than the weekday
+of the last rotation or if more than a week has passed since the last
+rotation. This is normally the same as rotating logs on the first day
+of the week, but it works better if <I>logrotate</I> is not run every
+night.
+<P>
+<DT><B>yearly</B><DD>
+Log files are rotated if the current year is not the same as the last rotation.
+<P>
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>FILES</H2>
+
+
+<DL COMPACT>
+<DT><I>/var/lib/logrotate.status</I><DD>
+Default state file.
+<DT><I>/etc/logrotate.conf</I><DD>
+Configuration options.
+<P>
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?1+gzip">gzip</A></B>(1)
+
+<P>
+&lt;<A HREF="http://fedorahosted.org/logrotate/">http://fedorahosted.org/logrotate/</A>&gt;
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<PRE>
+Erik Troan, Preston Brown, Jan Kaluza.
+
+&lt;<A HREF="mailto:logrotate-owner@fedoraproject.org">logrotate-owner@fedoraproject.org</A>&gt;
+
+</PRE>
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">CONFIGURATION FILE</A><DD>
+<DT><A HREF="#lbAG">FILES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:27 GMT, December 24, 2015
+</div></body>
+</HTML>

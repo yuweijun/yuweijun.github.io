@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PIVOT_ROOT</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PIVOT_ROOT</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2007-06-01<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+pivot_root - change the root file system
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>int pivot_root(const char *</B><I>new_root</I><B>, const char *</B><I>put_old</I><B>);</B>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>pivot_root</B>()
+
+moves the root file system of the calling process to the
+directory <I>put_old</I> and makes <I>new_root</I> the new root file system
+of the calling process.
+
+
+
+
+<P>
+The typical use of
+<B>pivot_root</B>()
+
+is during system startup, when the
+system mounts a temporary root file system (e.g., an <B>initrd</B>), then
+mounts the real root file system, and eventually turns the latter into
+the current root of all relevant processes or threads.
+<P>
+<B>pivot_root</B>()
+
+may or may not change the current root and the current
+working directory of any processes or threads which use the old
+root directory.
+The caller of
+<B>pivot_root</B>()
+
+must ensure that processes with root or current working directory
+at the old root operate correctly in either case.
+An easy way to ensure this is to change their
+root and current working directory to <I>new_root</I> before invoking
+<B>pivot_root</B>().
+
+<P>
+The paragraph above is intentionally vague because the implementation
+of
+<B>pivot_root</B>()
+
+may change in the future.
+At the time of writing,
+<B>pivot_root</B>()
+
+changes root and current working directory of each process or
+thread to <I>new_root</I> if they point to the old root directory.
+This
+is necessary in order to prevent kernel threads from keeping the old
+root directory busy with their root and current working directory,
+even if they never access
+the file system in any way.
+In the future, there may be a mechanism for
+kernel threads to explicitly relinquish any access to the file system,
+such that this fairly intrusive mechanism can be removed from
+<B>pivot_root</B>().
+
+<P>
+Note that this also applies to the calling process:
+<B>pivot_root</B>()
+
+may
+or may not affect its current working directory.
+It is therefore recommended to call
+<B>chdir(&quot;/&quot;)</B> immediately after
+<B>pivot_root</B>().
+
+<P>
+The following restrictions apply to <I>new_root</I> and <I>put_old</I>:
+<DL COMPACT>
+<DT>-<DD>
+They must be directories.
+<DT>-<DD>
+<I>new_root</I> and <I>put_old</I> must not be on the same file system as
+the current root.
+<DT>-<DD>
+<I>put_old</I> must be underneath <I>new_root</I>, that is, adding a non-zero
+number of <I>/..</I> to the string pointed to by <I>put_old</I> must yield
+the same directory as <I>new_root</I>.
+<DT>-<DD>
+No other file system may be mounted on <I>put_old</I>.
+</DL>
+<P>
+
+See also
+<B><A HREF="/manpages/index.html?8+pivot_root">pivot_root</A></B>(8)
+
+for additional usage examples.
+<P>
+If the current root is not a mount point (e.g., after
+<B><A HREF="/manpages/index.html?2+chroot">chroot</A></B>(2)
+
+or
+<B>pivot_root</B>(),
+
+see also below), not the old root directory, but the
+mount point of that file system is mounted on <I>put_old</I>.
+<P>
+<I>new_root</I> does not have to be a mount point.
+In this case,
+<I>/proc/mounts</I> will show the mount point of the file system containing
+<I>new_root</I> as root (<I>/</I>).
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success, zero is returned.
+On error, -1 is returned, and
+<I>errno</I> is set appropriately.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<B>pivot_root</B>()
+
+may return (in <I>errno</I>) any of the errors returned by
+<B><A HREF="/manpages/index.html?2+stat">stat</A></B>(2).
+
+Additionally, it may return:
+<DL COMPACT>
+<DT><B>EBUSY</B>
+
+<DD>
+<I>new_root</I> or <I>put_old</I> are on the current root file system,
+or a file system is already mounted on <I>put_old</I>.
+<DT><B>EINVAL</B>
+
+<DD>
+<I>put_old</I> is not underneath <I>new_root</I>.
+<DT><B>ENOTDIR</B>
+
+<DD>
+<I>new_root</I> or <I>put_old</I> is not a directory.
+<DT><B>EPERM</B>
+
+<DD>
+The calling process does not have the
+<B>CAP_SYS_ADMIN</B>
+
+capability.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+<B>pivot_root</B>()
+
+was introduced in Linux 2.3.41.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+<B>pivot_root</B>()
+
+is Linux-specific and hence is not portable.
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+Glibc does not provide a wrapper for this system call; call it using
+<B><A HREF="/manpages/index.html?2+syscall">syscall</A></B>(2).
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>BUGS</H2>
+
+<B>pivot_root</B>()
+
+should not have to change root and current working directory of all other
+processes in the system.
+<P>
+Some of the more obscure uses of
+<B>pivot_root</B>()
+
+may quickly lead to
+insanity.
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?2+chdir">chdir</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+chroot">chroot</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+stat">stat</A></B>(2),
+
+<B><A HREF="/manpages/index.html?4+initrd">initrd</A></B>(4),
+
+<B><A HREF="/manpages/index.html?8+pivot_root">pivot_root</A></B>(8)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">VERSIONS</A><DD>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DT><A HREF="#lbAJ">BUGS</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:04 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of MSGGET</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>MSGGET</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2004-05-27<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+msgget - get a message queue identifier
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/ipc.h">sys/ipc.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/msg.h">sys/msg.h</A>&gt;</B>
+
+<B>int msgget(key_t </B><I>key</I><B>, int </B><I>msgflg</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>msgget</B>()
+
+system call returns the message queue identifier associated
+with the value of the
+<I>key</I>
+
+argument.
+A new message queue is created if
+<I>key</I>
+
+has the value
+<B>IPC_PRIVATE</B>
+
+or
+<I>key</I>
+
+isn't
+<B>IPC_PRIVATE</B>,
+
+no message queue with the given key
+<I>key</I>
+
+exists, and
+<B>IPC_CREAT</B>
+
+is specified in
+<I>msgflg</I>.
+
+<P>
+
+If
+<I>msgflg</I>
+
+specifies both
+<B>IPC_CREAT</B>
+
+and
+<B>IPC_EXCL</B>
+
+and a message queue already exists for
+<I>key</I>,
+
+then
+<B>msgget</B>()
+
+fails with
+<I>errno</I>
+
+set to
+<B>EEXIST</B>.
+
+(This is analogous to the effect of the combination
+<B>O_CREAT | O_EXCL</B>
+
+for
+<B><A HREF="/manpages/index.html?2+open">open</A></B>(2).)
+
+<P>
+
+Upon creation, the least significant bits of the argument
+<I>msgflg</I>
+
+define the permissions of the message queue.
+These permission bits have the same format and semantics
+as the permissions specified for the
+<I>mode</I>
+
+argument of
+<B><A HREF="/manpages/index.html?2+open">open</A></B>(2).
+
+(The execute permissions are not used.)
+<P>
+
+If a new message queue is created,
+then its associated data structure
+<I>msqid_ds</I>
+
+(see
+<B><A HREF="/manpages/index.html?2+msgctl">msgctl</A></B>(2))
+
+is initialized as follows:
+<DL COMPACT>
+<DT><DD>
+<I>msg_perm.cuid</I>
+
+and
+<I>msg_perm.uid</I>
+
+are set to the effective user ID of the calling process.
+<DT><DD>
+<I>msg_perm.cgid</I>
+
+and
+<I>msg_perm.gid</I>
+
+are set to the effective group ID of the calling process.
+<DT><DD>
+The least significant 9 bits of
+<I>msg_perm.mode</I>
+
+are set to the least significant 9 bits of
+<I>msgflg</I>.
+
+<DT><DD>
+<I>msg_qnum</I>,
+
+<I>msg_lspid</I>,
+
+<I>msg_lrpid</I>,
+
+<I>msg_stime</I>
+
+and
+<I>msg_rtime</I>
+
+are set to 0.
+<DT><DD>
+<I>msg_ctime</I>
+
+is set to the current time.
+<DT><DD>
+<I>msg_qbytes</I>
+
+is set to the system limit
+<B>MSGMNB</B>.
+
+</DL>
+<P>
+
+If the message queue already exists the permissions are
+verified, and a check is made to see if it is marked for
+destruction.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+If successful, the return value will be the message queue identifier (a
+non-negative integer), otherwise -1
+with
+<I>errno</I>
+
+indicating the error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+On failure,
+<I>errno</I>
+
+is set to one of the following values:
+<DL COMPACT>
+<DT><B>EACCES</B>
+
+<DD>
+A message queue exists for
+<I>key</I>,
+
+but the calling process does not have permission to access the queue,
+and does not have the
+<B>CAP_IPC_OWNER</B>
+
+capability.
+<DT><B>EEXIST</B>
+
+<DD>
+A message queue exists for
+<I>key</I>
+
+and
+<I>msgflg</I>
+
+specified both
+<B>IPC_CREAT</B>
+
+and
+<B>IPC_EXCL</B>.
+
+<DT><B>ENOENT</B>
+
+<DD>
+No message queue exists for
+<I>key</I>
+
+and
+<I>msgflg</I>
+
+did not specify
+<B>IPC_CREAT</B>.
+
+<DT><B>ENOMEM</B>
+
+<DD>
+A message queue has to be created but the system does not have enough
+memory for the new data structure.
+<DT><B>ENOSPC</B>
+
+<DD>
+A message queue has to be created but the system limit for the maximum
+number of message queues
+(<B>MSGMNI</B>)
+
+would be exceeded.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+SVr4, POSIX.1-2001.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+<B>IPC_PRIVATE</B>
+
+isn't a flag field but a
+<I>key_t</I>
+
+type.
+If this special value is used for
+<I>key</I>,
+
+the system call ignores everything but the least significant 9 bits of
+<I>msgflg</I>
+
+and creates a new message queue (on success).
+<P>
+
+The following is a system limit on message queue resources affecting a
+<B>msgget</B>()
+
+call:
+<DL COMPACT>
+<DT><B>MSGMNI</B>
+
+<DD>
+System wide maximum number of message queues: policy
+dependent
+(on Linux, this limit can be read and modified via
+<I>/proc/sys/kernel/msgmni</I>).
+
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Linux Notes</H3>
+
+Until version 2.3.20 Linux would return
+<B>EIDRM</B>
+
+for a
+<B>msgget</B>()
+
+on a message queue scheduled for deletion.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>BUGS</H2>
+
+The name choice
+<B>IPC_PRIVATE</B>
+
+was perhaps unfortunate,
+<B>IPC_NEW</B>
+
+would more clearly show its function.
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?2+msgctl">msgctl</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+msgrcv">msgrcv</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+msgsnd">msgsnd</A></B>(2),
+
+<B><A HREF="/manpages/index.html?3+ftok">ftok</A></B>(3),
+
+<B><A HREF="/manpages/index.html?7+capabilities">capabilities</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+mq_overview">mq_overview</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+svipc">svipc</A></B>(7)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DL>
+<DT><A HREF="#lbAI">Linux Notes</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">BUGS</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:04 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of GETPROTOENT_R</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>GETPROTOENT_R</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2008-08-19<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+getprotoent_r, getprotobyname_r, getprotobynumber_r - get
+protocol entry (reentrant)
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/netdb.h">netdb.h</A>&gt;</B>
+
+<B>int getprotoent_r(struct protoent *</B><I>result_buf</I><B>, char *</B><I>buf</I><B>,</B>
+<B>                size_t </B><I>buflen</I><B>, struct protoent **</B><I>result</I><B>);</B>
+
+<B>int getprotobyname_r(const char *</B><I>name</I><B>,</B>
+<B>                struct protoent *</B><I>result_buf</I><B>, char *</B><I>buf</I><B>,</B>
+<B>                size_t </B><I>buflen</I><B>, struct protoent **</B><I>result</I><B>);</B>
+
+<B>int getprotobynumber_r(int </B><I>proto</I><B>,</B>
+<B>                struct protoent *</B><I>result_buf</I><B>, char *</B><I>buf</I><B>,</B>
+<B>                size_t </B><I>buflen</I><B>, struct protoent **</B><I>result</I><B>);</B>
+
+</PRE>
+
+
+Feature Test Macro Requirements for glibc (see
+<B><A HREF="/manpages/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)):
+
+
+
+<P>
+<B>getprotoent_r</B>(),
+
+<B>getprotobyname_r</B>(),
+
+<B>getprotobynumber_r</B>():
+
+_BSD_SOURCE || _SVID_SOURCE
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>getprotoent_r</B>(),
+
+<B>getprotobyname_r</B>(),
+
+and
+<B>getprotobynumber_r</B>()
+
+functions are the reentrant equivalents of, respectively,
+<B><A HREF="/manpages/index.html?3+getprotoent">getprotoent</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+getprotobyname">getprotobyname</A></B>(3),
+
+and
+<B><A HREF="/manpages/index.html?3+getprotobynumber">getprotobynumber</A></B>(3).
+
+They differ in the way that the
+<I>protoent</I>
+
+structure is returned,
+and in the function calling signature and return value.
+This manual page describes just the differences from
+the non-reentrant functions.
+<P>
+Instead of returning a pointer to a statically allocated
+<I>protoent</I>
+
+structure as the function result,
+these functions copy the structure into the location pointed to by
+<I>result_buf</I>.
+
+<P>
+The
+<I>buf</I>
+
+array is used to store the string fields pointed to by the returned
+<I>protoent</I>
+
+structure.
+(The non-reentrant functions allocate these strings in static storage.)
+The size of this array is specified in
+<I>buflen</I>.
+
+If
+<I>buf</I>
+
+is too small, the call fails with the error
+<B>ERANGE</B>,
+
+and the caller must try again with a larger buffer.
+(A buffer of length 1024 bytes should be sufficient for most applications.)
+
+
+
+<P>
+If the function call successfully obtains a protocol record, then
+<I>*result</I>
+
+is set pointing to
+<I>result_buf</I>;
+
+otherwise,
+<I>*result</I>
+
+is set to NULL.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success, these functions return 0.
+On error, a positive error number is returned.
+<P>
+On error, record not found
+(<B>getprotobyname_r</B>(),
+
+<B>getprotobynumber_r</B>()),
+
+or end of input
+(<B>getprotoent_r</B>())
+
+<I>result</I>
+
+is set to NULL.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>ENOENT</B>
+
+<DD>
+(<B>getprotoent_r</B>())
+
+No more records in database.
+<DT><B>ERANGE</B>
+
+<DD>
+<I>buf</I>
+
+is too small.
+Try again with a larger buffer
+(and increased
+<I>buflen</I>).
+
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+These functions are GNU extensions.
+Functions with similar names exist on some other systems,
+though typically with different calling signatures.
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+The program below uses
+<B>getprotobyname_r</B>()
+
+to retrieve the protocol record for the protocol named
+in its first command-line argument.
+If a second (integer) command-line argument is supplied,
+it is used as the initial value for
+<I>buflen</I>;
+
+if
+<B>getprotobyname_r</B>()
+
+fails with the error
+<B>ERANGE</B>,
+
+the program retries with larger buffer sizes.
+The following shell session shows a couple of sample runs:
+
+<PRE>
+
+$<B> ./a.out tcp 1</B>
+ERANGE! Retrying with larger buffer
+getprotobyname_r() returned: 0 (success)  (buflen=78)
+p_name=tcp; p_proto=6; aliases=TCP
+$<B> ./a.out xxx 1</B>
+ERANGE! Retrying with larger buffer
+getprotobyname_r() returned: 0 (success)  (buflen=100)
+Call failed/record not found
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Program source</H3>
+
+
+<PRE>
+#define _GNU_SOURCE
+#include &lt;<A HREF="file:/usr/include/ctype.h">ctype.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/netdb.h">netdb.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/errno.h">errno.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/string.h">string.h</A>&gt;
+
+#define MAX_BUF 10000
+
+int
+main(int argc, char *argv[])
+{
+    int buflen, erange_cnt, s;
+    struct protoent result_buf;
+    struct protoent *result;
+    char buf[MAX_BUF];
+    char **p;
+
+    if (argc &lt; 2) {
+        printf(&quot;Usage: %s proto-name [buflen]\n&quot;, argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    buflen = 1024;
+    if (argc &gt; 2)
+        buflen = atoi(argv[2]);
+
+    if (buflen &gt; MAX_BUF) {
+        printf(&quot;Exceeded buffer limit (%d)\n&quot;, MAX_BUF);
+        exit(EXIT_FAILURE);
+    }
+
+    erange_cnt = 0;
+    do {
+        s = getprotobyname_r(argv[1], &amp;result_buf,
+                     buf, buflen, &amp;result);
+        if (s == ERANGE) {
+            if (erange_cnt == 0)
+                printf(&quot;ERANGE! Retrying with larger buffer\n&quot;);
+            erange_cnt++;
+
+            /* Increment a byte at a time so we can see exactly
+               what size buffer was required */
+
+            buflen++;
+
+            if (buflen &gt; MAX_BUF) {
+                printf(&quot;Exceeded buffer limit (%d)\n&quot;, MAX_BUF);
+                exit(EXIT_FAILURE);
+            }
+        }
+    } while (s == ERANGE);
+
+    printf(&quot;getprotobyname_r() returned: %s  (buflen=%d)\n&quot;,
+            (s == 0) ? &quot;0 (success)&quot; : (s == ENOENT) ? &quot;ENOENT&quot; :
+            strerror(s), buflen);
+
+    if (s != 0 || result == NULL) {
+        printf(&quot;Call failed/record not found\n&quot;);
+        exit(EXIT_FAILURE);
+    }
+
+    printf(&quot;p_name=%s; p_proto=%d; aliases=&quot;,
+                result_buf.p_name, result_buf.p_proto);
+    for (p = result_buf.p_aliases; *p != NULL; p++)
+        printf(&quot;%s &quot;, *p);
+    printf(&quot;\n&quot;);
+
+    exit(EXIT_SUCCESS);
+}
+</PRE>
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?3+getprotoent">getprotoent</A></B>(3),
+
+<B><A HREF="/manpages/index.html?5+protocols">protocols</A></B>(5)
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">EXAMPLE</A><DD>
+<DL>
+<DT><A HREF="#lbAI">Program source</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:28 GMT, December 24, 2015
+</div></body>
+</HTML>

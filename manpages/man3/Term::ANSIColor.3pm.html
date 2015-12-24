@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Term::ANSIColor</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Term::ANSIColor</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-04-15<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Term::ANSIColor - Color screen output using ANSI escape sequences
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Term::ANSIColor;
+    print color 'bold blue';
+    print &quot;This text is bold blue.\n&quot;;
+    print color 'reset';
+    print &quot;This text is normal.\n&quot;;
+    print colored (&quot;Yellow on magenta.&quot;, 'yellow on_magenta'), &quot;\n&quot;;
+    print &quot;This text is normal.\n&quot;;
+    print colored ['yellow on_magenta'], 'Yellow on magenta.';
+    print &quot;\n&quot;;
+
+    use Term::ANSIColor qw(uncolor);
+    print uncolor '01;31', &quot;\n&quot;;
+
+    use Term::ANSIColor qw(:constants);
+    print BOLD, BLUE, &quot;This text is in bold blue.\n&quot;, RESET;
+
+    use Term::ANSIColor qw(:constants);
+    {
+        local $Term::ANSIColor::AUTORESET = 1;
+        print BOLD BLUE &quot;This text is in bold blue.\n&quot;;
+        print &quot;This text is normal.\n&quot;;
+    }
+
+    use Term::ANSIColor qw(:pushpop);
+    print PUSHCOLOR RED ON_GREEN &quot;This text is red on green.\n&quot;;
+    print PUSHCOLOR BLUE &quot;This text is blue on green.\n&quot;;
+    print RESET BLUE &quot;This text is just blue.\n&quot;;
+    print POPCOLOR &quot;Back to red on green.\n&quot;;
+    print LOCALCOLOR GREEN ON_BLUE &quot;This text is green on blue.\n&quot;;
+    print &quot;This text is red on green.\n&quot;;
+    {
+        local $Term::ANSIColor::AUTOLOCAL = 1;
+        print ON_BLUE &quot;This text is red on blue.\n&quot;;
+        print &quot;This text is red on green.\n&quot;;
+    }
+    print POPCOLOR &quot;Back to whatever we started as.\n&quot;;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This module has two interfaces, one through <I>color()</I> and <I>colored()</I> and the
+other through constants.  It also offers the utility function <I>uncolor()</I>,
+which has to be explicitly imported to be used (see ``<FONT SIZE="-1">SYNOPSIS</FONT>'').
+<P>
+
+<I>color()</I> takes any number of strings as arguments and considers them to be
+space-separated lists of attributes.  It then forms and returns the escape
+sequence to set those attributes.  It doesn't print it out, just returns
+it, so you'll have to print it yourself if you want to (this is so that
+you can save it as a string, pass it to something else, send it to a file
+handle, or do anything else with it that you might care to).
+<P>
+
+<I>uncolor()</I> performs the opposite translation, turning escape sequences
+into a list of strings.
+<P>
+
+The recognized non-color attributes are clear, reset, bold, dark, faint,
+underline, underscore, blink, reverse, and concealed.  Clear and reset
+(reset to default attributes), dark and faint (dim and saturated), and
+underline and underscore are equivalent, so use whichever is the most
+intuitive to you.  The recognized foreground color attributes are black,
+red, green, yellow, blue, magenta, cyan, and white.  The recognized
+background color attributes are on_black, on_red, on_green, on_yellow,
+on_blue, on_magenta, on_cyan, and on_white.  Case is not significant.
+<P>
+
+Note that not all attributes are supported by all terminal types, and some
+terminals may not support any of these sequences.  Dark and faint, blink,
+and concealed in particular are frequently not implemented.
+<P>
+
+Attributes, once set, last until they are unset (by sending the attribute
+<TT>&quot;clear&quot;</TT> or <TT>&quot;reset&quot;</TT>).  Be careful to do this, or otherwise your attribute
+will last after your script is done running, and people get very annoyed
+at having their prompt and typing changed to weird colors.
+<P>
+
+As an aid to help with this, <I>colored()</I> takes a scalar as the first
+argument and any number of attribute strings as the second argument and
+returns the scalar wrapped in escape codes so that the attributes will be
+set as requested before the string and reset to normal after the string.
+Alternately, you can pass a reference to an array as the first argument,
+and then the contents of that array will be taken as attributes and color
+codes and the remainder of the arguments as text to colorize.
+<P>
+
+Normally, <I>colored()</I> just puts attribute codes at the beginning and end of
+the string, but if you set <TT>$Term::ANSIColor::EACHLINE</TT> to some string, that
+string will be considered the line delimiter and the attribute will be set
+at the beginning of each line of the passed string and reset at the end of
+each line.  This is often desirable if the output contains newlines and
+you're using background colors, since a background color that persists
+across a newline is often interpreted by the terminal as providing the
+default background color for the next line.  Programs like pagers can also
+be confused by attributes that span lines.  Normally you'll want to set
+<TT>$Term::ANSIColor::EACHLINE</TT> to <TT>&quot;\n&quot;</TT> to use this feature.
+<P>
+
+Alternately, if you import <TT>&quot;:constants&quot;</TT>, you can use the constants <FONT SIZE="-1">CLEAR</FONT>,
+<FONT SIZE="-1">RESET</FONT>, <FONT SIZE="-1">BOLD</FONT>, <FONT SIZE="-1">DARK</FONT>, <FONT SIZE="-1">UNDERLINE</FONT>, <FONT SIZE="-1">UNDERSCORE</FONT>, <FONT SIZE="-1">BLINK</FONT>, <FONT SIZE="-1">REVERSE</FONT>, <FONT SIZE="-1">CONCEALED</FONT>,
+<FONT SIZE="-1">BLACK</FONT>, <FONT SIZE="-1">RED</FONT>, <FONT SIZE="-1">GREEN</FONT>, <FONT SIZE="-1">YELLOW</FONT>, <FONT SIZE="-1">BLUE</FONT>, <FONT SIZE="-1">MAGENTA</FONT>, <FONT SIZE="-1">CYAN</FONT>, <FONT SIZE="-1">WHITE</FONT>, <FONT SIZE="-1">ON_BLACK</FONT>, <FONT SIZE="-1">ON_RED</FONT>,
+<FONT SIZE="-1">ON_GREEN</FONT>, <FONT SIZE="-1">ON_YELLOW</FONT>, <FONT SIZE="-1">ON_BLUE</FONT>, <FONT SIZE="-1">ON_MAGENTA</FONT>, <FONT SIZE="-1">ON_CYAN</FONT>, and <FONT SIZE="-1">ON_WHITE</FONT> directly.
+These are the same as color('attribute') and can be used if you prefer
+typing:
+<P>
+
+
+
+<PRE>
+    print BOLD BLUE ON_WHITE &quot;Text&quot;, RESET, &quot;\n&quot;;
+
+</PRE>
+
+
+<P>
+
+to
+<P>
+
+
+
+<PRE>
+    print colored (&quot;Text&quot;, 'bold blue on_white'), &quot;\n&quot;;
+
+</PRE>
+
+
+<P>
+
+(Note that the newline is kept separate to avoid confusing the terminal as
+described above since a background color is being used.)
+<P>
+
+When using the constants, if you don't want to have to remember to add the
+<TT>&quot;, RESET&quot;</TT> at the end of each print line, you can set
+<TT>$Term::ANSIColor::AUTORESET</TT> to a true value.  Then, the display mode will
+automatically be reset if there is no comma after the constant.  In other
+words, with that variable set:
+<P>
+
+
+
+<PRE>
+    print BOLD BLUE &quot;Text\n&quot;;
+
+</PRE>
+
+
+<P>
+
+will reset the display mode afterward, whereas:
+<P>
+
+
+
+<PRE>
+    print BOLD, BLUE, &quot;Text\n&quot;;
+
+</PRE>
+
+
+<P>
+
+will not.  If you are using background colors, you will probably want to
+print the newline with a separate print statement to avoid confusing the
+terminal.
+<P>
+
+The subroutine interface has the advantage over the constants interface in
+that only two subroutines are exported into your namespace, versus
+twenty-two in the constants interface.  On the flip side, the constants
+interface has the advantage of better compile time error checking, since
+misspelled names of colors or attributes in calls to <I>color()</I> and <I>colored()</I>
+won't be caught until runtime whereas misspelled names of constants will
+be caught at compile time.  So, pollute your namespace with almost two
+dozen subroutines that you may not even use that often, or risk a silly
+bug by mistyping an attribute.  Your choice, <FONT SIZE="-1">TMTOWTDI</FONT> after all.
+<P>
+
+As of Term::ANSIColor 2.0, you can import <TT>&quot;:pushpop&quot;</TT> and maintain a stack
+of colors using <FONT SIZE="-1">PUSHCOLOR</FONT>, <FONT SIZE="-1">POPCOLOR</FONT>, and <FONT SIZE="-1">LOCALCOLOR</FONT>.  <FONT SIZE="-1">PUSHCOLOR</FONT> takes the
+attribute string that starts its argument and pushes it onto a stack of
+attributes.  <FONT SIZE="-1">POPCOLOR</FONT> removes the top of the stack and restores the
+previous attributes set by the argument of a prior <FONT SIZE="-1">PUSHCOLOR</FONT>.  <FONT SIZE="-1">LOCALCOLOR</FONT>
+surrounds its argument in a <FONT SIZE="-1">PUSHCOLOR</FONT> and <FONT SIZE="-1">POPCOLOR</FONT> so that the color
+resets afterward.
+<P>
+
+When using <FONT SIZE="-1">PUSHCOLOR</FONT>, <FONT SIZE="-1">POPCOLOR</FONT>, and <FONT SIZE="-1">LOCALCOLOR</FONT>, it's particularly
+important to not put commas between the constants.
+<P>
+
+
+
+<PRE>
+    print PUSHCOLOR BLUE &quot;Text\n&quot;;
+
+</PRE>
+
+
+<P>
+
+will correctly push <FONT SIZE="-1">BLUE</FONT> onto the top of the stack.
+<P>
+
+
+
+<PRE>
+    print PUSHCOLOR, BLUE, &quot;Text\n&quot;;    # wrong!
+
+</PRE>
+
+
+<P>
+
+will not, and a subsequent pop won't restore the correct attributes.
+<FONT SIZE="-1">PUSHCOLOR</FONT> pushes the attributes set by its argument, which is normally a
+string of color constants.  It can't ask the terminal what the current
+attributes are.
+<A NAME="lbAE">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT>Bad escape sequence %s<DD>
+
+
+<A NAME="ixAAF"></A>
+(F) You passed an invalid <FONT SIZE="-1">ANSI</FONT> escape sequence to <I>uncolor()</I>.
+<DT>Bareword %s not allowed while strict subs in use<DD>
+
+
+<A NAME="ixAAG"></A>
+(F) You probably mistyped a constant color name such as:
+
+
+<P>
+
+
+
+
+<PRE>
+    $Foobar = FOOBAR . &quot;This line should be blue\n&quot;;
+
+</PRE>
+
+
+
+
+<P>
+
+
+or:
+
+
+<P>
+
+
+
+
+<PRE>
+    @Foobar = FOOBAR, &quot;This line should be blue\n&quot;;
+
+</PRE>
+
+
+
+
+<P>
+
+
+This will only show up under use strict (another good reason to run under
+use strict).
+<DT>Invalid attribute name %s<DD>
+
+
+<A NAME="ixAAH"></A>
+(F) You passed an invalid attribute name to either <I>color()</I> or <I>colored()</I>.
+<DT>Name %s used only once: possible typo<DD>
+
+
+<A NAME="ixAAI"></A>
+(W) You probably mistyped a constant color name such as:
+
+
+<P>
+
+
+
+
+<PRE>
+    print FOOBAR &quot;This text is color FOOBAR\n&quot;;
+
+</PRE>
+
+
+
+
+<P>
+
+
+It's probably better to always use commas after constant names in order to
+force the next error.
+<DT>No comma allowed after filehandle<DD>
+<A NAME="ixAAJ"></A>
+(F) You probably mistyped a constant color name such as:
+
+
+<P>
+
+
+
+
+<PRE>
+    print FOOBAR, &quot;This text is color FOOBAR\n&quot;;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Generating this fatal compile error is one of the main advantages of using
+the constants interface, since you'll immediately know if you mistype a
+color name.
+<DT>No name for escape sequence %s<DD>
+
+
+<A NAME="ixAAK"></A>
+(F) The <FONT SIZE="-1">ANSI</FONT> escape sequence passed to <I>uncolor()</I> contains escapes which
+aren't recognized and can't be translated to names.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>ENVIRONMENT</H2>
+
+<A NAME="ixAAL"></A>
+<DL COMPACT>
+<DT><FONT SIZE="-1">ANSI_COLORS_DISABLED</FONT><DD>
+<A NAME="ixAAM"></A>
+If this environment variable is set, all of the functions defined by this
+module (<I>color()</I>, <I>colored()</I>, and all of the constants not previously used
+in the program) will not output any escape sequences and instead will just
+return the empty string or pass through the original text as appropriate.
+This is intended to support easy use of scripts using this module on
+platforms that don't support <FONT SIZE="-1">ANSI</FONT> escape sequences.
+
+
+<P>
+
+
+For it to have its proper effect, this environment variable must be set
+before any color constants are used in the program.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>RESTRICTIONS</H2>
+
+<A NAME="ixAAN"></A>
+It would be nice if one could leave off the commas around the constants
+entirely and just say:
+<P>
+
+
+
+<PRE>
+    print BOLD BLUE ON_WHITE &quot;Text\n&quot; RESET;
+
+</PRE>
+
+
+<P>
+
+but the syntax of Perl doesn't allow this.  You need a comma after the
+string.  (Of course, you may consider it a bug that commas between all the
+constants aren't required, in which case you may feel free to insert
+commas unless you're using <TT>$Term::ANSIColor::AUTORESET</TT> or
+<FONT SIZE="-1">PUSHCOLOR/POPCOLOR</FONT>.)
+<P>
+
+For easier debugging, you may prefer to always use the commas when not
+setting <TT>$Term::ANSIColor::AUTORESET</TT> or <FONT SIZE="-1">PUSHCOLOR/POPCOLOR</FONT> so that you'll
+get a fatal compile error rather than a warning.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAO"></A>
+The codes generated by this module are standard terminal control codes,
+complying with <FONT SIZE="-1">ECMA-048</FONT> and <FONT SIZE="-1">ISO</FONT> 6429 (generally referred to as ``<FONT SIZE="-1">ANSI</FONT>
+color'' for the color codes).  The non-color control codes (bold, dark,
+italic, underline, and reverse) are part of the earlier <FONT SIZE="-1">ANSI</FONT> X3.64
+standard for control sequences for video terminals and peripherals.
+<P>
+
+Note that not all displays are <FONT SIZE="-1">ISO</FONT> 6429-compliant, or even X3.64-compliant
+(or are even attempting to be so).  This module will not work as expected
+on displays that do not honor these escape sequences, such as cmd.exe,
+4nt.exe, and command.com under either Windows <FONT SIZE="-1">NT</FONT> or Windows 2000.  They
+may just be ignored, or they may display as an <FONT SIZE="-1">ESC</FONT> character followed by
+some apparent garbage.
+<P>
+
+Jean Delvare provided the following table of different common terminal
+emulators and their support for the various attributes and others have
+helped me flesh it out:
+<P>
+
+
+
+<PRE>
+              clear    bold     faint   under    blink   reverse  conceal
+ ------------------------------------------------------------------------
+ xterm         yes      yes      no      yes     bold      yes      yes
+ linux         yes      yes      yes    bold      yes      yes      no
+ rxvt          yes      yes      no      yes  bold/black   yes      no
+ dtterm        yes      yes      yes     yes    reverse    yes      yes
+ teraterm      yes    reverse    no      yes    rev/red    yes      no
+ aixterm      kinda   normal     no      yes      no       yes      yes
+ PuTTY         yes     color     no      yes      no       yes      no
+ Windows       yes      no       no      no       no       yes      no
+ Cygwin SSH    yes      yes      no     color    color    color     yes
+ Mac Terminal  yes      yes      no      yes      yes      yes      yes
+
+</PRE>
+
+
+<P>
+
+Windows is Windows telnet, Cygwin <FONT SIZE="-1">SSH</FONT> is the OpenSSH implementation under
+Cygwin on Windows <FONT SIZE="-1">NT</FONT>, and Mac Terminal is the Terminal application in Mac
+<FONT SIZE="-1">OS</FONT> X.  Where the entry is other than yes or no, that emulator displays the
+given attribute as something else instead.  Note that on an aixterm, clear
+doesn't reset colors; you have to explicitly set the colors back to what
+you want.  More entries in this table are welcome.
+<P>
+
+Note that codes 3 (italic), 6 (rapid blink), and 9 (strike-through) are
+specified in <FONT SIZE="-1">ANSI</FONT> X3.64 and <FONT SIZE="-1">ECMA-048</FONT> but are not commonly supported by
+most displays and emulators and therefore aren't supported by this module
+at the present time.  <FONT SIZE="-1">ECMA-048</FONT> also specifies a large number of other
+attributes, including a sequence of attributes for font changes, Fraktur
+characters, double-underlining, framing, circling, and overlining.  As
+none of these attributes are widely supported or useful, they also aren't
+currently supported by this module.
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAP"></A>
+<FONT SIZE="-1">ECMA-048</FONT> is available on-line (at least at the time of this writing) at
+&lt;<A HREF="http://www.ecma-international.org/publications/standards/ECMA-048.HTM">http://www.ecma-international.org/publications/standards/ECMA-048.HTM</A>&gt;.
+<P>
+
+<FONT SIZE="-1">ISO</FONT> 6429 is available from <FONT SIZE="-1">ISO</FONT> for a charge; the author of this module
+does not own a copy of it.  Since the source material for <FONT SIZE="-1">ISO</FONT> 6429 was
+<FONT SIZE="-1">ECMA-048</FONT> and the latter is available for free, there seems little reason
+to obtain the <FONT SIZE="-1">ISO</FONT> standard.
+<P>
+
+The current version of this module is always available from its web site
+at &lt;<A HREF="http://www.eyrie.org/~eagle/software/ansicolor/">http://www.eyrie.org/~eagle/software/ansicolor/</A>&gt;.  It is also part of
+the Perl core distribution as of 5.6.0.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<A NAME="ixAAQ"></A>
+Original idea (using constants) by Zenin, reimplemented using subs by Russ
+Allbery &lt;<A HREF="mailto:rra@stanford.edu">rra@stanford.edu</A>&gt;, and then combined with the original idea by
+Russ with input from Zenin.  Russ Allbery now maintains this module.
+<A NAME="lbAK">&nbsp;</A>
+<H2>COPYRIGHT AND LICENSE</H2>
+
+<A NAME="ixAAR"></A>
+Copyright 1996, 1997, 1998, 2000, 2001, 2002, 2005, 2006, 2008, 2009 Russ
+Allbery &lt;<A HREF="mailto:rra@stanford.edu">rra@stanford.edu</A>&gt; and Zenin.  This program is free software; you
+may redistribute it and/or modify it under the same terms as Perl itself.
+<P>
+
+<FONT SIZE="-1">PUSHCOLOR</FONT>, <FONT SIZE="-1">POPCOLOR</FONT>, and <FONT SIZE="-1">LOCALCOLOR</FONT> were contributed by openmethods.com
+voice solutions.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAF">ENVIRONMENT</A><DD>
+<DT><A HREF="#lbAG">RESTRICTIONS</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">AUTHORS</A><DD>
+<DT><A HREF="#lbAK">COPYRIGHT AND LICENSE</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:43 GMT, December 24, 2015
+</div></body>
+</HTML>

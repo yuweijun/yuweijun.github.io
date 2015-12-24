@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of open</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>open</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-07-03<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+open - perl pragma to set default PerlIO layers for input and output
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use open IN  =&gt; &quot;:crlf&quot;, OUT =&gt; &quot;:bytes&quot;;
+    use open OUT =&gt; ':utf8';
+    use open IO  =&gt; &quot;:encoding(iso-8859-7)&quot;;
+
+    use open IO  =&gt; ':locale';
+
+    use open ':encoding(utf8)';
+    use open ':locale';
+    use open ':encoding(iso-8859-7)';
+
+    use open ':std';
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Full-fledged support for I/O layers is now implemented provided
+Perl is configured to use PerlIO as its <FONT SIZE="-1">IO</FONT> system (which is now the
+default).
+<P>
+
+The <TT>&quot;open&quot;</TT> pragma serves as one of the interfaces to declare default
+``layers'' (also known as ``disciplines'') for all I/O. Any two-argument
+<I>open()</I>, <I>readpipe()</I> (aka qx//) and similar operators found within the
+lexical scope of this pragma will use the declared defaults.
+Even three-argument opens may be affected by this pragma
+when they don't specify <FONT SIZE="-1">IO</FONT> layers in <FONT SIZE="-1">MODE</FONT>.
+<P>
+
+With the <TT>&quot;IN&quot;</TT> subpragma you can declare the default layers
+of input streams, and with the <TT>&quot;OUT&quot;</TT> subpragma you can declare
+the default layers of output streams.  With the <TT>&quot;IO&quot;</TT>  subpragma
+you can control both input and output streams simultaneously.
+<P>
+
+If you have a legacy encoding, you can use the <TT>&quot;:encoding(...)&quot;</TT> tag.
+<P>
+
+If you want to set your encoding layers based on your
+locale environment variables, you can use the <TT>&quot;:locale&quot;</TT> tag.
+For example:
+<P>
+
+
+
+<PRE>
+    $ENV{LANG} = 'ru_RU.KOI8-R';
+    # the :locale will probe the locale environment variables like LANG
+    use open OUT =&gt; ':locale';
+    open(O, &quot;&gt;koi8&quot;);
+    print O chr(0x430); # Unicode CYRILLIC SMALL LETTER A = KOI8-R 0xc1
+    close O;
+    open(I, &quot;&lt;koi8&quot;);
+    printf &quot;%#x\n&quot;, ord(&lt;I&gt;), &quot;\n&quot;; # this should print 0xc1
+    close I;
+
+</PRE>
+
+
+<P>
+
+These are equivalent
+<P>
+
+
+
+<PRE>
+    use open ':encoding(utf8)';
+    use open IO =&gt; ':encoding(utf8)';
+
+</PRE>
+
+
+<P>
+
+as are these
+<P>
+
+
+
+<PRE>
+    use open ':locale';
+    use open IO =&gt; ':locale';
+
+</PRE>
+
+
+<P>
+
+and these
+<P>
+
+
+
+<PRE>
+    use open ':encoding(iso-8859-7)';
+    use open IO =&gt; ':encoding(iso-8859-7)';
+
+</PRE>
+
+
+<P>
+
+The matching of encoding names is loose: case does not matter, and
+many encodings have several aliases.  See Encode::Supported for
+details and the list of supported locales.
+<P>
+
+When <I>open()</I> is given an explicit list of layers (with the three-arg
+syntax), they override the list declared using this pragma.
+<P>
+
+The <TT>&quot;:std&quot;</TT> subpragma on its own has no effect, but if combined with
+the <TT>&quot;:utf8&quot;</TT> or <TT>&quot;:encoding&quot;</TT> subpragmas, it converts the standard
+filehandles (<FONT SIZE="-1">STDIN</FONT>, <FONT SIZE="-1">STDOUT</FONT>, <FONT SIZE="-1">STDERR</FONT>) to comply with encoding selected
+for input/output handles.  For example, if both input and out are
+chosen to be <TT>&quot;:encoding(utf8)&quot;</TT>, a <TT>&quot;:std&quot;</TT> will mean that <FONT SIZE="-1">STDIN</FONT>, <FONT SIZE="-1">STDOUT</FONT>,
+and <FONT SIZE="-1">STDERR</FONT> are also in <TT>&quot;:encoding(utf8)&quot;</TT>.  On the other hand, if only
+output is chosen to be in <TT>&quot;:encoding(koi8r)&quot;</TT>, a <TT>&quot;:std&quot;</TT> will cause
+only the <FONT SIZE="-1">STDOUT</FONT> and <FONT SIZE="-1">STDERR</FONT> to be in <TT>&quot;koi8r&quot;</TT>.  The <TT>&quot;:locale&quot;</TT> subpragma
+implicitly turns on <TT>&quot;:std&quot;</TT>.
+<P>
+
+The logic of <TT>&quot;:locale&quot;</TT> is described in full in encoding,
+but in short it is first trying nl_langinfo(<FONT SIZE="-1">CODESET</FONT>) and then
+guessing from the <FONT SIZE="-1">LC_ALL</FONT> and <FONT SIZE="-1">LANG</FONT> locale environment variables.
+<P>
+
+Directory handles may also support PerlIO layers in the future.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NONPERLIO FUNCTIONALITY</H2>
+
+<A NAME="ixAAE"></A>
+If Perl is not built to use PerlIO as its <FONT SIZE="-1">IO</FONT> system then only the two
+pseudo-layers <TT>&quot;:bytes&quot;</TT> and <TT>&quot;:crlf&quot;</TT> are available.
+<P>
+
+The <TT>&quot;:bytes&quot;</TT> layer corresponds to ``binary mode'' and the <TT>&quot;:crlf&quot;</TT>
+layer corresponds to ``text mode'' on platforms that distinguish
+between the two modes when opening files (which is many DOS-like
+platforms, including Windows).  These two layers are no-ops on
+platforms where <I>binmode()</I> is a no-op, but perform their functions
+everywhere if PerlIO is enabled.
+<A NAME="lbAF">&nbsp;</A>
+<H2>IMPLEMENTATION DETAILS</H2>
+
+<A NAME="ixAAF"></A>
+There is a class method in <TT>&quot;PerlIO::Layer&quot;</TT> <TT>&quot;find&quot;</TT> which is
+implemented as <FONT SIZE="-1">XS</FONT> code.  It is called by <TT>&quot;import&quot;</TT> to validate the
+layers:
+<P>
+
+
+
+<PRE>
+   PerlIO::Layer::-&gt;find(&quot;perlio&quot;)
+
+</PRE>
+
+
+<P>
+
+The return value (if defined) is a Perl object, of class
+<TT>&quot;PerlIO::Layer&quot;</TT> which is created by the C code in <I>perlio.c</I>.  As
+yet there is nothing useful you can do with the object at the perl
+level.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAG"></A>
+``binmode'' in perlfunc, ``open'' in perlfunc, perlunicode, PerlIO,
+encoding
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NONPERLIO FUNCTIONALITY</A><DD>
+<DT><A HREF="#lbAF">IMPLEMENTATION DETAILS</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:35 GMT, December 24, 2015
+</div></body>
+</HTML>

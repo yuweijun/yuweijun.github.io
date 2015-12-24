@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CIFS\&.UPCALL</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CIFS\&.UPCALL</H1>
+Section: System Administration tools (8)<BR>Updated: 02/07/2010<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+cifs.upcall - Userspace upcall helper for Common Internet File System (CIFS)
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<DL COMPACT>
+<DT>
+<DD>cifs.upcall [--trust-dns|-t] [--version|-v] [--legacy-uid|-l] [--krb5conf=/path/to/krb5.conf|-k /path/to/...] {keyid}
+</DL>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+This tool is part of the cifs-utils suite.
+<P>
+
+cifs.upcall is a userspace helper program for the linux CIFS client filesystem. There are a number of activities that the kernel cannot easily do itself. This program is a callout program that does these things for the kernel and then returns the result.
+<P>
+
+cifs.upcall is generally intended to be run when the kernel calls <A HREF="/manpages/index.html?8+request-key">request-key</A>(8)
+for a particular key type. While it can be run directly from the command-line, it's not generally intended to be run that way.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+
+-c
+<DL COMPACT><DT><DD>
+This option is deprecated and is currently ignored.
+</DL>
+
+<P>
+
+--krb5conf=/path/to/krb5.conf|-k /path/to/krb5.conf
+<DL COMPACT><DT><DD>
+This option allows administrators to set an alternate location for the
+krb5.conf file that cifs.upcall will use.
+</DL>
+
+<P>
+
+--trust-dns|-t
+<DL COMPACT><DT><DD>
+With krb5 upcalls, the name used as the host portion of the service principal defaults to the hostname portion of the UNC. This option allows the upcall program to reverse resolve the network address of the server in order to get the hostname.
+<P>
+This is less secure than not trusting DNS. When using this option, it's possible that an attacker could get control of DNS and trick the client into mounting a different server altogether. It's preferable to instead add server principals to the KDC for every possible hostname, but this option exists for cases where that isn't possible. The default is to not trust reverse hostname lookups in this fashion.
+</DL>
+
+<P>
+
+--legacy-uid|-l
+<DL COMPACT><DT><DD>
+Traditionally, the kernel has sent only a single uid= parameter to the upcall for the SPNEGO upcall that's used to determine what user's credential cache to use. This parameter is affected by the uid= mount option, which also governs the ownership of files on the mount.
+<P>
+Newer kernels send a creduid= option as well, which contains what uid it thinks actually owns the credentials that it's looking for. At mount time, this is generally set to the real uid of the user doing the mount. For multisession mounts, it's set to the fsuid of the mount user. Set this option if you want cifs.upcall to use the older uid= parameter instead of the creduid= parameter.
+</DL>
+
+<P>
+
+--version|-v
+<DL COMPACT><DT><DD>
+Print version number and exit.
+</DL>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONFIGURATION FOR KEYCTL</H2>
+
+<P>
+
+cifs.upcall is designed to be called from the kernel via the request-key callout program. This requires that request-key be told where and how to call this program. The current cifs.upcall program handles two different key types:
+<P>
+
+cifs.spnego
+<DL COMPACT><DT><DD>
+This keytype is for retrieving kerberos session keys
+</DL>
+
+<P>
+
+dns_resolver
+<DL COMPACT><DT><DD>
+This key type is for resolving hostnames into IP addresses
+</DL>
+
+<P>
+
+To make this program useful for CIFS, you'll need to set up entries for them in <A HREF="/manpages/index.html?5+request-key.conf">request-key.conf</A>(5). Here's an example of an entry for each key type:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+#OPERATION  TYPE           D C PROGRAM ARG1 ARG2...
+#=========  =============  = = ================================
+create      cifs.spnego    * * /usr/sbin/cifs.upcall %k
+create      dns_resolver   * * /usr/sbin/cifs.upcall %k
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+
+See
+<B>request-key.conf5</B>()
+for more info on each field.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<P>
+<B><A HREF="/manpages/index.html?5+request-key.conf">request-key.conf</A></B>(5),
+<B><A HREF="/manpages/index.html?8+mount.cifs">mount.cifs</A></B>(8)
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<P>
+
+Igor Mammedov wrote the cifs.upcall program.
+<P>
+
+Jeff Layton authored this manpage.
+<P>
+
+The maintainer of the Linux CIFS VFS is Steve French.
+<P>
+
+The
+Linux CIFS Mailing list
+is the preferred place to ask questions regarding these programs.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">CONFIGURATION FOR KEYCTL</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:24 GMT, December 24, 2015
+</div></body>
+</HTML>

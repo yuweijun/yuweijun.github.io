@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Term::UI</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Term::UI</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-05-03<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Term::UI - Term::ReadLine UI made easy
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Term::UI;
+    use Term::ReadLine;
+
+    my $term = Term::ReadLine-&gt;new('brand');
+
+    my $reply = $term-&gt;get_reply(
+                    prompt =&gt; 'What is your favourite colour?',
+                    choices =&gt; [qw|blue red green|],
+                    default =&gt; blue,
+    );
+
+    my $bool = $term-&gt;ask_yn(
+                        prompt =&gt; 'Do you like cookies?',
+                        default =&gt; 'y',
+                );
+
+
+    my $string = q[some_command -option --no-foo --quux='this thing'];
+
+    my ($options,$munged_input) = $term-&gt;parse_options($string);
+
+
+    ### don't have Term::UI issue warnings -- default is '1'
+    $Term::UI::VERBOSE = 0;
+
+    ### always pick the default (good for non-interactive terms)
+    ### -- default is '0'
+    $Term::UI::AUTOREPLY = 1;
+    
+    ### Retrieve the entire session as a printable string:
+    $hist = Term::UI::History-&gt;history_as_string;
+    $hist = $term-&gt;history_as_string;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<TT>&quot;Term::UI&quot;</TT> is a transparent way of eliminating the overhead of having
+to format a question and then validate the reply, informing the user
+if the answer was not proper and re-issuing the question.
+<P>
+
+Simply give it the question you want to ask, optionally with choices
+the user can pick from and a default and <TT>&quot;Term::UI&quot;</TT> will <FONT SIZE="-1">DWYM</FONT>.
+<P>
+
+For asking a yes or no question, there's even a shortcut.
+<A NAME="lbAE">&nbsp;</A>
+<H2>HOW IT WORKS</H2>
+
+<A NAME="ixAAE"></A>
+<TT>&quot;Term::UI&quot;</TT> places itself at the back of the <TT>&quot;Term::ReadLine&quot;</TT> 
+<TT>@ISA</TT> array, so you can call its functions through your term object.
+<P>
+
+<TT>&quot;Term::UI&quot;</TT> uses <TT>&quot;Term::UI::History&quot;</TT> to record all interactions
+with the commandline. You can retrieve this history, or alter
+the filehandle the interaction is printed to. See the 
+<TT>&quot;Term::UI::History&quot;</TT> manpage or the <TT>&quot;SYNOPSIS&quot;</TT> for details.
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAF"></A>
+<A NAME="lbAG">&nbsp;</A>
+<H3>$reply = $term-&gt;get_reply( prompt =&gt; 'question?', [choices =&gt; \@list, default =&gt; $list[0], multi =&gt; <FONT SIZE="-1">BOOL</FONT>, print_me =&gt; extra text to print &amp; record, allow =&gt; $ref] );</H3>
+
+
+
+<A NAME="ixAAG"></A>
+<TT>&quot;get_reply&quot;</TT> asks a user a question, and then returns the reply to the
+caller. If the answer is invalid (more on that below), the question will
+be reposed, until a satisfactory answer has been entered.
+<P>
+
+You have the option of providing a list of choices the user can pick from
+using the <TT>&quot;choices&quot;</TT> argument. If the answer is not in the list of choices
+presented, the question will be reposed.
+<P>
+
+If you provide a <TT>&quot;default&quot;</TT>  answer, this will be returned when either
+<TT>$AUTOREPLY</TT> is set to true, (see the <TT>&quot;GLOBAL VARIABLES&quot;</TT> section further
+below), or when the user just hits <TT>&quot;enter&quot;</TT>.
+<P>
+
+You can indicate that the user is allowed to enter multiple answers by
+toggling the <TT>&quot;multi&quot;</TT> flag. Note that a list of answers will then be
+returned to you, rather than a simple string.
+<P>
+
+By specifying an <TT>&quot;allow&quot;</TT> hander, you can yourself validate the answer
+a user gives. This can be any of the types that the Params::Check <TT>&quot;allow&quot;</TT> 
+function allows, so please refer to that manpage for details.
+<P>
+
+Finally, you have the option of adding a <TT>&quot;print_me&quot;</TT> argument, which is
+simply printed before the prompt. It's printed to the same file handle
+as the rest of the questions, so you can use this to keep track of a
+full session of Q&amp;A with the user, and retrieve it later using the
+<TT>&quot;Term::UI-&gt;history_as_string&quot;</TT> function.
+<P>
+
+See the <TT>&quot;EXAMPLES&quot;</TT> section for samples of how to use this function.
+<A NAME="lbAH">&nbsp;</A>
+<H3>$bool = $term-&gt;ask_yn( prompt =&gt; your question, [default =&gt; (y|1,n|0), print_me =&gt; extra text to print &amp; record] )</H3>
+
+
+
+<A NAME="ixAAH"></A>
+Asks a simple <TT>&quot;yes&quot;</TT> or <TT>&quot;no&quot;</TT> question to the user, returning a boolean
+indicating <TT>&quot;true&quot;</TT> or <TT>&quot;false&quot;</TT> to the caller.
+<P>
+
+The <TT>&quot;default&quot;</TT> answer will automatically returned, if the user hits 
+<TT>&quot;enter&quot;</TT> or if <TT>$AUTOREPLY</TT> is set to true. See the <TT>&quot;GLOBAL VARIABLES&quot;</TT>
+section further below.
+<P>
+
+Also, you have the option of adding a <TT>&quot;print_me&quot;</TT> argument, which is
+simply printed before the prompt. It's printed to the same file handle
+as the rest of the questions, so you can use this to keep track of a
+full session of Q&amp;A with the user, and retrieve it later using the
+<TT>&quot;Term::UI-&gt;history_as_string&quot;</TT> function.
+<P>
+
+See the <TT>&quot;EXAMPLES&quot;</TT> section for samples of how to use this function.
+<A NAME="lbAI">&nbsp;</A>
+<H3>($opts, $munged) = $term-&gt;parse_options( <FONT SIZE="-1">STRING</FONT> );</H3>
+
+
+
+<A NAME="ixAAI"></A>
+<TT>&quot;parse_options&quot;</TT> will convert all options given from an input string
+to a hash reference. If called in list context it will also return
+the part of the input string that it found no options in.
+<P>
+
+Consider this example:
+<P>
+
+
+
+<PRE>
+    my $str =   q[command --no-foo --baz --bar=0 --quux=bleh ] .
+                q[--option=&quot;some'thing&quot; -one-dash -single=blah' arg];
+
+    my ($options,$munged) =  $term-&gt;parse_options($str);
+
+    ### $options would contain: ###
+    $options = {
+                'foo'       =&gt; 0,
+                'bar'       =&gt; 0,
+                'one-dash'  =&gt; 1,
+                'baz'       =&gt; 1,
+                'quux'      =&gt; 'bleh',
+                'single'    =&gt; 'blah\'',
+                'option'    =&gt; 'some\'thing'
+    };
+
+    ### and this is the munged version of the input string,
+    ### ie what's left of the input minus the options
+    $munged = 'command arg';
+
+</PRE>
+
+
+<P>
+
+As you can see, you can either use a single or a double <TT>&quot;-&quot;</TT> to
+indicate an option.
+If you prefix an option with <TT>&quot;no-&quot;</TT> and do not give it a value, it
+will be set to 0.
+If it has no prefix and no value, it will be set to 1.
+Otherwise, it will be set to its value. Note also that it can deal
+fine with single/double quoting issues.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>$str = $term-&gt;history_as_string</H3>
+
+
+
+<A NAME="ixAAJ"></A>
+Convenience wrapper around <TT>&quot;Term::UI::History-&gt;history_as_string&quot;</TT>.
+<P>
+
+Consult the <TT>&quot;Term::UI::History&quot;</TT> man page for details.
+<A NAME="lbAK">&nbsp;</A>
+<H2>GLOBAL VARIABLES</H2>
+
+<A NAME="ixAAK"></A>
+The behaviour of Term::UI can be altered by changing the following
+global variables:
+<A NAME="lbAL">&nbsp;</A>
+<H3>$Term::UI::VERBOSE</H3>
+
+
+
+<A NAME="ixAAL"></A>
+This controls whether Term::UI will issue warnings and explanations
+as to why certain things may have failed. If you set it to 0,
+Term::UI will not output any warnings.
+The default is 1;
+<A NAME="lbAM">&nbsp;</A>
+<H3>$Term::UI::AUTOREPLY</H3>
+
+
+
+<A NAME="ixAAM"></A>
+This will make every question be answered by the default, and warn if
+there was no default provided. This is particularly useful if your
+program is run in non-interactive mode.
+The default is 0;
+<A NAME="lbAN">&nbsp;</A>
+<H3>$Term::UI::INVALID</H3>
+
+
+
+<A NAME="ixAAN"></A>
+This holds the string that will be printed when the user makes an
+invalid choice.
+You can override this string from your program if you, for example,
+wish to do localization.
+The default is <TT>&quot;Invalid selection, please try again: &quot;</TT>
+<A NAME="lbAO">&nbsp;</A>
+<H3>$Term::UI::History::HISTORY_FH</H3>
+
+
+
+<A NAME="ixAAO"></A>
+This is the filehandle all the print statements from this module
+are being sent to. Please consult the <TT>&quot;Term::UI::History&quot;</TT> manpage
+for details.
+<P>
+
+This defaults to <TT>*STDOUT</TT>.
+<A NAME="lbAP">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAP"></A>
+<A NAME="lbAQ">&nbsp;</A>
+<H3>Basic get_reply sample</H3>
+
+<A NAME="ixAAQ"></A>
+
+
+<PRE>
+    ### ask a user (with an open question) for their favourite colour
+    $reply = $term-&gt;get_reply( prompt =&gt; 'Your favourite colour? );
+
+</PRE>
+
+
+<P>
+
+which would look like:
+<P>
+
+
+
+<PRE>
+    Your favourite colour?
+
+</PRE>
+
+
+<P>
+
+and <TT>$reply</TT> would hold the text the user typed.
+<A NAME="lbAR">&nbsp;</A>
+<H3>get_reply with choices</H3>
+
+<A NAME="ixAAR"></A>
+
+
+<PRE>
+    ### now provide a list of choices, so the user has to pick one
+    $reply = $term-&gt;get_reply(
+                prompt  =&gt; 'Your favourite colour?',
+                choices =&gt; [qw|red green blue|] );
+
+</PRE>
+
+
+<P>
+
+which would look like:
+<P>
+
+
+
+<PRE>
+      1&gt; red
+      2&gt; green
+      3&gt; blue
+    
+    Your favourite colour?
+
+</PRE>
+
+
+<P>
+
+<TT>$reply</TT> will hold one of the choices presented. <TT>&quot;Term::UI&quot;</TT> will repose
+the question if the user attempts to enter an answer that's not in the
+list of choices. The string presented is held in the <TT>$Term::UI::INVALID</TT>
+variable (see the <TT>&quot;GLOBAL VARIABLES&quot;</TT> section for details.
+<A NAME="lbAS">&nbsp;</A>
+<H3>get_reply with choices and default</H3>
+
+<A NAME="ixAAS"></A>
+
+
+<PRE>
+    ### provide a sensible default option -- everyone loves blue!
+    $reply = $term-&gt;get_reply(
+                prompt  =&gt; 'Your favourite colour?',
+                choices =&gt; [qw|red green blue|],
+                default =&gt; 'blue' );
+
+</PRE>
+
+
+<P>
+
+which would look like:
+<P>
+
+
+
+<PRE>
+      1&gt; red
+      2&gt; green
+      3&gt; blue
+    
+    Your favourite colour? [3]:
+
+</PRE>
+
+
+<P>
+
+Note the default answer after the prompt. A user can now just hit <TT>&quot;enter&quot;</TT>
+(or set <TT>$Term::UI::AUTOREPLY</TT> --- see the <TT>&quot;GLOBAL VARIABLES&quot;</TT> section) and
+the sensible answer 'blue' will be returned.
+<A NAME="lbAT">&nbsp;</A>
+<H3>get_reply using print_me &amp; multi</H3>
+
+<A NAME="ixAAT"></A>
+
+
+<PRE>
+    ### allow the user to pick more than one colour and add an 
+    ### introduction text
+    @reply = $term-&gt;get_reply(
+                print_me    =&gt; 'Tell us what colours you like', 
+                prompt      =&gt; 'Your favourite colours?',
+                choices     =&gt; [qw|red green blue|],
+                multi       =&gt; 1 );
+
+</PRE>
+
+
+<P>
+
+which would look like:
+<P>
+
+
+
+<PRE>
+    Tell us what colours you like
+      1&gt; red
+      2&gt; green
+      3&gt; blue
+    
+    Your favourite colours?
+
+</PRE>
+
+
+<P>
+
+An answer of <TT>&quot;3 2 1&quot;</TT> would fill <TT>@reply</TT> with <TT>&quot;blue green red&quot;</TT>
+<A NAME="lbAU">&nbsp;</A>
+<H3>get_reply &amp; allow</H3>
+
+<A NAME="ixAAU"></A>
+
+
+<PRE>
+    ### pose an open question, but do a custom verification on 
+    ### the answer, which will only exit the question loop, if 
+    ### the answer matches the allow handler.
+    $reply = $term-&gt;get_reply(
+                prompt  =&gt; &quot;What is the magic number?&quot;,
+                allow   =&gt; 42 );
+
+</PRE>
+
+
+<P>
+
+Unless the user now enters <TT>42</TT>, the question will be reposed over
+and over again. You can use more sophisticated <TT>&quot;allow&quot;</TT> handlers (even
+subroutines can be used). The <TT>&quot;allow&quot;</TT> handler is implemented using
+<TT>&quot;Params::Check&quot;</TT>'s <TT>&quot;allow&quot;</TT> function. Check its manpage for details.
+<A NAME="lbAV">&nbsp;</A>
+<H3>an elaborate ask_yn sample</H3>
+
+<A NAME="ixAAV"></A>
+
+
+<PRE>
+    ### ask a user if he likes cookies. Default to a sensible 'yes'
+    ### and inform him first what cookies are.
+    $bool = $term-&gt;ask_yn( prompt   =&gt; 'Do you like cookies?',
+                           default  =&gt; 'y',
+                           print_me =&gt; 'Cookies are LOVELY!!!' );
+
+</PRE>
+
+
+<P>
+
+would print:
+<P>
+
+
+
+<PRE>
+    Cookies are LOVELY!!!
+    Do you like cookies? [Y/n]:
+
+</PRE>
+
+
+<P>
+
+If a user then simply hits <TT>&quot;enter&quot;</TT>, agreeing with the default, 
+<TT>$bool</TT> would be set to <TT>&quot;true&quot;</TT>. (Simply hitting 'y' would also 
+return <TT>&quot;true&quot;</TT>. Hitting 'n' would return <TT>&quot;false&quot;</TT>)
+<P>
+
+We could later retrieve this interaction by printing out the Q&amp;A 
+history as follows:
+<P>
+
+
+
+<PRE>
+    print $term-&gt;history_as_string;
+
+</PRE>
+
+
+<P>
+
+which would then print:
+<P>
+
+
+
+<PRE>
+    Cookies are LOVELY!!!
+    Do you like cookies? [Y/n]:  y
+
+</PRE>
+
+
+<P>
+
+There's a chance we're doing this non-interactively, because a console
+is missing, the user indicated he just wanted the defaults, etc.
+<P>
+
+In this case, simply setting <TT>$Term::UI::AUTOREPLY</TT> to true, will
+return from every question with the default answer set for the question.
+Do note that if <TT>&quot;AUTOREPLY&quot;</TT> is true, and no default is set, <TT>&quot;Term::UI&quot;</TT>
+will warn about this and return <TT>&quot;undef&quot;</TT>.
+<A NAME="lbAW">&nbsp;</A>
+<H2>See Also</H2>
+
+<A NAME="ixAAW"></A>
+<TT>&quot;Params::Check&quot;</TT>, <TT>&quot;Term::ReadLine&quot;</TT>, <TT>&quot;Term::UI::History&quot;</TT>
+<A NAME="lbAX">&nbsp;</A>
+<H2>BUG REPORTS</H2>
+
+<A NAME="ixAAX"></A>
+Please report bugs or other issues to &lt;<A HREF="mailto:bug-term-ui@rt.cpan.org">bug-term-ui@rt.cpan.org</A>&lt;gt&gt;.
+<A NAME="lbAY">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAY"></A>
+This module by Jos Boumans &lt;<A HREF="mailto:kane@cpan.org">kane@cpan.org</A>&gt;.
+<A NAME="lbAZ">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAZ"></A>
+This library is free software; you may redistribute and/or modify it 
+under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">HOW IT WORKS</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">$reply = $term-&gt;get_reply( prompt =&gt; 'question?', [choices =&gt; \@list, default =&gt; $list[0], multi =&gt; <FONT SIZE="-1">BOOL</FONT>, print_me =&gt; extra text to print &amp; record, allow =&gt; $ref] );</A><DD>
+<DT><A HREF="#lbAH">$bool = $term-&gt;ask_yn( prompt =&gt; your question, [default =&gt; (y|1,n|0), print_me =&gt; extra text to print &amp; record] )</A><DD>
+<DT><A HREF="#lbAI">($opts, $munged) = $term-&gt;parse_options( <FONT SIZE="-1">STRING</FONT> );</A><DD>
+<DT><A HREF="#lbAJ">$str = $term-&gt;history_as_string</A><DD>
+</DL>
+<DT><A HREF="#lbAK">GLOBAL VARIABLES</A><DD>
+<DL>
+<DT><A HREF="#lbAL">$Term::UI::VERBOSE</A><DD>
+<DT><A HREF="#lbAM">$Term::UI::AUTOREPLY</A><DD>
+<DT><A HREF="#lbAN">$Term::UI::INVALID</A><DD>
+<DT><A HREF="#lbAO">$Term::UI::History::HISTORY_FH</A><DD>
+</DL>
+<DT><A HREF="#lbAP">EXAMPLES</A><DD>
+<DL>
+<DT><A HREF="#lbAQ">Basic get_reply sample</A><DD>
+<DT><A HREF="#lbAR">get_reply with choices</A><DD>
+<DT><A HREF="#lbAS">get_reply with choices and default</A><DD>
+<DT><A HREF="#lbAT">get_reply using print_me &amp; multi</A><DD>
+<DT><A HREF="#lbAU">get_reply &amp; allow</A><DD>
+<DT><A HREF="#lbAV">an elaborate ask_yn sample</A><DD>
+</DL>
+<DT><A HREF="#lbAW">See Also</A><DD>
+<DT><A HREF="#lbAX">BUG REPORTS</A><DD>
+<DT><A HREF="#lbAY">AUTHOR</A><DD>
+<DT><A HREF="#lbAZ">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:43 GMT, December 24, 2015
+</div></body>
+</HTML>

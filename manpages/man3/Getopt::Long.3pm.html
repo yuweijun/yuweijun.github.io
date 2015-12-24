@@ -1,0 +1,2091 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Getopt::Long</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Getopt::Long</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-04-19<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Getopt::Long - Extended processing of command line options
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Getopt::Long;
+  my $data   = &quot;file.dat&quot;;
+  my $length = 24;
+  my $verbose;
+  $result = GetOptions (&quot;length=i&quot; =&gt; \$length,    # numeric
+                        &quot;file=s&quot;   =&gt; \$data,      # string
+                        &quot;verbose&quot;  =&gt; \$verbose);  # flag
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The Getopt::Long module implements an extended getopt function called
+<I>GetOptions()</I>. This function adheres to the <FONT SIZE="-1">POSIX</FONT> syntax for command
+line options, with <FONT SIZE="-1">GNU</FONT> extensions. In general, this means that options
+have long names instead of single letters, and are introduced with a
+double dash ``--''. Support for bundling of command line options, as was
+the case with the more traditional single-letter approach, is provided
+but not enabled by default.
+<A NAME="lbAE">&nbsp;</A>
+<H2>Command Line Options, an Introduction</H2>
+
+<A NAME="ixAAE"></A>
+Command line operated programs traditionally take their arguments from
+the command line, for example filenames or other information that the
+program needs to know. Besides arguments, these programs often take
+command line <I>options</I> as well. Options are not necessary for the
+program to work, hence the name 'option', but are used to modify its
+default behaviour. For example, a program could do its job quietly,
+but with a suitable option it could provide verbose information about
+what it did.
+<P>
+
+Command line options come in several flavours. Historically, they are
+preceded by a single dash <TT>&quot;-&quot;</TT>, and consist of a single letter.
+<P>
+
+
+
+<PRE>
+    -l -a -c
+
+</PRE>
+
+
+<P>
+
+Usually, these single-character options can be bundled:
+<P>
+
+
+
+<PRE>
+    -lac
+
+</PRE>
+
+
+<P>
+
+Options can have values, the value is placed after the option
+character. Sometimes with whitespace in between, sometimes not:
+<P>
+
+
+
+<PRE>
+    -s 24 -s24
+
+</PRE>
+
+
+<P>
+
+Due to the very cryptic nature of these options, another style was
+developed that used long names. So instead of a cryptic <TT>&quot;-l&quot;</TT> one
+could use the more descriptive <TT>&quot;--long&quot;</TT>. To distinguish between a
+bundle of single-character options and a long one, two dashes are used
+to precede the option name. Early implementations of long options used
+a plus <TT>&quot;+&quot;</TT> instead. Also, option values could be specified either
+like
+<P>
+
+
+
+<PRE>
+    --size=24
+
+</PRE>
+
+
+<P>
+
+or
+<P>
+
+
+
+<PRE>
+    --size 24
+
+</PRE>
+
+
+<P>
+
+The <TT>&quot;+&quot;</TT> form is now obsolete and strongly deprecated.
+<A NAME="lbAF">&nbsp;</A>
+<H2>Getting Started with Getopt::Long</H2>
+
+<A NAME="ixAAF"></A>
+Getopt::Long is the Perl5 successor of <TT>&quot;newgetopt.pl&quot;</TT>. This was the
+first Perl module that provided support for handling the new style of
+command line options, hence the name Getopt::Long. This module also
+supports single-character options and bundling. Single character
+options may be any alphabetic character, a question mark, and a dash.
+Long options may consist of a series of letters, digits, and dashes.
+Although this is currently not enforced by Getopt::Long, multiple
+consecutive dashes are not allowed, and the option name must not end
+with a dash.
+<P>
+
+To use Getopt::Long from a Perl program, you must include the
+following line in your Perl program:
+<P>
+
+
+
+<PRE>
+    use Getopt::Long;
+
+</PRE>
+
+
+<P>
+
+This will load the core of the Getopt::Long module and prepare your
+program for using it. Most of the actual Getopt::Long code is not
+loaded until you really call one of its functions.
+<P>
+
+In the default configuration, options names may be abbreviated to
+uniqueness, case does not matter, and a single dash is sufficient,
+even for long option names. Also, options may be placed between
+non-option arguments. See ``Configuring Getopt::Long'' for more
+details on how to configure Getopt::Long.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Simple options</H3>
+
+<A NAME="ixAAG"></A>
+The most simple options are the ones that take no values. Their mere
+presence on the command line enables the option. Popular examples are:
+<P>
+
+
+
+<PRE>
+    --all --verbose --quiet --debug
+
+</PRE>
+
+
+<P>
+
+Handling simple options is straightforward:
+<P>
+
+
+
+<PRE>
+    my $verbose = '';   # option variable with default value (false)
+    my $all = '';       # option variable with default value (false)
+    GetOptions ('verbose' =&gt; \$verbose, 'all' =&gt; \$all);
+
+</PRE>
+
+
+<P>
+
+The call to <I>GetOptions()</I> parses the command line arguments that are
+present in <TT>@ARGV</TT> and sets the option variable to the value <TT>1</TT> if
+the option did occur on the command line. Otherwise, the option
+variable is not touched. Setting the option value to true is often
+called <I>enabling</I> the option.
+<P>
+
+The option name as specified to the <I>GetOptions()</I> function is called
+the option <I>specification</I>. Later we'll see that this specification
+can contain more than just the option name. The reference to the
+variable is called the option <I>destination</I>.
+<P>
+
+<I>GetOptions()</I> will return a true value if the command line could be
+processed successfully. Otherwise, it will write error messages to
+<FONT SIZE="-1">STDERR</FONT>, and return a false result.
+<A NAME="lbAH">&nbsp;</A>
+<H3>A little bit less simple options</H3>
+
+<A NAME="ixAAH"></A>
+Getopt::Long supports two useful variants of simple options:
+<I>negatable</I> options and <I>incremental</I> options.
+<P>
+
+A negatable option is specified with an exclamation mark <TT>&quot;!&quot;</TT> after the
+option name:
+<P>
+
+
+
+<PRE>
+    my $verbose = '';   # option variable with default value (false)
+    GetOptions ('verbose!' =&gt; \$verbose);
+
+</PRE>
+
+
+<P>
+
+Now, using <TT>&quot;--verbose&quot;</TT> on the command line will enable <TT>$verbose</TT>,
+as expected. But it is also allowed to use <TT>&quot;--noverbose&quot;</TT>, which will
+disable <TT>$verbose</TT> by setting its value to <TT>0</TT>. Using a suitable
+default value, the program can find out whether <TT>$verbose</TT> is false
+by default, or disabled by using <TT>&quot;--noverbose&quot;</TT>.
+<P>
+
+An incremental option is specified with a plus <TT>&quot;+&quot;</TT> after the
+option name:
+<P>
+
+
+
+<PRE>
+    my $verbose = '';   # option variable with default value (false)
+    GetOptions ('verbose+' =&gt; \$verbose);
+
+</PRE>
+
+
+<P>
+
+Using <TT>&quot;--verbose&quot;</TT> on the command line will increment the value of
+<TT>$verbose</TT>. This way the program can keep track of how many times the
+option occurred on the command line. For example, each occurrence of
+<TT>&quot;--verbose&quot;</TT> could increase the verbosity level of the program.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Mixing command line option with other arguments</H3>
+
+<A NAME="ixAAI"></A>
+Usually programs take command line options as well as other arguments,
+for example, file names. It is good practice to always specify the
+options first, and the other arguments last. Getopt::Long will,
+however, allow the options and arguments to be mixed and 'filter out'
+all the options before passing the rest of the arguments to the
+program. To stop Getopt::Long from processing further arguments,
+insert a double dash <TT>&quot;--&quot;</TT> on the command line:
+<P>
+
+
+
+<PRE>
+    --size 24 -- --all
+
+</PRE>
+
+
+<P>
+
+In this example, <TT>&quot;--all&quot;</TT> will <I>not</I> be treated as an option, but
+passed to the program unharmed, in <TT>@ARGV</TT>.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Options with values</H3>
+
+<A NAME="ixAAJ"></A>
+For options that take values it must be specified whether the option
+value is required or not, and what kind of value the option expects.
+<P>
+
+Three kinds of values are supported: integer numbers, floating point
+numbers, and strings.
+<P>
+
+If the option value is required, Getopt::Long will take the
+command line argument that follows the option and assign this to the
+option variable. If, however, the option value is specified as
+optional, this will only be done if that value does not look like a
+valid command line option itself.
+<P>
+
+
+
+<PRE>
+    my $tag = '';       # option variable with default value
+    GetOptions ('tag=s' =&gt; \$tag);
+
+</PRE>
+
+
+<P>
+
+In the option specification, the option name is followed by an equals
+sign <TT>&quot;=&quot;</TT> and the letter <TT>&quot;s&quot;</TT>. The equals sign indicates that this
+option requires a value. The letter <TT>&quot;s&quot;</TT> indicates that this value is
+an arbitrary string. Other possible value types are <TT>&quot;i&quot;</TT> for integer
+values, and <TT>&quot;f&quot;</TT> for floating point values. Using a colon <TT>&quot;:&quot;</TT> instead
+of the equals sign indicates that the option value is optional. In
+this case, if no suitable value is supplied, string valued options get
+an empty string <TT>''</TT> assigned, while numeric options are set to <TT>0</TT>.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Options with multiple values</H3>
+
+<A NAME="ixAAK"></A>
+Options sometimes take several values. For example, a program could
+use multiple directories to search for library files:
+<P>
+
+
+
+<PRE>
+    --library lib/stdlib --library lib/extlib
+
+</PRE>
+
+
+<P>
+
+To accomplish this behaviour, simply specify an array reference as the
+destination for the option:
+<P>
+
+
+
+<PRE>
+    GetOptions (&quot;library=s&quot; =&gt; \@libfiles);
+
+</PRE>
+
+
+<P>
+
+Alternatively, you can specify that the option can have multiple
+values by adding a ``@'', and pass a scalar reference as the
+destination:
+<P>
+
+
+
+<PRE>
+    GetOptions (&quot;library=s@&quot; =&gt; \$libfiles);
+
+</PRE>
+
+
+<P>
+
+Used with the example above, <TT>@libfiles</TT> (or <TT>@$libfiles</TT>) would
+contain two strings upon completion: <TT>&quot;lib/srdlib&quot;</TT> and
+<TT>&quot;lib/extlib&quot;</TT>, in that order. It is also possible to specify that
+only integer or floating point numbers are acceptable values.
+<P>
+
+Often it is useful to allow comma-separated lists of values as well as
+multiple occurrences of the options. This is easy using Perl's <I>split()</I>
+and <I>join()</I> operators:
+<P>
+
+
+
+<PRE>
+    GetOptions (&quot;library=s&quot; =&gt; \@libfiles);
+    @libfiles = split(/,/,join(',',@libfiles));
+
+</PRE>
+
+
+<P>
+
+Of course, it is important to choose the right separator string for
+each purpose.
+<P>
+
+Warning: What follows is an experimental feature.
+<P>
+
+Options can take multiple values at once, for example
+<P>
+
+
+
+<PRE>
+    --coordinates 52.2 16.4 --rgbcolor 255 255 149
+
+</PRE>
+
+
+<P>
+
+This can be accomplished by adding a repeat specifier to the option
+specification. Repeat specifiers are very similar to the <TT>&quot;{...}&quot;</TT>
+repeat specifiers that can be used with regular expression patterns.
+For example, the above command line would be handled as follows:
+<P>
+
+
+
+<PRE>
+    GetOptions('coordinates=f{2}' =&gt; \@coor, 'rgbcolor=i{3}' =&gt; \@color);
+
+</PRE>
+
+
+<P>
+
+The destination for the option must be an array or array reference.
+<P>
+
+It is also possible to specify the minimal and maximal number of
+arguments an option takes. <TT>&quot;foo=s{2,4}&quot;</TT> indicates an option that
+takes at least two and at most 4 arguments. <TT>&quot;foo=s{,}&quot;</TT> indicates one
+or more values; <TT>&quot;foo:s{,}&quot;</TT> indicates zero or more option values.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Options with hash values</H3>
+
+<A NAME="ixAAL"></A>
+If the option destination is a reference to a hash, the option will
+take, as value, strings of the form <I>key</I><TT>&quot;=&quot;</TT><I>value</I>. The value will
+be stored with the specified key in the hash.
+<P>
+
+
+
+<PRE>
+    GetOptions (&quot;define=s&quot; =&gt; \%defines);
+
+</PRE>
+
+
+<P>
+
+Alternatively you can use:
+<P>
+
+
+
+<PRE>
+    GetOptions (&quot;define=s%&quot; =&gt; \$defines);
+
+</PRE>
+
+
+<P>
+
+When used with command line options:
+<P>
+
+
+
+<PRE>
+    --define os=linux --define vendor=redhat
+
+</PRE>
+
+
+<P>
+
+the hash <TT>%defines</TT> (or <TT>%$defines</TT>) will contain two keys, <TT>&quot;os&quot;</TT>
+with value <TT>&quot;linux&quot;</TT> and <TT>&quot;vendor&quot;</TT> with value <TT>&quot;redhat&quot;</TT>. It is
+also possible to specify that only integer or floating point numbers
+are acceptable values. The keys are always taken to be strings.
+<A NAME="lbAM">&nbsp;</A>
+<H3>User-defined subroutines to handle options</H3>
+
+<A NAME="ixAAM"></A>
+Ultimate control over what should be done when (actually: each time)
+an option is encountered on the command line can be achieved by
+designating a reference to a subroutine (or an anonymous subroutine)
+as the option destination. When <I>GetOptions()</I> encounters the option, it
+will call the subroutine with two or three arguments. The first
+argument is the name of the option. (Actually, it is an object that
+stringifies to the name of the option.) For a scalar or array destination,
+the second argument is the value to be stored. For a hash destination,
+the second arguments is the key to the hash, and the third argument
+the value to be stored. It is up to the subroutine to store the value,
+or do whatever it thinks is appropriate.
+<P>
+
+A trivial application of this mechanism is to implement options that
+are related to each other. For example:
+<P>
+
+
+
+<PRE>
+    my $verbose = '';   # option variable with default value (false)
+    GetOptions ('verbose' =&gt; \$verbose,
+                'quiet'   =&gt; sub { $verbose = 0 });
+
+</PRE>
+
+
+<P>
+
+Here <TT>&quot;--verbose&quot;</TT> and <TT>&quot;--quiet&quot;</TT> control the same variable
+<TT>$verbose</TT>, but with opposite values.
+<P>
+
+If the subroutine needs to signal an error, it should call <I>die()</I> with
+the desired error message as its argument. <I>GetOptions()</I> will catch the
+<I>die()</I>, issue the error message, and record that an error result must
+be returned upon completion.
+<P>
+
+If the text of the error message starts with an exclamation mark <TT>&quot;!&quot;</TT>
+it is interpreted specially by <I>GetOptions()</I>. There is currently one
+special command implemented: <TT>&quot;die(&quot;!FINISH&quot;)&quot;</TT> will cause <I>GetOptions()</I>
+to stop processing options, as if it encountered a double dash <TT>&quot;--&quot;</TT>.
+<P>
+
+In version 2.37 the first argument to the callback function was
+changed from string to object. This was done to make room for
+extensions and more detailed control. The object stringifies to the
+option name so this change should not introduce compatibility
+problems.
+<A NAME="lbAN">&nbsp;</A>
+<H3>Options with multiple names</H3>
+
+<A NAME="ixAAN"></A>
+Often it is user friendly to supply alternate mnemonic names for
+options. For example <TT>&quot;--height&quot;</TT> could be an alternate name for
+<TT>&quot;--length&quot;</TT>. Alternate names can be included in the option
+specification, separated by vertical bar <TT>&quot;|&quot;</TT> characters. To implement
+the above example:
+<P>
+
+
+
+<PRE>
+    GetOptions ('length|height=f' =&gt; \$length);
+
+</PRE>
+
+
+<P>
+
+The first name is called the <I>primary</I> name, the other names are
+called <I>aliases</I>. When using a hash to store options, the key will
+always be the primary name.
+<P>
+
+Multiple alternate names are possible.
+<A NAME="lbAO">&nbsp;</A>
+<H3>Case and abbreviations</H3>
+
+<A NAME="ixAAO"></A>
+Without additional configuration, <I>GetOptions()</I> will ignore the case of
+option names, and allow the options to be abbreviated to uniqueness.
+<P>
+
+
+
+<PRE>
+    GetOptions ('length|height=f' =&gt; \$length, &quot;head&quot; =&gt; \$head);
+
+</PRE>
+
+
+<P>
+
+This call will allow <TT>&quot;--l&quot;</TT> and <TT>&quot;--L&quot;</TT> for the length option, but
+requires a least <TT>&quot;--hea&quot;</TT> and <TT>&quot;--hei&quot;</TT> for the head and height options.
+<A NAME="lbAP">&nbsp;</A>
+<H3>Summary of Option Specifications</H3>
+
+<A NAME="ixAAP"></A>
+Each option specifier consists of two parts: the name specification
+and the argument specification.
+<P>
+
+The name specification contains the name of the option, optionally
+followed by a list of alternative names separated by vertical bar
+characters.
+<P>
+
+
+
+<PRE>
+    length            option name is &quot;length&quot;
+    length|size|l     name is &quot;length&quot;, aliases are &quot;size&quot; and &quot;l&quot;
+
+</PRE>
+
+
+<P>
+
+The argument specification is optional. If omitted, the option is
+considered boolean, a value of 1 will be assigned when the option is
+used on the command line.
+<P>
+
+The argument specification can be
+<DL COMPACT>
+<DT>!<DD>
+The option does not take an argument and may be negated by prefixing
+it with ``no'' or ``no-''. E.g. <TT>&quot;foo!&quot;</TT> will allow <TT>&quot;--foo&quot;</TT> (a value of
+1 will be assigned) as well as <TT>&quot;--nofoo&quot;</TT> and <TT>&quot;--no-foo&quot;</TT> (a value of
+0 will be assigned). If the option has aliases, this applies to the
+aliases as well.
+
+
+<P>
+
+
+Using negation on a single letter option when bundling is in effect is
+pointless and will result in a warning.
+<DT>+<DD>
+The option does not take an argument and will be incremented by 1
+every time it appears on the command line. E.g. <TT>&quot;more+&quot;</TT>, when used
+with <TT>&quot;--more --more --more&quot;</TT>, will increment the value three times,
+resulting in a value of 3 (provided it was 0 or undefined at first).
+
+
+<P>
+
+
+The <TT>&quot;+&quot;</TT> specifier is ignored if the option destination is not a scalar.
+<DT>= <I>type</I> [ <I>desttype</I> ] [ <I>repeat</I> ]<DD>
+<A NAME="ixAAQ"></A>
+The option requires an argument of the given type. Supported types
+are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>s<DD>
+<A NAME="ixAAR"></A>
+String. An arbitrary sequence of characters. It is valid for the
+argument to start with <TT>&quot;-&quot;</TT> or <TT>&quot;--&quot;</TT>.
+<DT>i<DD>
+<A NAME="ixAAS"></A>
+Integer. An optional leading plus or minus sign, followed by a
+sequence of digits.
+<DT>o<DD>
+<A NAME="ixAAT"></A>
+Extended integer, Perl style. This can be either an optional leading
+plus or minus sign, followed by a sequence of digits, or an octal
+string (a zero, optionally followed by '0', '1', .. '7'), or a
+hexadecimal string (<TT>&quot;0x&quot;</TT> followed by '0' .. '9', 'a' .. 'f', case
+insensitive), or a binary string (<TT>&quot;0b&quot;</TT> followed by a series of '0'
+and '1').
+<DT>f<DD>
+<A NAME="ixAAU"></A>
+Real number. For example <TT>3.14</TT>, <TT>&quot;-6.23E24&quot;</TT> and so on.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+The <I>desttype</I> can be <TT>&quot;@&quot;</TT> or <TT>&quot;%&quot;</TT> to specify that the option is
+list or a hash valued. This is only needed when the destination for
+the option value is not otherwise specified. It should be omitted when
+not needed.
+
+
+<P>
+
+
+The <I>repeat</I> specifies the number of values this option takes per
+occurrence on the command line. It has the format <TT>&quot;{&quot;</TT> [ <I>min</I> ] [ <TT>&quot;,&quot;</TT> [ <I>max</I> ] ] <TT>&quot;}&quot;</TT>.
+
+
+<P>
+
+
+<I>min</I> denotes the minimal number of arguments. It defaults to 1 for
+options with <TT>&quot;=&quot;</TT> and to 0 for options with <TT>&quot;:&quot;</TT>, see below. Note that
+<I>min</I> overrules the <TT>&quot;=&quot;</TT> / <TT>&quot;:&quot;</TT> semantics.
+
+
+<P>
+
+
+<I>max</I> denotes the maximum number of arguments. It must be at least
+<I>min</I>. If <I>max</I> is omitted, <I>but the comma is not</I>, there is no
+upper bound to the number of argument values taken.
+</DL>
+
+<DT>: <I>type</I> [ <I>desttype</I> ]<DD>
+<A NAME="ixAAV"></A>
+Like <TT>&quot;=&quot;</TT>, but designates the argument as optional.
+If omitted, an empty string will be assigned to string values options,
+and the value zero to numeric options.
+
+
+<P>
+
+
+Note that if a string argument starts with <TT>&quot;-&quot;</TT> or <TT>&quot;--&quot;</TT>, it will be
+considered an option on itself.
+<DT>: <I>number</I> [ <I>desttype</I> ]<DD>
+<A NAME="ixAAW"></A>
+Like <TT>&quot;:i&quot;</TT>, but if the value is omitted, the <I>number</I> will be assigned.
+<DT>: + [ <I>desttype</I> ]<DD>
+<A NAME="ixAAX"></A>
+Like <TT>&quot;:i&quot;</TT>, but if the value is omitted, the current value for the
+option will be incremented.
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H2>Advanced Possibilities</H2>
+
+<A NAME="ixAAY"></A>
+<A NAME="lbAR">&nbsp;</A>
+<H3>Object oriented interface</H3>
+
+<A NAME="ixAAZ"></A>
+Getopt::Long can be used in an object oriented way as well:
+<P>
+
+
+
+<PRE>
+    use Getopt::Long;
+    $p = new Getopt::Long::Parser;
+    $p-&gt;configure(...configuration options...);
+    if ($p-&gt;getoptions(...options descriptions...)) ...
+
+</PRE>
+
+
+<P>
+
+Configuration options can be passed to the constructor:
+<P>
+
+
+
+<PRE>
+    $p = new Getopt::Long::Parser
+             config =&gt; [...configuration options...];
+
+</PRE>
+
+
+<A NAME="lbAS">&nbsp;</A>
+<H3>Thread Safety</H3>
+
+<A NAME="ixABA"></A>
+Getopt::Long is thread safe when using ithreads as of Perl 5.8.  It is
+<I>not</I> thread safe when using the older (experimental and now
+obsolete) threads implementation that was added to Perl 5.005.
+<A NAME="lbAT">&nbsp;</A>
+<H3>Documentation and help texts</H3>
+
+<A NAME="ixABB"></A>
+Getopt::Long encourages the use of Pod::Usage to produce help
+messages. For example:
+<P>
+
+
+
+<PRE>
+    use Getopt::Long;
+    use Pod::Usage;
+
+    my $man = 0;
+    my $help = 0;
+
+    GetOptions('help|?' =&gt; \$help, man =&gt; \$man) or <A HREF="/manpages/index.html?2+pod2usage">pod2usage</A>(2);
+    <A HREF="/manpages/index.html?1+pod2usage">pod2usage</A>(1) if $help;
+    pod2usage(-exitstatus =&gt; 0, -verbose =&gt; 2) if $man;
+
+    __END__
+
+    =head1 NAME
+
+    sample - Using Getopt::Long and Pod::Usage
+
+    =head1 SYNOPSIS
+
+    sample [options] [file ...]
+
+     Options:
+       -help            brief help message
+       -man             full documentation
+
+    =head1 OPTIONS
+
+    =over 8
+
+    =item B&lt;-help&gt;
+
+    Print a brief help message and exits.
+
+    =item B&lt;-man&gt;
+
+    Prints the manual page and exits.
+
+    =back
+
+    =head1 DESCRIPTION
+
+    B&lt;This program&gt; will read the given input file(s) and do something
+    useful with the contents thereof.
+
+    =cut
+
+</PRE>
+
+
+<P>
+
+See Pod::Usage for details.
+<A NAME="lbAU">&nbsp;</A>
+<H3>Parsing options from an arbitrary array</H3>
+
+<A NAME="ixABC"></A>
+By default, GetOptions parses the options that are present in the
+global array <TT>@ARGV</TT>. A special entry <TT>&quot;GetOptionsFromArray&quot;</TT> can be
+used to parse options from an arbitrary array.
+<P>
+
+
+
+<PRE>
+    use Getopt::Long qw(GetOptionsFromArray);
+    $ret = GetOptionsFromArray(\@myopts, ...);
+
+</PRE>
+
+
+<P>
+
+When used like this, the global <TT>@ARGV</TT> is not touched at all.
+<P>
+
+The following two calls behave identically:
+<P>
+
+
+
+<PRE>
+    $ret = GetOptions( ... );
+    $ret = GetOptionsFromArray(\@ARGV, ... );
+
+</PRE>
+
+
+<A NAME="lbAV">&nbsp;</A>
+<H3>Parsing options from an arbitrary string</H3>
+
+<A NAME="ixABD"></A>
+A special entry <TT>&quot;GetOptionsFromString&quot;</TT> can be used to parse options
+from an arbitrary string.
+<P>
+
+
+
+<PRE>
+    use Getopt::Long qw(GetOptionsFromString);
+    $ret = GetOptionsFromString($string, ...);
+
+</PRE>
+
+
+<P>
+
+The contents of the string are split into arguments using a call to
+<TT>&quot;Text::ParseWords::shellwords&quot;</TT>. As with <TT>&quot;GetOptionsFromArray&quot;</TT>, the
+global <TT>@ARGV</TT> is not touched.
+<P>
+
+It is possible that, upon completion, not all arguments in the string
+have been processed. <TT>&quot;GetOptionsFromString&quot;</TT> will, when called in list
+context, return both the return status and an array reference to any
+remaining arguments:
+<P>
+
+
+
+<PRE>
+    ($ret, $args) = GetOptionsFromString($string, ... );
+
+</PRE>
+
+
+<P>
+
+If any arguments remain, and <TT>&quot;GetOptionsFromString&quot;</TT> was not called in
+list context, a message will be given and <TT>&quot;GetOptionsFromString&quot;</TT> will
+return failure.
+<A NAME="lbAW">&nbsp;</A>
+<H3>Storing options values in a hash</H3>
+
+<A NAME="ixABE"></A>
+Sometimes, for example when there are a lot of options, having a
+separate variable for each of them can be cumbersome. <I>GetOptions()</I>
+supports, as an alternative mechanism, storing options values in a
+hash.
+<P>
+
+To obtain this, a reference to a hash must be passed <I>as the first
+argument</I> to <I>GetOptions()</I>. For each option that is specified on the
+command line, the option value will be stored in the hash with the
+option name as key. Options that are not actually used on the command
+line will not be put in the hash, on other words,
+<TT>&quot;exists($h{option})&quot;</TT> (or <I>defined()</I>) can be used to test if an option
+was used. The drawback is that warnings will be issued if the program
+runs under <TT>&quot;use strict&quot;</TT> and uses <TT>$h{option}</TT> without testing with
+<I>exists()</I> or <I>defined()</I> first.
+<P>
+
+
+
+<PRE>
+    my %h = ();
+    GetOptions (\%h, 'length=i');       # will store in $h{length}
+
+</PRE>
+
+
+<P>
+
+For options that take list or hash values, it is necessary to indicate
+this by appending an <TT>&quot;@&quot;</TT> or <TT>&quot;%&quot;</TT> sign after the type:
+<P>
+
+
+
+<PRE>
+    GetOptions (\%h, 'colours=s@');     # will push to @{$h{colours}}
+
+</PRE>
+
+
+<P>
+
+To make things more complicated, the hash may contain references to
+the actual destinations, for example:
+<P>
+
+
+
+<PRE>
+    my $len = 0;
+    my %h = ('length' =&gt; \$len);
+    GetOptions (\%h, 'length=i');       # will store in $len
+
+</PRE>
+
+
+<P>
+
+This example is fully equivalent with:
+<P>
+
+
+
+<PRE>
+    my $len = 0;
+    GetOptions ('length=i' =&gt; \$len);   # will store in $len
+
+</PRE>
+
+
+<P>
+
+Any mixture is possible. For example, the most frequently used options
+could be stored in variables while all other options get stored in the
+hash:
+<P>
+
+
+
+<PRE>
+    my $verbose = 0;                    # frequently referred
+    my $debug = 0;                      # frequently referred
+    my %h = ('verbose' =&gt; \$verbose, 'debug' =&gt; \$debug);
+    GetOptions (\%h, 'verbose', 'debug', 'filter', 'size=i');
+    if ( $verbose ) { ... }
+    if ( exists $h{filter} ) { ... option 'filter' was specified ... }
+
+</PRE>
+
+
+<A NAME="lbAX">&nbsp;</A>
+<H3>Bundling</H3>
+
+<A NAME="ixABF"></A>
+With bundling it is possible to set several single-character options
+at once. For example if <TT>&quot;a&quot;</TT>, <TT>&quot;v&quot;</TT> and <TT>&quot;x&quot;</TT> are all valid options,
+<P>
+
+
+
+<PRE>
+    -vax
+
+</PRE>
+
+
+<P>
+
+would set all three.
+<P>
+
+Getopt::Long supports two levels of bundling. To enable bundling, a
+call to Getopt::Long::Configure is required.
+<P>
+
+The first level of bundling can be enabled with:
+<P>
+
+
+
+<PRE>
+    Getopt::Long::Configure (&quot;bundling&quot;);
+
+</PRE>
+
+
+<P>
+
+Configured this way, single-character options can be bundled but long
+options <B>must</B> always start with a double dash <TT>&quot;--&quot;</TT> to avoid
+ambiguity. For example, when <TT>&quot;vax&quot;</TT>, <TT>&quot;a&quot;</TT>, <TT>&quot;v&quot;</TT> and <TT>&quot;x&quot;</TT> are all valid
+options,
+<P>
+
+
+
+<PRE>
+    -vax
+
+</PRE>
+
+
+<P>
+
+would set <TT>&quot;a&quot;</TT>, <TT>&quot;v&quot;</TT> and <TT>&quot;x&quot;</TT>, but
+<P>
+
+
+
+<PRE>
+    --vax
+
+</PRE>
+
+
+<P>
+
+would set <TT>&quot;vax&quot;</TT>.
+<P>
+
+The second level of bundling lifts this restriction. It can be enabled
+with:
+<P>
+
+
+
+<PRE>
+    Getopt::Long::Configure (&quot;bundling_override&quot;);
+
+</PRE>
+
+
+<P>
+
+Now, <TT>&quot;-vax&quot;</TT> would set the option <TT>&quot;vax&quot;</TT>.
+<P>
+
+When any level of bundling is enabled, option values may be inserted
+in the bundle. For example:
+<P>
+
+
+
+<PRE>
+    -h24w80
+
+</PRE>
+
+
+<P>
+
+is equivalent to
+<P>
+
+
+
+<PRE>
+    -h 24 -w 80
+
+</PRE>
+
+
+<P>
+
+When configured for bundling, single-character options are matched
+case sensitive while long options are matched case insensitive. To
+have the single-character options matched case insensitive as well,
+use:
+<P>
+
+
+
+<PRE>
+    Getopt::Long::Configure (&quot;bundling&quot;, &quot;ignorecase_always&quot;);
+
+</PRE>
+
+
+<P>
+
+It goes without saying that bundling can be quite confusing.
+<A NAME="lbAY">&nbsp;</A>
+<H3>The lonesome dash</H3>
+
+<A NAME="ixABG"></A>
+Normally, a lone dash <TT>&quot;-&quot;</TT> on the command line will not be considered
+an option. Option processing will terminate (unless ``permute'' is
+configured) and the dash will be left in <TT>@ARGV</TT>.
+<P>
+
+It is possible to get special treatment for a lone dash. This can be
+achieved by adding an option specification with an empty name, for
+example:
+<P>
+
+
+
+<PRE>
+    GetOptions ('' =&gt; \$stdio);
+
+</PRE>
+
+
+<P>
+
+A lone dash on the command line will now be a legal option, and using
+it will set variable <TT>$stdio</TT>.
+<A NAME="lbAZ">&nbsp;</A>
+<H3>Argument callback</H3>
+
+<A NAME="ixABH"></A>
+A special option 'name' <TT>&quot;&lt;&gt;&quot;</TT> can be used to designate a subroutine
+to handle non-option arguments. When <I>GetOptions()</I> encounters an
+argument that does not look like an option, it will immediately call this
+subroutine and passes it one parameter: the argument name. Well, actually
+it is an object that stringifies to the argument name.
+<P>
+
+For example:
+<P>
+
+
+
+<PRE>
+    my $width = 80;
+    sub process { ... }
+    GetOptions ('width=i' =&gt; \$width, '&lt;&gt;' =&gt; \&amp;process);
+
+</PRE>
+
+
+<P>
+
+When applied to the following command line:
+<P>
+
+
+
+<PRE>
+    arg1 --width=72 arg2 --width=60 arg3
+
+</PRE>
+
+
+<P>
+
+This will call
+<TT>&quot;process(&quot;arg1&quot;)&quot;</TT> while <TT>$width</TT> is <TT>80</TT>,
+<TT>&quot;process(&quot;arg2&quot;)&quot;</TT> while <TT>$width</TT> is <TT>72</TT>, and
+<TT>&quot;process(&quot;arg3&quot;)&quot;</TT> while <TT>$width</TT> is <TT>60</TT>.
+<P>
+
+This feature requires configuration option <B>permute</B>, see section
+``Configuring Getopt::Long''.
+<A NAME="lbBA">&nbsp;</A>
+<H2>Configuring Getopt::Long</H2>
+
+<A NAME="ixABI"></A>
+Getopt::Long can be configured by calling subroutine
+<I>Getopt::Long::Configure()</I>. This subroutine takes a list of quoted
+strings, each specifying a configuration option to be enabled, e.g.
+<TT>&quot;ignore_case&quot;</TT>, or disabled, e.g. <TT>&quot;no_ignore_case&quot;</TT>. Case does not
+matter. Multiple calls to <I>Configure()</I> are possible.
+<P>
+
+Alternatively, as of version 2.24, the configuration options may be
+passed together with the <TT>&quot;use&quot;</TT> statement:
+<P>
+
+
+
+<PRE>
+    use Getopt::Long qw(:config no_ignore_case bundling);
+
+</PRE>
+
+
+<P>
+
+The following options are available:
+<DL COMPACT>
+<DT>default<DD>
+<A NAME="ixABJ"></A>
+This option causes all configuration options to be reset to their
+default values.
+<DT>posix_default<DD>
+<A NAME="ixABK"></A>
+This option causes all configuration options to be reset to their
+default values as if the environment variable <FONT SIZE="-1">POSIXLY_CORRECT</FONT> had
+been set.
+<DT>auto_abbrev<DD>
+<A NAME="ixABL"></A>
+Allow option names to be abbreviated to uniqueness.
+Default is enabled unless environment variable
+<FONT SIZE="-1">POSIXLY_CORRECT</FONT> has been set, in which case <TT>&quot;auto_abbrev&quot;</TT> is disabled.
+<DT>getopt_compat<DD>
+<A NAME="ixABM"></A>
+Allow <TT>&quot;+&quot;</TT> to start options.
+Default is enabled unless environment variable
+<FONT SIZE="-1">POSIXLY_CORRECT</FONT> has been set, in which case <TT>&quot;getopt_compat&quot;</TT> is disabled.
+<DT>gnu_compat<DD>
+<A NAME="ixABN"></A>
+<TT>&quot;gnu_compat&quot;</TT> controls whether <TT>&quot;--opt=&quot;</TT> is allowed, and what it should
+do. Without <TT>&quot;gnu_compat&quot;</TT>, <TT>&quot;--opt=&quot;</TT> gives an error. With <TT>&quot;gnu_compat&quot;</TT>,
+<TT>&quot;--opt=&quot;</TT> will give option <TT>&quot;opt&quot;</TT> and empty value.
+This is the way <FONT SIZE="-1">GNU</FONT> <I>getopt_long()</I> does it.
+<DT>gnu_getopt<DD>
+<A NAME="ixABO"></A>
+This is a short way of setting <TT>&quot;gnu_compat&quot;</TT> <TT>&quot;bundling&quot;</TT> <TT>&quot;permute&quot;</TT>
+<TT>&quot;no_getopt_compat&quot;</TT>. With <TT>&quot;gnu_getopt&quot;</TT>, command line handling should be
+fully compatible with <FONT SIZE="-1">GNU</FONT> <I>getopt_long()</I>.
+<DT>require_order<DD>
+<A NAME="ixABP"></A>
+Whether command line arguments are allowed to be mixed with options.
+Default is disabled unless environment variable
+<FONT SIZE="-1">POSIXLY_CORRECT</FONT> has been set, in which case <TT>&quot;require_order&quot;</TT> is enabled.
+
+
+<P>
+
+
+See also <TT>&quot;permute&quot;</TT>, which is the opposite of <TT>&quot;require_order&quot;</TT>.
+<DT>permute<DD>
+<A NAME="ixABQ"></A>
+Whether command line arguments are allowed to be mixed with options.
+Default is enabled unless environment variable
+<FONT SIZE="-1">POSIXLY_CORRECT</FONT> has been set, in which case <TT>&quot;permute&quot;</TT> is disabled.
+Note that <TT>&quot;permute&quot;</TT> is the opposite of <TT>&quot;require_order&quot;</TT>.
+
+
+<P>
+
+
+If <TT>&quot;permute&quot;</TT> is enabled, this means that
+
+
+<P>
+
+
+
+
+<PRE>
+    --foo arg1 --bar arg2 arg3
+
+</PRE>
+
+
+
+
+<P>
+
+
+is equivalent to
+
+
+<P>
+
+
+
+
+<PRE>
+    --foo --bar arg1 arg2 arg3
+
+</PRE>
+
+
+
+
+<P>
+
+
+If an argument callback routine is specified, <TT>@ARGV</TT> will always be
+empty upon successful return of <I>GetOptions()</I> since all options have been
+processed. The only exception is when <TT>&quot;--&quot;</TT> is used:
+
+
+<P>
+
+
+
+
+<PRE>
+    --foo arg1 --bar arg2 -- arg3
+
+</PRE>
+
+
+
+
+<P>
+
+
+This will call the callback routine for arg1 and arg2, and then
+terminate <I>GetOptions()</I> leaving <TT>&quot;arg3&quot;</TT> in <TT>@ARGV</TT>.
+
+
+<P>
+
+
+If <TT>&quot;require_order&quot;</TT> is enabled, options processing
+terminates when the first non-option is encountered.
+
+
+<P>
+
+
+
+
+<PRE>
+    --foo arg1 --bar arg2 arg3
+
+</PRE>
+
+
+
+
+<P>
+
+
+is equivalent to
+
+
+<P>
+
+
+
+
+<PRE>
+    --foo -- arg1 --bar arg2 arg3
+
+</PRE>
+
+
+
+
+<P>
+
+
+If <TT>&quot;pass_through&quot;</TT> is also enabled, options processing will terminate
+at the first unrecognized option, or non-option, whichever comes
+first.
+<DT>bundling (default: disabled)<DD>
+<A NAME="ixABR"></A>
+Enabling this option will allow single-character options to be
+bundled. To distinguish bundles from long option names, long options
+<I>must</I> be introduced with <TT>&quot;--&quot;</TT> and bundles with <TT>&quot;-&quot;</TT>.
+
+
+<P>
+
+
+Note that, if you have options <TT>&quot;a&quot;</TT>, <TT>&quot;l&quot;</TT> and <TT>&quot;all&quot;</TT>, and
+auto_abbrev enabled, possible arguments and option settings are:
+
+
+<P>
+
+
+
+
+<PRE>
+    using argument               sets option(s)
+    ------------------------------------------
+    -a, --a                      a
+    -l, --l                      l
+    -al, -la, -ala, -all,...     a, l
+    --al, --all                  all
+
+</PRE>
+
+
+
+
+<P>
+
+
+The surprising part is that <TT>&quot;--a&quot;</TT> sets option <TT>&quot;a&quot;</TT> (due to auto
+completion), not <TT>&quot;all&quot;</TT>.
+
+
+<P>
+
+
+Note: disabling <TT>&quot;bundling&quot;</TT> also disables <TT>&quot;bundling_override&quot;</TT>.
+<DT>bundling_override (default: disabled)<DD>
+<A NAME="ixABS"></A>
+If <TT>&quot;bundling_override&quot;</TT> is enabled, bundling is enabled as with
+<TT>&quot;bundling&quot;</TT> but now long option names override option bundles.
+
+
+<P>
+
+
+Note: disabling <TT>&quot;bundling_override&quot;</TT> also disables <TT>&quot;bundling&quot;</TT>.
+
+
+<P>
+
+
+<B>Note:</B> Using option bundling can easily lead to unexpected results,
+especially when mixing long options and bundles. Caveat emptor.
+<DT>ignore_case  (default: enabled)<DD>
+<A NAME="ixABT"></A>
+If enabled, case is ignored when matching long option names. If,
+however, bundling is enabled as well, single character options will be
+treated case-sensitive.
+
+
+<P>
+
+
+With <TT>&quot;ignore_case&quot;</TT>, option specifications for options that only
+differ in case, e.g., <TT>&quot;foo&quot;</TT> and <TT>&quot;Foo&quot;</TT>, will be flagged as
+duplicates.
+
+
+<P>
+
+
+Note: disabling <TT>&quot;ignore_case&quot;</TT> also disables <TT>&quot;ignore_case_always&quot;</TT>.
+<DT>ignore_case_always (default: disabled)<DD>
+<A NAME="ixABU"></A>
+When bundling is in effect, case is ignored on single-character
+options also.
+
+
+<P>
+
+
+Note: disabling <TT>&quot;ignore_case_always&quot;</TT> also disables <TT>&quot;ignore_case&quot;</TT>.
+<DT>auto_version (default:disabled)<DD>
+<A NAME="ixABV"></A>
+Automatically provide support for the <B>--version</B> option if
+the application did not specify a handler for this option itself.
+
+
+<P>
+
+
+Getopt::Long will provide a standard version message that includes the
+program name, its version (if <TT>$main::VERSION</TT> is defined), and the
+versions of Getopt::Long and Perl. The message will be written to
+standard output and processing will terminate.
+
+
+<P>
+
+
+<TT>&quot;auto_version&quot;</TT> will be enabled if the calling program explicitly
+specified a version number higher than 2.32 in the <TT>&quot;use&quot;</TT> or
+<TT>&quot;require&quot;</TT> statement.
+<DT>auto_help (default:disabled)<DD>
+<A NAME="ixABW"></A>
+Automatically provide support for the <B>--help</B> and <B>-?</B> options if
+the application did not specify a handler for this option itself.
+
+
+<P>
+
+
+Getopt::Long will provide a help message using module Pod::Usage. The
+message, derived from the <FONT SIZE="-1">SYNOPSIS</FONT> <FONT SIZE="-1">POD</FONT> section, will be written to
+standard output and processing will terminate.
+
+
+<P>
+
+
+<TT>&quot;auto_help&quot;</TT> will be enabled if the calling program explicitly
+specified a version number higher than 2.32 in the <TT>&quot;use&quot;</TT> or
+<TT>&quot;require&quot;</TT> statement.
+<DT>pass_through (default: disabled)<DD>
+<A NAME="ixABX"></A>
+Options that are unknown, ambiguous or supplied with an invalid option
+value are passed through in <TT>@ARGV</TT> instead of being flagged as
+errors. This makes it possible to write wrapper scripts that process
+only part of the user supplied command line arguments, and pass the
+remaining options to some other program.
+
+
+<P>
+
+
+If <TT>&quot;require_order&quot;</TT> is enabled, options processing will terminate at
+the first unrecognized option, or non-option, whichever comes first.
+However, if <TT>&quot;permute&quot;</TT> is enabled instead, results can become confusing.
+
+
+<P>
+
+
+Note that the options terminator (default <TT>&quot;--&quot;</TT>), if present, will
+also be passed through in <TT>@ARGV</TT>.
+<DT>prefix<DD>
+<A NAME="ixABY"></A>
+The string that starts options. If a constant string is not
+sufficient, see <TT>&quot;prefix_pattern&quot;</TT>.
+<DT>prefix_pattern<DD>
+<A NAME="ixABZ"></A>
+A Perl pattern that identifies the strings that introduce options.
+Default is <TT>&quot;--|-|\+&quot;</TT> unless environment variable
+<FONT SIZE="-1">POSIXLY_CORRECT</FONT> has been set, in which case it is <TT>&quot;--|-&quot;</TT>.
+<DT>long_prefix_pattern<DD>
+<A NAME="ixACA"></A>
+A Perl pattern that allows the disambiguation of long and short
+prefixes. Default is <TT>&quot;--&quot;</TT>.
+
+
+<P>
+
+
+Typically you only need to set this if you are using nonstandard
+prefixes and want some or all of them to have the same semantics as
+'--' does under normal circumstances.
+
+
+<P>
+
+
+For example, setting prefix_pattern to <TT>&quot;--|-|\+|\/&quot;</TT> and
+long_prefix_pattern to <TT>&quot;--|\/&quot;</TT> would add Win32 style argument
+handling.
+<DT>debug (default: disabled)<DD>
+<A NAME="ixACB"></A>
+Enable debugging output.
+</DL>
+<A NAME="lbBB">&nbsp;</A>
+<H2>Exportable Methods</H2>
+
+<A NAME="ixACC"></A>
+<DL COMPACT>
+<DT>VersionMessage<DD>
+<A NAME="ixACD"></A>
+This subroutine provides a standard version message. Its argument can be:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+A string containing the text of a message to print <I>before</I> printing
+the standard message.
+<DT>*<DD>
+A numeric value corresponding to the desired exit status.
+<DT>*<DD>
+A reference to a hash.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+If more than one argument is given then the entire argument list is
+assumed to be a hash.  If a hash is supplied (either as a reference or
+as a list) it should contain one or more elements with the following
+keys:
+<DL COMPACT>
+<DT>-message<DD>
+
+
+<A NAME="ixACE"></A>
+
+<DT>-msg<DD>
+
+
+<A NAME="ixACF"></A>
+
+The text of a message to print immediately prior to printing the
+program's usage message.
+<DT>-exitval<DD>
+
+
+<A NAME="ixACG"></A>
+The desired exit status to pass to the <B></B>exit()<B></B> function.
+This should be an integer, or else the string ``<FONT SIZE="-1">NOEXIT</FONT>'' to
+indicate that control should simply be returned without
+terminating the invoking process.
+<DT>-output<DD>
+
+
+<A NAME="ixACH"></A>
+A reference to a filehandle, or the pathname of a file to which the
+usage message should be written. The default is <TT>&quot;\*STDERR&quot;</TT> unless the
+exit value is less than 2 (in which case the default is <TT>&quot;\*STDOUT&quot;</TT>).
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+You cannot tie this routine directly to an option, e.g.:
+
+
+<P>
+
+
+
+
+<PRE>
+    GetOptions(&quot;version&quot; =&gt; \&amp;VersionMessage);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Use this instead:
+
+
+<P>
+
+
+
+
+<PRE>
+    GetOptions(&quot;version&quot; =&gt; sub { VersionMessage() });
+
+</PRE>
+
+
+</DL>
+
+<DT>HelpMessage<DD>
+<A NAME="ixACI"></A>
+This subroutine produces a standard help message, derived from the
+program's <FONT SIZE="-1">POD</FONT> section <FONT SIZE="-1">SYNOPSIS</FONT> using Pod::Usage. It takes the same
+arguments as <I>VersionMessage()</I>. In particular, you cannot tie it
+directly to an option, e.g.:
+
+
+<P>
+
+
+
+
+<PRE>
+    GetOptions(&quot;help&quot; =&gt; \&amp;HelpMessage);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Use this instead:
+
+
+<P>
+
+
+
+
+<PRE>
+    GetOptions(&quot;help&quot; =&gt; sub { HelpMessage() });
+
+</PRE>
+
+
+</DL>
+<A NAME="lbBC">&nbsp;</A>
+<H2>Return values and Errors</H2>
+
+<A NAME="ixACJ"></A>
+Configuration errors and errors in the option definitions are
+signalled using <I>die()</I> and will terminate the calling program unless
+the call to <I>Getopt::Long::GetOptions()</I> was embedded in <TT>&quot;eval { ...
+}&quot;</TT>, or <I>die()</I> was trapped using <TT>$SIG{__DIE__}</TT>.
+<P>
+
+GetOptions returns true to indicate success.
+It returns false when the function detected one or more errors during
+option parsing. These errors are signalled using <I>warn()</I> and can be
+trapped with <TT>$SIG{__WARN__}</TT>.
+<A NAME="lbBD">&nbsp;</A>
+<H2>Legacy</H2>
+
+<A NAME="ixACK"></A>
+The earliest development of <TT>&quot;newgetopt.pl&quot;</TT> started in 1990, with Perl
+version 4. As a result, its development, and the development of
+Getopt::Long, has gone through several stages. Since backward
+compatibility has always been extremely important, the current version
+of Getopt::Long still supports a lot of constructs that nowadays are
+no longer necessary or otherwise unwanted. This section describes
+briefly some of these 'features'.
+<A NAME="lbBE">&nbsp;</A>
+<H3>Default destinations</H3>
+
+<A NAME="ixACL"></A>
+When no destination is specified for an option, GetOptions will store
+the resultant value in a global variable named <TT>&quot;opt_&quot;</TT><I></I><FONT SIZE="-1"><I>XXX</I></FONT><I></I>, where
+<I></I><FONT SIZE="-1"><I>XXX</I></FONT><I></I> is the primary name of this option. When a progam executes
+under <TT>&quot;use strict&quot;</TT> (recommended), these variables must be
+pre-declared with <I>our()</I> or <TT>&quot;use vars&quot;</TT>.
+<P>
+
+
+
+<PRE>
+    our $opt_length = 0;
+    GetOptions ('length=i');    # will store in $opt_length
+
+</PRE>
+
+
+<P>
+
+To yield a usable Perl variable, characters that are not part of the
+syntax for variables are translated to underscores. For example,
+<TT>&quot;--fpp-struct-return&quot;</TT> will set the variable
+<TT>$opt_fpp_struct_return</TT>. Note that this variable resides in the
+namespace of the calling program, not necessarily <TT>&quot;main&quot;</TT>. For
+example:
+<P>
+
+
+
+<PRE>
+    GetOptions (&quot;size=i&quot;, &quot;sizes=i@&quot;);
+
+</PRE>
+
+
+<P>
+
+with command line ``-size 10 -sizes 24 -sizes 48'' will perform the
+equivalent of the assignments
+<P>
+
+
+
+<PRE>
+    $opt_size = 10;
+    @opt_sizes = (24, 48);
+
+</PRE>
+
+
+<A NAME="lbBF">&nbsp;</A>
+<H3>Alternative option starters</H3>
+
+<A NAME="ixACM"></A>
+A string of alternative option starter characters may be passed as the
+first argument (or the first argument after a leading hash reference
+argument).
+<P>
+
+
+
+<PRE>
+    my $len = 0;
+    GetOptions ('/', 'length=i' =&gt; $len);
+
+</PRE>
+
+
+<P>
+
+Now the command line may look like:
+<P>
+
+
+
+<PRE>
+    /length 24 -- arg
+
+</PRE>
+
+
+<P>
+
+Note that to terminate options processing still requires a double dash
+<TT>&quot;--&quot;</TT>.
+<P>
+
+<I>GetOptions()</I> will not interpret a leading <TT>&quot;&lt;&gt;&quot;</TT> as option starters
+if the next argument is a reference. To force <TT>&quot;&lt;&quot;</TT> and <TT>&quot;&gt;&quot;</TT> as
+option starters, use <TT>&quot;&gt;&lt;&quot;</TT>. Confusing? Well, <B>using a starter
+argument is strongly deprecated</B> anyway.
+<A NAME="lbBG">&nbsp;</A>
+<H3>Configuration variables</H3>
+
+<A NAME="ixACN"></A>
+Previous versions of Getopt::Long used variables for the purpose of
+configuring. Although manipulating these variables still work, it is
+strongly encouraged to use the <TT>&quot;Configure&quot;</TT> routine that was introduced
+in version 2.17. Besides, it is much easier.
+<A NAME="lbBH">&nbsp;</A>
+<H2>Tips and Techniques</H2>
+
+<A NAME="ixACO"></A>
+<A NAME="lbBI">&nbsp;</A>
+<H3>Pushing multiple values in a hash option</H3>
+
+<A NAME="ixACP"></A>
+Sometimes you want to combine the best of hashes and arrays. For
+example, the command line:
+<P>
+
+
+
+<PRE>
+  --list add=first --list add=second --list add=third
+
+</PRE>
+
+
+<P>
+
+where each successive 'list add' option will push the value of add
+into array ref <TT>$list</TT>-&gt;{'add'}. The result would be like
+<P>
+
+
+
+<PRE>
+  $list-&gt;{add} = [qw(first second third)];
+
+</PRE>
+
+
+<P>
+
+This can be accomplished with a destination routine:
+<P>
+
+
+
+<PRE>
+  GetOptions('list=s%' =&gt;
+               sub { push(@{$list{$_[1]}}, $_[2]) });
+
+</PRE>
+
+
+<A NAME="lbBJ">&nbsp;</A>
+<H2>Troubleshooting</H2>
+
+<A NAME="ixACQ"></A>
+<A NAME="lbBK">&nbsp;</A>
+<H3>GetOptions does not return a false result when an option is not supplied</H3>
+
+<A NAME="ixACR"></A>
+That's why they're called 'options'.
+<A NAME="lbBL">&nbsp;</A>
+<H3>GetOptions does not split the command line correctly</H3>
+
+<A NAME="ixACS"></A>
+The command line is not split by GetOptions, but by the command line
+interpreter (<FONT SIZE="-1">CLI</FONT>). On Unix, this is the shell. On Windows, it is
+<FONT SIZE="-1">COMMAND</FONT>.COM or <FONT SIZE="-1">CMD</FONT>.EXE. Other operating systems have other CLIs.
+<P>
+
+It is important to know that these CLIs may behave different when the
+command line contains special characters, in particular quotes or
+backslashes. For example, with Unix shells you can use single quotes
+(<TT>&quot;'&quot;</TT>) and double quotes (<TT>&quot;&quot;&quot;</TT>) to group words together. The following
+alternatives are equivalent on Unix:
+<P>
+
+
+
+<PRE>
+    &quot;two words&quot;
+    'two words'
+    two\ words
+
+</PRE>
+
+
+<P>
+
+In case of doubt, insert the following statement in front of your Perl
+program:
+<P>
+
+
+
+<PRE>
+    print STDERR (join(&quot;|&quot;,@ARGV),&quot;\n&quot;);
+
+</PRE>
+
+
+<P>
+
+to verify how your <FONT SIZE="-1">CLI</FONT> passes the arguments to the program.
+<A NAME="lbBM">&nbsp;</A>
+<H3>Undefined subroutine &amp;main::GetOptions called</H3>
+
+<A NAME="ixACT"></A>
+Are you running Windows, and did you write
+<P>
+
+
+
+<PRE>
+    use GetOpt::Long;
+
+</PRE>
+
+
+<P>
+
+(note the capital 'O')?
+<A NAME="lbBN">&nbsp;</A>
+<H3>How do I put a -? option into a Getopt::Long?</H3>
+
+
+
+<A NAME="ixACU"></A>
+You can only obtain this using an alias, and Getopt::Long of at least
+version 2.13.
+<P>
+
+
+
+<PRE>
+    use Getopt::Long;
+    GetOptions (&quot;help|?&quot;);    # -help and -? will both set $opt_help
+
+</PRE>
+
+
+<A NAME="lbBO">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixACV"></A>
+Johan Vromans &lt;<A HREF="mailto:jvromans@squirrel.nl">jvromans@squirrel.nl</A>&gt;
+<A NAME="lbBP">&nbsp;</A>
+<H2>COPYRIGHT AND DISCLAIMER</H2>
+
+<A NAME="ixACW"></A>
+This program is Copyright 1990,2009 by Johan Vromans.
+This program is free software; you can redistribute it and/or
+modify it under the terms of the Perl Artistic License or the
+<FONT SIZE="-1">GNU</FONT> General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any
+later version.
+<P>
+
+This program is distributed in the hope that it will be useful,
+but <FONT SIZE="-1">WITHOUT</FONT> <FONT SIZE="-1">ANY</FONT> <FONT SIZE="-1">WARRANTY</FONT>; without even the implied warranty of
+<FONT SIZE="-1">MERCHANTABILITY</FONT> or <FONT SIZE="-1">FITNESS</FONT> <FONT SIZE="-1">FOR</FONT> A <FONT SIZE="-1">PARTICULAR</FONT> <FONT SIZE="-1">PURPOSE</FONT>.  See the
+<FONT SIZE="-1">GNU</FONT> General Public License for more details.
+<P>
+
+If you do not have a copy of the <FONT SIZE="-1">GNU</FONT> General Public License write to
+the Free Software Foundation, Inc., 675 Mass Ave, Cambridge,
+<FONT SIZE="-1">MA</FONT> 02139, <FONT SIZE="-1">USA</FONT>.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">Command Line Options, an Introduction</A><DD>
+<DT><A HREF="#lbAF">Getting Started with Getopt::Long</A><DD>
+<DL>
+<DT><A HREF="#lbAG">Simple options</A><DD>
+<DT><A HREF="#lbAH">A little bit less simple options</A><DD>
+<DT><A HREF="#lbAI">Mixing command line option with other arguments</A><DD>
+<DT><A HREF="#lbAJ">Options with values</A><DD>
+<DT><A HREF="#lbAK">Options with multiple values</A><DD>
+<DT><A HREF="#lbAL">Options with hash values</A><DD>
+<DT><A HREF="#lbAM">User-defined subroutines to handle options</A><DD>
+<DT><A HREF="#lbAN">Options with multiple names</A><DD>
+<DT><A HREF="#lbAO">Case and abbreviations</A><DD>
+<DT><A HREF="#lbAP">Summary of Option Specifications</A><DD>
+</DL>
+<DT><A HREF="#lbAQ">Advanced Possibilities</A><DD>
+<DL>
+<DT><A HREF="#lbAR">Object oriented interface</A><DD>
+<DT><A HREF="#lbAS">Thread Safety</A><DD>
+<DT><A HREF="#lbAT">Documentation and help texts</A><DD>
+<DT><A HREF="#lbAU">Parsing options from an arbitrary array</A><DD>
+<DT><A HREF="#lbAV">Parsing options from an arbitrary string</A><DD>
+<DT><A HREF="#lbAW">Storing options values in a hash</A><DD>
+<DT><A HREF="#lbAX">Bundling</A><DD>
+<DT><A HREF="#lbAY">The lonesome dash</A><DD>
+<DT><A HREF="#lbAZ">Argument callback</A><DD>
+</DL>
+<DT><A HREF="#lbBA">Configuring Getopt::Long</A><DD>
+<DT><A HREF="#lbBB">Exportable Methods</A><DD>
+<DT><A HREF="#lbBC">Return values and Errors</A><DD>
+<DT><A HREF="#lbBD">Legacy</A><DD>
+<DL>
+<DT><A HREF="#lbBE">Default destinations</A><DD>
+<DT><A HREF="#lbBF">Alternative option starters</A><DD>
+<DT><A HREF="#lbBG">Configuration variables</A><DD>
+</DL>
+<DT><A HREF="#lbBH">Tips and Techniques</A><DD>
+<DL>
+<DT><A HREF="#lbBI">Pushing multiple values in a hash option</A><DD>
+</DL>
+<DT><A HREF="#lbBJ">Troubleshooting</A><DD>
+<DL>
+<DT><A HREF="#lbBK">GetOptions does not return a false result when an option is not supplied</A><DD>
+<DT><A HREF="#lbBL">GetOptions does not split the command line correctly</A><DD>
+<DT><A HREF="#lbBM">Undefined subroutine &amp;main::GetOptions called</A><DD>
+<DT><A HREF="#lbBN">How do I put a -? option into a Getopt::Long?</A><DD>
+</DL>
+<DT><A HREF="#lbBO">AUTHOR</A><DD>
+<DT><A HREF="#lbBP">COPYRIGHT AND DISCLAIMER</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:28 GMT, December 24, 2015
+</div></body>
+</HTML>

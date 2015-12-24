@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of BIO_s_accept</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>BIO_s_accept</H1>
+Section: OpenSSL (3)<BR>Updated: 2002-12-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+BIO_s_accept, BIO_set_accept_port, BIO_get_accept_port,
+BIO_set_nbio_accept, BIO_set_accept_bios, BIO_set_bind_mode,
+BIO_get_bind_mode, BIO_do_accept - accept BIO
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/bio.h">openssl/bio.h</A>&gt;
+
+ BIO_METHOD *BIO_s_accept(void);
+
+ long BIO_set_accept_port(BIO *b, char *name);
+ char *BIO_get_accept_port(BIO *b);
+
+ BIO *BIO_new_accept(char *host_port);
+
+ long BIO_set_nbio_accept(BIO *b, int n);
+ long BIO_set_accept_bios(BIO *b, char *bio);
+
+ long BIO_set_bind_mode(BIO *b, long mode);
+ long BIO_get_bind_mode(BIO *b, long dummy);
+
+ #define BIO_BIND_NORMAL                0
+ #define BIO_BIND_REUSEADDR_IF_UNUSED   1
+ #define BIO_BIND_REUSEADDR             2
+
+ int BIO_do_accept(BIO *b);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<I>BIO_s_accept()</I> returns the accept <FONT SIZE="-1">BIO</FONT> method. This is a wrapper
+round the platform's <FONT SIZE="-1">TCP/IP</FONT> socket accept routines.
+<P>
+
+Using accept BIOs, <FONT SIZE="-1">TCP/IP</FONT> connections can be accepted and data
+transferred using only <FONT SIZE="-1">BIO</FONT> routines. In this way any platform
+specific operations are hidden by the <FONT SIZE="-1">BIO</FONT> abstraction.
+<P>
+
+Read and write operations on an accept <FONT SIZE="-1">BIO</FONT> will perform I/O
+on the underlying connection. If no connection is established
+and the port (see below) is set up properly then the <FONT SIZE="-1">BIO</FONT>
+waits for an incoming connection.
+<P>
+
+Accept BIOs support <I>BIO_puts()</I> but not <I>BIO_gets()</I>.
+<P>
+
+If the close flag is set on an accept <FONT SIZE="-1">BIO</FONT> then any active
+connection on that chain is shutdown and the socket closed when
+the <FONT SIZE="-1">BIO</FONT> is freed.
+<P>
+
+Calling <I>BIO_reset()</I> on a accept <FONT SIZE="-1">BIO</FONT> will close any active
+connection and reset the <FONT SIZE="-1">BIO</FONT> into a state where it awaits another
+incoming connection.
+<P>
+
+<I>BIO_get_fd()</I> and <I>BIO_set_fd()</I> can be called to retrieve or set
+the accept socket. See <I><A HREF="/manpages/index.html?3+BIO_s_fd">BIO_s_fd</A></I>(3)
+<P>
+
+<I>BIO_set_accept_port()</I> uses the string <B>name</B> to set the accept
+port. The port is represented as a string of the form ``host:port'',
+where ``host'' is the interface to use and ``port'' is the port.
+Either or both values can be ``*'' which is interpreted as meaning
+any interface or port respectively. ``port'' has the same syntax
+as the port specified in <I>BIO_set_conn_port()</I> for connect BIOs,
+that is it can be a numerical port string or a string to lookup
+using <I>getservbyname()</I> and a string table.
+<P>
+
+<I>BIO_new_accept()</I> combines <I>BIO_new()</I> and <I>BIO_set_accept_port()</I> into
+a single call: that is it creates a new accept <FONT SIZE="-1">BIO</FONT> with port
+<B>host_port</B>.
+<P>
+
+<I>BIO_set_nbio_accept()</I> sets the accept socket to blocking mode
+(the default) if <B>n</B> is 0 or non blocking mode if <B>n</B> is 1.
+<P>
+
+<I>BIO_set_accept_bios()</I> can be used to set a chain of BIOs which
+will be duplicated and prepended to the chain when an incoming
+connection is received. This is useful if, for example, a 
+buffering or <FONT SIZE="-1">SSL</FONT> <FONT SIZE="-1">BIO</FONT> is required for each connection. The
+chain of BIOs must not be freed after this call, they will
+be automatically freed when the accept <FONT SIZE="-1">BIO</FONT> is freed.
+<P>
+
+<I>BIO_set_bind_mode()</I> and <I>BIO_get_bind_mode()</I> set and retrieve
+the current bind mode. If <FONT SIZE="-1">BIO_BIND_NORMAL</FONT> (the default) is set
+then another socket cannot be bound to the same port. If
+<FONT SIZE="-1">BIO_BIND_REUSEADDR</FONT> is set then other sockets can bind to the
+same port. If <FONT SIZE="-1">BIO_BIND_REUSEADDR_IF_UNUSED</FONT> is set then and
+attempt is first made to use <FONT SIZE="-1">BIO_BIN_NORMAL</FONT>, if this fails
+and the port is not in use then a second attempt is made
+using <FONT SIZE="-1">BIO_BIND_REUSEADDR</FONT>.
+<P>
+
+<I>BIO_do_accept()</I> serves two functions. When it is first
+called, after the accept <FONT SIZE="-1">BIO</FONT> has been setup, it will attempt
+to create the accept socket and bind an address to it. Second
+and subsequent calls to <I>BIO_do_accept()</I> will await an incoming
+connection, or request a retry in non blocking mode.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+When an accept <FONT SIZE="-1">BIO</FONT> is at the end of a chain it will await an
+incoming connection before processing I/O calls. When an accept
+<FONT SIZE="-1">BIO</FONT> is not at then end of a chain it passes I/O calls to the next
+<FONT SIZE="-1">BIO</FONT> in the chain.
+<P>
+
+When a connection is established a new socket <FONT SIZE="-1">BIO</FONT> is created for
+the connection and appended to the chain. That is the chain is now
+accept-&gt;socket. This effectively means that attempting I/O on
+an initial accept socket will await an incoming connection then
+perform I/O on it.
+<P>
+
+If any additional BIOs have been set using <I>BIO_set_accept_bios()</I>
+then they are placed between the socket and the accept <FONT SIZE="-1">BIO</FONT>,
+that is the chain will be accept-&gt;otherbios-&gt;socket.
+<P>
+
+If a server wishes to process multiple connections (as is normally
+the case) then the accept <FONT SIZE="-1">BIO</FONT> must be made available for further
+incoming connections. This can be done by waiting for a connection and
+then calling:
+<P>
+
+
+
+<PRE>
+ connection = BIO_pop(accept);
+
+</PRE>
+
+
+<P>
+
+After this call <B>connection</B> will contain a <FONT SIZE="-1">BIO</FONT> for the recently
+established connection and <B>accept</B> will now be a single <FONT SIZE="-1">BIO</FONT>
+again which can be used to await further incoming connections.
+If no further connections will be accepted the <B>accept</B> can
+be freed using <I>BIO_free()</I>.
+<P>
+
+If only a single connection will be processed it is possible to
+perform I/O using the accept <FONT SIZE="-1">BIO</FONT> itself. This is often undesirable
+however because the accept <FONT SIZE="-1">BIO</FONT> will still accept additional incoming
+connections. This can be resolved by using <I>BIO_pop()</I> (see above)
+and freeing up the accept <FONT SIZE="-1">BIO</FONT> after the initial connection.
+<P>
+
+If the underlying accept socket is non-blocking and <I>BIO_do_accept()</I> is
+called to await an incoming connection it is possible for
+<I>BIO_should_io_special()</I> with the reason <FONT SIZE="-1">BIO_RR_ACCEPT</FONT>. If this happens
+then it is an indication that an accept attempt would block: the application
+should take appropriate action to wait until the underlying socket has
+accepted a connection and retry the call.
+<P>
+
+<I>BIO_set_accept_port()</I>, <I>BIO_get_accept_port()</I>, <I>BIO_set_nbio_accept()</I>,
+<I>BIO_set_accept_bios()</I>, <I>BIO_set_bind_mode()</I>, <I>BIO_get_bind_mode()</I> and
+<I>BIO_do_accept()</I> are macros.
+<A NAME="lbAF">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<A NAME="ixAAF"></A>
+<FONT SIZE="-1">TBA</FONT>
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<A NAME="ixAAG"></A>
+This example accepts two connections on port 4444, sends messages
+down each and finally closes both down.
+<P>
+
+
+
+<PRE>
+ BIO *abio, *cbio, *cbio2;
+ ERR_load_crypto_strings();
+ abio = BIO_new_accept(&quot;4444&quot;);
+
+ /* First call to BIO_accept() sets up accept BIO */
+ if(BIO_do_accept(abio) &lt;= 0) {
+        fprintf(stderr, &quot;Error setting up accept\n&quot;);
+        ERR_print_errors_fp(stderr);
+        exit(0);                
+ }
+
+ /* Wait for incoming connection */
+ if(BIO_do_accept(abio) &lt;= 0) {
+        fprintf(stderr, &quot;Error accepting connection\n&quot;);
+        ERR_print_errors_fp(stderr);
+        exit(0);                
+ }
+ fprintf(stderr, &quot;Connection 1 established\n&quot;);
+ /* Retrieve BIO for connection */
+ cbio = BIO_pop(abio);
+ BIO_puts(cbio, &quot;Connection 1: Sending out Data on initial connection\n&quot;);
+ fprintf(stderr, &quot;Sent out data on connection 1\n&quot;);
+ /* Wait for another connection */
+ if(BIO_do_accept(abio) &lt;= 0) {
+        fprintf(stderr, &quot;Error accepting connection\n&quot;);
+        ERR_print_errors_fp(stderr);
+        exit(0);                
+ }
+ fprintf(stderr, &quot;Connection 2 established\n&quot;);
+ /* Close accept BIO to refuse further connections */
+ cbio2 = BIO_pop(abio);
+ BIO_free(abio);
+ BIO_puts(cbio2, &quot;Connection 2: Sending out Data on second\n&quot;);
+ fprintf(stderr, &quot;Sent out data on connection 2\n&quot;);
+
+ BIO_puts(cbio, &quot;Connection 1: Second connection established\n&quot;);
+ /* Close the two established connections */
+ BIO_free(cbio);
+ BIO_free(cbio2);
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAH"></A>
+<FONT SIZE="-1">TBA</FONT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLE</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:13 GMT, December 24, 2015
+</div></body>
+</HTML>

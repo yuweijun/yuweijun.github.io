@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Safe</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Safe</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Safe - Compile and execute code in restricted compartments
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Safe;
+
+  $compartment = new Safe;
+
+  $compartment-&gt;permit(qw(time sort :browse));
+
+  $result = $compartment-&gt;reval($unsafe_code);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The Safe extension module allows the creation of compartments
+in which perl code can be evaluated. Each compartment has
+<DL COMPACT>
+<DT>a new namespace<DD>
+<A NAME="ixAAE"></A>
+The ``root'' of the namespace (i.e. ``main::'') is changed to a
+different package and code evaluated in the compartment cannot
+refer to variables outside this namespace, even with run-time
+glob lookups and other tricks.
+
+
+<P>
+
+
+Code which is compiled outside the compartment can choose to place
+variables into (or <I>share</I> variables with) the compartment's namespace
+and only that data will be visible to code evaluated in the
+compartment.
+
+
+<P>
+
+
+By default, the only variables shared with compartments are the
+``underscore'' variables <TT>$_</TT> and <TT>@_</TT> (and, technically, the less frequently
+used <TT>%_</TT>, the _ filehandle and so on). This is because otherwise perl
+operators which default to <TT>$_</TT> will not work and neither will the
+assignment of arguments to <TT>@_</TT> on subroutine entry.
+<DT>an operator mask<DD>
+<A NAME="ixAAF"></A>
+Each compartment has an associated ``operator mask''. Recall that
+perl code is compiled into an internal format before execution.
+Evaluating perl code (e.g. via ``eval'' or ``do 'file''') causes
+the code to be compiled into an internal format and then,
+provided there was no error in the compilation, executed.
+Code evaluated in a compartment compiles subject to the
+compartment's operator mask. Attempting to evaluate code in a
+compartment which contains a masked operator will cause the
+compilation to fail with an error. The code will not be executed.
+
+
+<P>
+
+
+The default operator mask for a newly created compartment is
+the ':default' optag.
+
+
+<P>
+
+
+It is important that you read the Opcode module documentation
+for more information, especially for detailed definitions of opnames,
+optags and opsets.
+
+
+<P>
+
+
+Since it is only at the compilation stage that the operator mask
+applies, controlled access to potentially unsafe operations can
+be achieved by having a handle to a wrapper subroutine (written
+outside the compartment) placed into the compartment. For example,
+
+
+<P>
+
+
+
+
+<PRE>
+    $cpt = new Safe;
+    sub wrapper {
+        # vet arguments and perform potentially unsafe operations
+    }
+    $cpt-&gt;share('&amp;wrapper');
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>WARNING</H2>
+
+<A NAME="ixAAG"></A>
+The authors make <B>no warranty</B>, implied or otherwise, about the
+suitability of this software for safety or security purposes.
+<P>
+
+The authors shall not in any case be liable for special, incidental,
+consequential, indirect or other similar damages arising from the use
+of this software.
+<P>
+
+Your mileage will vary. If in any doubt <B>do not use it</B>.
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAH"></A>
+To create a new compartment, use
+<P>
+
+
+
+<PRE>
+    $cpt = new Safe;
+
+</PRE>
+
+
+<P>
+
+Optional argument is (<FONT SIZE="-1">NAMESPACE</FONT>), where <FONT SIZE="-1">NAMESPACE</FONT> is the root namespace
+to use for the compartment (defaults to ``Safe::Root0'', incremented for
+each new compartment).
+<P>
+
+Note that version 1.00 of the Safe module supported a second optional
+parameter, <FONT SIZE="-1">MASK</FONT>.  That functionality has been withdrawn pending deeper
+consideration. Use the permit and deny methods described below.
+<P>
+
+The following methods can then be used on the compartment
+object returned by the above constructor. The object argument
+is implicit in each case.
+<A NAME="lbAG">&nbsp;</A>
+<H3>permit (<FONT SIZE="-1">OP</FONT>, ...)</H3>
+
+<A NAME="ixAAI"></A>
+Permit the listed operators to be used when compiling code in the
+compartment (in <I>addition</I> to any operators already permitted).
+<P>
+
+You can list opcodes by names, or use a tag name; see
+``Predefined Opcode Tags'' in Opcode.
+<A NAME="lbAH">&nbsp;</A>
+<H3>permit_only (<FONT SIZE="-1">OP</FONT>, ...)</H3>
+
+<A NAME="ixAAJ"></A>
+Permit <I>only</I> the listed operators to be used when compiling code in
+the compartment (<I>no</I> other operators are permitted).
+<A NAME="lbAI">&nbsp;</A>
+<H3>deny (<FONT SIZE="-1">OP</FONT>, ...)</H3>
+
+<A NAME="ixAAK"></A>
+Deny the listed operators from being used when compiling code in the
+compartment (other operators may still be permitted).
+<A NAME="lbAJ">&nbsp;</A>
+<H3>deny_only (<FONT SIZE="-1">OP</FONT>, ...)</H3>
+
+<A NAME="ixAAL"></A>
+Deny <I>only</I> the listed operators from being used when compiling code
+in the compartment (<I>all</I> other operators will be permitted, so you probably
+don't want to use this method).
+<A NAME="lbAK">&nbsp;</A>
+<H3>trap (<FONT SIZE="-1">OP</FONT>, ...)</H3>
+
+<A NAME="ixAAM"></A>
+<A NAME="lbAL">&nbsp;</A>
+<H3>untrap (<FONT SIZE="-1">OP</FONT>, ...)</H3>
+
+<A NAME="ixAAN"></A>
+The trap and untrap methods are synonyms for deny and permit
+respectfully.
+<A NAME="lbAM">&nbsp;</A>
+<H3>share (<FONT SIZE="-1">NAME</FONT>, ...)</H3>
+
+<A NAME="ixAAO"></A>
+This shares the variable(s) in the argument list with the compartment.
+This is almost identical to exporting variables using the Exporter
+module.
+<P>
+
+Each <FONT SIZE="-1">NAME</FONT> must be the <B>name</B> of a non-lexical variable, typically
+with the leading type identifier included. A bareword is treated as a
+function name.
+<P>
+
+Examples of legal names are '$foo' for a scalar, '@foo' for an
+array, '%foo' for a hash, '&amp;foo' or 'foo' for a subroutine and '*foo'
+for a glob (i.e.  all symbol table entries associated with ``foo'',
+including scalar, array, hash, sub and filehandle).
+<P>
+
+Each <FONT SIZE="-1">NAME</FONT> is assumed to be in the calling package. See share_from
+for an alternative method (which <TT>&quot;share&quot;</TT> uses).
+<A NAME="lbAN">&nbsp;</A>
+<H3>share_from (<FONT SIZE="-1">PACKAGE</FONT>, <FONT SIZE="-1">ARRAYREF</FONT>)</H3>
+
+<A NAME="ixAAP"></A>
+This method is similar to <I>share()</I> but allows you to explicitly name the
+package that symbols should be shared from. The symbol names (including
+type characters) are supplied as an array reference.
+<P>
+
+
+
+<PRE>
+    $safe-&gt;share_from('main', [ '$foo', '%bar', 'func' ]);
+
+</PRE>
+
+
+<P>
+
+Names can include package names, which are relative to the specified <FONT SIZE="-1">PACKAGE</FONT>.
+So these two calls have the same effect:
+<P>
+
+
+
+<PRE>
+    $safe-&gt;share_from('Scalar::Util', [ 'reftype' ]);
+    $safe-&gt;share_from('main', [ 'Scalar::Util::reftype' ]);
+
+</PRE>
+
+
+<A NAME="lbAO">&nbsp;</A>
+<H3>varglob (<FONT SIZE="-1">VARNAME</FONT>)</H3>
+
+<A NAME="ixAAQ"></A>
+This returns a glob reference for the symbol table entry of <FONT SIZE="-1">VARNAME</FONT> in
+the package of the compartment. <FONT SIZE="-1">VARNAME</FONT> must be the <B>name</B> of a
+variable without any leading type marker. For example:
+<P>
+
+
+
+<PRE>
+    ${$cpt-&gt;varglob('foo')} = &quot;Hello world&quot;;
+
+</PRE>
+
+
+<P>
+
+has the same effect as:
+<P>
+
+
+
+<PRE>
+    $cpt = new Safe 'Root';
+    $Root::foo = &quot;Hello world&quot;;
+
+</PRE>
+
+
+<P>
+
+but avoids the need to know <TT>$cpt</TT>'s package name.
+<A NAME="lbAP">&nbsp;</A>
+<H3>reval (<FONT SIZE="-1">STRING</FONT>, <FONT SIZE="-1">STRICT</FONT>)</H3>
+
+<A NAME="ixAAR"></A>
+This evaluates <FONT SIZE="-1">STRING</FONT> as perl code inside the compartment.
+<P>
+
+The code can only see the compartment's namespace (as returned by the
+<B>root</B> method). The compartment's root package appears to be the
+<TT>&quot;main::&quot;</TT> package to the code inside the compartment.
+<P>
+
+Any attempt by the code in <FONT SIZE="-1">STRING</FONT> to use an operator which is not permitted
+by the compartment will cause an error (at run-time of the main program
+but at compile-time for the code in <FONT SIZE="-1">STRING</FONT>).  The error is of the form
+``'%s' trapped by operation mask...''.
+<P>
+
+If an operation is trapped in this way, then the code in <FONT SIZE="-1">STRING</FONT> will
+not be executed. If such a trapped operation occurs or any other
+compile-time or return error, then $@ is set to the error message, just
+as with an <I>eval()</I>.
+<P>
+
+If there is no error, then the method returns the value of the last
+expression evaluated, or a return statement may be used, just as with
+subroutines and <B></B>eval()<B></B>. The context (list or scalar) is determined
+by the caller as usual.
+<P>
+
+If the return value of <I>reval()</I> is (or contains) any code reference,
+those code references are wrapped to be themselves executed always
+in the compartment. See ``wrap_code_refs_within''.
+<P>
+
+The formerly undocumented <FONT SIZE="-1">STRICT</FONT> argument sets strictness: if true
+'use strict;' is used, otherwise it uses 'no strict;'. <B>Note</B>: if
+<FONT SIZE="-1">STRICT</FONT> is omitted 'no strict;' is the default.
+<P>
+
+Some points to note:
+<P>
+
+If the entereval op is permitted then the code can use eval ``...'' to
+'hide' code which might use denied ops. This is not a major problem
+since when the code tries to execute the eval it will fail because the
+opmask is still in effect. However this technique would allow clever,
+and possibly harmful, code to 'probe' the boundaries of what is
+possible.
+<P>
+
+Any string eval which is executed by code executing in a compartment,
+or by code called from code executing in a compartment, will be eval'd
+in the namespace of the compartment. This is potentially a serious
+problem.
+<P>
+
+Consider a function <I>foo()</I> in package pkg compiled outside a compartment
+but shared with it. Assume the compartment has a root package called
+'Root'. If <I>foo()</I> contains an eval statement like eval '$foo = 1' then,
+normally, <TT>$pkg::foo</TT> will be set to 1.  If <I>foo()</I> is called from the
+compartment (by whatever means) then instead of setting <TT>$pkg::foo</TT>, the
+eval will actually set <TT>$Root::pkg::foo</TT>.
+<P>
+
+This can easily be demonstrated by using a module, such as the Socket
+module, which uses eval ``...'' as part of an <FONT SIZE="-1">AUTOLOAD</FONT> function. You can
+'use' the module outside the compartment and share an (autoloaded)
+function with the compartment. If an autoload is triggered by code in
+the compartment, or by any code anywhere that is called by any means
+from the compartment, then the eval in the Socket module's <FONT SIZE="-1">AUTOLOAD</FONT>
+function happens in the namespace of the compartment. Any variables
+created or used by the eval'd code are now under the control of
+the code in the compartment.
+<P>
+
+A similar effect applies to <I>all</I> runtime symbol lookups in code
+called from a compartment but not compiled within it.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>rdo (<FONT SIZE="-1">FILENAME</FONT>)</H3>
+
+<A NAME="ixAAS"></A>
+This evaluates the contents of file <FONT SIZE="-1">FILENAME</FONT> inside the compartment.
+See above documentation on the <B>reval</B> method for further details.
+<A NAME="lbAR">&nbsp;</A>
+<H3>root (<FONT SIZE="-1">NAMESPACE</FONT>)</H3>
+
+<A NAME="ixAAT"></A>
+This method returns the name of the package that is the root of the
+compartment's namespace.
+<P>
+
+Note that this behaviour differs from version 1.00 of the Safe module
+where the root module could be used to change the namespace. That
+functionality has been withdrawn pending deeper consideration.
+<A NAME="lbAS">&nbsp;</A>
+<H3>mask (<FONT SIZE="-1">MASK</FONT>)</H3>
+
+<A NAME="ixAAU"></A>
+This is a get-or-set method for the compartment's operator mask.
+<P>
+
+With no <FONT SIZE="-1">MASK</FONT> argument present, it returns the current operator mask of
+the compartment.
+<P>
+
+With the <FONT SIZE="-1">MASK</FONT> argument present, it sets the operator mask for the
+compartment (equivalent to calling the deny_only method).
+<A NAME="lbAT">&nbsp;</A>
+<H3>wrap_code_ref (<FONT SIZE="-1">CODEREF</FONT>)</H3>
+
+<A NAME="ixAAV"></A>
+Returns a reference to an anonymous subroutine that, when executed, will call
+<FONT SIZE="-1">CODEREF</FONT> with the Safe compartment 'in effect'.  In other words, with the
+package namespace adjusted and the opmask enabled.
+<P>
+
+Note that the opmask doesn't affect the already compiled code, it only affects
+any <I>further</I> compilation that the already compiled code may try to perform.
+<P>
+
+This is particularly useful when applied to code references returned from <I>reval()</I>.
+<P>
+
+(It also provides a kind of workaround for RT#60374: ``Safe.pm sort {} bug with
+-Dusethreads''. See &lt;<A HREF="http://rt.perl.org/rt3//Public/Bug/Display.html?id=60374">http://rt.perl.org/rt3//Public/Bug/Display.html?id=60374</A>&gt;
+for <I>much</I> more detail.)
+<A NAME="lbAU">&nbsp;</A>
+<H3>wrap_code_refs_within (...)</H3>
+
+<A NAME="ixAAW"></A>
+Wraps any <FONT SIZE="-1">CODE</FONT> references found within the arguments by replacing each with the
+result of calling ``wrap_code_ref'' on the <FONT SIZE="-1">CODE</FONT> reference. Any <FONT SIZE="-1">ARRAY</FONT> or <FONT SIZE="-1">HASH</FONT>
+references in the arguments are inspected recursively.
+<P>
+
+Returns nothing.
+<A NAME="lbAV">&nbsp;</A>
+<H2>RISKS</H2>
+
+<A NAME="ixAAX"></A>
+This section is just an outline of some of the things code in a compartment
+might do (intentionally or unintentionally) which can have an effect outside
+the compartment.
+<DL COMPACT>
+<DT>Memory<DD>
+<A NAME="ixAAY"></A>
+Consuming all (or nearly all) available memory.
+<DT><FONT SIZE="-1">CPU</FONT><DD>
+<A NAME="ixAAZ"></A>
+Causing infinite loops etc.
+<DT>Snooping<DD>
+<A NAME="ixABA"></A>
+Copying private information out of your system. Even something as
+simple as your user name is of value to others. Much useful information
+could be gleaned from your environment variables for example.
+<DT>Signals<DD>
+<A NAME="ixABB"></A>
+Causing signals (especially <FONT SIZE="-1">SIGFPE</FONT> and <FONT SIZE="-1">SIGALARM</FONT>) to affect your process.
+
+
+<P>
+
+
+Setting up a signal handler will need to be carefully considered
+and controlled.  What mask is in effect when a signal handler
+gets called?  If a user can get an imported function to get an
+exception and call the user's signal handler, does that user's
+restricted mask get re-instated before the handler is called?
+Does an imported handler get called with its original mask or
+the user's one?
+<DT>State Changes<DD>
+<A NAME="ixABC"></A>
+Ops such as chdir obviously effect the process as a whole and not just
+the code in the compartment. Ops such as rand and srand have a similar
+but more subtle effect.
+</DL>
+<A NAME="lbAW">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABD"></A>
+Originally designed and implemented by Malcolm Beattie.
+<P>
+
+Reworked to use the Opcode module and other changes added by Tim Bunce.
+<P>
+
+Currently maintained by the Perl 5 Porters, &lt;<A HREF="mailto:perl5-porters@perl.org">perl5-porters@perl.org</A>&gt;.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">WARNING</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">permit (<FONT SIZE="-1">OP</FONT>, ...)</A><DD>
+<DT><A HREF="#lbAH">permit_only (<FONT SIZE="-1">OP</FONT>, ...)</A><DD>
+<DT><A HREF="#lbAI">deny (<FONT SIZE="-1">OP</FONT>, ...)</A><DD>
+<DT><A HREF="#lbAJ">deny_only (<FONT SIZE="-1">OP</FONT>, ...)</A><DD>
+<DT><A HREF="#lbAK">trap (<FONT SIZE="-1">OP</FONT>, ...)</A><DD>
+<DT><A HREF="#lbAL">untrap (<FONT SIZE="-1">OP</FONT>, ...)</A><DD>
+<DT><A HREF="#lbAM">share (<FONT SIZE="-1">NAME</FONT>, ...)</A><DD>
+<DT><A HREF="#lbAN">share_from (<FONT SIZE="-1">PACKAGE</FONT>, <FONT SIZE="-1">ARRAYREF</FONT>)</A><DD>
+<DT><A HREF="#lbAO">varglob (<FONT SIZE="-1">VARNAME</FONT>)</A><DD>
+<DT><A HREF="#lbAP">reval (<FONT SIZE="-1">STRING</FONT>, <FONT SIZE="-1">STRICT</FONT>)</A><DD>
+<DT><A HREF="#lbAQ">rdo (<FONT SIZE="-1">FILENAME</FONT>)</A><DD>
+<DT><A HREF="#lbAR">root (<FONT SIZE="-1">NAMESPACE</FONT>)</A><DD>
+<DT><A HREF="#lbAS">mask (<FONT SIZE="-1">MASK</FONT>)</A><DD>
+<DT><A HREF="#lbAT">wrap_code_ref (<FONT SIZE="-1">CODEREF</FONT>)</A><DD>
+<DT><A HREF="#lbAU">wrap_code_refs_within (...)</A><DD>
+</DL>
+<DT><A HREF="#lbAV">RISKS</A><DD>
+<DT><A HREF="#lbAW">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:38 GMT, December 24, 2015
+</div></body>
+</HTML>

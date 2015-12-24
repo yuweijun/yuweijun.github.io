@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of LDAP_SYNC</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>LDAP_SYNC</H1>
+Section: C Library Functions (3)<BR>Updated: 2010/06/30<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ldap_sync_init, ldap_sync_init_refresh_only, ldap_sync_init_refresh_and_persist, ldap_sync_poll - LDAP sync routines
+<A NAME="lbAC">&nbsp;</A>
+<H2>LIBRARY</H2>
+
+OpenLDAP LDAP (libldap, -lldap)
+<A NAME="lbAD">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/ldap.h">ldap.h</A>&gt;</B>
+
+<B>int ldap_sync_init(ldap_sync_t *</B><I>ls</I><B>, int </B><I>mode</I><B>);</B>
+
+<B>int ldap_sync_init_refresh_only(ldap_sync_t *</B><I>ls</I><B>);</B>
+
+<B>int ldap_sync_init_refresh_and_persist(ldap_sync_t *</B><I>ls</I><B>);</B>
+
+<B>int ldap_sync_poll(ldap_sync_t *</B><I>ls</I><B>);</B>
+
+<B>ldap_sync_t * ldap_sync_initialize(ldap_sync_t *</B><I>ls</I><B>);</B>
+
+<B>int ldap_sync_destroy(ldap_sync_t *</B><I>ls</I><B>, int </B><I>freeit</I><B>);</B>
+
+<B>typedef int (*</B><I>ldap_sync_search_entry_f</I><B>)(ldap_sync_t *</B><I>ls</I><B>,</B>
+<DL COMPACT><DT><DD><B>LDAPMessage *</B><I>msg</I><B>, struct berval *</B><I>entryUUID</I><B>,</B>
+<B>ldap_sync_refresh_t </B><I>phase</I><B>);</B>
+</DL>
+
+<B>typedef int (*</B><I>ldap_sync_search_reference_f</I><B>)(ldap_sync_t *</B><I>ls</I><B>,</B>
+<DL COMPACT><DT><DD><B>LDAPMessage *</B><I>msg</I><B>);</B>
+</DL>
+
+<B>typedef int (*</B><I>ldap_sync_intermediate_f</I><B>)(ldap_sync_t *</B><I>ls</I><B>,</B>
+<DL COMPACT><DT><DD><B>LDAPMessage *</B><I>msg</I><B>, BerVarray </B><I>syncUUIDs</I><B>,</B>
+<B>ldap_sync_refresh_t </B><I>phase</I><B>);</B>
+</DL>
+
+<B>typedef int (*</B><I>ldap_sync_search_result_f</I><B>)(ldap_sync_t *</B><I>ls</I><B>,</B>
+<DL COMPACT><DT><DD><B>LDAPMessage *</B><I>msg</I><B>, int </B><I>refreshDeletes</I><B>);</B>
+</DL>
+</PRE><A NAME="lbAE">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+These routines provide an interface to the LDAP Content Synchronization 
+operation (RFC 4533).
+They require an
+<B>ldap_sync_t</B>
+
+structure to be set up with parameters required for various phases
+of the operation; this includes setting some handlers for special events.
+All handlers take a pointer to the <B>ldap_sync_t</B> structure as the first
+argument, and a pointer to the <B>LDAPMessage</B> structure as received
+from the server by the client library, plus, occasionally, other specific
+arguments.
+<P>
+The members of the <B>ldap_sync_t</B> structure are:
+<DL COMPACT>
+<DT><B>char *</B><I>ls_base</I>
+
+<DD>
+The search base; by default, the
+<B>BASE</B>
+
+option in
+<B><A HREF="/manpages/index.html?5+ldap.conf">ldap.conf</A></B>(5).
+
+<DT><B>int </B><I>ls_scope</I>
+
+<DD>
+The search scope (one of 
+<B>LDAP_SCOPE_BASE</B>,
+
+<B>LDAP_SCOPE_ONELEVEL</B>,
+
+<B>LDAP_SCOPE_SUBORDINATE</B>
+
+or
+<B>LDAP_SCOPE_SUBTREE</B>;
+
+see
+<B>ldap.h</B>
+
+for details).
+<DT><B>char *</B><I>ls_filter</I>
+
+<DD>
+The filter (RFC 4515); by default, 
+<B>(objectClass=*)</B>.
+
+<DT><B>char **</B><I>ls_attrs</I>
+
+<DD>
+The requested attributes; by default
+<B>NULL</B>,
+
+indicating all user attributes.
+<DT><B>int </B><I>ls_timelimit</I>
+
+<DD>
+The requested time limit (in seconds); by default
+<B>0</B>,
+
+to indicate no limit.
+<DT><B>int </B><I>ls_sizelimit</I>
+
+<DD>
+The requested size limit (in entries); by default
+<B>0</B>,
+
+to indicate no limit.
+<DT><B>int </B><I>ls_timeout</I>
+
+<DD>
+The desired timeout during polling with
+<B><A HREF="/manpages/index.html?3+ldap_sync_poll">ldap_sync_poll</A></B>(3).
+
+A value of
+<B>-1</B>
+
+means that polling is blocking, so 
+<B><A HREF="/manpages/index.html?3+ldap_sync_poll">ldap_sync_poll</A></B>(3)
+
+will not return until a message is received; a value of
+<B>0</B>
+
+means that polling returns immediately, no matter if any response
+is available or not; a positive value represents the timeout the
+<B><A HREF="/manpages/index.html?3+ldap_sync_poll">ldap_sync_poll</A></B>(3)
+
+function will wait for response before returning, unless a message
+is received; in that case, 
+<B><A HREF="/manpages/index.html?3+ldap_sync_poll">ldap_sync_poll</A></B>(3)
+
+returns as soon as the message is available.
+<DT><B>ldap_sync_search_entry_f </B><I>ls_search_entry</I>
+
+<DD>
+A function that is called whenever an entry is returned.
+The
+<B>msg</B>
+
+argument is the
+<B>LDAPMessage</B>
+
+that contains the searchResultEntry; it can be parsed using the regular 
+client API routines, like 
+<B><A HREF="/manpages/index.html?3+ldap_get_dn">ldap_get_dn</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+ldap_first_attribute">ldap_first_attribute</A></B>(3),
+
+and so on.
+The
+<B>entryUUID</B>
+
+argument contains the entryUUID of the entry.
+The
+<B>phase</B>
+
+argument indicates the type of operation: one of
+<B>LDAP_SYNC_CAPI_PRESENT</B>,
+
+<B>LDAP_SYNC_CAPI_ADD</B>,
+
+<B>LDAP_SYNC_CAPI_MODIFY</B>,
+
+<B>LDAP_SYNC_CAPI_DELETE</B>;
+
+in case of
+<B>LDAP_SYNC_CAPI_PRESENT</B>
+
+or
+<B>LDAP_SYNC_CAPI_DELETE</B>,
+
+only the DN is contained in the 
+<I>LDAPMessage</I>;
+
+in case of 
+<B>LDAP_SYNC_CAPI_MODIFY</B>,
+
+the whole entry is contained in the 
+<I>LDAPMessage</I>,
+
+and the application is responsible of determining the differences
+between the new view of the entry provided by the caller and the data
+already known.
+<DT><B>ldap_sync_search_reference_f </B><I>ls_search_reference</I>
+
+<DD>
+A function that is called whenever a search reference is returned.
+The
+<B>msg</B>
+
+argument is the
+<B>LDAPMessage</B>
+
+that contains the searchResultReference; it can be parsed using 
+the regular client API routines, like 
+<B><A HREF="/manpages/index.html?3+ldap_parse_reference">ldap_parse_reference</A></B>(3).
+
+<DT><B>ldap_sync_intermediate_f </B><I>ls_intermediate</I>
+
+<DD>
+A function that is called whenever something relevant occurs during 
+the refresh phase of the search, which is marked by
+an <I>intermediateResponse</I> message type.
+The
+<B>msg</B>
+
+argument is the
+<B>LDAPMessage</B>
+
+that contains the intermediate response; it can be parsed using 
+the regular client API routines, like 
+<B><A HREF="/manpages/index.html?3+ldap_parse_intermediate">ldap_parse_intermediate</A></B>(3).
+
+The
+<B>syncUUIDs</B>
+
+argument contains an array of UUIDs of the entries that depends
+on the value of the
+<B>phase</B>
+
+argument.
+In case of
+<B>LDAP_SYNC_CAPI_PRESENTS</B>,
+
+the &quot;present&quot; phase is being entered;
+this means that the following sequence of results will consist
+in entries in &quot;present&quot; sync state.
+In case of
+<B>LDAP_SYNC_CAPI_DELETES</B>,
+
+the &quot;deletes&quot; phase is being entered;
+this means that the following sequence of results will consist
+in entries in &quot;delete&quot; sync state.
+In case of
+<B>LDAP_SYNC_CAPI_PRESENTS_IDSET</B>,
+
+the message contains a set of UUIDs of entries that are present;
+it replaces a &quot;presents&quot; phase.
+In case of
+<B>LDAP_SYNC_CAPI_DELETES_IDSET</B>,
+
+the message contains a set of UUIDs of entries that have been deleted;
+it replaces a &quot;deletes&quot; phase.
+In case of
+<B>LDAP_SYNC_CAPI_DONE,</B>
+
+a &quot;presents&quot; phase with &quot;refreshDone&quot; set to &quot;TRUE&quot; has been returned
+to indicate that the refresh phase of refreshAndPersist is over, and
+the client should start polling.
+Except for the
+<B>LDAP_SYNC_CAPI_PRESENTS_IDSET</B>
+
+and
+<B>LDAP_SYNC_CAPI_DELETES_IDSET</B>
+
+cases,
+<B>syncUUIDs</B>
+
+is NULL.
+<B>.TP</B>
+
+<B>ldap_sync_search_result_f </B><I>ls_search_result</I>
+
+A function that is called whenever a searchResultDone is returned.
+In refreshAndPersist this can only occur when the server decides
+that the search must be interrupted.
+The
+<B>msg</B>
+
+argument is the
+<B>LDAPMessage</B>
+
+that contains the response; it can be parsed using 
+the regular client API routines, like 
+<B><A HREF="/manpages/index.html?3+ldap_parse_result">ldap_parse_result</A></B>(3).
+
+The
+<B>refreshDeletes</B>
+
+argument is not relevant in this case; it should always be -1.
+<DT><B>void *</B><I>ls_private</I>
+
+<DD>
+A pointer to private data.  The client may register here
+a pointer to data the handlers above may need.
+<DT><B>LDAP *</B><I>ls_ld</I>
+
+<DD>
+A pointer to a LDAP structure that is used to connect to the server.
+It is the responsibility of the client to initialize the structure
+and to provide appropriate authentication and security in place.
+<P>
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>GENERAL USE</H2>
+
+A
+<B>ldap_sync_t</B>
+
+structure is initialized by calling
+<B><A HREF="/manpages/index.html?3+ldap_sync_initialize">ldap_sync_initialize</A>(3).</B>
+
+This simply clears out the contents of an already existing
+<B>ldap_sync_t</B>
+
+structure, and sets appropriate values for some members.
+After that, the caller is responsible for setting up the
+connection (member
+<B>ls_ld</B>),
+
+eventually setting up transport security (TLS),
+for binding and any other initialization.
+The caller must also fill all the documented search-related fields
+of the
+<B>ldap_sync_t</B>
+
+structure.
+<P>
+At the end of a session, the structure can be cleaned up by calling
+<B><A HREF="/manpages/index.html?3+ldap_sync_destroy">ldap_sync_destroy</A></B>(3),
+
+which takes care of freeing all data assuming it was allocated by
+<B>ldap_mem*</B>(3)
+
+routines.
+Otherwise, the caller should take care of destroying and zeroing out
+the documented search-related fields, and call
+<B><A HREF="/manpages/index.html?3+ldap_sync_destroy">ldap_sync_destroy</A></B>(3)
+
+to free undocumented members set by the API.
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H2>REFRESH ONLY</H2>
+
+The
+<B>refreshOnly</B>
+
+functionality is obtained by periodically calling
+<B><A HREF="/manpages/index.html?3+ldap_sync_init">ldap_sync_init</A></B>(3)
+
+with mode set to
+<B>LDAP_SYNC_REFRESH_ONLY</B>,
+
+or, which is equivalent, by directly calling
+<B><A HREF="/manpages/index.html?3+ldap_sync_init_refresh_only">ldap_sync_init_refresh_only</A></B>(3).
+
+The state of the search, and the consistency of the search parameters,
+is preserved across calls by passing the 
+<B>ldap_sync_t</B>
+
+structure as left by the previous call.
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>REFRESH AND PERSIST</H2>
+
+The
+<B>refreshAndPersist</B>
+
+functionality is obtained by calling
+<B><A HREF="/manpages/index.html?3+ldap_sync_init">ldap_sync_init</A></B>(3)
+
+with mode set to
+<B>LDAP_SYNC_REFRESH_AND_PERSIST</B>,
+
+or, which is equivalent, by directly calling
+<B><A HREF="/manpages/index.html?3+ldap_sync_init_refresh_and_persist">ldap_sync_init_refresh_and_persist</A></B>(3)
+
+and, after a successful return, by repeatedly polling with
+<B><A HREF="/manpages/index.html?3+ldap_sync_poll">ldap_sync_poll</A></B>(3)
+
+according to the desired pattern.
+<P>
+A client may insert a call to 
+<B><A HREF="/manpages/index.html?3+ldap_sync_poll">ldap_sync_poll</A></B>(3)
+
+into an external loop to check if any modification was returned;
+in this case, it might be appropriate to set
+<B>ls_timeout</B>
+
+to 0, or to set it to a finite, small value.
+Otherwise, if the client's main purpose consists in waiting for
+responses, a timeout of -1 is most suitable, so that the function
+only returns after some data has been received and handled.
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>ERRORS</H2>
+
+All routines return any LDAP error resulting from a lower-level error
+in the API calls they are based on, or LDAP_SUCCESS in case of success.
+<B><A HREF="/manpages/index.html?3+ldap_sync_poll">ldap_sync_poll</A></B>(3)
+
+may return 
+<B>LDAP_SYNC_REFRESH_REQUIRED</B>
+
+if a full refresh is requested by the server.
+In this case, it is appropriate to call
+<B><A HREF="/manpages/index.html?3+ldap_sync_init">ldap_sync_init</A></B>(3)
+
+again, passing the same
+<B>ldap_sync_t</B>
+
+structure as resulted from any previous call.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?3+ldap">ldap</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+ldap_search_ext">ldap_search_ext</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+ldap_result">ldap_result</A></B>(3)<B>;</B>
+
+<B>RFC 4533</B>
+
+(<A HREF="http://www.rfc-editor.org),">http://www.rfc-editor.org),</A>
+<A NAME="lbAL">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Designed and implemented by Pierangelo Masarati, based on RFC 4533
+and loosely inspired by syncrepl code in
+<B><A HREF="/manpages/index.html?8+slapd">slapd</A></B>(8).
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>ACKNOWLEDGEMENTS</H2>
+
+Initially developed by
+<B>SysNet s.n.c.</B>
+
+<B>OpenLDAP</B>
+
+is developed and maintained by The OpenLDAP Project (<A HREF="http://www.openldap.org/).">http://www.openldap.org/).</A>
+<B>OpenLDAP</B>
+
+is derived from University of Michigan LDAP 3.3 Release.  
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">LIBRARY</A><DD>
+<DT><A HREF="#lbAD">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAE">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAF">GENERAL USE</A><DD>
+<DT><A HREF="#lbAG">REFRESH ONLY</A><DD>
+<DT><A HREF="#lbAH">REFRESH AND PERSIST</A><DD>
+<DT><A HREF="#lbAI">ERRORS</A><DD>
+<DT><A HREF="#lbAJ">NOTES</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">AUTHOR</A><DD>
+<DT><A HREF="#lbAM">ACKNOWLEDGEMENTS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:31 GMT, December 24, 2015
+</div></body>
+</HTML>

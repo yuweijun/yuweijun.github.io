@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERL595DELTA</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERL595DELTA</H1>
+Section: Perl Programmers Reference Guide (1)<BR>Updated: 2009-02-26<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perl595delta - what is new for perl v5.9.5
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+This document describes differences between the 5.9.4 and the 5.9.5
+development releases. See perl590delta, perl591delta,
+perl592delta, perl593delta and perl594delta for the differences
+between 5.8.0 and 5.9.4.
+<A NAME="lbAD">&nbsp;</A>
+<H2>Incompatible Changes</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Tainting and printf</H3>
+
+<A NAME="ixAAE"></A>
+When perl is run under taint mode, <TT>&quot;printf()&quot;</TT> and <TT>&quot;sprintf()&quot;</TT> will now
+reject any tainted format argument. (Rafael Garcia-Suarez)
+<A NAME="lbAF">&nbsp;</A>
+<H3>undef and signal handlers</H3>
+
+<A NAME="ixAAF"></A>
+Undefining or deleting a signal handler via <TT>&quot;undef $SIG{FOO}&quot;</TT> is now
+equivalent to setting it to <TT>'DEFAULT'</TT>. (Rafael)
+<A NAME="lbAG">&nbsp;</A>
+<H3>strictures and array/hash dereferencing in <I>defined()</I></H3>
+
+<A NAME="ixAAG"></A>
+<TT>&quot;defined @$foo&quot;</TT> and <TT>&quot;defined %$bar&quot;</TT> are now subject to <TT>&quot;strict 'refs'&quot;</TT>
+(that is, <TT>$foo</TT> and <TT>$bar</TT> shall be proper references there.)
+(Nicholas Clark)
+<P>
+
+(However, <TT>&quot;defined(@foo)&quot;</TT> and <TT>&quot;defined(%bar)&quot;</TT> are discouraged constructs
+anyway.)
+<A NAME="lbAH">&nbsp;</A>
+<H3>(?p{}) has been removed</H3>
+
+
+
+<A NAME="ixAAH"></A>
+The regular expression construct <TT>&quot;(?p{})&quot;</TT>, which was deprecated in perl
+5.8, has been removed. Use <TT>&quot;(??{})&quot;</TT> instead. (Rafael)
+<A NAME="lbAI">&nbsp;</A>
+<H3>Pseudo-hashes have been removed</H3>
+
+<A NAME="ixAAI"></A>
+Support for pseudo-hashes has been removed from Perl 5.9. (The <TT>&quot;fields&quot;</TT>
+pragma remains here, but uses an alternate implementation.)
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Removal of the bytecode compiler and of perlcc</H3>
+
+<A NAME="ixAAJ"></A>
+<TT>&quot;perlcc&quot;</TT>, the byteloader and the supporting modules (B::C, B::CC,
+B::Bytecode, etc.) are no longer distributed with the perl sources. Those
+experimental tools have never worked reliably, and, due to the lack of
+volunteers to keep them in line with the perl interpreter developments, it
+was decided to remove them instead of shipping a broken version of those.
+The last version of those modules can be found with perl 5.9.4.
+<P>
+
+However the B compiler framework stays supported in the perl core, as with
+the more useful modules it has permitted (among others, B::Deparse and
+B::Concise).
+<A NAME="lbAK">&nbsp;</A>
+<H3>Removal of the <FONT SIZE="-1">JPL</FONT></H3>
+
+<A NAME="ixAAK"></A>
+The <FONT SIZE="-1">JPL</FONT> (Java-Perl Linguo) has been removed from the perl sources tarball.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Recursive inheritance detected earlier</H3>
+
+<A NAME="ixAAL"></A>
+Perl will now immediately throw an exception if you modify any package's
+<TT>@ISA</TT> in such a way that it would cause recursive inheritance.
+<P>
+
+Previously, the exception would not occur until Perl attempted to make
+use of the recursive inheritance while resolving a method or doing a
+<TT>&quot;$foo-&gt;isa($bar)&quot;</TT> lookup.
+<A NAME="lbAM">&nbsp;</A>
+<H2>Core Enhancements</H2>
+
+<A NAME="ixAAM"></A>
+<A NAME="lbAN">&nbsp;</A>
+<H3>Regular expressions</H3>
+
+<A NAME="ixAAN"></A>
+<DL COMPACT>
+<DT>Recursive Patterns<DD>
+<A NAME="ixAAO"></A>
+It is now possible to write recursive patterns without using the <TT>&quot;(??{})&quot;</TT>
+construct. This new way is more efficient, and in many cases easier to
+read.
+
+
+<P>
+
+
+Each capturing parenthesis can now be treated as an independent pattern
+that can be entered by using the <TT>&quot;(?PARNO)&quot;</TT> syntax (<TT>&quot;PARNO&quot;</TT> standing for
+``parenthesis number''). For example, the following pattern will match
+nested balanced angle brackets:
+
+
+<P>
+
+
+
+
+<PRE>
+    /
+     ^                      # start of line
+     (                      # start capture buffer 1
+        &lt;                   #   match an opening angle bracket
+        (?:                 #   match one of:
+            (?&gt;             #     don't backtrack over the inside of this group
+                [^&lt;&gt;]+      #       one or more non angle brackets
+            )               #     end non backtracking group
+        |                   #     ... or ...
+            (?1)            #     recurse to bracket 1 and try it again
+        )*                  #   0 or more times.
+        &gt;                   #   match a closing angle bracket
+     )                      # end capture buffer one
+     $                      # end of line
+    /x
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note, users experienced with <FONT SIZE="-1">PCRE</FONT> will find that the Perl implementation
+of this feature differs from the <FONT SIZE="-1">PCRE</FONT> one in that it is possible to
+backtrack into a recursed pattern, whereas in <FONT SIZE="-1">PCRE</FONT> the recursion is
+atomic or ``possessive'' in nature. (Yves Orton)
+<DT>Named Capture Buffers<DD>
+<A NAME="ixAAP"></A>
+It is now possible to name capturing parenthesis in a pattern and refer to
+the captured contents by name. The naming syntax is <TT>&quot;(?&lt;NAME&gt;....)&quot;</TT>.
+It's possible to backreference to a named buffer with the <TT>&quot;\k&lt;NAME&gt;&quot;</TT>
+syntax. In code, the new magical hashes <TT>&quot;%+&quot;</TT> and <TT>&quot;%-&quot;</TT> can be used to
+access the contents of the capture buffers.
+
+
+<P>
+
+
+Thus, to replace all doubled chars, one could write
+
+
+<P>
+
+
+
+
+<PRE>
+    s/(?&lt;letter&gt;.)\k&lt;letter&gt;/$+{letter}/g
+
+</PRE>
+
+
+
+
+<P>
+
+
+Only buffers with defined contents will be ``visible'' in the <TT>&quot;%+&quot;</TT> hash, so
+it's possible to do something like
+
+
+<P>
+
+
+
+
+<PRE>
+    foreach my $name (keys %+) {
+        print &quot;content of buffer '$name' is $+{$name}\n&quot;;
+    }
+
+</PRE>
+
+
+
+
+<P>
+
+
+The <TT>&quot;%-&quot;</TT> hash is a bit more complete, since it will contain array refs
+holding values from all capture buffers similarly named, if there should
+be many of them.
+
+
+<P>
+
+
+<TT>&quot;%+&quot;</TT> and <TT>&quot;%-&quot;</TT> are implemented as tied hashes through the new module
+<TT>&quot;Tie::Hash::NamedCapture&quot;</TT>.
+
+
+<P>
+
+
+Users exposed to the .NET regex engine will find that the perl
+implementation differs in that the numerical ordering of the buffers
+is sequential, and not ``unnamed first, then named''. Thus in the pattern
+
+
+<P>
+
+
+
+
+<PRE>
+   /(A)(?&lt;B&gt;B)(C)(?&lt;D&gt;D)/
+
+</PRE>
+
+
+
+
+<P>
+
+
+<TT>$1</TT> will be 'A', <TT>$2</TT> will be 'B', <TT>$3</TT> will be 'C' and <TT>$4</TT> will be 'D' and not
+<TT>$1</TT> is 'A', <TT>$2</TT> is 'C' and <TT>$3</TT> is 'B' and <TT>$4</TT> is 'D' that a .NET programmer
+would expect. This is considered a feature. :-) (Yves Orton)
+<DT>Possessive Quantifiers<DD>
+<A NAME="ixAAQ"></A>
+Perl now supports the ``possessive quantifier'' syntax of the ``atomic match''
+pattern. Basically a possessive quantifier matches as much as it can and never
+gives any back. Thus it can be used to control backtracking. The syntax is
+similar to non-greedy matching, except instead of using a '?' as the modifier
+the '+' is used. Thus <TT>&quot;?+&quot;</TT>, <TT>&quot;*+&quot;</TT>, <TT>&quot;++&quot;</TT>, <TT>&quot;{min,max}+&quot;</TT> are now legal
+quantifiers. (Yves Orton)
+<DT>Backtracking control verbs<DD>
+<A NAME="ixAAR"></A>
+The regex engine now supports a number of special-purpose backtrack
+control verbs: (*THEN), (*PRUNE), (*MARK), (*SKIP), (*COMMIT), (*FAIL)
+and (*ACCEPT). See perlre for their descriptions. (Yves Orton)
+<DT>Relative backreferences<DD>
+<A NAME="ixAAS"></A>
+A new syntax <TT>&quot;\g{N}&quot;</TT> or <TT>&quot;\gN&quot;</TT> where ``N'' is a decimal integer allows a
+safer form of back-reference notation as well as allowing relative
+backreferences. This should make it easier to generate and embed patterns
+that contain backreferences. See ``Capture buffers'' in perlre. (Yves Orton)
+<DT>\K escape<DD>
+
+
+<A NAME="ixAAT"></A>
+The functionality of Jeff Pinyan's module Regexp::Keep has been added to
+the core. You can now use in regular expressions the special escape <TT>&quot;\K&quot;</TT>
+as a way to do something like floating length positive lookbehind. It is
+also useful in substitutions like:
+
+
+<P>
+
+
+
+
+<PRE>
+  s/(foo)bar/$1/g
+
+</PRE>
+
+
+
+
+<P>
+
+
+that can now be converted to
+
+
+<P>
+
+
+
+
+<PRE>
+  s/foo\Kbar//g
+
+</PRE>
+
+
+
+
+<P>
+
+
+which is much more efficient. (Yves Orton)
+<DT>Vertical and horizontal whitespace, and linebreak<DD>
+<A NAME="ixAAU"></A>
+Regular expressions now recognize the <TT>&quot;\v&quot;</TT> and <TT>&quot;\h&quot;</TT> escapes, that match
+vertical and horizontal whitespace, respectively. <TT>&quot;\V&quot;</TT> and <TT>&quot;\H&quot;</TT>
+logically match their complements.
+
+
+<P>
+
+
+<TT>&quot;\R&quot;</TT> matches a generic linebreak, that is, vertical whitespace, plus
+the multi-character sequence <TT>&quot;\x0D\x0A&quot;</TT>.
+</DL>
+<A NAME="lbAO">&nbsp;</A>
+<H3>The _ prototype</H3>
+
+
+
+<A NAME="ixAAV"></A>
+A new prototype character has been added. <TT>&quot;_&quot;</TT> is equivalent to <TT>&quot;$&quot;</TT> (it
+denotes a scalar), but defaults to <TT>$_</TT> if the corresponding argument
+isn't supplied. Due to the optional nature of the argument, you can only
+use it at the end of a prototype, or before a semicolon.
+<P>
+
+This has a small incompatible consequence: the <I>prototype()</I> function has
+been adjusted to return <TT>&quot;_&quot;</TT> for some built-ins in appropriate cases (for
+example, <TT>&quot;prototype('CORE::rmdir')&quot;</TT>). (Rafael)
+<A NAME="lbAP">&nbsp;</A>
+<H3><FONT SIZE="-1">UNITCHECK</FONT> blocks</H3>
+
+<A NAME="ixAAW"></A>
+<TT>&quot;UNITCHECK&quot;</TT>, a new special code block has been introduced, in addition to
+<TT>&quot;BEGIN&quot;</TT>, <TT>&quot;CHECK&quot;</TT>, <TT>&quot;INIT&quot;</TT> and <TT>&quot;END&quot;</TT>.
+<P>
+
+<TT>&quot;CHECK&quot;</TT> and <TT>&quot;INIT&quot;</TT> blocks, while useful for some specialized purposes,
+are always executed at the transition between the compilation and the
+execution of the main program, and thus are useless whenever code is
+loaded at runtime. On the other hand, <TT>&quot;UNITCHECK&quot;</TT> blocks are executed
+just after the unit which defined them has been compiled. See perlmod
+for more information. (Alex Gough)
+<A NAME="lbAQ">&nbsp;</A>
+<H3><I>readpipe()</I> is now overridable</H3>
+
+<A NAME="ixAAX"></A>
+The built-in function <I>readpipe()</I> is now overridable. Overriding it permits
+also to override its operator counterpart, <TT>&quot;qx//&quot;</TT> (a.k.a. <TT>&quot;``&quot;</TT>).
+Moreover, it now defaults to <TT>$_</TT> if no argument is provided. (Rafael)
+<A NAME="lbAR">&nbsp;</A>
+<H3>default argument for <I>readline()</I></H3>
+
+<A NAME="ixAAY"></A>
+<I>readline()</I> now defaults to <TT>*ARGV</TT> if no argument is provided. (Rafael)
+<A NAME="lbAS">&nbsp;</A>
+<H3><FONT SIZE="-1">UCD</FONT> 5.0.0</H3>
+
+<A NAME="ixAAZ"></A>
+The copy of the Unicode Character Database included in Perl 5.9 has
+been updated to version 5.0.0.
+<A NAME="lbAT">&nbsp;</A>
+<H3>Smart match</H3>
+
+<A NAME="ixABA"></A>
+The smart match operator (<TT>&quot;~~&quot;</TT>) is now available by default (you don't
+need to enable it with <TT>&quot;use feature&quot;</TT> any longer). (Michael G Schwern)
+<A NAME="lbAU">&nbsp;</A>
+<H3>Implicit loading of feature</H3>
+
+
+
+<A NAME="ixABB"></A>
+The <TT>&quot;feature&quot;</TT> pragma is now implicitly loaded when you require a minimal
+perl version (with the <TT>&quot;use VERSION&quot;</TT> construct) greater than, or equal
+to, 5.9.5.
+<A NAME="lbAV">&nbsp;</A>
+<H2>Modules and Pragmas</H2>
+
+<A NAME="ixABC"></A>
+<A NAME="lbAW">&nbsp;</A>
+<H3>New Pragma, mro</H3>
+
+
+
+<A NAME="ixABD"></A>
+A new pragma, <TT>&quot;mro&quot;</TT> (for Method Resolution Order) has been added. It
+permits to switch, on a per-class basis, the algorithm that perl uses to
+find inherited methods in case of a multiple inheritance hierarchy. The
+default <FONT SIZE="-1">MRO</FONT> hasn't changed (<FONT SIZE="-1">DFS</FONT>, for Depth First Search). Another <FONT SIZE="-1">MRO</FONT> is
+available: the C3 algorithm. See mro for more information.
+(Brandon Black)
+<P>
+
+Note that, due to changes in the implementation of class hierarchy search,
+code that used to undef the <TT>*ISA</TT> glob will most probably break. Anyway,
+undef'ing <TT>*ISA</TT> had the side-effect of removing the magic on the <TT>@ISA</TT>
+array and should not have been done in the first place.
+<A NAME="lbAX">&nbsp;</A>
+<H3>bignum, bigint, bigrat</H3>
+
+<A NAME="ixABE"></A>
+The three numeric pragmas <TT>&quot;bignum&quot;</TT>, <TT>&quot;bigint&quot;</TT> and <TT>&quot;bigrat&quot;</TT> are now
+lexically scoped. (Tels)
+<A NAME="lbAY">&nbsp;</A>
+<H3>Math::BigInt/Math::BigFloat</H3>
+
+<A NAME="ixABF"></A>
+Many bugs have been fixed; noteworthy are comparisons with NaN, which
+no longer warn about undef values.
+<P>
+
+The following things are new:
+<DL COMPACT>
+<DT><I>config()</I><DD>
+<A NAME="ixABG"></A>
+The <I>config()</I> method now also supports the calling-style
+<TT>&quot;config('lib')&quot;</TT> in addition to <TT>&quot;config()-&gt;{'lib'}&quot;</TT>.
+<DT><I>import()</I><DD>
+<A NAME="ixABH"></A>
+Upon import, using <TT>&quot;lib =&gt; 'Foo'&quot;</TT> now warns if the low-level library
+cannot be found. To suppress the warning, you can use <TT>&quot;try =&gt; 'Foo'&quot;</TT>
+instead. To convert the warning into a die, use <TT>&quot;only =&gt; 'Foo'&quot;</TT>
+instead.
+<DT>roundmode common<DD>
+<A NAME="ixABI"></A>
+A rounding mode of <TT>&quot;common&quot;</TT> is now supported.
+</DL>
+<P>
+
+Also, support for the following methods has been added:
+<DL COMPACT>
+<DT><I>bpi()</I>, <I>bcos()</I>, <I>bsin()</I>, <I>batan()</I>, <I>batan2()</I><DD>
+<A NAME="ixABJ"></A>
+
+<DT><I>bmuladd()</I><DD>
+<A NAME="ixABK"></A>
+<DT><I>bexp()</I>, <I>bnok()</I><DD>
+<A NAME="ixABL"></A>
+<DT><I>from_hex()</I>, <I>from_oct()</I>, and <I>from_bin()</I><DD>
+<A NAME="ixABM"></A>
+<DT><I>as_oct()</I><DD>
+<A NAME="ixABN"></A>
+
+</DL>
+<P>
+
+In addition, the default math-backend (Calc (Perl) and FastCalc (<FONT SIZE="-1">XS</FONT>)) now
+support storing numbers in parts with 9 digits instead of 7 on Perls with
+either 64bit integer or long double support. This means math operations
+scale better and are thus faster for really big numbers.
+<A NAME="lbAZ">&nbsp;</A>
+<H3>New Core Modules</H3>
+
+<A NAME="ixABO"></A>
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;Locale::Maketext::Simple&quot;</TT>, needed by <FONT SIZE="-1">CPANPLUS</FONT>, is a simple wrapper around
+<TT>&quot;Locale::Maketext::Lexicon&quot;</TT>. Note that <TT>&quot;Locale::Maketext::Lexicon&quot;</TT> isn't
+included in the perl core; the behaviour of <TT>&quot;Locale::Maketext::Simple&quot;</TT>
+gracefully degrades when the later isn't present.
+<DT>*<DD>
+<TT>&quot;Params::Check&quot;</TT> implements a generic input parsing/checking mechanism. It
+is used by <FONT SIZE="-1">CPANPLUS</FONT>.
+<DT>*<DD>
+<TT>&quot;Term::UI&quot;</TT> simplifies the task to ask questions at a terminal prompt.
+<DT>*<DD>
+<TT>&quot;Object::Accessor&quot;</TT> provides an interface to create per-object accessors.
+<DT>*<DD>
+<TT>&quot;Module::Pluggable&quot;</TT> is a simple framework to create modules that accept
+pluggable sub-modules.
+<DT>*<DD>
+<TT>&quot;Module::Load::Conditional&quot;</TT> provides simple ways to query and possibly
+load installed modules.
+<DT>*<DD>
+<TT>&quot;Time::Piece&quot;</TT> provides an object oriented interface to time functions,
+overriding the built-ins <I>localtime()</I> and <I>gmtime()</I>.
+<DT>*<DD>
+<TT>&quot;IPC::Cmd&quot;</TT> helps to find and run external commands, possibly
+interactively.
+<DT>*<DD>
+<TT>&quot;File::Fetch&quot;</TT> provide a simple generic file fetching mechanism.
+<DT>*<DD>
+<TT>&quot;Log::Message&quot;</TT> and <TT>&quot;Log::Message::Simple&quot;</TT> are used by the log facility
+of <TT>&quot;CPANPLUS&quot;</TT>.
+<DT>*<DD>
+<TT>&quot;Archive::Extract&quot;</TT> is a generic archive extraction mechanism
+for <I>.tar</I> (plain, gziped or bzipped) or <I>.zip</I> files.
+<DT>*<DD>
+<TT>&quot;CPANPLUS&quot;</TT> provides an <FONT SIZE="-1">API</FONT> and a command-line tool to access the <FONT SIZE="-1">CPAN</FONT>
+mirrors.
+</DL>
+<A NAME="lbBA">&nbsp;</A>
+<H3>Module changes</H3>
+
+<A NAME="ixABP"></A>
+<DL COMPACT>
+<DT>assertions<DD>
+
+
+<A NAME="ixABQ"></A>
+The <TT>&quot;assertions&quot;</TT> pragma, its submodules <TT>&quot;assertions::activate&quot;</TT> and
+<TT>&quot;assertions::compat&quot;</TT> and the <B>-A</B> command-line switch have been removed.
+The interface was not judged mature enough for inclusion in a stable
+release.
+<DT>base<DD>
+
+
+<A NAME="ixABR"></A>
+The <TT>&quot;base&quot;</TT> pragma now warns if a class tries to inherit from itself.
+(Curtis ``Ovid'' Poe)
+<DT>strict and warnings<DD>
+
+
+<A NAME="ixABS"></A>
+<TT>&quot;strict&quot;</TT> and <TT>&quot;warnings&quot;</TT> will now complain loudly if they are loaded via
+incorrect casing (as in <TT>&quot;use Strict;&quot;</TT>). (Johan Vromans)
+<DT>warnings<DD>
+
+
+<A NAME="ixABT"></A>
+The <TT>&quot;warnings&quot;</TT> pragma doesn't load <TT>&quot;Carp&quot;</TT> anymore. That means that code
+that used <TT>&quot;Carp&quot;</TT> routines without having loaded it at compile time might
+need to be adjusted; typically, the following (faulty) code won't work
+anymore, and will require parentheses to be added after the function name:
+
+
+<P>
+
+
+
+
+<PRE>
+    use warnings;
+    require Carp;
+    Carp::confess &quot;argh&quot;;
+
+</PRE>
+
+
+<DT>less<DD>
+
+
+<A NAME="ixABU"></A>
+<TT>&quot;less&quot;</TT> now does something useful (or at least it tries to). In fact, it
+has been turned into a lexical pragma. So, in your modules, you can now
+test whether your users have requested to use less <FONT SIZE="-1">CPU</FONT>, or less memory,
+less magic, or maybe even less fat. See less for more. (Joshua ben
+Jore)
+<DT>Attribute::Handlers<DD>
+
+
+<A NAME="ixABV"></A>
+<TT>&quot;Attribute::Handlers&quot;</TT> can now report the caller's file and line number.
+(David Feldman)
+<DT>B::Lint<DD>
+
+
+<A NAME="ixABW"></A>
+<TT>&quot;B::Lint&quot;</TT> is now based on <TT>&quot;Module::Pluggable&quot;</TT>, and so can be extended
+with plugins. (Joshua ben Jore)
+<DT>B<DD>
+
+
+<A NAME="ixABX"></A>
+It's now possible to access the lexical pragma hints (<TT>&quot;%^H&quot;</TT>) by using the
+method <I>B::COP::hints_hash()</I>. It returns a <TT>&quot;B::RHE&quot;</TT> object, which in turn
+can be used to get a hash reference via the method <I>B::RHE::HASH()</I>. (Joshua
+ben Jore)
+<DT>Thread<DD>
+
+
+<A NAME="ixABY"></A>
+As the old 5005thread threading model has been removed, in favor of the
+ithreads scheme, the <TT>&quot;Thread&quot;</TT> module is now a compatibility wrapper, to
+be used in old code only. It has been removed from the default list of
+dynamic extensions.
+</DL>
+<A NAME="lbBB">&nbsp;</A>
+<H2>Utility Changes</H2>
+
+<A NAME="ixABZ"></A>
+<A NAME="lbBC">&nbsp;</A>
+<H3>cpanp</H3>
+
+
+
+<A NAME="ixACA"></A>
+<TT>&quot;cpanp&quot;</TT>, the <FONT SIZE="-1">CPANPLUS</FONT> shell, has been added. (<TT>&quot;cpanp-run-perl&quot;</TT>, an
+helper for <FONT SIZE="-1">CPANPLUS</FONT> operation, has been added too, but isn't intended for
+direct use).
+<A NAME="lbBD">&nbsp;</A>
+<H3>cpan2dist</H3>
+
+
+
+<A NAME="ixACB"></A>
+<TT>&quot;cpan2dist&quot;</TT> is a new utility, that comes with <FONT SIZE="-1">CPANPLUS</FONT>. It's a tool to
+create distributions (or packages) from <FONT SIZE="-1">CPAN</FONT> modules.
+<A NAME="lbBE">&nbsp;</A>
+<H3>pod2html</H3>
+
+
+
+<A NAME="ixACC"></A>
+The output of <TT>&quot;pod2html&quot;</TT> has been enhanced to be more customizable via
+<FONT SIZE="-1">CSS</FONT>. Some formatting problems were also corrected. (Jari Aalto)
+<A NAME="lbBF">&nbsp;</A>
+<H2>Documentation</H2>
+
+<A NAME="ixACD"></A>
+<A NAME="lbBG">&nbsp;</A>
+<H3>New manpage, perlunifaq</H3>
+
+<A NAME="ixACE"></A>
+A new manual page, perlunifaq (the Perl Unicode <FONT SIZE="-1">FAQ</FONT>), has been added
+(Juerd Waalboer).
+<A NAME="lbBH">&nbsp;</A>
+<H2>Installation and Configuration Improvements</H2>
+
+<A NAME="ixACF"></A>
+<A NAME="lbBI">&nbsp;</A>
+<H3>C<FONT SIZE="-2">++</FONT> compatibility</H3>
+
+<A NAME="ixACG"></A>
+Efforts have been made to make perl and the core <FONT SIZE="-1">XS</FONT> modules compilable
+with various C<FONT SIZE="-2">++</FONT> compilers (although the situation is not perfect with
+some of the compilers on some of the platforms tested.)
+<A NAME="lbBJ">&nbsp;</A>
+<H3>Visual C<FONT SIZE="-2">++</FONT></H3>
+
+<A NAME="ixACH"></A>
+Perl now can be compiled with Microsoft Visual C<FONT SIZE="-2">++</FONT> 2005.
+<A NAME="lbBK">&nbsp;</A>
+<H3>Static build on Win32</H3>
+
+<A NAME="ixACI"></A>
+It's now possible to build a <TT>&quot;perl-static.exe&quot;</TT> that doesn't depend
+on <TT>&quot;perl59.dll&quot;</TT> on Win32. See the Win32 makefiles for details.
+(Vadim Konovalov)
+<A NAME="lbBL">&nbsp;</A>
+<H3>win32 builds</H3>
+
+<A NAME="ixACJ"></A>
+All win32 builds (MS-Win, WinCE) have been merged and cleaned up.
+<A NAME="lbBM">&nbsp;</A>
+<H3>d_pseudofork and d_printf_format_null</H3>
+
+
+
+<A NAME="ixACK"></A>
+A new configuration variable, available as <TT>$Config{d_pseudofork}</TT> in
+the Config module, has been added, to distinguish real <I>fork()</I> support
+from fake pseudofork used on Windows platforms.
+<P>
+
+A new configuration variable, <TT>&quot;d_printf_format_null&quot;</TT>, has been added, 
+to see if printf-like formats are allowed to be <FONT SIZE="-1">NULL</FONT>.
+<A NAME="lbBN">&nbsp;</A>
+<H3>Help</H3>
+
+<A NAME="ixACL"></A>
+<TT>&quot;Configure -h&quot;</TT> has been extended with the most used option.
+<P>
+
+Much less 'Whoa there' messages.
+<A NAME="lbBO">&nbsp;</A>
+<H3>64bit systems</H3>
+
+<A NAME="ixACM"></A>
+Better detection of 64bit(only) systems, and setting all the (library)
+paths accordingly.
+<A NAME="lbBP">&nbsp;</A>
+<H3>Ports</H3>
+
+<A NAME="ixACN"></A>
+Perl has been reported to work on MidnightBSD.
+<P>
+
+Support for Cray <FONT SIZE="-1">XT4</FONT> Catamount/Qk has been added.
+<P>
+
+Vendor patches have been merged for RedHat and GenToo.
+<A NAME="lbBQ">&nbsp;</A>
+<H2>Selected Bug Fixes</H2>
+
+<A NAME="ixACO"></A>
+PerlIO::scalar will now prevent writing to read-only scalars. Moreover,
+<I>seek()</I> is now supported with PerlIO::scalar-based filehandles, the
+underlying string being zero-filled as needed. (Rafael, Jarkko Hietaniemi)
+<P>
+
+<I>study()</I> never worked for <FONT SIZE="-1">UTF-8</FONT> strings, but could lead to false results.
+It's now a no-op on <FONT SIZE="-1">UTF-8</FONT> data. (Yves Orton)
+<P>
+
+The signals <FONT SIZE="-1">SIGILL</FONT>, <FONT SIZE="-1">SIGBUS</FONT> and <FONT SIZE="-1">SIGSEGV</FONT> are now always delivered in an
+``unsafe'' manner (contrary to other signals, that are deferred until the
+perl interpreter reaches a reasonably stable state; see
+``Deferred Signals (Safe Signals)'' in perlipc). (Rafael)
+<P>
+
+When a module or a file is loaded through an <TT>@INC</TT>-hook, and when this hook
+has set a filename entry in <TT>%INC</TT>, __FILE__ is now set for this module
+accordingly to the contents of that <TT>%INC</TT> entry. (Rafael)
+<P>
+
+The <TT>&quot;-w&quot;</TT> and <TT>&quot;-t&quot;</TT> switches can now be used together without messing
+up what categories of warnings are activated or not. (Rafael)
+<P>
+
+Duping a filehandle which has the <TT>&quot;:utf8&quot;</TT> PerlIO layer set will now
+properly carry that layer on the duped filehandle. (Rafael)
+<P>
+
+Localizing an hash element whose key was given as a variable didn't work
+correctly if the variable was changed while the <I>local()</I> was in effect (as
+in <TT>&quot;local $h{$x}; ++$x&quot;</TT>). (Bo Lindbergh)
+<A NAME="lbBR">&nbsp;</A>
+<H2>New or Changed Diagnostics</H2>
+
+<A NAME="ixACP"></A>
+<A NAME="lbBS">&nbsp;</A>
+<H3>Deprecations</H3>
+
+<A NAME="ixACQ"></A>
+Two deprecation warnings have been added: (Rafael)
+<P>
+
+
+
+<PRE>
+    Opening dirhandle %s also as a file
+    Opening filehandle %s also as a directory
+
+</PRE>
+
+
+<A NAME="lbBT">&nbsp;</A>
+<H2>Changed Internals</H2>
+
+<A NAME="ixACR"></A>
+The anonymous hash and array constructors now take 1 op in the optree
+instead of 3, now that pp_anonhash and pp_anonlist return a reference to
+an hash/array when the op is flagged with OPf_SPECIAL (Nicholas Clark).
+<A NAME="lbBU">&nbsp;</A>
+<H2>Reporting Bugs</H2>
+
+<A NAME="ixACS"></A>
+If you find what you think is a bug, you might check the articles
+recently posted to the comp.lang.perl.misc newsgroup and the perl
+bug database at <A HREF="http://rt.perl.org/rt3/">http://rt.perl.org/rt3/</A> .  There may also be
+information at <A HREF="http://www.perl.org/">http://www.perl.org/</A> , the Perl Home Page.
+<P>
+
+If you believe you have an unreported bug, please run the <B>perlbug</B>
+program included with your release.  Be sure to trim your bug down
+to a tiny but sufficient test case.  Your bug report, along with the
+output of <TT>&quot;perl -V&quot;</TT>, will be sent off to <A HREF="mailto:perlbug@perl.org">perlbug@perl.org</A> to be
+analysed by the Perl porting team.
+<A NAME="lbBV">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixACT"></A>
+The <I>Changes</I> file for exhaustive details on what changed.
+<P>
+
+The <I></I><FONT SIZE="-1"><I>INSTALL</I></FONT><I></I> file for how to build Perl.
+<P>
+
+The <I></I><FONT SIZE="-1"><I>README</I></FONT><I></I> file for general stuff.
+<P>
+
+The <I>Artistic</I> and <I>Copying</I> files for copyright information.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">Incompatible Changes</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Tainting and printf</A><DD>
+<DT><A HREF="#lbAF">undef and signal handlers</A><DD>
+<DT><A HREF="#lbAG">strictures and array/hash dereferencing in <I>defined()</I></A><DD>
+<DT><A HREF="#lbAH">(?p{}) has been removed</A><DD>
+<DT><A HREF="#lbAI">Pseudo-hashes have been removed</A><DD>
+<DT><A HREF="#lbAJ">Removal of the bytecode compiler and of perlcc</A><DD>
+<DT><A HREF="#lbAK">Removal of the <FONT SIZE="-1">JPL</FONT></A><DD>
+<DT><A HREF="#lbAL">Recursive inheritance detected earlier</A><DD>
+</DL>
+<DT><A HREF="#lbAM">Core Enhancements</A><DD>
+<DL>
+<DT><A HREF="#lbAN">Regular expressions</A><DD>
+<DT><A HREF="#lbAO">The _ prototype</A><DD>
+<DT><A HREF="#lbAP"><FONT SIZE="-1">UNITCHECK</FONT> blocks</A><DD>
+<DT><A HREF="#lbAQ"><I>readpipe()</I> is now overridable</A><DD>
+<DT><A HREF="#lbAR">default argument for <I>readline()</I></A><DD>
+<DT><A HREF="#lbAS"><FONT SIZE="-1">UCD</FONT> 5.0.0</A><DD>
+<DT><A HREF="#lbAT">Smart match</A><DD>
+<DT><A HREF="#lbAU">Implicit loading of feature</A><DD>
+</DL>
+<DT><A HREF="#lbAV">Modules and Pragmas</A><DD>
+<DL>
+<DT><A HREF="#lbAW">New Pragma, mro</A><DD>
+<DT><A HREF="#lbAX">bignum, bigint, bigrat</A><DD>
+<DT><A HREF="#lbAY">Math::BigInt/Math::BigFloat</A><DD>
+<DT><A HREF="#lbAZ">New Core Modules</A><DD>
+<DT><A HREF="#lbBA">Module changes</A><DD>
+</DL>
+<DT><A HREF="#lbBB">Utility Changes</A><DD>
+<DL>
+<DT><A HREF="#lbBC">cpanp</A><DD>
+<DT><A HREF="#lbBD">cpan2dist</A><DD>
+<DT><A HREF="#lbBE">pod2html</A><DD>
+</DL>
+<DT><A HREF="#lbBF">Documentation</A><DD>
+<DL>
+<DT><A HREF="#lbBG">New manpage, perlunifaq</A><DD>
+</DL>
+<DT><A HREF="#lbBH">Installation and Configuration Improvements</A><DD>
+<DL>
+<DT><A HREF="#lbBI">C<FONT SIZE="-2">++</FONT> compatibility</A><DD>
+<DT><A HREF="#lbBJ">Visual C<FONT SIZE="-2">++</FONT></A><DD>
+<DT><A HREF="#lbBK">Static build on Win32</A><DD>
+<DT><A HREF="#lbBL">win32 builds</A><DD>
+<DT><A HREF="#lbBM">d_pseudofork and d_printf_format_null</A><DD>
+<DT><A HREF="#lbBN">Help</A><DD>
+<DT><A HREF="#lbBO">64bit systems</A><DD>
+<DT><A HREF="#lbBP">Ports</A><DD>
+</DL>
+<DT><A HREF="#lbBQ">Selected Bug Fixes</A><DD>
+<DT><A HREF="#lbBR">New or Changed Diagnostics</A><DD>
+<DL>
+<DT><A HREF="#lbBS">Deprecations</A><DD>
+</DL>
+<DT><A HREF="#lbBT">Changed Internals</A><DD>
+<DT><A HREF="#lbBU">Reporting Bugs</A><DD>
+<DT><A HREF="#lbBV">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:07 GMT, December 24, 2015
+</div></body>
+</HTML>

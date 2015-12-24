@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of RTC</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>RTC</H1>
+Section: Linux Programmer's Manual (4)<BR>Updated: 2006-11-26<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+rtc - real-time clock
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+#include &lt;<A HREF="file:/usr/include/linux/rtc.h">linux/rtc.h</A>&gt;
+<P>
+<B>int ioctl(</B><I>fd</I><B>, RTC_</B><I>request</I><B>, </B><I>param</I><B>);</B>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+This is the interface to drivers for real-time clocks (RTCs).
+<P>
+Most computers have one or more hardware clocks which record the
+current &quot;wall clock&quot; time.
+These are called &quot;Real Time Clocks&quot; (RTCs).
+One of these usually has battery backup power so that it tracks the time
+even while the computer is turned off.
+RTCs often provide alarms and other interrupts.
+<P>
+All i386 PCs, and ACPI based systems, have an RTC that is compatible with
+the Motorola MC146818 chip on the original PC/AT.
+Today such an RTC is usually integrated into the mainboard's chipset
+(south bridge), and uses a replaceable coin-sized backup battery.
+<P>
+Non-PC systems, such as embedded systems built around system-on-chip
+processors, use other implementations.
+They usually won't offer the same functionality as the RTC from a PC/AT.
+<A NAME="lbAE">&nbsp;</A>
+<H3>RTC vs System Clock</H3>
+
+RTCs should not be confused with the system clock, which is
+a software clock maintained by the kernel and used to implement
+<B><A HREF="/manpages/index.html?2+gettimeofday">gettimeofday</A></B>(2)
+
+and
+<B><A HREF="/manpages/index.html?2+time">time</A></B>(2),
+
+as well as setting timestamps on files, etc.
+The system clock reports seconds and microseconds since a start point,
+defined to be the POSIX Epoch: Jan 1, 1970, 0:00 UTC.
+(One common implementation counts timer interrupts, once
+per &quot;jiffy&quot;, at a frequency of 100, 250, or 1000 Hz.)
+That is, it is supposed to report wall clock time, which RTCs also do.
+<P>
+A key difference between an RTC and the system clock is that RTCs
+run even when the system is in a low power state (including &quot;off&quot;),
+and the system clock can't.
+Until it is initialized, the system clock can only report time since
+system boot ... not since the POSIX Epoch.
+So at boot time, and after resuming from a system low power state, the
+system clock will often be set to the current wall clock time using an RTC.
+Systems without an RTC need to set the system clock using another clock,
+maybe across the network or by entering that data manually.
+<A NAME="lbAF">&nbsp;</A>
+<H3>RTC functionality</H3>
+
+RTCs can be read and written with
+<B><A HREF="/manpages/index.html?8+hwclock">hwclock</A></B>(8),
+
+or directly with the ioctl requests listed below.
+<P>
+Besides tracking the date and time, many RTCs can also generate
+interrupts
+<DL COMPACT>
+<DT>*<DD>
+on every clock update (i.e., once per second);
+<DT>*<DD>
+at periodic intervals with a frequency that can be set to
+any power-of-2 multiple in the range 2 Hz to 8192 Hz;
+<DT>*<DD>
+on reaching a previously specified alarm time.
+</DL>
+<P>
+
+Each of those interrupt sources can be enabled or disabled separately.
+On many systems, the alarm interrupt can be configured as a system wakeup
+event, which can resume the system from a low power state such as
+Suspend-to-RAM (STR, called S3 in ACPI systems),
+Hibernation (called S4 in ACPI systems),
+or even &quot;off&quot; (called S5 in ACPI systems).
+On some systems, the battery backed RTC can't issue
+interrupts, but another one can.
+<P>
+The
+<I>/dev/rtc</I>
+
+(or
+<I>/dev/rtc0</I>,
+
+<I>/dev/rtc1</I>,
+
+etc.)
+device can be opened only once (until it is closed) and it is read-only.
+On
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2)
+
+and
+<B><A HREF="/manpages/index.html?2+select">select</A></B>(2)
+
+the calling process is blocked until the next interrupt from that RTC
+is received.
+Following the interrupt, the process can read a long integer, of which
+the least significant byte contains a bit mask encoding
+the types of interrupt that occurred,
+while the remaining 3 bytes contain the number of interrupts since the
+last
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2).
+
+<A NAME="lbAG">&nbsp;</A>
+<H3><A HREF="/manpages/index.html?2+ioctl">ioctl</A>(2) interface</H3>
+
+The following
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+requests are defined on file descriptors connected to RTC devices:
+<DL COMPACT>
+<DT><B>RTC_RD_TIME</B>
+
+<DD>
+Returns this RTC's time in the following structure:
+<DT><DD>
+
+<PRE>
+struct rtc_time {
+    int tm_sec;
+    int tm_min;
+    int tm_hour;
+    int tm_mday;
+    int tm_mon;
+    int tm_year;
+    int tm_wday;     /* unused */
+    int tm_yday;     /* unused */
+    int tm_isdst;    /* unused */
+};
+</PRE>
+
+
+<DT><DD>
+The fields in this structure have the same meaning and ranges as for the
+<I>tm</I>
+
+structure described in
+<B><A HREF="/manpages/index.html?3+gmtime">gmtime</A></B>(3).
+
+A pointer to this structure should be passed as the third
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+argument.
+<DT><B>RTC_SET_TIME</B>
+
+<DD>
+Sets this RTC's time to the time specified by the
+<I>rtc_time</I>
+
+structure pointed to by the third
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+argument.
+To set the
+RTC's time the process must be privileged (i.e., have the
+<B>CAP_SYS_TIME</B>
+
+capability).
+<DT><B>RTC_ALM_READ</B>, <B>RTC_ALM_SET</B>
+
+<DD>
+Read and set the alarm time, for RTCs that support alarms.
+The alarm interrupt must be separately enabled or disabled using the
+<B>RTC_AIE_ON</B>, <B>RTC_AIE_OFF</B>
+
+requests.
+The third
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+argument is a pointer to an
+<I>rtc_time</I>
+
+structure.
+Only the
+<I>tm_sec</I>,
+
+<I>tm_min</I>,
+
+and
+<I>tm_hour</I>
+
+fields of this structure are used.
+<DT><B>RTC_IRQP_READ</B>, <B>RTC_IRQP_SET</B>
+
+<DD>
+Read and set the frequency for periodic interrupts,
+for RTCs that support periodic interrupts.
+The periodic interrupt must be separately enabled or disabled using the
+<B>RTC_PIE_ON</B>, <B>RTC_PIE_OFF</B>
+
+requests.
+The third
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+argument is an
+<I>unsigned long&nbsp;*</I>
+
+or an
+<I>unsigned long</I>,
+
+respectively.
+The value is the frequency in interrupts per second.
+The set of allowable frequencies is the multiples of two
+in the range 2 to 8192.
+Only a privileged process (i.e., one having the
+<B>CAP_SYS_RESOURCE</B>
+
+capability) can set frequencies above the value specified in
+<I>/proc/sys/dev/rtc/max-user-freq</I>.
+
+(This file contains the value 64 by default.)
+<DT><B>RTC_AIE_ON</B>, <B>RTC_AIE_OFF</B>
+
+<DD>
+Enable or disable the alarm interrupt, for RTCs that support alarms.
+The third
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+argument is ignored.
+<DT><B>RTC_UIE_ON</B>, <B>RTC_UIE_OFF</B>
+
+<DD>
+Enable or disable the interrupt on every clock update,
+for RTCs that support this once-per-second interrupt.
+The third
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+argument is ignored.
+<DT><B>RTC_PIE_ON</B>, <B>RTC_PIE_OFF</B>
+
+<DD>
+Enable or disable the periodic interrupt,
+for RTCs that support these periodic interrupts.
+The third
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+argument is ignored.
+Only a privileged process (i.e., one having the
+<B>CAP_SYS_RESOURCE</B>
+
+capability) can enable the periodic interrupt if the frequency is
+currently set above the value specified in
+<I>/proc/sys/dev/rtc/max-user-freq</I>.
+
+<DT><B>RTC_EPOCH_READ</B>, <B>RTC_EPOCH_SET</B>
+
+<DD>
+Many RTCs encode the year in an 8-bit register which is either
+interpreted as an 8-bit binary number or as a BCD number.
+In both cases,
+the number is interpreted relative to this RTC's Epoch.
+The RTC's Epoch is
+initialized to 1900 on most systems but on Alpha and MIPS it might
+also be initialized to 1952, 1980, or 2000, depending on the value of
+an RTC register for the year.
+With some RTCs,
+these operations can be used to read or to set the RTC's Epoch,
+respectively.
+The third
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+argument is a
+<I>unsigned long&nbsp;*</I>
+
+or a
+<I>unsigned long</I>,
+
+respectively, and the value returned (or assigned) is the Epoch.
+To set the RTC's Epoch the process must be privileged (i.e., have the
+<B>CAP_SYS_TIME</B>
+
+capability).
+<DT><B>RTC_WKALM_RD</B>, <B>RTC_WKALM_SET</B>
+
+<DD>
+Some RTCs support a more powerful alarm interface, using these ioctls
+to read or write the RTC's alarm time (respectively) with this structure:
+</DL>
+<P>
+
+<DL COMPACT><DT><DD>
+
+<PRE>
+struct rtc_wkalrm {
+    unsigned char enabled;
+    unsigned char pending;
+    struct rtc_time time;
+};
+</PRE>
+
+
+</DL>
+
+<DL COMPACT>
+<DT><DD>
+The
+<I>enabled</I>
+
+flag is used to enable or disable the alarm interrupt,
+or to read its current status; when using these calls,
+<B>RTC_AIE_ON</B> and <B>RTC_AIE_OFF</B>
+
+are not used.
+The
+<I>pending</I>
+
+flag is used by
+<B>RTC_WKALM_RD</B>
+
+to report a pending interrupt
+(so it's mostly useless on Linux, except when talking
+to the RTC managed by EFI firmware).
+The
+<I>time</I>
+
+field is as used with
+<B>RTC_ALM_READ</B>
+
+and
+<B>RTC_ALM_SET</B>
+
+except that the
+<I>tm_mday</I>,
+
+<I>tm_mon</I>,
+
+and
+<I>tm_year</I>
+
+fields are also valid.
+A pointer to this structure should be passed as the third
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+argument.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>FILES</H2>
+
+<I>/dev/rtc</I>, 
+
+<I>/dev/rtc0</I>, 
+
+<I>/dev/rtc1</I>, 
+
+etc: RTC special character device files.
+<P>
+<I>/proc/driver/rtc</I>:
+
+status of the (first) RTC.
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+When the kernel's system time is synchronized with an external
+reference using
+<B><A HREF="/manpages/index.html?2+adjtimex">adjtimex</A></B>(2)
+
+it will update a designated RTC periodically every 11 minutes.
+To do so, the kernel has to briefly turn off periodic interrupts;
+this might affect programs using that RTC.
+<P>
+An RTC's Epoch has nothing to do with the POSIX Epoch which is only
+used for the system clock.
+<P>
+If the year according to the RTC's Epoch and the year register is
+less than 1970 it is assumed to be 100 years later, that is, between 2000
+and 2069.
+<P>
+Some RTCs support &quot;wildcard&quot; values in alarm fields, to support
+scenarios like periodic alarms at fifteen minutes after every hour,
+or on the first day of each month.
+Such usage is non-portable;
+portable user space code only expects a single alarm interrupt, and
+will either disable or reinitialize the alarm after receiving it.
+<P>
+Some RTCs support periodic interrupts with periods that are multiples
+of a second rather than fractions of a second;
+multiple alarms;
+programmable output clock signals;
+non-volatile memory;
+and other hardware
+capabilities that are not currently exposed by this API.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?1+date">date</A></B>(1),
+
+<B><A HREF="/manpages/index.html?2+adjtimex">adjtimex</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+gettimeofday">gettimeofday</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+settimeofday">settimeofday</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+stime">stime</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+time">time</A></B>(2),
+
+<B><A HREF="/manpages/index.html?3+gmtime">gmtime</A></B>(3),
+
+<B><A HREF="/manpages/index.html?7+time">time</A></B>(7),
+
+<B><A HREF="/manpages/index.html?8+hwclock">hwclock</A></B>(8),
+
+/usr/src/linux/Documentation/rtc.txt
+<A NAME="lbAK">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">RTC vs System Clock</A><DD>
+<DT><A HREF="#lbAF">RTC functionality</A><DD>
+<DT><A HREF="#lbAG">ioctl(2) interface</A><DD>
+</DL>
+<DT><A HREF="#lbAH">FILES</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:53 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of version</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>version</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-07-27<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+version - Perl extension for Version Objects
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  # Parsing version strings (decimal or dotted-decimal)
+
+  use version 0.77; # get latest bug-fixes and API
+  $ver = version-&gt;parse($string)
+
+  # Declaring a dotted-decimal $VERSION (keep on one line!)
+
+  use version 0.77; our $VERSION = version-&gt;declare(&quot;v1.2.3&quot;); # formal
+  use version 0.77; our $VERSION = qv(&quot;v1.2.3&quot;);               # shorthand
+  use version 0.77; our $VERSION = qv(&quot;v1.2_3&quot;);               # alpha
+
+  # Declaring an old-style decimal $VERSION (use quotes!)
+
+  use version 0.77; our $VERSION = version-&gt;parse(&quot;1.0203&quot;);   # formal
+  use version 0.77; our $VERSION = version-&gt;parse(&quot;1.02_03&quot;);  # alpha
+
+  # Comparing mixed version styles (decimals, dotted-decimals, objects)
+
+  if ( version-&gt;parse($v1) == version-&gt;parse($v2) ) {
+    # do stuff
+  }
+
+  # Sorting mixed version styles
+
+  @ordered = sort { version-&gt;parse($a) &lt;=&gt; version-&gt;parse($b) } @list;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Version objects were added to Perl in 5.10.  This module implements version
+objects for older version of Perl and provides the version object <FONT SIZE="-1">API</FONT> for all
+versions of Perl.  All previous releases before 0.74 are deprecated and should
+not be used due to incompatible <FONT SIZE="-1">API</FONT> changes.  Version 0.77 introduces the new
+'parse' and 'declare' methods to standardize usage.  You are strongly urged to
+set 0.77 as a minimum in your code, e.g.
+<P>
+
+
+
+<PRE>
+  use version 0.77; # even for Perl v.5.10.0
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>TYPES OF VERSION OBJECTS</H2>
+
+<A NAME="ixAAE"></A>
+There are two different types of version objects, corresponding to the two
+different styles of versions in use:
+<DL COMPACT>
+<DT>Decimal Versions<DD>
+<A NAME="ixAAF"></A>
+The classic floating-point number <TT>$VERSION</TT>.  The advantage to this style is
+that you don't need to do anything special, just type a number (without
+quotes) into your source file.
+<DT>Dotted Decimal Versions<DD>
+<A NAME="ixAAG"></A>
+The more modern form of version assignment, with 3 (or potentially more)
+integers seperated by decimal points (e.g. v1.2.3).  This is the form that
+Perl itself has used since 5.6.0 was released.  The leading ``v'' is now 
+strongly recommended for clarity, and will throw a warning in a future
+release if omitted.
+</DL>
+<P>
+
+See ``<FONT SIZE="-1">VERSION</FONT> <FONT SIZE="-1">OBJECT</FONT> <FONT SIZE="-1">DETAILS</FONT>'' for further information.
+<A NAME="lbAF">&nbsp;</A>
+<H2>DECLARING VERSIONS</H2>
+
+<A NAME="ixAAH"></A>
+If you have a module that uses a decimal <TT>$VERSION</TT> (floating point), and you
+do not intend to ever change that, this module is not for you.  There is
+nothing that version.pm gains you over a simple <TT>$VERSION</TT> assignment:
+<P>
+
+
+
+<PRE>
+  our $VERSION = 1.02;
+
+</PRE>
+
+
+<P>
+
+Since Perl v5.10.0 includes the version.pm comparison logic anyways, 
+you don't need to do anything at all.
+<A NAME="lbAG">&nbsp;</A>
+<H3>How to convert a module from decimal to dotted-decimal</H3>
+
+<A NAME="ixAAI"></A>
+If you have used a decimal <TT>$VERSION</TT> in the past and wish to switch to a
+dotted-decimal <TT>$VERSION</TT>, then you need to make a one-time conversion to
+the new format.
+<P>
+
+<B>Important Note</B>: you must ensure that your new <TT>$VERSION</TT> is numerically
+greater than your current decimal <TT>$VERSION</TT>; this is not always obvious. First,
+convert your old decimal version (e.g. 1.02) to a normalized dotted-decimal
+form:
+<P>
+
+
+
+<PRE>
+  $ perl -Mversion -e 'print version-&gt;parse(&quot;1.02&quot;)-&gt;normal'
+  v1.20.0
+
+</PRE>
+
+
+<P>
+
+Then increment any of the dotted-decimal components (v1.20.1 or v1.21.0).
+<A NAME="lbAH">&nbsp;</A>
+<H3>How to declare() a dotted-decimal version</H3>
+
+
+
+<A NAME="ixAAJ"></A>
+
+
+<PRE>
+  use version 0.77; our $VERSION = version-&gt;declare(&quot;v1.2.3&quot;);
+
+</PRE>
+
+
+<P>
+
+The <TT>&quot;declare()&quot;</TT> method always creates dotted-decimal version objects.  When
+used in a module, you <B>must</B> put it on the same line as ``use version'' to
+ensure that <TT>$VERSION</TT> is read correctly by <FONT SIZE="-1">PAUSE</FONT> and installer tools.  You
+should also add 'version' to the 'configure_requires' section of your
+module metadata file.  See instructions in ExtUtils::MakeMaker or
+Module::Build for details.
+<P>
+
+<B>Important Note</B>: Even if you pass in what looks like a decimal number
+(``1.2''), a dotted-decimal will be created (``v1.200.0''). To avoid confusion
+or unintentional errors on older Perls, follow these guidelines:
+<DL COMPACT>
+<DT>*<DD>
+Always use a dotted-decimal with (at least) three components
+<DT>*<DD>
+Always use a leading-v
+<DT>*<DD>
+Always quote the version
+</DL>
+<P>
+
+If you really insist on using version.pm with an ordinary decimal version,
+use <TT>&quot;parse()&quot;</TT> instead of declare.  See the ``<FONT SIZE="-1">PARSING</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">COMPARING</FONT> <FONT SIZE="-1">VERSIONS</FONT>''
+for details.
+<P>
+
+See also ``<FONT SIZE="-1">VERSION</FONT> <FONT SIZE="-1">OBJECT</FONT> <FONT SIZE="-1">DETAILS</FONT>'' for more on version number conversion,
+quoting, calculated version numbers and declaring developer or ``alpha'' version
+numbers.
+<A NAME="lbAI">&nbsp;</A>
+<H2>PARSING AND COMPARING VERSIONS</H2>
+
+<A NAME="ixAAK"></A>
+If you need to compare version numbers, but can't be sure whether they are
+expressed as numbers, strings, v-strings or version objects,  then you can
+use version.pm to parse them all into objects for comparison.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>How to parse() a version</H3>
+
+
+
+<A NAME="ixAAL"></A>
+The <TT>&quot;parse()&quot;</TT> method takes in anything that might be a version and returns
+a corresponding version object, doing any necessary conversion along the way.
+<DL COMPACT>
+<DT>*<DD>
+Dotted-decimal: bare v-strings (v1.2.3) and strings with more than one
+decimal point and a leading 'v' (``v1.2.3''); <FONT SIZE="-1">NOTE</FONT> you can technically use a
+v-string or strings with a leading-v and only one decimal point (v1.2 or
+``v1.2''), but you will confuse both yourself and others.
+<DT>*<DD>
+Decimal: regular decimal numbers (literal or in a string)
+</DL>
+<P>
+
+Some examples:
+<P>
+
+
+
+<PRE>
+  $variable   version-&gt;parse($variable)
+  ---------   -------------------------
+  1.23        v1.230.0
+  &quot;1.23&quot;      v1.230.0
+  v1.23       v1.23.0
+  &quot;v1.23&quot;     v1.23.0
+  &quot;1.2.3&quot;     v1.2.3
+  &quot;v1.2.3&quot;    v1.2.3
+
+</PRE>
+
+
+<P>
+
+See ``<FONT SIZE="-1">VERSION</FONT> <FONT SIZE="-1">OBJECT</FONT> <FONT SIZE="-1">DETAILS</FONT>'' for more on version number conversion.
+<A NAME="lbAK">&nbsp;</A>
+<H3>How to compare version objects</H3>
+
+<A NAME="ixAAM"></A>
+Version objects overload the <TT>&quot;cmp&quot;</TT> and <TT>&quot;E&lt;lt&gt;=E&lt;gt&gt;&quot;</TT> operators.  Perl
+automatically generates all of the other comparison operators based on those
+two so all the normal logical comparisons will work.
+<P>
+
+
+
+<PRE>
+  if ( version-&gt;parse($v1) == version-&gt;parse($v2) ) {
+    # do stuff
+  }
+
+</PRE>
+
+
+<P>
+
+If a version object is compared against a non-version object, the non-object
+term will be converted to a version object using <TT>&quot;parse()&quot;</TT>.  This may give
+surprising results:
+<P>
+
+
+
+<PRE>
+  $v1 = version-&gt;parse(&quot;v0.95.0&quot;);
+  $bool = $v1 &lt; 0.96; # FALSE since 0.96 is v0.960.0
+
+</PRE>
+
+
+<P>
+
+Always comparing to a version object will help avoid surprises:
+<P>
+
+
+
+<PRE>
+  $bool = $v1 &lt; version-&gt;parse(&quot;v0.96.0&quot;); # TRUE
+
+</PRE>
+
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>VERSION OBJECT DETAILS</H2>
+
+<A NAME="ixAAN"></A>
+<A NAME="lbAM">&nbsp;</A>
+<H3>Equivalence between Decimal and Dotted-Decimal Versions</H3>
+
+<A NAME="ixAAO"></A>
+When Perl 5.6.0 was released, the decision was made to provide a
+transformation between the old-style decimal versions and new-style
+dotted-decimal versions:
+<P>
+
+
+
+<PRE>
+  5.6.0    == 5.006000
+  5.005_04 == 5.5.40
+
+</PRE>
+
+
+<P>
+
+The floating point number is taken and split first on the single decimal
+place, then each group of three digits to the right of the decimal makes up
+the next digit, and so on until the number of significant digits is exhausted,
+<B>plus</B> enough trailing zeros to reach the next multiple of three.
+<P>
+
+This was the method that version.pm adopted as well.  Some examples may be
+helpful:
+<P>
+
+
+
+<PRE>
+                            equivalent
+  decimal    zero-padded    dotted-decimal
+  -------    -----------    --------------
+  1.2        1.200          v1.200.0
+  1.02       1.020          v1.20.0
+  1.002      1.002          v1.2.0
+  1.0023     1.002300       v1.2.300
+  1.00203    1.002030       v1.2.30
+  1.002003   1.002003       v1.2.3
+
+</PRE>
+
+
+<A NAME="lbAN">&nbsp;</A>
+<H3>Quoting rules</H3>
+
+<A NAME="ixAAP"></A>
+Because of the nature of the Perl parsing and tokenizing routines,
+certain initialization values <B>must</B> be quoted in order to correctly
+parse as the intended version, especially when using the declare or
+qv methods.  While you do not have to quote decimal numbers when
+creating version objects, it is always safe to quote <B>all</B> initial values
+when using version.pm methods, as this will ensure that what you type is
+what is used.
+<P>
+
+Additionally, if you quote your initializer, then the quoted value that goes
+<B>in</B> will be be exactly what comes <B>out</B> when your <TT>$VERSION</TT> is printed
+(stringified).  If you do not quote your value, Perl's normal numeric handling
+comes into play and you may not get back what you were expecting.
+<P>
+
+If you use a mathematic formula that resolves to a floating point number,
+you are dependent on Perl's conversion routines to yield the version you
+expect.  You are pretty safe by dividing by a power of 10, for example,
+but other operations are not likely to be what you intend.  For example:
+<P>
+
+
+
+<PRE>
+  $VERSION = version-&gt;new((qw$Revision: 1.4)[1]/10);
+  print $VERSION;          # yields 0.14
+  $V2 = version-&gt;new(100/9); # Integer overflow in decimal number
+  print $V2;               # yields something like 11.111.111.100
+
+</PRE>
+
+
+<P>
+
+Perl 5.8.1 and beyond are able to automatically quote v-strings but
+that is not possible in earlier versions of Perl.  In other words:
+<P>
+
+
+
+<PRE>
+  $version = version-&gt;new(&quot;v2.5.4&quot;);  # legal in all versions of Perl
+  $newvers = version-&gt;new(v2.5.4);    # legal only in Perl &gt;= 5.8.1
+
+</PRE>
+
+
+<A NAME="lbAO">&nbsp;</A>
+<H3>What about v-strings?</H3>
+
+<A NAME="ixAAQ"></A>
+There are two ways to enter v-strings: a bare number with two or more
+decimal points, or a bare number with one or more decimal points and a 
+leading 'v' character (also bare).  For example:
+<P>
+
+
+
+<PRE>
+  $vs1 = 1.2.3; # encoded as \1\2\3
+  $vs2 = v1.2;  # encoded as \1\2
+
+</PRE>
+
+
+<P>
+
+However, the use of bare v-strings to initialize version objects is
+<B>strongly</B> discouraged in all circumstances.  Also, bare
+v-strings are not completely supported in any version of Perl prior to
+5.8.1.
+<P>
+
+If you insist on using bare v-strings with Perl &gt; 5.6.0, be aware of the 
+following limitations:
+<P>
+
+1) For Perl releases 5.6.0 through 5.8.0, the v-string code merely guesses, 
+based on some characteristics of v-strings.  You <B>must</B> use a three part
+version, e.g. 1.2.3 or v1.2.3 in order for this heuristic to be successful.
+<P>
+
+2) For Perl releases 5.8.1 and later, v-strings have changed in the Perl
+core to be magical, which means that the version.pm code can automatically
+determine whether the v-string encoding was used.
+<P>
+
+3) In all cases, a version created using v-strings will have a stringified
+form that has a leading 'v' character, for the simple reason that sometimes
+it is impossible to tell whether one was present initially.
+<A NAME="lbAP">&nbsp;</A>
+<H3>Alpha versions</H3>
+
+<A NAME="ixAAR"></A>
+For module authors using <FONT SIZE="-1">CPAN</FONT>, the convention has been to note unstable
+releases with an underscore in the version string. (See <FONT SIZE="-1">CPAN</FONT>.)  version.pm
+follows this convention and alpha releases will test as being newer than the
+more recent stable release, and less than the next stable release.  For
+dotted-decimal versions, only the last element may be separated by an
+underscore:
+<P>
+
+
+
+<PRE>
+  # Declaring
+  use version 0.77; our $VERSION = version-&gt;declare(&quot;v1.2_3&quot;);
+
+  # Parsing
+  $v1 = version-&gt;parse(&quot;v1.2_3&quot;);
+  $v1 = version-&gt;parse(&quot;1.002_003&quot;);
+
+</PRE>
+
+
+<A NAME="lbAQ">&nbsp;</A>
+<H2>OBJECT METHODS</H2>
+
+<A NAME="ixAAS"></A>
+<A NAME="lbAR">&nbsp;</A>
+<H3><I>is_alpha()</I></H3>
+
+<A NAME="ixAAT"></A>
+True if and only if the version object was created with a underscore, e.g.
+<P>
+
+
+
+<PRE>
+  version-&gt;parse('1.002_03')-&gt;is_alpha;  # TRUE
+  version-&gt;declare('1.2.3_4')-&gt;is_alpha; # TRUE
+
+</PRE>
+
+
+<A NAME="lbAS">&nbsp;</A>
+<H3><I>is_qv()</I></H3>
+
+<A NAME="ixAAU"></A>
+True only if the version object is a dotted-decimal version, e.g.
+<P>
+
+
+
+<PRE>
+  version-&gt;parse('v1.2.0')-&gt;is_qv;        # TRUE
+  version-&gt;declare('v1.2')-&gt;is_qv;       # TRUE
+  qv('1.2')-&gt;is_qv;                      # TRUE
+  version-&gt;parse('1.2')-&gt;is_qv;          # FALSE
+
+</PRE>
+
+
+<A NAME="lbAT">&nbsp;</A>
+<H3><I>normal()</I></H3>
+
+<A NAME="ixAAV"></A>
+Returns a string with a standard 'normalized' dotted-decimal form with a
+leading-v and at least 3 components.
+<P>
+
+
+
+<PRE>
+ version-&gt;declare('v1.2')-&gt;normal;  # v1.2.0
+ version-&gt;parse('1.2')-&gt;normal;     # v1.200.0
+
+</PRE>
+
+
+<A NAME="lbAU">&nbsp;</A>
+<H3><I>numify()</I></H3>
+
+<A NAME="ixAAW"></A>
+Returns a value representing the object in a pure decimal form without
+trailing zeroes.
+<P>
+
+
+
+<PRE>
+ version-&gt;declare('v1.2')-&gt;numify;  # 1.002
+ version-&gt;parse('1.2')-&gt;numify;     # 1.2
+
+</PRE>
+
+
+<A NAME="lbAV">&nbsp;</A>
+<H3><I>stringify()</I></H3>
+
+<A NAME="ixAAX"></A>
+Returns a string that is as close to the original representation as possible.
+If the original representation was a numeric literal, it will be returned the
+way perl would normally represent it in a string.  This method is used whenever
+a version object is interpolated into a string.
+<P>
+
+
+
+<PRE>
+ version-&gt;declare('v1.2')-&gt;stringify;    # v1.2
+ version-&gt;parse('1.200')-&gt;stringify;     # 1.200
+ version-&gt;parse(1.02_30)-&gt;stringify;     # 1.023
+
+</PRE>
+
+
+<A NAME="lbAW">&nbsp;</A>
+<H2>EXPORTED FUNCTIONS</H2>
+
+<A NAME="ixAAY"></A>
+<A NAME="lbAX">&nbsp;</A>
+<H3><I>qv()</I></H3>
+
+<A NAME="ixAAZ"></A>
+This function is no longer recommended for use, but is maintained for
+compatibility with existing code.  If you do not want to have it exported
+to your namespace, use this form:
+<P>
+
+
+
+<PRE>
+  use version 0.77 ();
+
+</PRE>
+
+
+<A NAME="lbAY">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABA"></A>
+John Peacock &lt;<A HREF="mailto:jpeacock@cpan.org">jpeacock@cpan.org</A>&gt;
+<A NAME="lbAZ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABB"></A>
+version::Internal.
+<P>
+
+perl.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">TYPES OF VERSION OBJECTS</A><DD>
+<DT><A HREF="#lbAF">DECLARING VERSIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">How to convert a module from decimal to dotted-decimal</A><DD>
+<DT><A HREF="#lbAH">How to declare() a dotted-decimal version</A><DD>
+</DL>
+<DT><A HREF="#lbAI">PARSING AND COMPARING VERSIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAJ">How to parse() a version</A><DD>
+<DT><A HREF="#lbAK">How to compare version objects</A><DD>
+</DL>
+<DT><A HREF="#lbAL">VERSION OBJECT DETAILS</A><DD>
+<DL>
+<DT><A HREF="#lbAM">Equivalence between Decimal and Dotted-Decimal Versions</A><DD>
+<DT><A HREF="#lbAN">Quoting rules</A><DD>
+<DT><A HREF="#lbAO">What about v-strings?</A><DD>
+<DT><A HREF="#lbAP">Alpha versions</A><DD>
+</DL>
+<DT><A HREF="#lbAQ">OBJECT METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAR"><I>is_alpha()</I></A><DD>
+<DT><A HREF="#lbAS"><I>is_qv()</I></A><DD>
+<DT><A HREF="#lbAT"><I>normal()</I></A><DD>
+<DT><A HREF="#lbAU"><I>numify()</I></A><DD>
+<DT><A HREF="#lbAV"><I>stringify()</I></A><DD>
+</DL>
+<DT><A HREF="#lbAW">EXPORTED FUNCTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAX"><I>qv()</I></A><DD>
+</DL>
+<DT><A HREF="#lbAY">AUTHOR</A><DD>
+<DT><A HREF="#lbAZ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:44 GMT, December 24, 2015
+</div></body>
+</HTML>

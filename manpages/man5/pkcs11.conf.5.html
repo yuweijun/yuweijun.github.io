@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PKCS11\&.CONF</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PKCS11\&.CONF</H1>
+Section: System Files (5)<BR>Updated: <BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+pkcs11.conf - Configuration files for PKCS#11 modules
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+The
+<B>pkcs11.conf</B>
+configuration files are a standard way to configure PKCS#11 modules.
+<A NAME="lbAD">&nbsp;</A>
+<H2>FILE FORMAT</H2>
+
+<P>
+
+A complete configuration consists of several files. These files are text files. Since
+p11-kit
+is built to be used in all sorts of environments and at very low levels of the software stack, we cannot make use of high level configuration APIs that you may find on a modern desktop.
+<P>
+
+Each setting in the config file is specified consists of a name and a value. The name is a simple string consisting of characters and dashes. The name consists of alpha numeric characters, dot, hyphen and underscore.
+<P>
+
+The value is specified after the name on the same line, separated from it by a
+:
+(colon). White space between the name and value is ignored.
+<P>
+
+Blank lines are ignored. White space at the beginning or end of lines is stripped. Lines that begin with a
+#
+character are ignored as comments. Comments are not recognized when they come after a value on a line.
+<P>
+
+A fictitious module configuration file might look like:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+module: module.so
+# Here is a comment
+
+managed: true
+setting.2: A long value with text.
+x-custom : text
+</PRE>
+
+</DL>
+
+
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>MODULE CONFIGURATION</H2>
+
+<P>
+
+Each configured PKCS#11 module has its own config file. These files can be
+placed in various locations.
+<P>
+
+The filename of the configuration file may consist of upper and lowercase letters underscore, comma, dash and dots. The first characters needs to be an alphanumeric, the filename should end with a
+.module
+extension.
+<P>
+
+Most importantly each config file specifies the path of the PKCS#11 module to load. A module config file has the following fields:
+<P>
+
+<B>module:</B>
+<DL COMPACT><DT><DD>
+The filename of the PKCS#11 module to load. This should include an extension like
+.so
+<P>
+If this value is blank, then the module will be ignored. This can be used in the user configs to override loading of a module specified in the system configuration.
+<P>
+If this is a relative path, then the module will be loaded from the
+default module directory.
+</DL>
+
+<P>
+
+<B>critical:</B>
+<DL COMPACT><DT><DD>
+Set to
+yes
+if the module is critical and required to load. If a critical module fails to load or initialize, then the loading process for all registered modules will abort and return an error code.
+<P>
+This argument is optional and defaults to
+no.
+</DL>
+
+<P>
+
+<B>enable-in:</B>
+<DL COMPACT><DT><DD>
+A comma and/or space separated list of names of programs that this module should only be loaded in. The module will not be loaded for other programs using p11-kit. The base name of the process executable should be used here, for example
+seahorse, ssh.
+<P>
+This is not a security feature. The argument is optional. If not present, then any process will load the module.
+</DL>
+
+<P>
+
+<B>disable-in:</B>
+<DL COMPACT><DT><DD>
+A comma and/or space separated list of names of programs that this module should not be loaded in. The module will be loaded for any other programs using p11-kit. The base name of the process executable should be used here, for example
+firefox, thunderbird-bin.
+<P>
+This is not a security feature. The argument is optional. If not present, then any process will load the module.
+</DL>
+
+<P>
+
+<B>priority:</B>
+<DL COMPACT><DT><DD>
+The value should be an integer. When lists of modules are returned to a caller of p11-kit, modules with a higher number are sorted first. When applications search modules for for certificates, keys and trust policy information, this setting will affect what find first.
+<P>
+This argument is optional, and defaults to zero. Modules with the same
+<B>priority</B>
+option will be sorted alphabetically.
+</DL>
+
+<P>
+
+<B>trust-policy:</B>
+<DL COMPACT><DT><DD>
+Set to
+yes
+to use use this module as a source of trust policy information such as certificate anchors and black lists.
+</DL>
+
+<P>
+
+Do not specify both
+enable-in
+and
+disable-in
+for the same module.
+<P>
+
+Other fields may be present, but it is recommended that field names that are not specified in this document start with a
+x-
+prefix.
+<A NAME="lbAF">&nbsp;</A>
+<H2>GLOBAL CONFIGURATION</H2>
+
+<P>
+
+A global configuration may also be present. This file contains settings that are not related to a single PKCS#11 module. The location(s) of the global configuration are described below. The global configuration file can contain the following fields:
+<P>
+
+<B>user-config:</B>
+<DL COMPACT><DT><DD>
+This will be equal to one of the following values:
+none,
+merge,
+only.
+</DL>
+
+<P>
+
+Other fields may be present, but it is recommended that field names that are not specified in this document start with a
+x-
+prefix.
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFIGURATION FILES</H2>
+
+<P>
+
+Each configured PKCS#11 module is has its own config file. These files are placed in a directory. In addition a global config file exists. There is a system configuration consisting of the various module config files and a file for global configuration. Optionally each user can provide additional configuration or override the system configuration.
+<P>
+
+The system global configuration file is usually in
+/etc/pkcs11/pkcs11.conf
+and the user global configuration file is in
+/data/.pkcs11/pkcs11.conf
+in the user's home directory.
+<P>
+
+The module config files are usually located in the
+/etc/pkcs11/modules
+directory, with one configuration file per module. In addition the
+/data/.pkcs11/modules
+directory can be used for modules installed by the user.
+<P>
+
+Note that user configuration files are not loaded from the home directory if running inside a setuid or setgid program.
+<P>
+
+The default system config file and module directory can be changed when building p11-kit. Always
+lookup these paths
+using
+pkg-config.
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?8+p11-kit">p11-kit</A></B>(8)
+<P>
+
+Further details available in the p11-kit online documentation at
+m[blue]<B><A HREF="http://p11-glue.freedesktop.org/doc/p11-kit/">http://p11-glue.freedesktop.org/doc/p11-kit/</A></B>m[].
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">FILE FORMAT</A><DD>
+<DT><A HREF="#lbAE">MODULE CONFIGURATION</A><DD>
+<DT><A HREF="#lbAF">GLOBAL CONFIGURATION</A><DD>
+<DT><A HREF="#lbAG">CONFIGURATION FILES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

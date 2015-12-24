@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CMS_sign</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CMS_sign</H1>
+Section: OpenSSL (3)<BR>Updated: 2009-09-30<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+
+
+<PRE>
+ CMS_sign - create a CMS SignedData structure
+
+</PRE>
+
+
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/cms.h">openssl/cms.h</A>&gt;
+
+ CMS_ContentInfo *CMS_sign(X509 *signcert, EVP_PKEY *pkey, STACK_OF(X509) *certs, BIO *data, unsigned int flags);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<I>CMS_sign()</I> creates and returns a <FONT SIZE="-1">CMS</FONT> SignedData structure. <B>signcert</B> is
+the certificate to sign with, <B>pkey</B> is the corresponding private key.
+<B>certs</B> is an optional additional set of certificates to include in the <FONT SIZE="-1">CMS</FONT>
+structure (for example any intermediate CAs in the chain). Any or all of
+these parameters can be <B></B><FONT SIZE="-1"><B>NULL</B></FONT><B></B>, see <B></B><FONT SIZE="-1"><B>NOTES</B></FONT><B></B> below.
+<P>
+
+The data to be signed is read from <FONT SIZE="-1">BIO</FONT> <B>data</B>.
+<P>
+
+<B>flags</B> is an optional set of flags.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+Any of the following flags (ored together) can be passed in the <B>flags</B>
+parameter.
+<P>
+
+Many S/MIME clients expect the signed content to include valid <FONT SIZE="-1">MIME</FONT> headers. If
+the <B></B><FONT SIZE="-1"><B>CMS_TEXT</B></FONT><B></B> flag is set <FONT SIZE="-1">MIME</FONT> headers for type <B>text/plain</B> are prepended
+to the data.
+<P>
+
+If <B></B><FONT SIZE="-1"><B>CMS_NOCERTS</B></FONT><B></B> is set the signer's certificate will not be included in the
+CMS_ContentInfo structure, the signer's certificate must still be supplied in
+the <B>signcert</B> parameter though. This can reduce the size of the signature if
+the signers certificate can be obtained by other means: for example a
+previously signed message.
+<P>
+
+The data being signed is included in the CMS_ContentInfo structure, unless
+<B></B><FONT SIZE="-1"><B>CMS_DETACHED</B></FONT><B></B> is set in which case it is omitted. This is used for
+CMS_ContentInfo detached signatures which are used in S/MIME plaintext signed
+messages for example.
+<P>
+
+Normally the supplied content is translated into <FONT SIZE="-1">MIME</FONT> canonical format (as
+required by the S/MIME specifications) if <B></B><FONT SIZE="-1"><B>CMS_BINARY</B></FONT><B></B> is set no translation
+occurs. This option should be used if the supplied data is in binary format
+otherwise the translation will corrupt it.
+<P>
+
+The SignedData structure includes several <FONT SIZE="-1">CMS</FONT> signedAttributes including the
+signing time, the <FONT SIZE="-1">CMS</FONT> content type and the supported list of ciphers in an
+SMIMECapabilities attribute. If <B></B><FONT SIZE="-1"><B>CMS_NOATTR</B></FONT><B></B> is set then no signedAttributes
+will be used. If <B></B><FONT SIZE="-1"><B>CMS_NOSMIMECAP</B></FONT><B></B> is set then just the SMIMECapabilities are
+omitted.
+<P>
+
+If present the SMIMECapabilities attribute indicates support for the following
+algorithms in preference order: 256 bit <FONT SIZE="-1">AES</FONT>, Gost R3411-94, Gost 28147-89, 192
+bit <FONT SIZE="-1">AES</FONT>, 128 bit <FONT SIZE="-1">AES</FONT>, triple <FONT SIZE="-1">DES</FONT>, 128 bit <FONT SIZE="-1">RC2</FONT>, 64 bit <FONT SIZE="-1">RC2</FONT>, <FONT SIZE="-1">DES</FONT> and 40 bit <FONT SIZE="-1">RC2</FONT>.
+If any of these algorithms is not available then it will not be included: for example the <FONT SIZE="-1">GOST</FONT> algorithms will not be included if the <FONT SIZE="-1">GOST</FONT> <FONT SIZE="-1">ENGINE</FONT> is
+not loaded.
+<P>
+
+OpenSSL will by default identify signing certificates using issuer name
+and serial number. If <B></B><FONT SIZE="-1"><B>CMS_USE_KEYID</B></FONT><B></B> is set it will use the subject key
+identifier value instead. An error occurs if the signing certificate does not
+have a subject key identifier extension.
+<P>
+
+If the flags <B></B><FONT SIZE="-1"><B>CMS_STREAM</B></FONT><B></B> is set then the returned <B>CMS_ContentInfo</B>
+structure is just initialized ready to perform the signing operation. The
+signing is however <B>not</B> performed and the data to be signed is not read from
+the <B>data</B> parameter. Signing is deferred until after the data has been
+written. In this way data can be signed in a single pass.
+<P>
+
+If the <B></B><FONT SIZE="-1"><B>CMS_PARTIAL</B></FONT><B></B> flag is set a partial <B>CMS_ContentInfo</B> structure is
+output to which additional signers and capabilities can be added before
+finalization.
+<P>
+
+If the flag <B></B><FONT SIZE="-1"><B>CMS_STREAM</B></FONT><B></B> is set the returned <B>CMS_ContentInfo</B> structure is
+<B>not</B> complete and outputting its contents via a function that does not
+properly finalize the <B>CMS_ContentInfo</B> structure will give unpredictable
+results.
+<P>
+
+Several functions including <I>SMIME_write_CMS()</I>, <I>i2d_CMS_bio_stream()</I>,
+<I>PEM_write_bio_CMS_stream()</I> finalize the structure. Alternatively finalization
+can be performed by obtaining the streaming <FONT SIZE="-1">ASN1</FONT> <B></B><FONT SIZE="-1"><B>BIO</B></FONT><B></B> directly using
+<I>BIO_new_CMS()</I>.
+<P>
+
+If a signer is specified it will use the default digest for the signing
+algorithm. This is <B></B><FONT SIZE="-1"><B>SHA1</B></FONT><B></B> for both <FONT SIZE="-1">RSA</FONT> and <FONT SIZE="-1">DSA</FONT> keys.
+<P>
+
+If <B>signcert</B> and <B>pkey</B> are <FONT SIZE="-1">NULL</FONT> then a certificates only <FONT SIZE="-1">CMS</FONT> structure is
+output.
+<P>
+
+The function <I>CMS_sign()</I> is a basic <FONT SIZE="-1">CMS</FONT> signing function whose output will be
+suitable for many purposes. For finer control of the output format the
+<B>certs</B>, <B>signcert</B> and <B>pkey</B> parameters can all be <B></B><FONT SIZE="-1"><B>NULL</B></FONT><B></B> and the
+<B></B><FONT SIZE="-1"><B>CMS_PARTIAL</B></FONT><B></B> flag set. Then one or more signers can be added using the
+function <I>CMS_sign_add1_signer()</I>, non default digests can be used and custom
+attributes added. <B></B>CMS_final()<B></B> must then be called to finalize the
+structure if streaming is not enabled.
+<A NAME="lbAF">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAF"></A>
+Some attributes such as counter signatures are not supported.
+<A NAME="lbAG">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<A NAME="ixAAG"></A>
+<I>CMS_sign()</I> returns either a valid CMS_ContentInfo structure or <FONT SIZE="-1">NULL</FONT> if an error
+occurred. The error can be obtained from <I><A HREF="/manpages/index.html?3+ERR_get_error">ERR_get_error</A></I>(3).
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAH"></A>
+<I><A HREF="/manpages/index.html?3+ERR_get_error">ERR_get_error</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+CMS_verify">CMS_verify</A></I>(3)
+<A NAME="lbAI">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<A NAME="ixAAI"></A>
+<I>CMS_sign()</I> was added to OpenSSL 0.9.8
+<P>
+
+The <B></B><FONT SIZE="-1"><B>CMS_STREAM</B></FONT><B></B> flag is only supported for detached data in OpenSSL 0.9.8,
+it is supported for embedded data in OpenSSL 1.0.0 and later.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">BUGS</A><DD>
+<DT><A HREF="#lbAG">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">HISTORY</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:16 GMT, December 24, 2015
+</div></body>
+</HTML>

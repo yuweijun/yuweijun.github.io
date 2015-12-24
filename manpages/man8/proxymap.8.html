@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PROXYMAP</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PROXYMAP</H1>
+Section: Maintenance Commands (8)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+proxymap
+-
+Postfix lookup table proxy server
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+
+<PRE>
+<B>proxymap</B> [generic Postfix daemon options]
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+The <B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) server provides read-only or read-write
+table lookup service to Postfix processes. These services are
+implemented with distinct service names: <B>proxymap</B> and
+<B>proxywrite</B>, respectively. The purpose of these services is:
+<DL COMPACT>
+<DT>*<DD>
+To overcome chroot restrictions. For example, a chrooted SMTP
+server needs access to the system passwd file in order to
+reject mail for non-existent local addresses, but it is not
+practical to maintain a copy of the passwd file in the chroot
+jail.  The solution:
+<P>
+<PRE>
+local_recipient_maps =
+    proxy:unix:passwd.byname $alias_maps
+</PRE>
+
+<DT>*<DD>
+To consolidate the number of open lookup tables by sharing
+one open table among multiple processes. For example, making
+mysql connections from every Postfix daemon process results
+in &quot;too many connections&quot; errors. The solution:
+<P>
+<PRE>
+virtual_alias_maps =
+    proxy:mysql:/etc/postfix/virtual_alias.cf
+</PRE>
+
+<P>
+The total number of connections is limited by the number of
+proxymap server processes.
+<DT>*<DD>
+To provide single-updater functionality for lookup tables
+that do not reliably support multiple writers (i.e. all
+file-based tables).
+</DL>
+<P>
+
+The <B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) server implements the following requests:
+<DL COMPACT>
+<DT><B>open</B> <I>maptype:mapname flags</I><DD>
+Open the table with type <I>maptype</I> and name <I>mapname</I>,
+as controlled by <I>flags</I>. The reply includes the <I>maptype</I>
+dependent flags (to distinguish a fixed string table from a regular
+expression table).
+<DT><B>lookup</B> <I>maptype:mapname flags key</I><DD>
+Look up the data stored under the requested key.
+The reply is the request completion status code and
+the lookup result value.
+The <I>maptype:mapname</I> and <I>flags</I> are the same
+as with the <B>open</B> request.
+<DT><B>update</B> <I>maptype:mapname flags key value</I><DD>
+Update the data stored under the requested key.
+The reply is the request completion status code.
+The <I>maptype:mapname</I> and <I>flags</I> are the same
+as with the <B>open</B> request.
+<P>
+To implement single-updater maps, specify a process limit
+of 1 in the master.cf file entry for the <B>proxywrite</B>
+service.
+<P>
+This request is supported in Postfix 2.5 and later.
+<DT><B>delete</B> <I>maptype:mapname flags key</I><DD>
+Delete the data stored under the requested key.
+The reply is the request completion status code.
+The <I>maptype:mapname</I> and <I>flags</I> are the same
+as with the <B>open</B> request.
+<P>
+This request is supported in Postfix 2.5 and later.
+</DL>
+<P>
+
+The request completion status is one of OK, RETRY, NOKEY
+(lookup failed because the key was not found), BAD (malformed
+request) or DENY (the table is not approved for proxy read
+or update access).
+<P>
+There is no <B>close</B> command, nor are tables implicitly closed
+when a client disconnects. The purpose is to share tables among
+multiple client processes.
+<A NAME="lbAE">&nbsp;</A>
+<H2>SERVER PROCESS MANAGEMENT</H2>
+
+
+<PRE>
+</PRE>
+
+<B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) servers run under control by the Postfix
+<B><A HREF="/manpages/index.html?8+master">master</A></B>(8)
+server.  Each server can handle multiple simultaneous connections.
+When all servers are busy while a client connects, the <B><A HREF="/manpages/index.html?8+master">master</A></B>(8)
+creates a new <B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) server process, provided that the
+process limit is not exceeded.
+Each server terminates after serving at least <B>$max_use</B> clients
+or after <B>$max_idle</B> seconds of idle time.
+<A NAME="lbAF">&nbsp;</A>
+<H2>SECURITY</H2>
+
+
+<PRE>
+</PRE>
+
+The <B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) server opens only tables that are
+approved via the <B>proxy_read_maps</B> or <B>proxy_write_maps</B>
+configuration parameters, does not talk to
+users, and can run at fixed low privilege, chrooted or not.
+However, running the proxymap server chrooted severely limits
+usability, because it can open only chrooted tables.
+<P>
+The <B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) server is not a trusted daemon process, and must
+not be used to look up sensitive information such as user or
+group IDs, mailbox file/directory names or external commands.
+<P>
+In Postfix version 2.2 and later, the proxymap client recognizes
+requests to access a table for security-sensitive purposes,
+and opens the table directly. This allows the same main.cf
+setting to be used by sensitive and non-sensitive processes.
+<P>
+Postfix-writable data files should be stored under a dedicated
+directory that is writable only by the Postfix mail system,
+such as the Postfix-owned <B>data_directory</B>.
+<P>
+In particular, Postfix-writable files should never exist
+in root-owned directories. That would open up a particular
+type of security hole where ownership of a file or directory
+does not match the provider of its content.
+<A NAME="lbAG">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+
+
+Problems and transactions are logged to <B><A HREF="/manpages/index.html?8+syslogd">syslogd</A></B>(8).
+<A NAME="lbAH">&nbsp;</A>
+<H2>BUGS</H2>
+
+
+
+The <B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) server provides service to multiple clients,
+and must therefore not be used for tables that have high-latency
+lookups.
+<P>
+The <B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) read-write service does not explicitly
+close lookup tables (even if it did, this could not be relied on,
+because the process may be terminated between table updates).
+The read-write service should therefore not be used with tables that
+leave persistent storage in an inconsistent state between
+updates (for example, CDB). Tables that support &quot;sync on
+update&quot; should be safe (for example, Berkeley DB) as should
+tables that are implemented by a real DBMS.
+<A NAME="lbAI">&nbsp;</A>
+<H2>CONFIGURATION PARAMETERS</H2>
+
+
+<PRE>
+</PRE>
+
+On busy mail systems a long time may pass before
+<B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) relevant
+changes to <B>main.cf</B> are picked up. Use the command
+&quot;<B>postfix reload</B>&quot; to speed up a change.
+<P>
+The text below provides only a parameter summary. See
+<B><A HREF="/manpages/index.html?5+postconf">postconf</A></B>(5) for more details including examples.
+<DL COMPACT>
+<DT><B>config_directory (see 'postconf -d' output)</B><DD>
+The default location of the Postfix main.cf and master.cf
+configuration files.
+<DT><B>data_directory (see 'postconf -d' output)</B><DD>
+The directory with Postfix-writable data files (for example:
+caches, pseudo-random numbers).
+<DT><B>daemon_timeout (18000s)</B><DD>
+How much time a Postfix daemon process may take to handle a
+request before it is terminated by a built-in watchdog timer.
+<DT><B>ipc_timeout (3600s)</B><DD>
+The time limit for sending or receiving information over an internal
+communication channel.
+<DT><B>max_idle (100s)</B><DD>
+The maximum amount of time that an idle Postfix daemon process waits
+for an incoming connection before terminating voluntarily.
+<DT><B>max_use (100)</B><DD>
+The maximal number of incoming connections that a Postfix daemon
+process will service before terminating voluntarily.
+<DT><B>process_id (read-only)</B><DD>
+The process ID of a Postfix command or daemon process.
+<DT><B>process_name (read-only)</B><DD>
+The process name of a Postfix command or daemon process.
+<DT><B>proxy_read_maps (see 'postconf -d' output)</B><DD>
+The lookup tables that the <B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) server is allowed to
+access for the read-only service.
+</DL>
+<P>
+
+Available in Postfix 2.5 and later:
+<DL COMPACT>
+<DT><B>data_directory (see 'postconf -d' output)</B><DD>
+The directory with Postfix-writable data files (for example:
+caches, pseudo-random numbers).
+<DT><B>proxy_write_maps (see 'postconf -d' output)</B><DD>
+The lookup tables that the <B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) server is allowed to
+access for the read-write service.
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/manpages/index.html?5+postconf">postconf</A>(5), configuration parameters
+<A HREF="/manpages/index.html?5+master">master</A>(5), generic daemon options
+</PRE><A NAME="lbAK">&nbsp;</A>
+<H2>README FILES</H2>
+
+
+<PRE>
+</PRE>
+
+Use &quot;<B>postconf readme_directory</B>&quot; or
+&quot;<B>postconf html_directory</B>&quot; to locate this information.
+
+<PRE>
+DATABASE_README, Postfix lookup table overview
+</PRE><A NAME="lbAL">&nbsp;</A>
+<H2>LICENSE</H2>
+
+
+<PRE>
+</PRE>
+
+The Secure Mailer license must be distributed with this software.
+<A NAME="lbAM">&nbsp;</A>
+<H2>HISTORY</H2>
+
+
+<PRE>
+</PRE>
+
+The proxymap service was introduced with Postfix 2.0.
+<A NAME="lbAN">&nbsp;</A>
+<H2>AUTHOR(S)</H2>
+
+
+<PRE>
+Wietse Venema
+IBM T.J. Watson Research
+P.O. Box 704
+Yorktown Heights, NY 10598, USA
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">SERVER PROCESS MANAGEMENT</A><DD>
+<DT><A HREF="#lbAF">SECURITY</A><DD>
+<DT><A HREF="#lbAG">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAH">BUGS</A><DD>
+<DT><A HREF="#lbAI">CONFIGURATION PARAMETERS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">README FILES</A><DD>
+<DT><A HREF="#lbAL">LICENSE</A><DD>
+<DT><A HREF="#lbAM">HISTORY</A><DD>
+<DT><A HREF="#lbAN">AUTHOR(S)</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:29 GMT, December 24, 2015
+</div></body>
+</HTML>

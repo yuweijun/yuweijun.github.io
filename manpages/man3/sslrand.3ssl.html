@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of rand</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>rand</H1>
+Section: OpenSSL (3)<BR>Updated: 2002-08-05<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+rand - pseudo-random number generator
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/rand.h">openssl/rand.h</A>&gt;
+
+ int  RAND_set_rand_engine(ENGINE *engine);
+
+ int  RAND_bytes(unsigned char *buf, int num);
+ int  RAND_pseudo_bytes(unsigned char *buf, int num);
+
+ void RAND_seed(const void *buf, int num);
+ void RAND_add(const void *buf, int num, int entropy);
+ int  RAND_status(void);
+
+ int  RAND_load_file(const char *file, long max_bytes);
+ int  RAND_write_file(const char *file);
+ const char *RAND_file_name(char *file, size_t num);
+
+ int  RAND_egd(const char *path);
+
+ void RAND_set_rand_method(const RAND_METHOD *meth);
+ const RAND_METHOD *RAND_get_rand_method(void);
+ RAND_METHOD *RAND_SSLeay(void);
+
+ void RAND_cleanup(void);
+
+ /* For Win32 only */
+ void RAND_screen(void);
+ int RAND_event(UINT, WPARAM, LPARAM);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Since the introduction of the <FONT SIZE="-1">ENGINE</FONT> <FONT SIZE="-1">API</FONT>, the recommended way of controlling
+default implementations is by using the <FONT SIZE="-1">ENGINE</FONT> <FONT SIZE="-1">API</FONT> functions. The default
+<B></B><FONT SIZE="-1"><B>RAND_METHOD</B></FONT><B></B>, as set by <I>RAND_set_rand_method()</I> and returned by
+<I>RAND_get_rand_method()</I>, is only used if no <FONT SIZE="-1">ENGINE</FONT> has been set as the default
+``rand'' implementation. Hence, these two functions are no longer the recommened
+way to control defaults.
+<P>
+
+If an alternative <B></B><FONT SIZE="-1"><B>RAND_METHOD</B></FONT><B></B> implementation is being used (either set
+directly or as provided by an <FONT SIZE="-1">ENGINE</FONT> module), then it is entirely responsible
+for the generation and management of a cryptographically secure <FONT SIZE="-1">PRNG</FONT> stream. The
+mechanisms described below relate solely to the software <FONT SIZE="-1">PRNG</FONT> implementation
+built in to OpenSSL and used by default.
+<P>
+
+These functions implement a cryptographically secure pseudo-random
+number generator (<FONT SIZE="-1">PRNG</FONT>). It is used by other library functions for
+example to generate random keys, and applications can use it when they
+need randomness.
+<P>
+
+A cryptographic <FONT SIZE="-1">PRNG</FONT> must be seeded with unpredictable data such as
+mouse movements or keys pressed at random by the user. This is
+described in <I><A HREF="/manpages/index.html?3+RAND_add">RAND_add</A></I>(3). Its state can be saved in a seed file
+(see <I><A HREF="/manpages/index.html?3+RAND_load_file">RAND_load_file</A></I>(3)) to avoid having to go through the
+seeding process whenever the application is started.
+<P>
+
+<I><A HREF="/manpages/index.html?3+RAND_bytes">RAND_bytes</A></I>(3) describes how to obtain random data from the
+<FONT SIZE="-1">PRNG</FONT>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>INTERNALS</H2>
+
+<A NAME="ixAAE"></A>
+The <I>RAND_SSLeay()</I> method implements a <FONT SIZE="-1">PRNG</FONT> based on a cryptographic
+hash function.
+<P>
+
+The following description of its design is based on the SSLeay
+documentation:
+<P>
+
+First up I will state the things I believe I need for a good <FONT SIZE="-1">RNG</FONT>.
+<DL COMPACT>
+<DT>1.<DD>
+A good hashing algorithm to mix things up and to convert the <FONT SIZE="-1">RNG</FONT> 'state'
+to random numbers.
+<DT>2.<DD>
+An initial source of random 'state'.
+<DT>3.<DD>
+The state should be very large.  If the <FONT SIZE="-1">RNG</FONT> is being used to generate
+4096 bit <FONT SIZE="-1">RSA</FONT> keys, 2 2048 bit random strings are required (at a minimum).
+If your <FONT SIZE="-1">RNG</FONT> state only has 128 bits, you are obviously limiting the
+search space to 128 bits, not 2048.  I'm probably getting a little
+carried away on this last point but it does indicate that it may not be
+a bad idea to keep quite a lot of <FONT SIZE="-1">RNG</FONT> state.  It should be easier to
+break a cipher than guess the <FONT SIZE="-1">RNG</FONT> seed data.
+<DT>4.<DD>
+Any <FONT SIZE="-1">RNG</FONT> seed data should influence all subsequent random numbers
+generated.  This implies that any random seed data entered will have
+an influence on all subsequent random numbers generated.
+<DT>5.<DD>
+When using data to seed the <FONT SIZE="-1">RNG</FONT> state, the data used should not be
+extractable from the <FONT SIZE="-1">RNG</FONT> state.  I believe this should be a
+requirement because one possible source of 'secret' semi random
+data would be a private key or a password.  This data must
+not be disclosed by either subsequent random numbers or a
+'core' dump left by a program crash.
+<DT>6.<DD>
+Given the same initial 'state', 2 systems should deviate in their <FONT SIZE="-1">RNG</FONT> state
+(and hence the random numbers generated) over time if at all possible.
+<DT>7.<DD>
+Given the random number output stream, it should not be possible to determine
+the <FONT SIZE="-1">RNG</FONT> state or the next random number.
+</DL>
+<P>
+
+The algorithm is as follows.
+<P>
+
+There is global state made up of a 1023 byte buffer (the 'state'), a
+working hash value ('md'), and a counter ('count').
+<P>
+
+Whenever seed data is added, it is inserted into the 'state' as
+follows.
+<P>
+
+The input is chopped up into units of 20 bytes (or less for
+the last block).  Each of these blocks is run through the hash
+function as follows:  The data passed to the hash function
+is the current 'md', the same number of bytes from the 'state'
+(the location determined by in incremented looping index) as
+the current 'block', the new key data 'block', and 'count'
+(which is incremented after each use).
+The result of this is kept in 'md' and also xored into the
+'state' at the same locations that were used as input into the
+hash function. I
+believe this system addresses points 1 (hash function; currently
+<FONT SIZE="-1">SHA-1</FONT>), 3 (the 'state'), 4 (via the 'md'), 5 (by the use of a hash
+function and xor).
+<P>
+
+When bytes are extracted from the <FONT SIZE="-1">RNG</FONT>, the following process is used.
+For each group of 10 bytes (or less), we do the following:
+<P>
+
+Input into the hash function the local 'md' (which is initialized from
+the global 'md' before any bytes are generated), the bytes that are to
+be overwritten by the random bytes, and bytes from the 'state'
+(incrementing looping index). From this digest output (which is kept
+in 'md'), the top (up to) 10 bytes are returned to the caller and the
+bottom 10 bytes are xored into the 'state'.
+<P>
+
+Finally, after we have finished 'num' random bytes for the caller,
+'count' (which is incremented) and the local and global 'md' are fed
+into the hash function and the results are kept in the global 'md'.
+<P>
+
+I believe the above addressed points 1 (use of <FONT SIZE="-1">SHA-1</FONT>), 6 (by hashing
+into the 'state' the 'old' data from the caller that is about to be
+overwritten) and 7 (by not using the 10 bytes given to the caller to
+update the 'state', but they are used to update 'md').
+<P>
+
+So of the points raised, only 2 is not addressed (but see
+<I><A HREF="/manpages/index.html?3+RAND_add">RAND_add</A></I>(3)).
+<A NAME="lbAF">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAF"></A>
+<I><A HREF="/manpages/index.html?3+BN_rand">BN_rand</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+RAND_add">RAND_add</A></I>(3),
+<I><A HREF="/manpages/index.html?3+RAND_load_file">RAND_load_file</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+RAND_egd">RAND_egd</A></I>(3),
+<I><A HREF="/manpages/index.html?3+RAND_bytes">RAND_bytes</A></I>(3),
+<I><A HREF="/manpages/index.html?3+RAND_set_rand_method">RAND_set_rand_method</A></I>(3),
+<I><A HREF="/manpages/index.html?3+RAND_cleanup">RAND_cleanup</A></I>(3)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">INTERNALS</A><DD>
+<DT><A HREF="#lbAF">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:41 GMT, December 24, 2015
+</div></body>
+</HTML>

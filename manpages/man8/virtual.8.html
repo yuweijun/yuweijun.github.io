@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of VIRTUAL</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>VIRTUAL</H1>
+Section: Maintenance Commands (8)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+virtual
+-
+Postfix virtual domain mail delivery agent
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+
+<PRE>
+<B>virtual</B> [generic Postfix daemon options]
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+The <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) delivery agent is designed for virtual mail
+hosting services. Originally based on the Postfix <B><A HREF="/manpages/index.html?8+local">local</A></B>(8)
+delivery
+agent, this agent looks up recipients with map lookups of their
+full recipient address, instead of using hard-coded unix password
+file lookups of the address local part only.
+<P>
+This delivery agent only delivers mail.  Other features such as
+mail forwarding, out-of-office notifications, etc., must be
+configured via virtual_alias maps or via similar lookup mechanisms.
+<A NAME="lbAE">&nbsp;</A>
+<H2>MAILBOX LOCATION</H2>
+
+
+<PRE>
+</PRE>
+
+The mailbox location is controlled by the <B>virtual_mailbox_base</B>
+and <B>virtual_mailbox_maps</B> configuration parameters (see below).
+The <B>virtual_mailbox_maps</B> table is indexed by the recipient
+address as described under TABLE SEARCH ORDER below.
+<P>
+The mailbox pathname is constructed as follows:
+<P>
+<PRE>
+  <B>$virtual_mailbox_base/$virtual_mailbox_maps(</B><I>recipient</I><B>)</B>
+</PRE>
+
+<P>
+where <I>recipient</I> is the full recipient address.
+<A NAME="lbAF">&nbsp;</A>
+<H2>UNIX MAILBOX FORMAT</H2>
+
+
+<PRE>
+</PRE>
+
+When the mailbox location does not end in <B>/</B>, the message
+is delivered in UNIX mailbox format.   This format stores multiple
+messages in one textfile.
+<P>
+The <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) delivery agent prepends a &quot;<B>From </B><I>sender
+time_stamp</I>&quot; envelope header to each message, prepends a
+<B>Delivered-To:</B> message header with the envelope recipient
+address,
+prepends an <B>X-Original-To:</B> header with the recipient address as
+given to Postfix,
+prepends a <B>Return-Path:</B> message header with the
+envelope sender address, prepends a <B>&gt;</B> character to lines
+beginning with &quot;<B>From </B>&quot;, and appends an empty line.
+<P>
+The mailbox is locked for exclusive access while delivery is in
+progress. In case of problems, an attempt is made to truncate the
+mailbox to its original length.
+<A NAME="lbAG">&nbsp;</A>
+<H2>QMAIL MAILDIR FORMAT</H2>
+
+
+<PRE>
+</PRE>
+
+When the mailbox location ends in <B>/</B>, the message is delivered
+in qmail <B>maildir</B> format. This format stores one message per file.
+<P>
+The <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) delivery agent prepends a <B>Delivered-To:</B>
+message header with the final envelope recipient address,
+prepends an <B>X-Original-To:</B> header with the recipient address as
+given to Postfix, and prepends a
+<B>Return-Path:</B> message header with the envelope sender address.
+<P>
+By definition, <B>maildir</B> format does not require application-level
+file locking during mail delivery or retrieval.
+<A NAME="lbAH">&nbsp;</A>
+<H2>MAILBOX OWNERSHIP</H2>
+
+
+<PRE>
+</PRE>
+
+Mailbox ownership is controlled by the <B>virtual_uid_maps</B>
+and <B>virtual_gid_maps</B> lookup tables, which are indexed
+with the full recipient address. Each table provides
+a string with the numerical user and group ID, respectively.
+<P>
+The <B>virtual_minimum_uid</B> parameter imposes a lower bound on
+numerical user ID values that may be specified in any
+<B>virtual_uid_maps</B>.
+<A NAME="lbAI">&nbsp;</A>
+<H2>CASE FOLDING</H2>
+
+
+<PRE>
+</PRE>
+
+All delivery decisions are made using the full recipient
+address, folded to lower case. See also the next section
+for a few exceptions with optional address extensions.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>TABLE SEARCH ORDER</H2>
+
+
+<PRE>
+</PRE>
+
+Normally, a lookup table is specified as a text file that
+serves as input to the <B><A HREF="/manpages/index.html?1+postmap">postmap</A></B>(1) command. The result, an
+indexed file in <B>dbm</B> or <B>db</B> format, is used for fast
+searching by the mail system.
+<P>
+The search order is as follows. The search stops
+upon the first successful lookup.
+<DL COMPACT>
+<DT>*<DD>
+When the recipient has an optional address extension the
+<I><A HREF="mailto:user+extension@domain.tld">user+extension@domain.tld</A></I> address is looked up first.
+<P>
+With Postfix versions before 2.1, the optional address extension
+is always ignored.
+<DT>*<DD>
+The <I><A HREF="mailto:user@domain.tld">user@domain.tld</A></I> address, without address extension,
+is looked up next.
+<DT>*<DD>
+Finally, the recipient <I>@domain</I> is looked up.
+</DL>
+<P>
+
+When the table is provided via other means such as NIS, LDAP
+or SQL, the same lookups are done as for ordinary indexed files.
+<P>
+Alternatively, a table can be provided as a regular-expression
+map where patterns are given as regular expressions. In that case,
+only the full recipient address is given to the regular-expression
+map.
+<A NAME="lbAK">&nbsp;</A>
+<H2>SECURITY</H2>
+
+
+<PRE>
+</PRE>
+
+The <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) delivery agent is not security sensitive, provided
+that the lookup tables with recipient user/group ID information are
+adequately protected. This program is not designed to run chrooted.
+<P>
+The <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) delivery agent disallows regular expression
+substitution of $1 etc. in regular expression lookup tables,
+because that would open a security hole.
+<P>
+The <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) delivery agent will silently ignore requests
+to use the <B><A HREF="/manpages/index.html?8+proxymap">proxymap</A></B>(8) server. Instead it will open the
+table directly. Before Postfix version 2.2, the virtual
+delivery agent will terminate with a fatal error.
+<A NAME="lbAL">&nbsp;</A>
+<H2>STANDARDS</H2>
+
+
+<PRE>
+RFC 822 (ARPA Internet Text Messages)
+</PRE><A NAME="lbAM">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+
+
+Mail bounces when the recipient has no mailbox or when the
+recipient is over disk quota. In all other cases, mail for
+an existing recipient is deferred and a warning is logged.
+<P>
+Problems and transactions are logged to <B><A HREF="/manpages/index.html?8+syslogd">syslogd</A></B>(8).
+Corrupted message files are marked so that the queue
+manager can move them to the <B>corrupt</B> queue afterwards.
+<P>
+Depending on the setting of the <B>notify_classes</B> parameter,
+the postmaster is notified of bounces and of other trouble.
+<A NAME="lbAN">&nbsp;</A>
+<H2>BUGS</H2>
+
+
+
+This delivery agent supports address extensions in email
+addresses and in lookup table keys, but does not propagate
+address extension information to the result of table lookup.
+<P>
+Postfix should have lookup tables that can return multiple result
+attributes. In order to avoid the inconvenience of maintaining
+three tables, use an LDAP or MYSQL database.
+<A NAME="lbAO">&nbsp;</A>
+<H2>CONFIGURATION PARAMETERS</H2>
+
+
+<PRE>
+</PRE>
+
+Changes to <B>main.cf</B> are picked up automatically, as
+<B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8)
+processes run for only a limited amount of time. Use the command
+&quot;<B>postfix reload</B>&quot; to speed up a change.
+<P>
+The text below provides only a parameter summary. See
+<B><A HREF="/manpages/index.html?5+postconf">postconf</A></B>(5) for more details including examples.
+<A NAME="lbAP">&nbsp;</A>
+<H2>MAILBOX DELIVERY CONTROLS</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT><B>virtual_mailbox_base (empty)</B><DD>
+A prefix that the <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) delivery agent prepends to all pathname
+results from $virtual_mailbox_maps table lookups.
+<DT><B>virtual_mailbox_maps (empty)</B><DD>
+Optional lookup tables with all valid addresses in the domains that
+match $virtual_mailbox_domains.
+<DT><B>virtual_minimum_uid (100)</B><DD>
+The minimum user ID value that the <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) delivery agent accepts
+as a result from $virtual_uid_maps table lookup.
+<DT><B>virtual_uid_maps (empty)</B><DD>
+Lookup tables with the per-recipient user ID that the <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8)
+delivery agent uses while writing to the recipient's mailbox.
+<DT><B>virtual_gid_maps (empty)</B><DD>
+Lookup tables with the per-recipient group ID for <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) mailbox
+delivery.
+</DL>
+<P>
+
+Available in Postfix version 2.0 and later:
+<DL COMPACT>
+<DT><B>virtual_mailbox_domains ($virtual_mailbox_maps)</B><DD>
+Postfix is final destination for the specified list of domains;
+mail is delivered via the $virtual_transport mail delivery transport.
+<DT><B>virtual_transport (virtual)</B><DD>
+The default mail delivery transport and next-hop destination for
+final delivery to domains listed with $virtual_mailbox_domains.
+</DL>
+<P>
+
+Available in Postfix version 2.5.3 and later:
+<DL COMPACT>
+<DT><B>strict_mailbox_ownership (yes)</B><DD>
+Defer delivery when a mailbox file is not owned by its recipient.
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H2>LOCKING CONTROLS</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT><B>virtual_mailbox_lock (see 'postconf -d' output)</B><DD>
+How to lock a UNIX-style <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) mailbox before attempting
+delivery.
+<DT><B>deliver_lock_attempts (20)</B><DD>
+The maximal number of attempts to acquire an exclusive lock on a
+mailbox file or <B><A HREF="/manpages/index.html?8+bounce">bounce</A></B>(8) logfile.
+<DT><B>deliver_lock_delay (1s)</B><DD>
+The time between attempts to acquire an exclusive lock on a mailbox
+file or <B><A HREF="/manpages/index.html?8+bounce">bounce</A></B>(8) logfile.
+<DT><B>stale_lock_time (500s)</B><DD>
+The time after which a stale exclusive mailbox lockfile is removed.
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H2>RESOURCE AND RATE CONTROLS</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT><B>virtual_destination_concurrency_limit ($default_destination_concurrency_limit)</B><DD>
+The maximal number of parallel deliveries to the same destination
+via the virtual message delivery transport.
+<DT><B>virtual_destination_recipient_limit ($default_destination_recipient_limit)</B><DD>
+The maximal number of recipients per message for the virtual
+message delivery transport.
+<DT><B>virtual_mailbox_limit (51200000)</B><DD>
+The maximal size in bytes of an individual mailbox or maildir file,
+or zero (no limit).
+</DL>
+<A NAME="lbAS">&nbsp;</A>
+<H2>MISCELLANEOUS CONTROLS</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT><B>config_directory (see 'postconf -d' output)</B><DD>
+The default location of the Postfix main.cf and master.cf
+configuration files.
+<DT><B>daemon_timeout (18000s)</B><DD>
+How much time a Postfix daemon process may take to handle a
+request before it is terminated by a built-in watchdog timer.
+<DT><B>delay_logging_resolution_limit (2)</B><DD>
+The maximal number of digits after the decimal point when logging
+sub-second delay values.
+<DT><B>ipc_timeout (3600s)</B><DD>
+The time limit for sending or receiving information over an internal
+communication channel.
+<DT><B>max_idle (100s)</B><DD>
+The maximum amount of time that an idle Postfix daemon process waits
+for an incoming connection before terminating voluntarily.
+<DT><B>max_use (100)</B><DD>
+The maximal number of incoming connections that a Postfix daemon
+process will service before terminating voluntarily.
+<DT><B>process_id (read-only)</B><DD>
+The process ID of a Postfix command or daemon process.
+<DT><B>process_name (read-only)</B><DD>
+The process name of a Postfix command or daemon process.
+<DT><B>queue_directory (see 'postconf -d' output)</B><DD>
+The location of the Postfix top-level queue directory.
+<DT><B>syslog_facility (mail)</B><DD>
+The syslog facility of Postfix logging.
+<DT><B>syslog_name (see 'postconf -d' output)</B><DD>
+The mail system name that is prepended to the process name in syslog
+records, so that &quot;smtpd&quot; becomes, for example, &quot;postfix/smtpd&quot;.
+</DL>
+<A NAME="lbAT">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/manpages/index.html?8+qmgr">qmgr</A>(8), queue manager
+<A HREF="/manpages/index.html?8+bounce">bounce</A>(8), delivery status reports
+<A HREF="/manpages/index.html?5+postconf">postconf</A>(5), configuration parameters
+<A HREF="/manpages/index.html?8+syslogd">syslogd</A>(8), system logging
+</PRE><A NAME="lbAU">&nbsp;</A>
+<H2>README_FILES</H2>
+
+
+<PRE>
+Use &quot;<B>postconf readme_directory</B>&quot; or
+&quot;<B>postconf html_directory</B>&quot; to locate this information.
+VIRTUAL_README, domain hosting howto
+</PRE><A NAME="lbAV">&nbsp;</A>
+<H2>LICENSE</H2>
+
+
+<PRE>
+</PRE>
+
+The Secure Mailer license must be distributed with this software.
+<A NAME="lbAW">&nbsp;</A>
+<H2>HISTORY</H2>
+
+
+<PRE>
+</PRE>
+
+This delivery agent was originally based on the Postfix local delivery
+agent. Modifications mainly consisted of removing code that either
+was not applicable or that was not safe in this context: aliases,
+~user/.forward files, delivery to &quot;|command&quot; or to /file/name.
+<P>
+The <B>Delivered-To:</B> message header appears in the <B>qmail</B>
+system by Daniel Bernstein.
+<P>
+The <B>maildir</B> structure appears in the <B>qmail</B> system
+by Daniel Bernstein.
+<A NAME="lbAX">&nbsp;</A>
+<H2>AUTHOR(S)</H2>
+
+
+<PRE>
+Wietse Venema
+IBM T.J. Watson Research
+P.O. Box 704
+Yorktown Heights, NY 10598, USA
+
+Andrew McNamara
+<A HREF="mailto:andrewm@connect.com.au">andrewm@connect.com.au</A>
+connect.com.au Pty. Ltd.
+Level 3, 213 Miller St
+North Sydney 2060, NSW, Australia
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">MAILBOX LOCATION</A><DD>
+<DT><A HREF="#lbAF">UNIX MAILBOX FORMAT</A><DD>
+<DT><A HREF="#lbAG">QMAIL MAILDIR FORMAT</A><DD>
+<DT><A HREF="#lbAH">MAILBOX OWNERSHIP</A><DD>
+<DT><A HREF="#lbAI">CASE FOLDING</A><DD>
+<DT><A HREF="#lbAJ">TABLE SEARCH ORDER</A><DD>
+<DT><A HREF="#lbAK">SECURITY</A><DD>
+<DT><A HREF="#lbAL">STANDARDS</A><DD>
+<DT><A HREF="#lbAM">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAN">BUGS</A><DD>
+<DT><A HREF="#lbAO">CONFIGURATION PARAMETERS</A><DD>
+<DT><A HREF="#lbAP">MAILBOX DELIVERY CONTROLS</A><DD>
+<DT><A HREF="#lbAQ">LOCKING CONTROLS</A><DD>
+<DT><A HREF="#lbAR">RESOURCE AND RATE CONTROLS</A><DD>
+<DT><A HREF="#lbAS">MISCELLANEOUS CONTROLS</A><DD>
+<DT><A HREF="#lbAT">SEE ALSO</A><DD>
+<DT><A HREF="#lbAU">README_FILES</A><DD>
+<DT><A HREF="#lbAV">LICENSE</A><DD>
+<DT><A HREF="#lbAW">HISTORY</A><DD>
+<DT><A HREF="#lbAX">AUTHOR(S)</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:31 GMT, December 24, 2015
+</div></body>
+</HTML>

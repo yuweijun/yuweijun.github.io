@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SEM_WAIT</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SEM_WAIT</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2009-02-09<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+sem_wait, sem_timedwait, sem_trywait - lock a semaphore
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/semaphore.h">semaphore.h</A>&gt;</B>
+
+<B>int sem_wait(sem_t *</B><I>sem</I><B>);</B>
+
+<B>int sem_trywait(sem_t *</B><I>sem</I><B>);</B>
+
+<B>int sem_timedwait(sem_t *</B><I>sem</I><B>, const struct timespec *</B><I>abs_timeout</I><B>);</B>
+</PRE>
+
+<P>
+Link with <I>-lrt</I> or <I>-pthread</I>.
+<P>
+
+Feature Test Macro Requirements for glibc (see
+<B><A HREF="/manpages/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)):
+
+
+<P>
+<B>sem_timedwait</B>():
+
+_POSIX_C_SOURCE&nbsp;&gt;=&nbsp;200112L || _XOPEN_SOURCE&nbsp;&gt;=&nbsp;600
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>sem_wait</B>()
+
+decrements (locks) the semaphore pointed to by
+<I>sem</I>.
+
+If the semaphore's value is greater than zero,
+then the decrement proceeds, and the function returns, immediately.
+If the semaphore currently has the value zero,
+then the call blocks until either it becomes possible to perform
+the decrement (i.e., the semaphore value rises above zero),
+or a signal handler interrupts the call.
+<P>
+<B>sem_trywait</B>()
+
+is the same as
+<B>sem_wait</B>(),
+
+except that if the decrement cannot be immediately performed,
+then call returns an error
+(<I>errno</I>
+
+set to
+<B>EAGAIN</B>)
+
+instead of blocking.
+<P>
+<B>sem_timedwait</B>()
+
+is the same as
+<B>sem_wait</B>(),
+
+except that
+<I>abs_timeout</I>
+
+specifies a limit on the amount of time that the call
+should block if the decrement cannot be immediately performed.
+The
+<I>abs_timeout</I>
+
+argument points to a structure that specifies an absolute timeout
+in seconds and nanoseconds since the Epoch (00:00:00, 1 January 1970).
+This structure is defined as follows:
+<P>
+<PRE>
+struct timespec {
+    time_t tv_sec;      /* Seconds */
+    long   tv_nsec;     /* Nanoseconds [0 .. 999999999] */
+};
+</PRE>
+
+<P>
+
+If the timeout has already expired by the time of the call,
+and the semaphore could not be locked immediately,
+then
+<B>sem_timedwait</B>()
+
+fails with a timeout error
+(<I>errno</I>
+
+set to
+<B>ETIMEDOUT</B>).
+
+<P>
+If the operation can be performed immediately, then
+<B>sem_timedwait</B>()
+
+never fails with a timeout error, regardless of the value of
+<I>abs_timeout</I>.
+
+Furthermore, the validity of
+<I>abs_timeout</I>
+
+is not checked in this case.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+All of these functions return 0 on success;
+on error, the value of the semaphore is left unchanged,
+-1 is returned, and
+<I>errno</I>
+
+is set to indicate the error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EINTR</B>
+
+<DD>
+The call was interrupted by a signal handler; see
+<B><A HREF="/manpages/index.html?7+signal">signal</A></B>(7).
+
+<DT><B>EINVAL</B>
+
+<DD>
+<I>sem</I>
+
+is not a valid semaphore.
+</DL>
+<P>
+
+The following additional error can occur for
+<B>sem_trywait</B>():
+
+<DL COMPACT>
+<DT><B>EAGAIN</B>
+
+<DD>
+The operation could not be performed without blocking (i.e., the
+semaphore currently has the value zero).
+</DL>
+<P>
+
+The following additional errors can occur for
+<B>sem_timedwait</B>():
+
+<DL COMPACT>
+<DT><B>EINVAL</B>
+
+<DD>
+The value of
+<I>abs_timeout.tv_nsecs</I>
+
+is less than 0, or greater than or equal to 1000 million.
+<DT><B>ETIMEDOUT</B>
+
+<DD>
+The call timed out before the semaphore could be locked.
+
+
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+POSIX.1-2001.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+A signal handler always interrupts a blocked call to
+one of these functions, regardless of the use of the
+<B><A HREF="/manpages/index.html?2+sigaction">sigaction</A></B>(2)
+
+<B>SA_RESTART</B>
+
+flag.
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<P>
+
+The (somewhat trivial) program shown below operates on an
+unnamed semaphore.
+The program expects two command-line arguments.
+The first argument specifies a seconds value that is used to
+set an alarm timer to generate a
+<B>SIGALRM</B>
+
+signal.
+This handler performs a
+<B><A HREF="/manpages/index.html?3+sem_post">sem_post</A></B>(3)
+
+to increment the semaphore that is being waited on in
+<I>main()</I>
+
+using
+<B>sem_timedwait</B>().
+
+The second command-line argument specifies the length
+of the timeout, in seconds, for
+<B>sem_timedwait</B>().
+
+The following shows what happens on two different runs of the program:
+<P>
+
+<PRE>
+$<B> ./a.out 2 3</B>
+About to call sem_timedwait()
+sem_post() from handler
+sem_getvalue() from handler; value = 1
+sem_timedwait() succeeded
+$<B> ./a.out 2 1</B>
+About to call sem_timedwait()
+sem_timedwait() timed out
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Program source</H3>
+
+
+<PRE>
+#include &lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/semaphore.h">semaphore.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/time.h">time.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/assert.h">assert.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/errno.h">errno.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/signal.h">signal.h</A>&gt;
+
+sem_t sem;
+
+#define handle_error(msg) \
+    do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
+static void
+handler(int sig)
+{
+    write(STDOUT_FILENO, &quot;sem_post() from handler\n&quot;, 24);
+    if (sem_post(&amp;sem) == -1) {
+        write(STDERR_FILENO, &quot;sem_post() failed\n&quot;, 18);
+        _exit(EXIT_FAILURE);
+    }
+}
+
+int
+main(int argc, char *argv[])
+{
+    struct sigaction sa;
+    struct timespec ts;
+    int s;
+
+    if (argc != 3) {
+        fprintf(stderr, &quot;Usage: %s &lt;alarm-secs&gt; &lt;wait-secs&gt;\n&quot;,
+                argv[0]);
+        exit(EXIT_FAILURE);
+    }
+
+    if (sem_init(&amp;sem, 0, 0) == -1)
+        handle_error(&quot;sem_init&quot;);
+
+    /* Establish SIGALRM handler; set alarm timer using argv[1] */
+
+    sa.sa_handler = handler;
+    sigemptyset(&amp;sa.sa_mask);
+    sa.sa_flags = 0;
+    if (sigaction(SIGALRM, &amp;sa, NULL) == -1)
+        handle_error(&quot;sigaction&quot;);
+
+    alarm(atoi(argv[1]));
+
+    /* Calculate relative interval as current time plus
+       number of seconds given argv[2] */
+
+    if (clock_gettime(CLOCK_REALTIME, &amp;ts) == -1)
+        handle_error(&quot;clock_gettime&quot;);
+
+    ts.tv_sec += atoi(argv[2]);
+
+    printf(&quot;main() about to call sem_timedwait()\n&quot;);
+    while ((s = sem_timedwait(&amp;sem, &amp;ts)) == -1 &amp;&amp; errno == EINTR)
+        continue;       /* Restart if interrupted by handler */
+
+    /* Check what happened */
+
+    if (s == -1) {
+        if (errno == ETIMEDOUT)
+            printf(&quot;sem_timedwait() timed out\n&quot;);
+        else
+            perror(&quot;sem_timedwait&quot;);
+    } else
+        printf(&quot;sem_timedwait() succeeded\n&quot;);
+
+    exit((s == 0) ? EXIT_SUCCESS : EXIT_FAILURE);
+}
+</PRE>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?2+clock_gettime">clock_gettime</A></B>(2),
+
+<B><A HREF="/manpages/index.html?3+sem_getvalue">sem_getvalue</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+sem_post">sem_post</A></B>(3),
+
+<B><A HREF="/manpages/index.html?7+sem_overview">sem_overview</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+time">time</A></B>(7)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">EXAMPLE</A><DD>
+<DL>
+<DT><A HREF="#lbAJ">Program source</A><DD>
+</DL>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:39 GMT, December 24, 2015
+</div></body>
+</HTML>

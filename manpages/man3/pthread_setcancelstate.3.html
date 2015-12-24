@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PTHREAD_SETCANCELSTATE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PTHREAD_SETCANCELSTATE</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2008-11-24<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+pthread_setcancelstate, pthread_setcanceltype -
+set cancelability state and type
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/pthread.h">pthread.h</A>&gt;</B>
+
+<B>int pthread_setcancelstate(int </B><I>state</I><B>, int *</B><I>oldstate</I><B>);</B>
+<B>int pthread_setcanceltype(int </B><I>type</I><B>, int *</B><I>oldtype</I><B>);</B>
+
+Compile and link with <I>-pthread</I>.
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>pthread_setcancelstate</B>()
+
+sets the cancelability state of the calling thread to the value
+given in
+<I>state</I>.
+
+The previous cancelability state of the thread is returned
+in the buffer pointed to by
+<I>oldstate</I>.
+
+The
+<I>state</I>
+
+argument must have one of the following values:
+<DL COMPACT>
+<DT><B>PTHREAD_CANCEL_ENABLE</B>
+
+<DD>
+The thread is cancelable.
+This is the default cancelability state in all new threads,
+including the initial thread.
+The thread's cancelability type determines when a cancelable thread
+will respond to a cancellation request.
+<DT><B>PTHREAD_CANCEL_DISABLE</B>
+
+<DD>
+The thread is not cancelable.
+If a cancellation request is received,
+it is blocked until cancelability is enabled.
+</DL>
+<P>
+
+The
+<B>pthread_setcanceltype</B>()
+
+sets the cancelability type of the calling thread to the value
+given in
+<I>type</I>.
+
+The previous cancelability type of the thread is returned
+in the buffer pointed to by
+<I>oldtype</I>.
+
+The
+<I>type</I>
+
+argument must have one of the following values:
+<DL COMPACT>
+<DT><B>PTHREAD_CANCEL_DEFERRED</B>
+
+<DD>
+A cancellation request is deferred until the thread next calls
+a function that is a cancellation point (see
+<B><A HREF="/manpages/index.html?7+pthreads">pthreads</A></B>(7)).
+
+This is the default cancelability type in all new threads,
+including the initial thread.
+<DT><B>PTHREAD_CANCEL_ASYNCHRONOUS</B>
+
+<DD>
+The thread can be canceled at any time.
+(Typically,
+it will be canceled immediately upon receiving a cancellation request,
+but the system doesn't guarantee this.)
+</DL>
+<P>
+
+The set-and-get operation performed by each of these functions
+is atomic with respect to other threads in the process
+calling the same function.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success, these functions return 0;
+on error, they return a non-zero error number.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+The
+<B>pthread_setcancelstate</B>()
+
+can fail with the following error:
+<DL COMPACT>
+<DT><B>EINVAL</B>
+
+<DD>
+Invalid value for
+<I>state</I>.
+
+</DL>
+<P>
+
+The
+<B>pthread_setcanceltype</B>()
+
+can fail with the following error:
+<DL COMPACT>
+<DT><B>EINVAL</B>
+
+<DD>
+Invalid value for
+<I>type</I>.
+
+
+
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+POSIX.1-2001.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+For details of what happens when a thread is canceled, see
+<B><A HREF="/manpages/index.html?3+pthread_cancel">pthread_cancel</A></B>(3).
+
+<P>
+Briefly disabling cancelability is useful
+if a thread performs some critical action
+that must not be interrupted by a cancellation request.
+Beware of disabling cancelability for long periods,
+or around operations that may block for long periods,
+since that will render the thread unresponsive to cancellation requests.
+<P>
+Setting the cancelability type to
+<B>PTHREAD_CANCEL_ASYNCHRONOUS</B>
+
+is rarely useful.
+Since the thread could be canceled at
+<I>any</I>
+
+time, it cannot safely reserve resources (e.g., allocating memory with
+<B><A HREF="/manpages/index.html?3+malloc">malloc</A></B>(3)),
+
+acquire mutexes, semaphores, or locks, and so on.
+Reserving resources is unsafe because the application has no way of
+knowing what the state of these resources is when the thread is canceled;
+that is, did cancellation occur before the resources were reserved,
+while they were reserved, or after they were released?
+Furthermore, some internal data structures
+(e.g., the linked list of free blocks managed by the
+<B><A HREF="/manpages/index.html?3+malloc">malloc</A></B>(3)
+
+family of functions) may be left in an inconsistent state
+if cancellation occurs in the middle of the function call.
+Consequently, clean-up handlers cease to be useful.
+Functions that can be safely asynchronously canceled are called
+<I>async-cancel-safe functions</I>.
+
+POSIX.1-2001 only requires that
+<B><A HREF="/manpages/index.html?3+pthread_cancel">pthread_cancel</A></B>(3),
+
+<B>pthread_setcancelstate</B>(),
+
+and
+<B>pthread_setcanceltype</B>()
+
+be async-cancel-safe.
+In general, other library functions
+can't be safely called from an asynchronously cancelable thread.
+One of the few circumstances in which asynchronous cancelability is useful
+is for cancellation of a thread that is in a pure compute-bound loop.
+<P>
+The Linux threading implementations permit the
+<I>oldstate</I>
+
+argument of
+<B>pthread_setcancelstate</B>()
+
+to be NULL, in which case the information about the previous
+cancelability state is not returned to the caller.
+Many other implementations also permit a NULL
+<I>oldstat</I>
+
+argument,
+
+but POSIX.1-2001 does not specify this point,
+so portable applications should always specify a non-NULL value in
+<I>oldstate</I>.
+
+A precisely analogous set of statements applies for the
+<I>oldtype</I>
+
+argument of
+<B>pthread_setcanceltype</B>().
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+See
+<B><A HREF="/manpages/index.html?3+pthread_cancel">pthread_cancel</A></B>(3).
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?3+pthread_cleanup_push">pthread_cleanup_push</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+pthread_cancel">pthread_cancel</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+pthread_testcancel">pthread_testcancel</A></B>(3),
+
+<B><A HREF="/manpages/index.html?7+pthreads">pthreads</A></B>(7)
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">EXAMPLE</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:37 GMT, December 24, 2015
+</div></body>
+</HTML>

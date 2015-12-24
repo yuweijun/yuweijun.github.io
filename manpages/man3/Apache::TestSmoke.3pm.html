@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Apache::TestSmoke</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Apache::TestSmoke</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-12-31<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Apache::TestSmoke - Special Tests Sequence Failure Finder
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  # get the usage and the default values
+  % t/SMOKE -help
+
+  # repeat all tests 5 times and try 20 random iterations
+  # and save the report into the file 'myreport'
+  % t/SMOKE -times=5 -iterations=20 -report=myreport
+
+  # run all tests default number of iterations, and repeat tests
+  # default number of times
+  % t/SMOKE
+
+  # same as above but work only the specified tests
+  % t/SMOKE foo/bar foo/tar
+
+  # run once a sequence of tests in a non-random mode
+  # e.g. when trying to reduce a known long sequence that fails
+  % t/SMOKE -order=rotate -times=1 foo/bar foo/tar
+
+  # show me each currently running test
+  # it's not the same as running the tests in the verbose mode
+  % t/SMOKE -verbose
+
+  # run t/TEST, but show any problems after *each* tests is run
+  # useful for bug reports (it actually runs t/TEST -start, then
+  # t/TEST -run for each test separately and finally t/TEST -stop
+  % t/SMOKE -bug_mode
+
+  # now read the created report file
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3>The Problem</H3>
+
+<A NAME="ixAAE"></A>
+When we try to test a stateless machine (i.e. all tests are
+independent), running all tests once ensures that all tested things
+properly work. However when a state machine is tested (i.e. where a
+run of one test may influence another test) it's not enough to run all
+the tests once to know that the tested features actually work. It's
+quite possible that if the same tests are run in a different order
+and/or repeated a few times, some tests may fail.  This usually
+happens when some tests don't restore the system under test to its
+pristine state at the end of the run, which may influence other tests
+which rely on the fact that they start on pristine state, when in fact
+it's not true anymore. In fact it's possible that a single test may
+fail when run twice or three times in a sequence.
+<A NAME="lbAF">&nbsp;</A>
+<H3>The Solution</H3>
+
+<A NAME="ixAAF"></A>
+To reduce the possibility of such dependency errors, it's helpful to
+run random testing repeated many times with many different srand
+seeds. Of course if no failures get spotted that doesn't mean that
+there are no tests inter-dependencies, which may cause a failure in
+production. But random testing definitely helps to spot many problems
+and can give better test coverage.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Resolving Sequence Problems</H3>
+
+<A NAME="ixAAG"></A>
+When this kind of testing is used and a failure is detected there are
+two problems:
+<DL COMPACT>
+<DT>1.<DD>
+First is to be able to reproduce the problem so if we think we fixed
+it, we could verify the fix. This one is easy, just remember the
+sequence of tests run till the failed test and rerun the same sequence
+once again after the problem has been fixed.
+<DT>2.<DD>
+Second is to be able to understand the cause of the problem. If during
+the random test the failure has happened after running 400 tests, how
+can we possibly know which previously running tests has caused to the
+failure of the test 401. Chances are that most of the tests were clean
+and don't have inter-dependency problem. Therefore it'd be very
+helpful if we could reduce the long sequence to a minimum. Preferably
+1 or 2 tests. That's when we can try to understand the cause of the
+detected problem.
+</DL>
+<P>
+
+This utility attempts to solve both problems, and at the end of each
+iteration print a minimal sequence of tests causing to a failure. This
+doesn't always succeed, but works in many cases.
+<P>
+
+This utility:
+<DL COMPACT>
+<DT>1.<DD>
+Runs the tests randomly until the first failure is detected. Or
+non-randomly if the option <I>-order</I> is set to <I>repeat</I> or <I>rotate</I>.
+<DT>2.<DD>
+Then it tries to reduce that sequence of tests to a minimum, and this
+sequence still causes to the same failure.
+<DT>3.<DD>
+(<FONT SIZE="-1">XXX:</FONT> todo): then it reruns the minimal sequence in the verbose mode
+and saves the output.
+<DT>4.<DD>
+It reports all the successful reductions as it goes to <FONT SIZE="-1">STDOUT</FONT> and
+report file of the format: smoke-report-&lt;date&gt;.txt.
+
+
+<P>
+
+
+In addition the systems build parameters are logged into the report
+file, so the detected problems could be reproduced.
+<DT>5.<DD>
+Goto 1 and run again using a new random seed, which potentially should
+detect different failures.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>Reduction Algorithm</H2>
+
+<A NAME="ixAAH"></A>
+Currently for each reduction path, the following reduction algorithms
+get applied:
+<DL COMPACT>
+<DT>1.<DD>
+Binary search: first try the upper half then the lower.
+<DT>2.<DD>
+Random window: randomize the left item, then the right item and return
+the items between these two points.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>t/SMOKE.PL</H2>
+
+<A NAME="ixAAI"></A>
+<I>t/SMOKE.PL</I> is driving this module, if you don't have it, create it:
+<P>
+
+
+
+<PRE>
+  #!perl
+
+  use strict;
+  use warnings FATAL =&gt; 'all';
+
+  use FindBin;
+  use lib &quot;$FindBin::Bin/../Apache-Test/lib&quot;;
+  use lib &quot;$FindBin::Bin/../lib&quot;;
+
+  use Apache::TestSmoke ();
+
+  Apache::TestSmoke-&gt;new(@ARGV)-&gt;run;
+
+</PRE>
+
+
+<P>
+
+usually <I>Makefile.PL</I> converts it into <I>t/SMOKE</I> while adjusting the
+perl path, but you create <I>t/SMOKE</I> in first place as well.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAJ"></A>
+Stas Bekman
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">The Problem</A><DD>
+<DT><A HREF="#lbAF">The Solution</A><DD>
+<DT><A HREF="#lbAG">Resolving Sequence Problems</A><DD>
+</DL>
+<DT><A HREF="#lbAH">Reduction Algorithm</A><DD>
+<DT><A HREF="#lbAI">t/SMOKE.PL</A><DD>
+<DT><A HREF="#lbAJ">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DEBUGFS</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DEBUGFS</H1>
+Section: Maintenance Commands (8)<BR>Updated: May 2010<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+debugfs - ext2/ext3/ext4 file system debugger
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>debugfs</B>
+
+[
+<B>-Vwci</B>
+
+]
+[
+<B>-b</B>
+
+blocksize
+]
+[
+<B>-s</B>
+
+superblock
+]
+[
+<B>-f </B>
+
+cmd_file
+]
+[
+<B>-R</B>
+
+request
+]
+[
+<B>-d</B>
+
+data_source_device
+]
+[
+device
+]
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The 
+<B>debugfs </B>
+
+program is an interactive file system debugger. It can be used to
+examine and change the state of an ext2, ext3, or ext4 file system.
+<BR>
+
+<I>device</I>
+
+is the special file corresponding to the device containing the
+file system (e.g /dev/hdXX).
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><I>-w</I>
+
+<DD>
+Specifies that the file system should be opened in read-write mode.
+Without this option, the file system is opened in read-only mode.
+<DT><I>-c</I>
+
+<DD>
+Specifies that the file system should be opened in catastrophic mode, in
+which the inode and group bitmaps are not read initially.  This can be
+useful for filesystems with significant corruption, but because of this,
+catastrophic mode forces the filesystem to be opened read-only.
+<DT><I>-i</I>
+
+<DD>
+Specifies that 
+<I>device</I>
+
+represents an ext2 image file created by the
+<B>e2image</B>
+
+program.  Since the ext2 image file only contains the superblock, block
+group descriptor, block and inode allocation bitmaps, and 
+the inode table, many
+<B>debugfs</B>
+
+commands will not function properly.  
+<B>Warning:</B>
+
+no safety checks are in place, and 
+<B>debugfs </B>
+
+may fail in interesting ways if commands such as
+<I>ls</I>, <I>dump</I>, 
+
+etc. are tried without specifying the 
+<I>data_source_device</I>
+
+using the 
+<I>-d</I>
+
+option.
+<B>debugfs </B>
+
+is a debugging tool.  It has rough edges!
+<DT><I>-d data_source_device</I>
+
+<DD>
+Used with the 
+<I>-i</I>
+
+option, specifies that
+<I>data_source_device</I>
+
+should be used when reading blocks not found in the ext2 image file.
+This includes data, directory, and indirect blocks.
+<DT><I>-b blocksize</I>
+
+<DD>
+Forces the use of the given block size for the file system, rather than
+detecting the correct block size as normal.
+<DT><I>-s superblock</I>
+
+<DD>
+Causes the file system superblock to be read from the given block
+number, instead of using the primary superblock (located at an offset of
+1024 bytes from the beginning of the filesystem).  If you specify the
+<I>-s</I>
+
+option, you must also provide the blocksize of the filesystem via the
+<I>-b</I>
+
+option.
+<DT><I>-f cmd_file</I>
+
+<DD>
+Causes 
+<B>debugfs</B>
+
+to read in commands from 
+<I>cmd_file</I>,
+
+and execute them.  When 
+<B>debugfs</B>
+
+is finished executing those commands, it will exit.
+<DT><I>-R request</I>
+
+<DD>
+Causes 
+<B>debugfs</B>
+
+to execute the single command 
+<I>request</I>,
+
+and then exit.
+<DT><I>-V</I>
+
+<DD>
+print the version number of 
+<B>debugfs</B>
+
+and exit.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>SPECIFYING FILES</H2>
+
+Many
+<B>debugfs</B>
+
+commands take a
+<I>filespec</I>
+
+as an argument to specify an inode (as opposed to a pathname) 
+in the filesystem which is currently opened by 
+<B>debugfs</B>.
+
+The
+<I>filespec</I>
+
+argument may be specified in two forms.  The first form is an inode 
+number surrounded by angle brackets, e.g., 
+<I>&lt;2&gt;</I>.
+
+The second form is a pathname; if the pathname is prefixed by a forward slash
+('/'), then it is interpreted relative to the root of the filesystem 
+which is currently opened by 
+<B>debugfs</B>.
+
+If not, the pathname is 
+interpreted relative to the current working directory as maintained by 
+<B>debugfs</B>.
+
+This may be modified by using the 
+<B>debugfs</B>
+
+command
+<I>cd</I>.
+
+
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>COMMANDS</H2>
+
+This is a list of the commands which 
+<B>debugfs</B>
+
+supports.
+<DL COMPACT>
+<DT><I>bmap filespec logical_block</I>
+
+<DD>
+Print the physical block number corresponding to the logical block number
+<I>logical_block</I>
+
+in the inode
+<I>filespec</I>.
+
+<DT><I>cat filespec</I>
+
+<DD>
+Dump the contents of the inode 
+<I>filespec</I>
+
+to stdout.
+<DT><I>cd filespec</I>
+
+<DD>
+Change the current working directory to 
+<I>filespec</I>.
+
+<DT><I>chroot filespec</I>
+
+<DD>
+Change the root directory to be the directory 
+<I>filespec</I>.
+
+<DT><I>close [-a]</I>
+
+<DD>
+Close the currently open file system.  If the 
+<I>-a</I>
+
+option is specified, write out any changes to the superblock and block
+group descriptors to all of the backup superblocks, not just to the
+master superblock.
+<DT><I>clri file</I>
+
+<DD>
+Clear the contents of the inode 
+<I>file</I>.
+
+<DT><I>dump [-p] filespec out_file</I>
+
+<DD>
+Dump the contents of the inode 
+<I>filespec</I>
+
+to the output file 
+<I>out_file</I>.
+
+If the 
+<I>-p </I>
+
+option is given set the owner, group and permissions information on 
+<I>out_file </I>
+
+to match 
+<I>filespec</I>.
+
+<DT><I>dump_extents [-n] [-l] filespec</I>
+
+<DD>
+Dump the the extent tree of the inode
+<I>filespec</I>.
+
+The 
+<I>-n</I>
+
+flag will cause
+<I>dump_extents</I>
+
+to only display the interior nodes in the extent tree.   The
+<I>-l</I>
+
+flag cause
+<I>dump_extents</I>
+
+to only display the leaf nodes in the extent tree.
+<DT><DD>
+(Please note that the length and range of blocks for the last extent in
+an interior node is an estimate by the extents library functions, and is
+not stored in filesystem data structures.   Hence, the values displayed
+may not necessarily by accurate and does not indicate a problem or 
+corruption in the file system.)
+<DT><I>expand_dir filespec</I>
+
+<DD>
+Expand the directory
+<I>filespec</I>.
+
+<DT><I>feature [fs_feature] [-fs_feature] ...</I>
+
+<DD>
+Set or clear various filesystem features in the superblock.  After setting
+or clearing any filesystem features that were requested, print the current
+state of the filesystem feature set.
+<DT><I>find_free_block [count [goal]]</I>
+
+<DD>
+Find the first 
+<I>count</I>
+
+free blocks, starting from
+<I>goal</I>
+
+and allocate it.
+<DT><I>find_free_inode [dir [mode]]</I>
+
+<DD>
+Find a free inode and allocate it.  If present, 
+<I>dir</I>
+
+specifies the inode number of the directory 
+which the inode is to be located.  The second 
+optional argument
+<I>mode</I>
+
+specifies the permissions of the new inode.  (If the directory bit is set
+on the mode, the allocation routine will function differently.)
+<DT><I>freeb block [count]</I>
+
+<DD>
+Mark the block number
+<I>block</I>
+
+as not allocated.
+If the optional argument 
+<I>count </I>
+
+is present, then 
+<I>count</I>
+
+blocks starting at block number
+<I>block</I>
+
+will be marked as not allocated.
+<DT><I>freei filespec</I>
+
+<DD>
+Free the inode specified by 
+<I>filespec</I>.
+
+<DT><I>help</I>
+
+<DD>
+Print a list of commands understood by 
+<B><A HREF="/manpages/index.html?8+debugfs">debugfs</A></B>(8).
+
+<DT><I>icheck block ...</I>
+
+<DD>
+Print a listing of the inodes which use the one or more blocks specified
+on the command line.
+<DT><I>imap filespec</I>
+
+<DD>
+Print the location of the inode data structure (in the inode table) 
+of the inode
+<I>filespec</I>.
+
+<DT><I>init_filesys device blocksize</I>
+
+<DD>
+Create an ext2 file system on
+<I>device</I>
+
+with device size
+<I>blocksize</I>.
+
+Note that this does not fully initialize all of the data structures; 
+to do this, use the 
+<B><A HREF="/manpages/index.html?8+mke2fs">mke2fs</A></B>(8)
+
+program.  This is just a call to the low-level library, which sets up
+the superblock and block descriptors.
+<DT><I>kill_file filespec</I>
+
+<DD>
+Deallocate the inode 
+<I>filespec</I>
+
+and its blocks.  Note that this does not remove any directory
+entries (if any) to this inode.  See the 
+<B><A HREF="/manpages/index.html?1+rm">rm</A></B>(1)
+
+command if you wish to unlink a file.
+<DT><I>lcd directory</I>
+
+<DD>
+Change the current working directory of the
+<B>debugfs</B>
+
+process to
+<I>directory</I>
+
+on the native filesystem.
+<DT><I>ln filespec dest_file</I>
+
+<DD>
+Create a link named 
+<I>dest_file</I>
+
+which is a link to 
+<I>filespec</I>.
+
+Note this does not adjust the inode reference counts.
+<DT><I>logdump [-acs] [-b&lt;block&gt;] [-i&lt;filespec&gt;] [-f&lt;journal_file&gt;] [output_file]</I>
+
+<DD>
+Dump the contents of the ext3 journal.  By default, the journal inode as
+specified in the superblock.  However, this can be overridden with the 
+<I>-i</I>
+
+option, which uses an inode specifier to specify the journal to be
+used.  A file containing journal data can be specified using the
+<I>-f</I>
+
+option.   Finally, the 
+<I>-s</I>
+
+option utilizes the backup information in the superblock to locate the
+journal.
+<DT><DD>
+The 
+<I>-a</I>
+
+option causes the 
+<I>logdump</I>
+
+program to print the contents of all of the descriptor blocks.
+The 
+<I>-b</I>
+
+option causes 
+<I>logdump</I>
+
+to print all journal records that are refer to the specified block. 
+The 
+<I>-c</I>
+
+option will print out the contents of all of the data blocks selected by
+the 
+<I>-a</I>
+
+and 
+<I>-b</I>
+
+options.
+<DT><I>ls [-l] [-d] [-p] filespec</I>
+
+<DD>
+Print a listing of the files in the directory
+<I>filespec</I>.
+
+The 
+<I>-l</I>
+
+flag will list files using a more verbose format.
+The
+<I>-d</I>
+
+flag will list deleted entries in the directory.
+The 
+<I>-p</I>
+
+flag will list the files in a format which is more easily parsable by
+scripts, as well as making it more clear when there are spaces or other
+non-printing characters at the end of filenames.
+<DT><I>modify_inode filespec</I>
+
+<DD>
+Modify the contents of the inode structure in the inode
+<I>filespec</I>.
+
+<DT><I>mkdir filespec</I>
+
+<DD>
+Make a directory.
+<DT><I>mknod filespec [p|[[c|b] major minor]]</I>
+
+<DD>
+Create a special device file (a named pipe, character or block device).
+If a character or block device is to be made, the 
+<I>major</I>
+
+and
+<I>minor</I>
+
+device numbers must be specified.
+<DT><I>ncheck inode_num ...</I>
+
+<DD>
+Take the requested list of inode numbers, and print a listing of pathnames
+to those inodes.
+<DT><I>open [-w] [-e] [-f] [-i] [-c] [-b blocksize] [-s superblock] device</I>
+
+<DD>
+Open a filesystem for editing.  The 
+<I>-f </I>
+
+flag forces the filesystem to be opened even if there are some unknown 
+or incompatible filesystem features which would normally 
+prevent the filesystem from being opened.  The
+<I>-e</I>
+
+flag causes the filesystem to be opened in exclusive mode.  The
+<I>-b</I>, <I>-c</I>, <I>-i</I>, <I>-s</I>, and <I>-w</I>
+
+options behave the same as the command-line options to 
+<B>debugfs</B>.
+
+<DT><I>pwd</I>
+
+<DD>
+Print the current working directory.
+<DT><I>quit</I>
+
+<DD>
+Quit
+<B>debugfs</B>
+
+<DT><I>rdump directory destination</I>
+
+<DD>
+Recursively dump
+<I>directory</I>
+
+and all its contents (including regular files, symbolic links, and other
+directories) into the named
+<I>destination</I>
+
+which should be an existing directory on the native filesystem.
+<DT><I>rm pathname</I>
+
+<DD>
+Unlink 
+<I>pathname</I>.
+
+If this causes the inode pointed to by 
+<I>pathname</I>
+
+to have no other references, deallocate the file.  This command functions
+as the unlink() system call.
+<I><DT>rmdir filespec</I>
+
+<DD>
+
+
+Remove the directory
+<I>filespec</I>.
+
+<DT><I>setb block [count]</I>
+
+<DD>
+Mark the block number
+<I>block</I>
+
+as allocated.
+If the optional argument 
+<I>count </I>
+
+is present, then 
+<I>count</I>
+
+blocks starting at block number
+<I>block</I>
+
+will be marked as allocated.
+<DT><I>set_block_group bgnum field value</I>
+
+<DD>
+Modify the block group descriptor specified by
+<I>bgnum</I>
+
+so that the block group descriptor field
+<I>field</I>
+
+has value
+<I>value.</I>
+
+<DT><I>seti filespec</I>
+
+<DD>
+Mark inode 
+<I>filespec</I>
+
+as in use in the inode bitmap.
+<DT><I>set_inode_field filespec field value</I>
+
+<DD>
+Modify the inode specified by 
+<I>filespec</I>
+
+so that the inode field
+<I>field</I>
+
+has value 
+<I>value.</I>
+
+The list of valid inode fields which can be set via this command 
+can be displayed by using the command:
+<B>set_inode_field -l</B>
+
+<DT><I>set_super_value field value</I>
+
+<DD>
+Set the superblock field
+<I>field</I>
+
+to 
+<I>value.</I>
+
+The list of valid superblock fields which can be set via this command 
+can be displayed by using the command:
+<B>set_super_value -l</B>
+
+<DT><I>show_super_stats [-h]</I>
+
+<DD>
+List the contents of the super block and the block group descriptors.  If the
+<I>-h</I>
+
+flag is given, only print out the superblock contents.
+<DT><I>stat filespec</I>
+
+<DD>
+Display the contents of the inode structure of the inode
+<I>filespec</I>.
+
+<DT><I>testb block [count]</I>
+
+<DD>
+Test if the block number
+<I>block</I>
+
+is marked as allocated in the block bitmap.
+If the optional argument 
+<I>count </I>
+
+is present, then 
+<I>count</I>
+
+blocks starting at block number
+<I>block</I>
+
+will be tested.
+<DT><I>testi filespec</I>
+
+<DD>
+Test if the inode 
+<I>filespec</I>
+
+is marked as allocated in the inode bitmap.
+<DT><I>undel &lt;inode num&gt; [pathname]</I>
+
+<DD>
+Undelete the specified inode number (which must be surrounded by angle
+brackets) so that it and its blocks are marked in use, and optionally
+link the recovered inode to the specified pathname.  The 
+<B>e2fsck</B>
+
+command should always be run after using the 
+<B>undel</B>
+
+command to recover deleted files.
+<DT><DD>
+Note that if you are recovering a large number of deleted files, linking
+the inode to a directory may require the directory to be expanded, which
+could allocate a block that had been used by one of the
+yet-to-be-undeleted files.  So it is safer to undelete all of the 
+inodes without specifying a destination pathname, and then in a separate
+pass, use the debugfs
+<B>link</B>
+
+command to link the inode to the destination pathname, or use 
+<B>e2fsck</B>
+
+to check the filesystem and link all of the recovered inodes to the
+lost+found directory.
+<DT><I>unlink pathname</I>
+
+<DD>
+Remove the link specified by 
+<I>pathname </I>
+
+to an inode.  Note this does not adjust the inode reference counts.
+<DT><I>write source_file out_file</I>
+
+<DD>
+Create a file in the filesystem named
+<I>out_file</I>,
+
+and copy the contents of
+<I>source_file</I>
+
+into the destination file.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>ENVIRONMENT VARIABLES</H2>
+
+<DL COMPACT>
+<DT><B>DEBUGFS_PAGER, PAGER</B>
+
+<DD>
+The
+<B><A HREF="/manpages/index.html?8+debugfs">debugfs</A></B>(8)
+
+program always pipes the output of the some commands through a
+pager program.  These commands include: 
+<I>show_super_stats</I>,
+
+<I>list_directory</I>,
+
+<I>show_inode_info</I>,
+
+<I>list_deleted_inodes</I>,
+
+and
+<I>htree_dump</I>.
+
+The specific pager can explicitly specified by the
+<B>DEBUGFS_PAGER</B>
+
+environment variable, and if it is not set, by the
+<B>PAGER</B>
+
+environment variable.  
+<DT><DD>
+Note that since a pager is always used, the 
+<B><A HREF="/manpages/index.html?1+less">less</A></B>(1)
+
+pager is not particularly appropriate, since it clears the screen before
+displaying the output of the command and clears the output the screen
+when the pager is exited.  Many users prefer to use the 
+<B><A HREF="/manpages/index.html?1+less">less</A></B>(1)
+
+pager for most purposes, which is why the 
+<B>DEBUGFS_PAGER </B>
+
+environment variable is available to override the more general
+<B>PAGER</B>
+
+environment variable.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<B>debugfs</B>
+
+was written by Theodore Ts'o &lt;<A HREF="mailto:tytso@mit.edu">tytso@mit.edu</A>&gt;.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?8+dumpe2fs">dumpe2fs</A></B>(8),
+
+<B><A HREF="/manpages/index.html?8+tune2fs">tune2fs</A></B>(8),
+
+<B><A HREF="/manpages/index.html?8+e2fsck">e2fsck</A></B>(8),
+
+<B><A HREF="/manpages/index.html?8+mke2fs">mke2fs</A></B>(8)
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">SPECIFYING FILES</A><DD>
+<DT><A HREF="#lbAG">COMMANDS</A><DD>
+<DT><A HREF="#lbAH">ENVIRONMENT VARIABLES</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:25 GMT, December 24, 2015
+</div></body>
+</HTML>

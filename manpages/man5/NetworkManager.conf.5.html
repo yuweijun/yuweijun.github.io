@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of NetworkManager.conf</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>NetworkManager.conf</H1>
+Section: Misc. Reference Manual Pages (5)<BR>Updated: 26 July 2011<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+NetworkManager.conf - NetworkManager configuration file
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+/etc/NetworkManager/NetworkManager.conf
+<BR>
+
+or
+<BR>
+
+<I>&lt;SYSCONFDIR&gt;</I>/NetworkManager/NetworkManager.conf
+<BR>
+
+where &lt;SYSCONFDIR&gt; depends on your distribution or build.
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+<I>NetworkManager.conf</I>
+
+is a configuration file for NetworkManager. It is used to set up various
+aspects of NetworkManager's behavior. The location of
+the file may be changed through use of the &quot;--config=&quot; argument for
+<B>NetworkManager</B> (8).
+<A NAME="lbAE">&nbsp;</A>
+<H2>FILE FORMAT</H2>
+
+
+The configuration file format is so-called key file (sort of ini-style format).
+It consists of sections (groups) of key-value pairs. Lines beginning with a '#' and blank
+lines are considered comments. Sections are started by a header line containing
+the section enclosed in '[' and ']', and ended implicitly by the start of
+the next section or the end of the file. Each key-value pair must be contained
+in a section.
+<BR>
+
+Minimal system settings configuration file looks like this:
+
+<PRE>
+[main]
+plugins=keyfile
+</PRE>
+
+
+Description of sections and available keys follows:
+<A NAME="lbAF">&nbsp;</A>
+<H3>[main]</H3>
+
+This section is the only mandatory section of the configuration file.
+<DL COMPACT>
+<DT><B>plugins=</B><I>plugin1</I>,<I>plugin2</I>, ...
+
+<DD>
+List plugin names separated by ','. Plugins are used to read/write system-wide
+connection. When more plugins are specified, the connections are read from all
+listed plugins. When writing connections, the plugins will be asked to save the
+connection in the order listed here. If the first plugin cannot write out that
+connection type, or can't write out any connections, the next plugin is tried.
+If none of the plugins can save the connection, the error is returned to the user.
+
+<DL COMPACT><DT><DD>
+<B>Available plugins:</B>
+
+<BR>
+
+<DL COMPACT>
+<DT><I>keyfile</I>
+
+<DD>
+plugin is the generic plugin that supports all the connection types and
+capabilities that NetworkManager has. It writes files out in a .ini-style format in
+/etc/NetworkManager/system-connections. For security, it will ignore files
+that are readable or writeable by any user or group other than
+<I>root</I>
+
+since private keys and passphrases may be stored in plaintext inside the file.
+<DT><I>ifcfg-rh</I>
+
+<DD>
+plugin is used on the Fedora and Red Hat Enterprise Linux distributions
+to read and write configuration from the standard /etc/sysconfig/network-scripts/ifcfg-* files.
+It currently supports reading wired, WiFi, and 802.1x connections, but does not yet support reading
+or writing mobile broadband, PPPoE, or VPN connections. To allow reading and writing of these
+add <I>keyfile</I> plugin to your configuration as well.
+<DT><I>ifupdown</I>
+
+<DD>
+plugin is used on the Debian and Ubuntu distributions, and reads connections from
+/etc/network/interfaces. Since it cannot write connections out (that support isn't planned),
+it is usually paired with the <I>keyfile</I> plugin to enable saving and editing of new connections.
+The <I>ifupdown</I> plugin supports basic wired and WiFi connections, including WPA-PSK.
+<DT><I>ifcfg-suse</I>
+
+<DD>
+plugin is only provided for simple backward compatibility with SUSE and OpenSUSE configuration.
+Most setups should be using the <I>keyfile</I> plugin instead. The <I>ifcfg-suse</I> plugin supports
+reading wired and WiFi connections, but does not support saving any connection types.
+</DL>
+</DL>
+
+<DT><B>dhcp=</B><I>dhclient</I> | <I>dhcpcd</I>
+
+<DD>
+This key sets up what DHCP client NetworkManager will use. Presently
+<I>dhclient</I> and <I>dhcpcd</I> are supported. The client configured here should
+be available on your system too. If this key is missing, available DHCP clients
+are looked for in this order: dhclient, dhcpcd.
+<DT><B>no-auto-default=</B><I>&lt;hwaddr&gt;</I>,<I>&lt;hwaddr&gt;</I>,...
+
+<DD>
+Set devices for which NetworkManager shouldn't create default wired connection
+(Auto eth0). NetworkManager creates a default wired connection for any wired
+device that is managed and doesn't have a connection configured. List a device
+in this option to inhibit creating the default connection for the device.
+<BR>
+
+When the default wired connection is deleted or saved to a new persistent connection
+by a plugin, the MAC address of the wired device is automatically added to this list
+to prevent creating the default connection for that device again.
+Devices are specified by their MAC addresses, in lowercase. Multiple
+entries are separated by commas.
+<BR>
+
+Example:
+<PRE>
+no-auto-default=00:22:68:5c:5d:c4,00:1e:65:ff:aa:ee
+</PRE>
+
+<DT><B>wifi-wext-only=</B><I>false</I> | <I>true</I>
+
+<DD>
+This option controls NetworkManager's interaction with <B>wpa_supplicant</B> (8).
+When <I>false</I><B> (default), 'nl80211' supplicant driver and background scanning are
+used. This enables seamless connection and roaming in RSA token-enabled Wi-Fi networks.
+If you encounter any problems with 'nl80211' (e.g. due to bad drivers), you can
+switch back to 'wext' supplicant driver by setting this option to </B><I>true</I>.
+Missing option or an unrecognized value is regarded as <I>false</I><B>.
+</DL>
+</B><A NAME="lbAG">&nbsp;</A>
+<H3>[keyfile]</H3>
+
+This section contains keyfile-specific options and thus only has effect when using <I>keyfile</I> plugin.
+<DL COMPACT>
+<DT><B>hostname=</B><I>&lt;hostname&gt;</I>
+
+<DD>
+Set a persistent hostname when using the <I>keyfile</I> plugin.
+<DT><B>unmanaged-devices=</B><I>mac:&lt;hwaddr&gt;</I>;<I>mac:&lt;hwaddr&gt;</I>;...
+
+<DD>
+Set devices that should be ignored by NetworkManager when using the <I>keyfile</I>
+plugin. Devices are specified in the following format: &quot;mac:&lt;hwaddr&gt;&quot;, where
+&lt;hwaddr&gt; is MAC address of the device to be ignored, in lowercase. Multiple
+entries are separated by a semicolon. Example:
+<PRE>
+unmanaged-devices=mac:00:22:68:1c:59:b1;mac:00:1e:65:30:d1:c4
+</PRE>
+
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>[ifupdown]</H3>
+
+This section contains ifupdown-specific options and thus only has effect when using <I>ifupdown</I> plugin.
+<DL COMPACT>
+<DT><B>managed=</B><I>false</I> | <I>true</I>
+
+<DD>
+Controls whether interfaces listed in the 'interfaces' file are managed by NetworkManager.
+If set to <I>true</I>, then interfaces listed in /etc/network/interfaces are managed by NetworkManager.
+If set to <I>false</I>, then any interface listed in /etc/network/interfaces will be
+ignored by NetworkManager. Remember that NetworkManager controls the default route,
+so because the interface is ignored, NetworkManager may assign the default route to
+some other interface.
+When the option is missing, <I>false</I> value is taken as default.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3>[logging]</H3>
+
+This section controls NetworkManager's logging.  Any settings here are
+overridden by the --log-level and --log-domains command-line options.
+<DL COMPACT>
+<DT><B>level=</B><I>&lt;level&gt;</I>
+
+<DD>
+One of [ERR, WARN, INFO, DEBUG].  The ERR level logs only critical errors.  WARN
+logs warnings that may reflect operation.  INFO logs various informational
+messages that are useful for tracking state and operations.  DEBUG enables
+verbose logging for debugging purposes.  Subsequent levels also log all messages
+from earlier levels; thus setting the log level to INFO also logs error and
+warning messages.
+<DT><B>domains=</B><I>&lt;domain1&gt;,&lt;domain2&gt;, ...</I>
+
+<DD>
+The following log domains are available: [NONE, HW, RFKILL, ETHER, WIFI, BT, MB,
+DHCP4, DHCP6, PPP, WIFI_SCAN, IP4, IP6, AUTOIP4, DNS, VPN, SHARING, SUPPLICANT,
+USER_SET, SYS_SET, SUSPEND, CORE, DEVICE, OLPC].  When &quot;NONE&quot; is given by itself,
+logging is disabled.  MB = Mobile Broadband, USER_SET = user settings operations
+and communication, SYS_SET = system settings service operations, OLPC = OLPC
+Mesh device operations, CORE = core daemon operations, DEVICE = activation and
+general interface operations.
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="http://live.gnome.org/NetworkManager/SystemSettings">http://live.gnome.org/NetworkManager/SystemSettings</A></B>
+
+<P>
+<B><A HREF="/manpages/index.html?8+NetworkManager">NetworkManager</A></B>(8),
+
+<B><A HREF="/manpages/index.html?1+nm-tool">nm-tool</A></B>(1),
+
+<B><A HREF="/manpages/index.html?1+nmcli">nmcli</A></B>(1).
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">FILE FORMAT</A><DD>
+<DL>
+<DT><A HREF="#lbAF">[main]</A><DD>
+<DT><A HREF="#lbAG">[keyfile]</A><DD>
+<DT><A HREF="#lbAH">[ifupdown]</A><DD>
+<DT><A HREF="#lbAI">[logging]</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

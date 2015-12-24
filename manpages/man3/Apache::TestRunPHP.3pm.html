@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Apache::TestRunPHP</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Apache::TestRunPHP</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-12-31<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Apache::TestRunPHP - configure and run a PHP-based test suite
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Apache::TestRunPHP;
+  Apache::TestRunPHP-&gt;new-&gt;run(@ARGV);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <TT>&quot;Apache::TestRunPHP&quot;</TT> package controls the configuration and
+running of the test suite for PHP-based tests.  It's a subclass
+of <TT>&quot;Apache::TestRun&quot;</TT> and similar in function to <TT>&quot;Apache::TestRunPerl&quot;</TT>.
+<P>
+
+Refer to the <TT>&quot;Apache::TestRun&quot;</TT> manpage for information on the
+available <FONT SIZE="-1">API</FONT>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<A NAME="ixAAE"></A>
+<TT>&quot;TestRunPHP&quot;</TT> works almost identially to <TT>&quot;TestRunPerl&quot;</TT>, but in
+case you are new to <TT>&quot;Apache-Test&quot;</TT> here is a quick getting started
+guide.  be sure to see the links at the end of this document for
+places to find additional details.
+<P>
+
+because <TT>&quot;Apache-Test&quot;</TT> is a Perl-based testing framework we start
+from a <TT>&quot;Makefile.PL&quot;</TT>, which should have the following lines (in
+addition to the standard <TT>&quot;Makefile.PL&quot;</TT> parts):
+<P>
+
+
+
+<PRE>
+  use Apache::TestMM qw(test clean);
+  use Apache::TestRunPHP ();
+
+  Apache::TestMM::filter_args();
+
+  Apache::TestRunPHP-&gt;generate_script();
+
+</PRE>
+
+
+<P>
+
+<TT>&quot;generate_script()&quot;</TT> will create a script named <TT>&quot;t/TEST&quot;</TT>, the gateway
+to the Perl testing harness and what is invoked when you call
+<TT>&quot;make test&quot;</TT>.  <TT>&quot;filter_args()&quot;</TT> accepts some <TT>&quot;Apache::Test&quot;</TT>-specific
+arguments and passes them along.  for example, to point to a specific
+<TT>&quot;httpd&quot;</TT> installation you would invoke <TT>&quot;Makefile.PL&quot;</TT> as follows
+<P>
+
+
+
+<PRE>
+  $ perl Makefile.PL -httpd /my/local/apache/bin/httpd
+
+</PRE>
+
+
+<P>
+
+and <TT>&quot;/my/local/apache/bin/httpd&quot;</TT> will be propagated throughout the
+rest of the process.  note that <FONT SIZE="-1">PHP</FONT> needs to be active within Apache
+prior to configuring the test framework as shown above, either by
+virtue of <FONT SIZE="-1">PHP</FONT> being compiled into the <TT>&quot;httpd&quot;</TT> binary statically or
+through an active <TT>&quot;LoadModule&quot;</TT> statement within the configuration
+located in <TT>&quot;/my/local/apache/conf/httpd.conf&quot;</TT>.  Other required modules
+are the (very common) mod_alias and mod_env.
+<P>
+
+now, like with <TT>&quot;Apache::TestRun&quot;</TT> and <TT>&quot;Apache::TestRunPerl&quot;</TT>, you can
+place client-side Perl test scripts under <TT>&quot;t/&quot;</TT>, such as <TT>&quot;t/01basic.t&quot;</TT>,
+and <TT>&quot;Apache-Test&quot;</TT> will run these scripts when you call <TT>&quot;make test&quot;</TT>.
+however, what makes <TT>&quot;Apache::TestRunPHP&quot;</TT> unique is some added magic
+specifically tailored to a <FONT SIZE="-1">PHP</FONT> environment.  here are the mechanics.
+<P>
+
+<TT>&quot;Apache::TestRunPHP&quot;</TT> will look for <FONT SIZE="-1">PHP</FONT> test scripts in that match
+the following pattern
+<P>
+
+
+
+<PRE>
+  t/response/TestFoo/bar.php
+
+</PRE>
+
+
+<P>
+
+where <TT>&quot;Foo&quot;</TT> and <TT>&quot;bar&quot;</TT> can be anything you like, and <TT>&quot;t/response/Test*&quot;</TT>
+is case sensitive.  when this format is adhered to, <TT>&quot;Apache::TestRunPHP&quot;</TT>
+will create an associated Perl test script called <TT>&quot;t/foo/bar.t&quot;</TT>, which
+will be executed when you call <TT>&quot;make test&quot;</TT>.  all <TT>&quot;bar.t&quot;</TT> does is issue
+a simple <FONT SIZE="-1">GET</FONT> to <TT>&quot;bar.php&quot;</TT>, leaving the actual testing to <TT>&quot;bar.php&quot;</TT>.  in
+essence, you can forget that <TT>&quot;bar.t&quot;</TT> even exists.
+<P>
+
+what does <TT>&quot;bar.php&quot;</TT> look like?  here is an example:
+<P>
+
+
+
+<PRE>
+  &lt;?php
+    print &quot;1..1\n&quot;;
+    print &quot;ok 1\n&quot;
+  ?&gt;
+
+</PRE>
+
+
+<P>
+
+if it looks odd, that's ok because it is.  I could explain to you exactly
+what this means, but it isn't important to understand the gory details.
+instead, it is sufficient to understand that when <TT>&quot;Apache::Test&quot;</TT> calls
+<TT>&quot;bar.php&quot;</TT> it feeds the results directly to <TT>&quot;Test::Harness&quot;</TT>, a module
+that comes with every Perl installation, and <TT>&quot;Test::Harness&quot;</TT> expects
+what it receives to be formated in a very specific way.  by itself, all
+of this is pretty useless, so <TT>&quot;Apache::Test&quot;</TT> provides <FONT SIZE="-1">PHP</FONT> testers with
+something much better.  here is a much better example:
+<P>
+
+
+
+<PRE>
+  &lt;?php
+    # import the Test::More emulation layer
+    # see
+    #   <A HREF="http://search.cpan.org/dist/Test-Simple/lib/Test/More.pm">http://search.cpan.org/dist/Test-Simple/lib/Test/More.pm</A>
+    # for Perl's documentation - these functions should behave
+    # in the same way
+    require 'test-more.php';
+
+    # plan() the number of tests
+    <A HREF="/manpages/index.html?6+plan">plan</A>(6);
+
+    # call ok() for each test you plan
+    ok ('foo' == 'foo', 'foo is equal to foo');
+    ok ('foo' != 'foo', 'foo is not equal to foo');
+
+    # ok() can be other things as well
+    is ('bar', 'bar', 'bar is bar');
+    is ('baz', 'bar', 'baz is baz');
+    isnt ('bar', 'beer', 'bar is not beer');
+    like ('bar', '/ar$/', 'bar matches ar$');
+
+    diag(&quot;printing some debugging information&quot;);
+
+    # whoops! one too many tests.  I wonder what will happen...
+    is ('biff', 'biff', 'baz is a baz');
+  ?&gt;
+
+</PRE>
+
+
+<P>
+
+the include library <TT>&quot;test-more.php&quot;</TT> is automatically generated by
+<TT>&quot;Apache::TestConfigPHP&quot;</TT> and configurations tweaked in such a
+a way that your <FONT SIZE="-1">PHP</FONT> scripts can find it without issue.  the
+functions provided by <TT>&quot;test-more.php&quot;</TT> are equivalent in name and
+function to those in <TT>&quot;Test::More&quot;</TT>, a standard Perl testing
+library, so you can see that manpage for details on the syntax
+and functionality of each.
+<P>
+
+at this point, we have enough in place to run some tests from
+PHP-land - a <TT>&quot;Makefile.PL&quot;</TT> to configure Apache for us, and
+a <FONT SIZE="-1">PHP</FONT> script in <TT>&quot;t/response/TestFoo/bar.php&quot;</TT> to send some
+results out to the testing engine.  issuing <TT>&quot;make test&quot;</TT>
+would start Apache, issue the request to <TT>&quot;bar.php&quot;</TT>, generate
+a report, and shut down Apache.  the report would look like
+something like this after running the tests in verbose mode
+(eg <TT>&quot;make test TEST_VERBOSE=1&quot;</TT>):
+<P>
+
+
+
+<PRE>
+  t/php/bar....1..6
+  ok 1 - foo is equal to foo
+  not ok 2 - foo is not equal to foo
+  #     Failed test (/src/devel/perl-php-test/t/response/TestFoo/bar.php at line 13)
+  ok 3 - bar is bar
+  not ok 4 - baz is baz
+  #     Failed test (/src/devel/perl-php-test/t/response/TestFoo/bar.php at line 17)
+  #           got: 'baz'
+  #      expected: 'bar'
+  ok 5 - bar is not beer
+  ok 6 - bar matches ar$
+  # printing some debugging information
+  ok 7 - baz is a baz
+  FAILED tests 2, 4, 7
+          Failed 3/6 tests, 50.00% okay
+  Failed Test Stat Wstat Total Fail  Failed  List of Failed
+  -------------------------------------------------------------------------------
+  t/php/bar.t                6    3  50.00%  2 4 7
+  Failed 1/1 test scripts, 0.00% okay. 1/6 subtests failed, 83.33% okay.
+
+</PRE>
+
+
+<P>
+
+note that the actual test file that was run was <TT>&quot;t/php/bar.t&quot;</TT>.  this
+file is autogenerated based on the <TT>&quot;t/response/TestFoo/bar.php&quot;</TT>
+pattern of your <FONT SIZE="-1">PHP</FONT> script.  <TT>&quot;t/php/bar.t&quot;</TT> happens to be written in
+Perl, but you really don't need to worry about it too much.
+<P>
+
+as an interesting aside, if you are using perl-5.8.3 or later you can
+actually create your own <TT>&quot;t/foo.php&quot;</TT> client-side scripts and they
+will be run via php (using our <TT>&quot;php.ini&quot;</TT>).  but more on that later...
+<A NAME="lbAF">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAF"></A>
+the best source of information about using Apache-Test with
+<FONT SIZE="-1">PHP</FONT> (at this time) is probably the talk given at ApacheCon 2004
+(&lt;<A HREF="http://xrl.us/phpperl">http://xrl.us/phpperl</A>&gt;), as well as the code from the talk
+(&lt;<A HREF="http://xrl.us/phpperlcode">http://xrl.us/phpperlcode</A>&gt;).  there is also the online tutorial
+&lt;<A HREF="http://perl.apache.org/docs/general/testing/testing.html">http://perl.apache.org/docs/general/testing/testing.html</A>&gt;
+which has all of the mod_perl-specific syntax and features have been
+ported to <FONT SIZE="-1">PHP</FONT> with this class.
+<A NAME="lbAG">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAG"></A>
+<TT>&quot;Apache-Test&quot;</TT> is a community effort, maintained by a group of
+dedicated volunteers.
+<P>
+
+Questions can be asked at the test-dev &lt;at&gt; httpd.apache.org list
+For more information see: <A HREF="http://httpd.apache.org/test/.">http://httpd.apache.org/test/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">EXAMPLE</A><DD>
+<DT><A HREF="#lbAF">SEE ALSO</A><DD>
+<DT><A HREF="#lbAG">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

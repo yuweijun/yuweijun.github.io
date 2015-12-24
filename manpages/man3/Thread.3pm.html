@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Thread</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Thread</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Thread - Manipulate threads in Perl (for old code only)
+<A NAME="lbAC">&nbsp;</A>
+<H2>DEPRECATED</H2>
+
+<A NAME="ixAAC"></A>
+The <TT>&quot;Thread&quot;</TT> module served as the frontend to the old-style thread model,
+called <I>5005threads</I>, that was introduced in release 5.005.  That model was
+deprecated, and has been removed in version 5.10.
+<P>
+
+For old code and interim backwards compatibility, the <TT>&quot;Thread&quot;</TT> module has
+been reworked to function as a frontend for the new interpreter threads
+(<I>ithreads</I>) model.  However, some previous functionality is not available.
+Further, the data sharing models between the two thread models are completely
+different, and anything to do with data sharing has to be thought differently.
+With <I>ithreads</I>, you must explicitly <TT>&quot;share()&quot;</TT> variables between the
+threads.
+<P>
+
+You are strongly encouraged to migrate any existing threaded code to the new
+model (i.e., use the <TT>&quot;threads&quot;</TT> and <TT>&quot;threads::shared&quot;</TT> modules) as soon as
+possible.
+<A NAME="lbAD">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<A NAME="ixAAD"></A>
+In Perl 5.005, the thread model was that all data is implicitly shared, and
+shared access to data has to be explicitly synchronized.  This model is called
+<I>5005threads</I>.
+<P>
+
+In Perl 5.6, a new model was introduced in which all is was thread local and
+shared access to data has to be explicitly declared.  This model is called
+<I>ithreads</I>, for ``interpreter threads''.
+<P>
+
+In Perl 5.6, the <I>ithreads</I> model was not available as a public <FONT SIZE="-1">API</FONT>; only as
+an internal <FONT SIZE="-1">API</FONT> that was available for extension writers, and to implement
+<I>fork()</I> emulation on Win32 platforms.
+<P>
+
+In Perl 5.8, the <I>ithreads</I> model became available through the <TT>&quot;threads&quot;</TT>
+module, and the <I>5005threads</I> model was deprecated.
+<P>
+
+In Perl 5.10, the <I>5005threads</I> model was removed from the Perl interpreter.
+<A NAME="lbAE">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAE"></A>
+
+
+<PRE>
+    use Thread qw(:DEFAULT async yield);
+
+    my $t = Thread-&gt;new(\&amp;start_sub, @start_args);
+
+    $result = $t-&gt;join;
+    $t-&gt;detach;
+
+    if ($t-&gt;done) {
+        $t-&gt;join;
+    }
+
+    if($t-&gt;equal($another_thread)) {
+        # ...
+    }
+
+    yield();
+
+    my $tid = Thread-&gt;self-&gt;tid;
+
+    lock($scalar);
+    lock(@array);
+    lock(%hash);
+
+    my @list = Thread-&gt;list;
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAF"></A>
+The <TT>&quot;Thread&quot;</TT> module provides multithreading support for Perl.
+<A NAME="lbAG">&nbsp;</A>
+<H2>FUNCTIONS</H2>
+
+<A NAME="ixAAG"></A>
+<DL COMPACT>
+<DT>$thread = Thread-&gt;new(\&amp;start_sub)<DD>
+
+
+<A NAME="ixAAH"></A>
+
+<DT>$thread = Thread-&gt;new(\&amp;start_sub, <FONT SIZE="-1">LIST</FONT>)<DD>
+
+
+<A NAME="ixAAI"></A>
+
+<TT>&quot;new&quot;</TT> starts a new thread of execution in the referenced subroutine. The
+optional list is passed as parameters to the subroutine. Execution
+continues in both the subroutine and the code after the <TT>&quot;new&quot;</TT> call.
+
+
+<P>
+
+
+<TT>&quot;Thread-&amp;gt;new&quot;</TT> returns a thread object representing the newly created
+thread.
+<DT>lock <FONT SIZE="-1">VARIABLE</FONT><DD>
+<A NAME="ixAAJ"></A>
+<TT>&quot;lock&quot;</TT> places a lock on a variable until the lock goes out of scope.
+
+
+<P>
+
+
+If the variable is locked by another thread, the <TT>&quot;lock&quot;</TT> call will
+block until it's available.  <TT>&quot;lock&quot;</TT> is recursive, so multiple calls
+to <TT>&quot;lock&quot;</TT> are safe---the variable will remain locked until the
+outermost lock on the variable goes out of scope.
+
+
+<P>
+
+
+Locks on variables only affect <TT>&quot;lock&quot;</TT> calls---they do <I>not</I> affect normal
+access to a variable. (Locks on subs are different, and covered in a bit.)
+If you really, <I>really</I> want locks to block access, then go ahead and tie
+them to something and manage this yourself.  This is done on purpose.
+While managing access to variables is a good thing, Perl doesn't force
+you out of its living room...
+
+
+<P>
+
+
+If a container object, such as a hash or array, is locked, all the
+elements of that container are not locked. For example, if a thread
+does a <TT>&quot;lock @a&quot;</TT>, any other thread doing a <TT>&quot;lock($a[12])&quot;</TT> won't
+block.
+
+
+<P>
+
+
+Finally, <TT>&quot;lock&quot;</TT> will traverse up references exactly <I>one</I> level.
+<TT>&quot;lock(\$a)&quot;</TT> is equivalent to <TT>&quot;lock($a)&quot;</TT>, while <TT>&quot;lock(\\$a)&quot;</TT> is not.
+<DT>async <FONT SIZE="-1">BLOCK</FONT>;<DD>
+<A NAME="ixAAK"></A>
+<TT>&quot;async&quot;</TT> creates a thread to execute the block immediately following
+it.  This block is treated as an anonymous sub, and so must have a
+semi-colon after the closing brace. Like <TT>&quot;Thread-&amp;gt;new&quot;</TT>, <TT>&quot;async&quot;</TT>
+returns a thread object.
+<DT>Thread-&gt;self<DD>
+<A NAME="ixAAL"></A>
+The <TT>&quot;Thread-&gt;self&quot;</TT> function returns a thread object that represents
+the thread making the <TT>&quot;Thread-&gt;self&quot;</TT> call.
+<DT>Thread-&gt;list<DD>
+<A NAME="ixAAM"></A>
+Returns a list of all non-joined, non-detached Thread objects.
+<DT>cond_wait <FONT SIZE="-1">VARIABLE</FONT><DD>
+<A NAME="ixAAN"></A>
+The <TT>&quot;cond_wait&quot;</TT> function takes a <B>locked</B> variable as
+a parameter, unlocks the variable, and blocks until another thread
+does a <TT>&quot;cond_signal&quot;</TT> or <TT>&quot;cond_broadcast&quot;</TT> for that same locked
+variable. The variable that <TT>&quot;cond_wait&quot;</TT> blocked on is relocked
+after the <TT>&quot;cond_wait&quot;</TT> is satisfied.  If there are multiple threads
+<TT>&quot;cond_wait&quot;</TT>ing on the same variable, all but one will reblock waiting
+to reaquire the lock on the variable.  (So if you're only using
+<TT>&quot;cond_wait&quot;</TT> for synchronization, give up the lock as soon as
+possible.)
+<DT>cond_signal <FONT SIZE="-1">VARIABLE</FONT><DD>
+<A NAME="ixAAO"></A>
+The <TT>&quot;cond_signal&quot;</TT> function takes a locked variable as a parameter and
+unblocks one thread that's <TT>&quot;cond_wait&quot;</TT>ing on that variable. If more than
+one thread is blocked in a <TT>&quot;cond_wait&quot;</TT> on that variable, only one (and
+which one is indeterminate) will be unblocked.
+
+
+<P>
+
+
+If there are no threads blocked in a <TT>&quot;cond_wait&quot;</TT> on the variable,
+the signal is discarded.
+<DT>cond_broadcast <FONT SIZE="-1">VARIABLE</FONT><DD>
+<A NAME="ixAAP"></A>
+The <TT>&quot;cond_broadcast&quot;</TT> function works similarly to <TT>&quot;cond_signal&quot;</TT>.
+<TT>&quot;cond_broadcast&quot;</TT>, though, will unblock <B>all</B> the threads that are
+blocked in a <TT>&quot;cond_wait&quot;</TT> on the locked variable, rather than only
+one.
+<DT>yield<DD>
+<A NAME="ixAAQ"></A>
+The <TT>&quot;yield&quot;</TT> function allows another thread to take control of the
+<FONT SIZE="-1">CPU</FONT>. The exact results are implementation-dependent.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAR"></A>
+<DL COMPACT>
+<DT>join<DD>
+<A NAME="ixAAS"></A>
+<TT>&quot;join&quot;</TT> waits for a thread to end and returns any values the thread
+exited with.  <TT>&quot;join&quot;</TT> will block until the thread has ended, though
+it won't block if the thread has already terminated.
+
+
+<P>
+
+
+If the thread being <TT>&quot;join&quot;</TT>ed <TT>&quot;die&quot;</TT>d, the error it died with will
+be returned at this time. If you don't want the thread performing
+the <TT>&quot;join&quot;</TT> to die as well, you should either wrap the <TT>&quot;join&quot;</TT> in
+an <TT>&quot;eval&quot;</TT> or use the <TT>&quot;eval&quot;</TT> thread method instead of <TT>&quot;join&quot;</TT>.
+<DT>detach<DD>
+<A NAME="ixAAT"></A>
+<TT>&quot;detach&quot;</TT> tells a thread that it is never going to be joined i.e.
+that all traces of its existence can be removed once it stops running.
+Errors in detached threads will not be visible anywhere - if you want
+to catch them, you should use <TT>$SIG</TT>{__DIE__} or something like that.
+<DT>equal<DD>
+<A NAME="ixAAU"></A>
+<TT>&quot;equal&quot;</TT> tests whether two thread objects represent the same thread and
+returns true if they do.
+<DT>tid<DD>
+<A NAME="ixAAV"></A>
+The <TT>&quot;tid&quot;</TT> method returns the tid of a thread. The tid is
+a monotonically increasing integer assigned when a thread is
+created. The main thread of a program will have a tid of zero,
+while subsequent threads will have tids assigned starting with one.
+<DT>done<DD>
+<A NAME="ixAAW"></A>
+The <TT>&quot;done&quot;</TT> method returns true if the thread you're checking has
+finished, and false otherwise.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>DEFUNCT</H2>
+
+<A NAME="ixAAX"></A>
+The following were implemented with <I>5005threads</I>, but are no longer
+available with <I>ithreads</I>.
+<DL COMPACT>
+<DT>lock(\&amp;sub)<DD>
+<A NAME="ixAAY"></A>
+With 5005threads, you could also <TT>&quot;lock&quot;</TT> a sub such that any calls to that sub
+from another thread would block until the lock was released.
+
+
+<P>
+
+
+Also, subroutines could be declared with the <TT>&quot;:locked&quot;</TT> attribute which would
+serialize access to the subroutine, but allowed different threads
+non-simultaneous access.
+<DT>eval<DD>
+<A NAME="ixAAZ"></A>
+The <TT>&quot;eval&quot;</TT> method wrapped an <TT>&quot;eval&quot;</TT> around a <TT>&quot;join&quot;</TT>, and so waited for a
+thread to exit, passing along any values the thread might have returned and
+placing any errors into <TT>$@</TT>.
+<DT>flags<DD>
+<A NAME="ixABA"></A>
+The <TT>&quot;flags&quot;</TT> method returned the flags for the thread - an integer value
+corresponding to the internal flags for the thread.
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABB"></A>
+threads, threads::shared, Thread::Queue, Thread::Semaphore
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DEPRECATED</A><DD>
+<DT><A HREF="#lbAD">HISTORY</A><DD>
+<DT><A HREF="#lbAE">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAF">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAG">FUNCTIONS</A><DD>
+<DT><A HREF="#lbAH">METHODS</A><DD>
+<DT><A HREF="#lbAI">DEFUNCT</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:43 GMT, December 24, 2015
+</div></body>
+</HTML>

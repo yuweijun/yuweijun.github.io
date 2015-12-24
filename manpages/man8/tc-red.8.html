@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of RED</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>RED</H1>
+Section: Linux (8)<BR>Updated: 13 December 2001<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+red - Random Early Detection 
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>tc qdisc ... red</B>
+
+<B>limit </B>
+
+bytes
+<B>min </B>
+
+bytes 
+<B>max </B>
+
+bytes 
+<B>avpkt</B>
+
+bytes
+<B>burst </B>
+
+packets
+<B>[ ecn ] [ bandwidth</B>
+
+rate
+<B>] probability</B>
+
+chance
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+Random Early Detection is a classless qdisc which manages its queue size
+smartly. Regular queues simply drop packets from the tail when they are
+full, which may not be the optimal behaviour. RED also performs tail drop,
+but does so in a more gradual way.
+<P>
+Once the queue hits a certain average length, packets enqueued have a
+configurable chance of being marked (which may mean dropped). This chance
+increases linearly up to a point called the
+<B>max</B>
+
+average queue length, although the queue might get bigger.
+<P>
+This has a host of benefits over simple taildrop, while not being processor
+intensive. It prevents synchronous retransmits after a burst in traffic,
+which cause further retransmits, etc.
+<P>
+The goal is the have a small queue size, which is good for interactivity
+while not disturbing TCP/IP traffic with too many sudden drops after a burst
+of traffic.
+<P>
+Depending on if ECN is configured, marking either means dropping or
+purely marking a packet as overlimit.
+<A NAME="lbAE">&nbsp;</A>
+<H2>ALGORITHM</H2>
+
+The average queue size is used for determining the marking
+probability. This is calculated using an Exponential Weighted Moving
+Average, which can be more or less sensitive to bursts.
+<P>
+When the average queue size is below 
+<B>min</B>
+
+bytes, no packet will ever be marked. When it exceeds 
+<B>min, </B>
+
+the probability of doing so climbs linearly up
+to 
+<B>probability, </B>
+
+until the average queue size hits
+<B>max</B>
+
+bytes. Because 
+<B>probability </B>
+
+is normally not set to 100%, the queue size might
+conceivably rise above 
+<B>max</B>
+
+bytes, so the 
+<B>limit</B>
+
+parameter is provided to set a hard maximum for the size of the queue.
+<P>
+<A NAME="lbAF">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT>min<DD>
+Average queue size at which marking becomes a possibility.
+<DT>max<DD>
+At this average queue size, the marking probability is maximal. Should be at
+least twice
+<B>min</B>
+
+to prevent synchronous retransmits, higher for low 
+<B>min.</B>
+
+<DT>probability<DD>
+Maximum probability for marking, specified as a floating point
+number from 0.0 to 1.0. Suggested values are 0.01 or 0.02 (1 or 2%,
+respectively).
+<DT>limit<DD>
+Hard limit on the real (not average) queue size in bytes. Further packets
+are dropped. Should be set higher than max+burst. It is advised to set this
+a few times higher than 
+<B>max.</B>
+
+<DT>burst<DD>
+Used for determining how fast the average queue size is influenced by the
+real queue size. Larger values make the calculation more sluggish, allowing
+longer bursts of traffic before marking starts. Real life experiments
+support the following guideline: (min+min+max)/(3*avpkt).
+<DT>avpkt<DD>
+Specified in bytes. Used with burst to determine the time constant for
+average queue size calculations. 1000 is a good value.
+<DT>bandwidth<DD>
+This rate is used for calculating the average queue size after some
+idle time. Should be set to the bandwidth of your interface. Does not mean
+that RED will shape for you! Optional.
+<DT>ecn<DD>
+As mentioned before, RED can either 'mark' or 'drop'. Explicit Congestion
+Notification allows RED to notify remote hosts that their rate exceeds the
+amount of bandwidth available. Non-ECN capable hosts can only be notified by
+dropping a packet.  If this parameter is specified, packets which indicate
+that their hosts honor ECN will only be marked and not dropped, unless the
+queue size hits
+<B>limit</B>
+
+bytes. Needs a tc binary with RED support compiled in. Recommended.
+<P>
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?8+tc">tc</A></B>(8)
+
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SOURCES</H2>
+
+<DL COMPACT>
+<DT>o<DD>
+Floyd, S., and Jacobson, V., Random Early Detection gateways for
+Congestion Avoidance. <A HREF="http://www.aciri.org/floyd/papers/red/red.html">http://www.aciri.org/floyd/papers/red/red.html</A>
+<DT>o<DD>
+Some changes to the algorithm by Alexey N. Kuznetsov.
+<P>
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+Alexey N. Kuznetsov, &lt;<A HREF="mailto:kuznet@ms2.inr.ac.ru">kuznet@ms2.inr.ac.ru</A>&gt;,  Alexey Makarenko
+&lt;<A HREF="mailto:makar@phoenix.kharkov.ua">makar@phoenix.kharkov.ua</A>&gt;, J Hadi Salim &lt;<A HREF="mailto:hadi@nortelnetworks.com">hadi@nortelnetworks.com</A>&gt;.  
+This manpage maintained by bert hubert &lt;<A HREF="mailto:ahu@ds9a.nl">ahu@ds9a.nl</A>&gt;
+<P>
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">ALGORITHM</A><DD>
+<DT><A HREF="#lbAF">PARAMETERS</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">SOURCES</A><DD>
+<DT><A HREF="#lbAI">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:30 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,3443 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DateTime</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DateTime</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2010-11-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+DateTime - A date and time object
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use DateTime;
+
+  $dt = DateTime-&gt;new( year   =&gt; 1964,
+                       month  =&gt; 10,
+                       day    =&gt; 16,
+                       hour   =&gt; 16,
+                       minute =&gt; 12,
+                       second =&gt; 47,
+                       nanosecond =&gt; 500000000,
+                       time_zone =&gt; 'Asia/Taipei',
+                     );
+
+  $dt = DateTime-&gt;from_epoch( epoch =&gt; $epoch );
+  $dt = DateTime-&gt;now; # same as ( epoch =&gt; time() )
+
+  $year   = $dt-&gt;year;
+  $month  = $dt-&gt;month;          # 1-12 - also mon
+
+  $day    = $dt-&gt;day;            # 1-31 - also day_of_month, mday
+
+  $dow    = $dt-&gt;day_of_week;    # 1-7 (Monday is 1) - also dow, wday
+
+  $hour   = $dt-&gt;hour;           # 0-23
+  $minute = $dt-&gt;minute;         # 0-59 - also min
+
+  $second = $dt-&gt;second;         # 0-61 (leap seconds!) - also sec
+
+  $doy    = $dt-&gt;day_of_year;    # 1-366 (leap years) - also doy
+
+  $doq    = $dt-&gt;day_of_quarter; # 1.. - also doq
+
+  $qtr    = $dt-&gt;quarter;        # 1-4
+
+  # all of the start-at-1 methods above have correponding start-at-0
+  # methods, such as $dt-&gt;day_of_month_0, $dt-&gt;month_0 and so on
+
+  $ymd    = $dt-&gt;ymd;           # 2002-12-06
+  $ymd    = $dt-&gt;ymd('/');      # 2002/12/06 - also date
+
+  $mdy    = $dt-&gt;mdy;           # 12-06-2002
+  $mdy    = $dt-&gt;mdy('/');      # 12/06/2002
+
+  $dmy    = $dt-&gt;dmy;           # 06-12-2002
+  $dmy    = $dt-&gt;dmy('/');      # 06/12/2002
+
+  $hms    = $dt-&gt;hms;           # 14:02:29
+  $hms    = $dt-&gt;hms('!');      # 14!02!29 - also time
+
+  $is_leap  = $dt-&gt;is_leap_year;
+
+  # these are localizable, see Locales section
+  $month_name  = $dt-&gt;month_name; # January, February, ...
+  $month_abbr  = $dt-&gt;month_abbr; # Jan, Feb, ...
+  $day_name    = $dt-&gt;day_name;   # Monday, Tuesday, ...
+  $day_abbr    = $dt-&gt;day_abbr;   # Mon, Tue, ...
+
+  # May not work for all possible datetime, see the docs on this
+  # method for more details.
+  $epoch_time  = $dt-&gt;epoch;
+
+  $dt2 = $dt + $duration_object;
+
+  $dt3 = $dt - $duration_object;
+
+  $duration_object = $dt - $dt2;
+
+  $dt-&gt;set( year =&gt; 1882 );
+
+  $dt-&gt;set_time_zone( 'America/Chicago' );
+
+  $dt-&gt;set_formatter( $formatter );
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+DateTime is a class for the representation of date/time combinations,
+and is part of the Perl DateTime project.  For details on this project
+please see &lt;<A HREF="http://datetime.perl.org/">http://datetime.perl.org/</A>&gt;.  The DateTime site has a <FONT SIZE="-1">FAQ</FONT>
+which may help answer many ``how do I do X?'' questions.  The <FONT SIZE="-1">FAQ</FONT> is at
+&lt;<A HREF="http://datetime.perl.org/?FAQ">http://datetime.perl.org/?FAQ</A>&gt;.
+<P>
+
+It represents the Gregorian calendar, extended backwards in time
+before its creation (in 1582).  This is sometimes known as the
+``proleptic Gregorian calendar''.  In this calendar, the first day of
+the calendar (the epoch), is the first day of year 1, which
+corresponds to the date which was (incorrectly) believed to be the
+birth of Jesus Christ.
+<P>
+
+The calendar represented does have a year 0, and in that way differs
+from how dates are often written using ``<FONT SIZE="-1">BCE/CE</FONT>'' or ``<FONT SIZE="-1">BC/AD</FONT>''.
+<P>
+
+For infinite datetimes, please see the
+DateTime::Infinite module.
+<A NAME="lbAE">&nbsp;</A>
+<H2>USAGE</H2>
+
+<A NAME="ixAAE"></A>
+<A NAME="lbAF">&nbsp;</A>
+<H3>0-based Versus 1-based Numbers</H3>
+
+<A NAME="ixAAF"></A>
+The DateTime.pm module follows a simple consistent logic for
+determining whether or not a given number is 0-based or 1-based.
+<P>
+
+Month, day of month, day of week, and day of year are 1-based.  Any
+method that is 1-based also has an equivalent 0-based method ending in
+``_0''.  So for example, this class provides both <TT>&quot;day_of_week()&quot;</TT> and
+<TT>&quot;day_of_week_0()&quot;</TT> methods.
+<P>
+
+The <TT>&quot;day_of_week_0()&quot;</TT> method still treats Monday as the first day of
+the week.
+<P>
+
+All <I>time</I>-related numbers such as hour, minute, and second are
+0-based.
+<P>
+
+Years are neither, as they can be both positive or negative, unlike
+any other datetime component.  There <I>is</I> a year 0.
+<P>
+
+There is no <TT>&quot;quarter_0()&quot;</TT> method.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Error Handling</H3>
+
+<A NAME="ixAAG"></A>
+Some errors may cause this module to die with an error string.  This
+can only happen when calling constructor methods, methods that change
+the object, such as <TT>&quot;set()&quot;</TT>, or methods that take parameters.
+Methods that retrieve information about the object, such as <TT>&quot;year()&quot;</TT>
+or <TT>&quot;epoch()&quot;</TT>, will never die.
+<A NAME="lbAH">&nbsp;</A>
+<H3>Locales</H3>
+
+<A NAME="ixAAH"></A>
+All the object methods which return names or abbreviations return data
+based on a locale.  This is done by setting the locale when
+constructing a DateTime object.  There is also a <TT>&quot;DefaultLocale()&quot;</TT>
+class method which may be used to set the default locale for all
+DateTime objects created.  If this is not set, then ``en_US'' is used.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Floating DateTimes</H3>
+
+<A NAME="ixAAI"></A>
+The default time zone for new DateTime objects, except where stated
+otherwise, is the ``floating'' time zone.  This concept comes from the
+iCal standard.  A floating datetime is one which is not anchored to
+any particular time zone.  In addition, floating datetimes do not
+include leap seconds, since we cannot apply them without knowing the
+datetime's time zone.
+<P>
+
+The results of date math and comparison between a floating datetime
+and one with a real time zone are not really valid, because one
+includes leap seconds and the other does not.  Similarly, the results
+of datetime math between two floating datetimes and two datetimes with
+time zones are not really comparable.
+<P>
+
+If you are planning to use any objects with a real time zone, it is
+strongly recommended that you <B>do not</B> mix these with floating
+datetimes.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Math</H3>
+
+<A NAME="ixAAJ"></A>
+If you are going to be using doing date math, please read the section
+``How Datetime Math is Done''.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Time Zone Warnings</H3>
+
+<A NAME="ixAAK"></A>
+Determining the local time zone for a system can be slow. If <TT>$ENV{TZ}</TT> is
+not set, it may involve reading a number of files in <I>/etc</I> or elsewhere. If
+you know that the local time zone won't change while your code is running, and
+you need to make many objects for the local time zone, it is strongly
+recommended that you retrieve the local time zone once and cache it:
+<P>
+
+
+
+<PRE>
+  our $App::LocalTZ = DateTime::TimeZone-&gt;new( name =&gt; 'local' );
+
+  ... # then everywhere else
+
+  my $dt = DateTime-&gt;new( ..., time_zone =&gt; $App::LocalTZ );
+
+</PRE>
+
+
+<P>
+
+DateTime itself does not do this internally because local time zones can
+change, and there's no good way to determine if it's changed without doing all
+the work to look it up.
+<P>
+
+Do not try to use named time zones (like ``America/Chicago'') with dates
+very far in the future (thousands of years). The current
+implementation of <TT>&quot;DateTime::TimeZone&quot;</TT> will use a huge amount of
+memory calculating all the <FONT SIZE="-1">DST</FONT> changes from now until the future
+date. Use <FONT SIZE="-1">UTC</FONT> or the floating time zone and you will be safe.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Methods</H3>
+
+<A NAME="ixAAL"></A>
+<I>Constructors</I>
+<A NAME="ixAAM"></A>
+<P>
+
+All constructors can die when invalid parameters are given.
+<DL COMPACT>
+<DT>*<DD>
+DateTime-&gt;new( ... )
+
+
+<P>
+
+
+This class method accepts parameters for each date and time component:
+``year'', ``month'', ``day'', ``hour'', ``minute'', ``second'', ``nanosecond''.
+It also accepts ``locale'', ``time_zone'', and ``formatter'' parameters.
+
+
+<P>
+
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;new( year   =&gt; 1066,
+                          month  =&gt; 10,
+                          day    =&gt; 25,
+                          hour   =&gt; 7,
+                          minute =&gt; 15,
+                          second =&gt; 47,
+                          nanosecond =&gt; 500000000,
+                          time_zone  =&gt; 'America/Chicago',
+                        );
+
+</PRE>
+
+
+
+
+<P>
+
+
+DateTime validates the ``month'', ``day'', ``hour'', ``minute'', and ``second'',
+and ``nanosecond'' parameters.  The valid values for these parameters are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+month
+
+
+<P>
+
+
+1-12
+<DT>*<DD>
+day
+
+
+<P>
+
+
+1-31, and it must be within the valid range of days for the specified
+month
+<DT>*<DD>
+hour
+
+
+<P>
+
+
+0-23
+<DT>*<DD>
+minute
+
+
+<P>
+
+
+0-59
+<DT>*<DD>
+second
+
+
+<P>
+
+
+0-61 (to allow for leap seconds).  Values of 60 or 61 are only allowed
+when they match actual leap seconds.
+<DT>*<DD>
+nanosecond
+
+
+<P>
+
+
+&gt;= 0
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+</DL>
+<P>
+
+Invalid parameter types (like an array reference) will cause the
+constructor to die.
+<P>
+
+The value for seconds may be from 0 to 61, to account for leap
+seconds.  If you give a value greater than 59, DateTime does check to
+see that it really matches a valid leap second.
+<P>
+
+All of the parameters are optional except for ``year''.  The ``month'' and
+``day'' parameters both default to 1, while the ``hour'', ``minute'',
+``second'', and ``nanosecond'' parameters all default to 0.
+<P>
+
+The ``locale'' parameter should be a string matching one of the valid
+locales, or a <TT>&quot;DateTime::Locale&quot;</TT> object.  See the
+DateTime::Locale documentation for details.
+<P>
+
+The time_zone parameter can be either a scalar or a
+<TT>&quot;DateTime::TimeZone&quot;</TT> object.  A string will simply be passed to the
+<TT>&quot;DateTime::TimeZone-&gt;new&quot;</TT> method as its ``name'' parameter.  This
+string may be an Olson <FONT SIZE="-1">DB</FONT> time zone name (``America/Chicago''), an
+offset string (``+0630''), or the words ``floating'' or ``local''.  See the
+<TT>&quot;DateTime::TimeZone&quot;</TT> documentation for more details.
+<P>
+
+The default time zone is ``floating''.
+<P>
+
+The ``formatter'' can be either a scalar or an object, but the class
+specified by the scalar or the object must implement a
+<TT>&quot;format_datetime()&quot;</TT> method.
+<P>
+
+Parsing Dates
+<A NAME="ixAAN"></A>
+<P>
+
+<B>This module does not parse dates!</B> That means there is no
+constructor to which you can pass things like ``March 3, 1970 12:34''.
+<P>
+
+Instead, take a look at the various <TT>&quot;DateTime::Format::*&quot;</TT> modules on
+<FONT SIZE="-1">CPAN</FONT>. These parse all sorts of different date formats, and you're
+bound to find something that can handle your particular needs.
+<P>
+
+Ambiguous Local Times
+<A NAME="ixAAO"></A>
+<P>
+
+Because of Daylight Saving Time, it is possible to specify a local
+time that is ambiguous.  For example, in the <FONT SIZE="-1">US</FONT> in 2003, the
+transition from to saving to standard time occurred on October 26, at
+02:00:00 local time.  The local clock changed from 01:59:59 (saving
+time) to 01:00:00 (standard time).  This means that the hour from
+01:00:00 through 01:59:59 actually occurs twice, though the <FONT SIZE="-1">UTC</FONT> time
+continues to move forward.
+<P>
+
+If you specify an ambiguous time, then the latest <FONT SIZE="-1">UTC</FONT> time is always
+used, in effect always choosing standard time.  In this case, you can
+simply subtract an hour to the object in order to move to saving time,
+for example:
+<P>
+
+
+
+<PRE>
+  # This object represent 01:30:00 standard time
+  my $dt = DateTime-&gt;new( year   =&gt; 2003,
+                          month  =&gt; 10,
+                          day    =&gt; 26,
+                          hour   =&gt; 1,
+                          minute =&gt; 30,
+                          second =&gt; 0,
+                          time_zone =&gt; 'America/Chicago',
+                        );
+
+  print $dt-&gt;hms;  # prints 01:30:00
+
+  # Now the object represent 01:30:00 saving time
+  $dt-&gt;subtract( hours =&gt; 1 );
+
+  print $dt-&gt;hms;  # still prints 01:30:00
+
+</PRE>
+
+
+<P>
+
+Alternately, you could create the object with the <FONT SIZE="-1">UTC</FONT> time zone, and
+then call the <TT>&quot;set_time_zone()&quot;</TT> method to change the time zone.  This
+is a good way to ensure that the time is not ambiguous.
+<P>
+
+Invalid Local Times
+<A NAME="ixAAP"></A>
+<P>
+
+Another problem introduced by Daylight Saving Time is that certain
+local times just do not exist.  For example, in the <FONT SIZE="-1">US</FONT> in 2003, the
+transition from standard to saving time occurred on April 6, at the
+change to 2:00:00 local time.  The local clock changes from 01:59:59
+(standard time) to 03:00:00 (saving time).  This means that there is
+no 02:00:00 through 02:59:59 on April 6!
+<P>
+
+Attempting to create an invalid time currently causes a fatal error.
+This may change in future version of this module.
+<DL COMPACT>
+<DT>*<DD>
+DateTime-&gt;from_epoch( epoch =&gt; <TT>$epoch</TT>, ... )
+
+
+<P>
+
+
+This class method can be used to construct a new DateTime object from
+an epoch time instead of components.  Just as with the <TT>&quot;new()&quot;</TT>
+method, it accepts ``time_zone'', ``locale'', and ``formatter'' parameters.
+
+
+<P>
+
+
+If the epoch value is not an integer, the part after the decimal will
+be converted to nanoseconds.  This is done in order to be compatible
+with <TT>&quot;Time::HiRes&quot;</TT>.  If the floating portion extends past 9 decimal
+places, it will be truncated to nine, so that 1.1234567891 will become
+1 second and 123,456,789 nanoseconds.
+
+
+<P>
+
+
+By default, the returned object will be in the <FONT SIZE="-1">UTC</FONT> time zone.
+<DT>*<DD>
+DateTime-&gt;now( ... )
+
+
+<P>
+
+
+This class method is equivalent to calling <TT>&quot;from_epoch()&quot;</TT> with the
+value returned from Perl's <TT>&quot;time()&quot;</TT> function.  Just as with the
+<TT>&quot;new()&quot;</TT> method, it accepts ``time_zone'' and ``locale'' parameters.
+
+
+<P>
+
+
+By default, the returned object will be in the <FONT SIZE="-1">UTC</FONT> time zone.
+<DT>*<DD>
+DateTime-&gt;today( ... )
+
+
+<P>
+
+
+This class method is equivalent to:
+
+
+<P>
+
+
+
+
+<PRE>
+  DateTime-&gt;now-&gt;truncate( to =&gt; 'day' );
+
+</PRE>
+
+
+<DT>*<DD>
+DateTime-&gt;from_object( object =&gt; <TT>$object</TT>, ... )
+
+
+<P>
+
+
+This class method can be used to construct a new DateTime object from
+any object that implements the <TT>&quot;utc_rd_values()&quot;</TT> method.  All
+<TT>&quot;DateTime::Calendar&quot;</TT> modules must implement this method in order to
+provide cross-calendar compatibility.  This method accepts a
+``locale'' and ``formatter'' parameter
+
+
+<P>
+
+
+If the object passed to this method has a <TT>&quot;time_zone()&quot;</TT> method, that
+is used to set the time zone of the newly created <TT>&quot;DateTime.pm&quot;</TT>
+object.
+
+
+<P>
+
+
+Otherwise, the returned object will be in the floating time zone.
+<DT>*<DD>
+DateTime-&gt;last_day_of_month( ... )
+
+
+<P>
+
+
+This constructor takes the same arguments as can be given to the
+<TT>&quot;new()&quot;</TT> method, except for ``day''.  Additionally, both ``year'' and
+``month'' are required.
+<DT>*<DD>
+DateTime-&gt;from_day_of_year( ... )
+
+
+<P>
+
+
+This constructor takes the same arguments as can be given to the
+<TT>&quot;new()&quot;</TT> method, except that it does not accept a ``month'' or ``day''
+argument.  Instead, it requires both ``year'' and ``day_of_year''.  The
+day of year must be between 1 and 366, and 366 is only allowed for
+leap years.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>clone()</I>
+
+
+<P>
+
+
+This object method returns a new object that is replica of the object
+upon which the method is called.
+</DL>
+<P>
+
+<I>``Get'' Methods</I>
+<A NAME="ixAAQ"></A>
+<P>
+
+This class has many methods for retrieving information about an
+object.
+<DL COMPACT>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>year()</I>
+
+
+<P>
+
+
+Returns the year.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>ce_year()</I>
+
+
+<P>
+
+
+Returns the year according to the <FONT SIZE="-1">BCE/CE</FONT> numbering system.  The year
+before year 1 in this system is year -1, aka ``1 <FONT SIZE="-1">BCE</FONT>''.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>era_name()</I>
+
+
+<P>
+
+
+Returns the long name of the current era, something like ``Before
+Christ''.  See the Locales section for more details.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>era_abbr()</I>
+
+
+<P>
+
+
+Returns the abbreviated name of the current era, something like ``<FONT SIZE="-1">BC</FONT>''.
+See the Locales section for more details.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>christian_era()</I>
+
+
+<P>
+
+
+Returns a string, either ``<FONT SIZE="-1">BC</FONT>'' or ``<FONT SIZE="-1">AD</FONT>'', according to the year.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>secular_era()</I>
+
+
+<P>
+
+
+Returns a string, either ``<FONT SIZE="-1">BCE</FONT>'' or ``<FONT SIZE="-1">CE</FONT>'', according to the year.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>year_with_era()</I>
+
+
+<P>
+
+
+Returns a string containing the year immediately followed by its era
+abbreviation.  The year is the absolute value of <TT>&quot;ce_year()&quot;</TT>, so that
+year 1 is ``1AD'' and year 0 is ``1BC''.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>year_with_christian_era()</I>
+
+
+<P>
+
+
+Like <TT>&quot;year_with_era()&quot;</TT>, but uses the <I>christian_era()</I> to get the era
+name.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>year_with_secular_era()</I>
+
+
+<P>
+
+
+Like <TT>&quot;year_with_era()&quot;</TT>, but uses the <I>secular_era()</I> method to get the
+era name.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>month()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>mon()</I>
+
+
+<P>
+
+
+Returns the month of the year, from 1..12.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>month_name()</I>
+
+
+<P>
+
+
+Returns the name of the current month.  See the
+Locales section for more details.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>month_abbr()</I>
+
+
+<P>
+
+
+Returns the abbreviated name of the current month.  See the
+Locales section for more details.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>day_of_month()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>day()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>mday()</I>
+
+
+<P>
+
+
+Returns the day of the month, from 1..31.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>day_of_week()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>wday()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>dow()</I>
+
+
+<P>
+
+
+Returns the day of the week as a number, from 1..7, with 1 being
+Monday and 7 being Sunday.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>local_day_of_week()</I>
+
+
+<P>
+
+
+Returns the day of the week as a number, from 1..7. The day
+corresponding to 1 will vary based on the locale.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>day_name()</I>
+
+
+<P>
+
+
+Returns the name of the current day of the week.  See the
+Locales section for more details.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>day_abbr()</I>
+
+
+<P>
+
+
+Returns the abbreviated name of the current day of the week.  See the
+Locales section for more details.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>day_of_year()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>doy()</I>
+
+
+<P>
+
+
+Returns the day of the year.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>quarter()</I>
+
+
+<P>
+
+
+Returns the quarter of the year, from 1..4.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>quarter_name()</I>
+
+
+<P>
+
+
+Returns the name of the current quarter.  See the
+Locales section for more details.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>quarter_abbr()</I>
+
+
+<P>
+
+
+Returns the abbreviated name of the current quarter.  See the
+Locales section for more details.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>day_of_quarter()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>doq()</I>
+
+
+<P>
+
+
+Returns the day of the quarter.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>weekday_of_month()</I>
+
+
+<P>
+
+
+Returns a number from 1..5 indicating which week day of the month this
+is.  For example, June 9, 2003 is the second Monday of the month, and
+so this method returns 2 for that day.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;ymd( <TT>$optional_separator</TT> ) - also <TT>$dt</TT>-&gt;date(...)
+<DT>*<DD>
+<TT>$dt</TT>-&gt;mdy( <TT>$optional_separator</TT> )
+<DT>*<DD>
+<TT>$dt</TT>-&gt;dmy( <TT>$optional_separator</TT> )
+
+
+<P>
+
+
+Each method returns the year, month, and day, in the order indicated
+by the method name.  Years are zero-padded to four digits.  Months and
+days are 0-padded to two digits.
+
+
+<P>
+
+
+By default, the values are separated by a dash (-), but this can be
+overridden by passing a value to the method.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>hour()</I>
+
+
+<P>
+
+
+Returns the hour of the day, from 0..23.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>hour_1()</I>
+
+
+<P>
+
+
+Returns the hour of the day, from 1..24.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>hour_12()</I>
+
+
+<P>
+
+
+Returns the hour of the day, from 1..12.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>hour_12_0()</I>
+
+
+<P>
+
+
+Returns the hour of the day, from 0..11.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>am_or_pm()</I>
+
+
+<P>
+
+
+Returns the appropriate localized abbreviation, depending on the
+current hour.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>minute()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>min()</I>
+
+
+<P>
+
+
+Returns the minute of the hour, from 0..59.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>second()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>sec()</I>
+
+
+<P>
+
+
+Returns the second, from 0..61.  The values 60 and 61 are used for
+leap seconds.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>fractional_second()</I>
+
+
+<P>
+
+
+Returns the second, as a real number from 0.0 until 61.999999999
+
+
+<P>
+
+
+The values 60 and 61 are used for leap seconds.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>millisecond()</I>
+
+
+<P>
+
+
+Returns the fractional part of the second as milliseconds (1E-3 seconds).
+
+
+<P>
+
+
+Half a second is 500 milliseconds.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>microsecond()</I>
+
+
+<P>
+
+
+Returns the fractional part of the second as microseconds (1E-6
+seconds).  This value will be rounded to an integer.
+
+
+<P>
+
+
+Half a second is 500_000 microseconds.  This value will be rounded to
+an integer.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>nanosecond()</I>
+
+
+<P>
+
+
+Returns the fractional part of the second as nanoseconds (1E-9 seconds).
+
+
+<P>
+
+
+Half a second is 500_000_000 nanoseconds.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;hms( <TT>$optional_separator</TT> )
+<DT>*<DD>
+<TT>$dt</TT>-&gt;time( <TT>$optional_separator</TT> )
+
+
+<P>
+
+
+Returns the hour, minute, and second, all zero-padded to two digits.
+If no separator is specified, a colon (:) is used by default.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>datetime()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>iso8601()</I>
+
+
+<P>
+
+
+This method is equivalent to:
+
+
+<P>
+
+
+
+
+<PRE>
+  $dt-&gt;ymd('-') . 'T' . $dt-&gt;hms(':')
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>is_leap_year()</I>
+
+
+<P>
+
+
+This method returns a true or false indicating whether or not the
+datetime object is in a leap year.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>week()</I>
+
+
+<P>
+
+
+
+
+<PRE>
+ ($week_year, $week_number) = $dt-&gt;week;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns information about the calendar week which contains this
+datetime object. The values returned by this method are also available
+separately through the week_year and week_number methods.
+
+
+<P>
+
+
+The first week of the year is defined by <FONT SIZE="-1">ISO</FONT> as the one which contains
+the fourth day of January, which is equivalent to saying that it's the
+first week to overlap the new year by at least four days.
+
+
+<P>
+
+
+Typically the week year will be the same as the year that the object
+is in, but dates at the very beginning of a calendar year often end up
+in the last week of the prior year, and similarly, the final few days
+of the year may be placed in the first week of the next year.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>week_year()</I>
+
+
+<P>
+
+
+Returns the year of the week.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>week_number()</I>
+
+
+<P>
+
+
+Returns the week of the year, from 1..53.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>week_of_month()</I>
+
+
+<P>
+
+
+The week of the month, from 0..5.  The first week of the month is the
+first week that contains a Thursday.  This is based on the <FONT SIZE="-1">ICU</FONT>
+definition of week of month, and correlates to the <FONT SIZE="-1">ISO8601</FONT> week of
+year definition.  A day in the week <I>before</I> the week with the first
+Thursday will be week 0.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>jd()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>mjd()</I>
+
+
+<P>
+
+
+These return the Julian Day and Modified Julian Day, respectively.
+The value returned is a floating point number.  The fractional portion
+of the number represents the time portion of the datetime.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>time_zone()</I>
+
+
+<P>
+
+
+This returns the <TT>&quot;DateTime::TimeZone&quot;</TT> object for the datetime object.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>offset()</I>
+
+
+<P>
+
+
+This returns the offset from <FONT SIZE="-1">UTC</FONT>, in seconds, of the datetime object
+according to the time zone.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>is_dst()</I>
+
+
+<P>
+
+
+Returns a boolean indicating whether or not the datetime object is
+currently in Daylight Saving Time or not.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>time_zone_long_name()</I>
+
+
+<P>
+
+
+This is a shortcut for <TT>&quot;$dt-&gt;time_zone-&gt;name&quot;</TT>.  It's provided so
+that one can use ``%{time_zone_long_name}'' as a strftime format
+specifier.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>time_zone_short_name()</I>
+
+
+<P>
+
+
+This method returns the time zone abbreviation for the current time
+zone, such as ``<FONT SIZE="-1">PST</FONT>'' or ``<FONT SIZE="-1">GMT</FONT>''.  These names are <B>not</B> definitive, and
+should not be used in any application intended for general use by
+users around the world.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;strftime( <TT>$format</TT>, ... )
+
+
+<P>
+
+
+This method implements functionality similar to the <TT>&quot;strftime()&quot;</TT>
+method in C.  However, if given multiple format strings, then it will
+return multiple scalars, one for each format string.
+
+
+<P>
+
+
+See the ``strftime Patterns'' section for a list of all possible
+strftime patterns.
+
+
+<P>
+
+
+If you give a pattern that doesn't exist, then it is simply treated as
+text.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;format_cldr( <TT>$format</TT>, ... )
+
+
+<P>
+
+
+This method implements formatting based on the <FONT SIZE="-1">CLDR</FONT> date patterns.  If
+given multiple format strings, then it will return multiple scalars,
+one for each format string.
+
+
+<P>
+
+
+See the ``<FONT SIZE="-1">CLDR</FONT> Patterns'' section for a list of all possible <FONT SIZE="-1">CLDR</FONT>
+patterns.
+
+
+<P>
+
+
+If you give a pattern that doesn't exist, then it is simply treated as
+text.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>epoch()</I>
+
+
+<P>
+
+
+Return the <FONT SIZE="-1">UTC</FONT> epoch value for the datetime object.  Internally, this
+is implemented using <TT>&quot;Time::Local&quot;</TT>, which uses the Unix epoch even on
+machines with a different epoch (such as MacOS).  Datetimes before the
+start of the epoch will be returned as a negative number.
+
+
+<P>
+
+
+The return value from this method is always an integer.
+
+
+<P>
+
+
+Since the epoch does not account for leap seconds, the epoch time for
+1972-12-31T23:59:60 (<FONT SIZE="-1">UTC</FONT>) is exactly the same as that for
+1973-01-01T00:00:00.
+
+
+<P>
+
+
+This module uses <TT>&quot;Time::Local&quot;</TT> to calculate the epoch, which may or
+may not handle epochs before 1904 or after 2038 (depending on the size
+of your system's integers, and whether or not Perl was compiled with
+64-bit int support).
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>hires_epoch()</I>
+
+
+<P>
+
+
+Returns the epoch as a floating point number.  The floating point
+portion of the value represents the nanosecond value of the object.
+This method is provided for compatibility with the <TT>&quot;Time::HiRes&quot;</TT>
+module.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>is_finite()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;is_infinite
+
+
+<P>
+
+
+These methods allow you to distinguish normal datetime objects from
+infinite ones.  Infinite datetime objects are documented in
+DateTime::Infinite.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>utc_rd_values()</I>
+
+
+<P>
+
+
+Returns the current <FONT SIZE="-1">UTC</FONT> Rata Die days, seconds, and nanoseconds as a
+three element list.  This exists primarily to allow other calendar
+modules to create objects based on the values provided by this object.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>local_rd_values()</I>
+
+
+<P>
+
+
+Returns the current local Rata Die days, seconds, and nanoseconds as a
+three element list.  This exists for the benefit of other modules
+which might want to use this information for date math, such as
+<TT>&quot;DateTime::Event::Recurrence&quot;</TT>.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>leap_seconds()</I>
+
+
+<P>
+
+
+Returns the number of leap seconds that have happened up to the
+datetime represented by the object.  For floating datetimes, this
+always returns 0.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>utc_rd_as_seconds()</I>
+
+
+<P>
+
+
+Returns the current <FONT SIZE="-1">UTC</FONT> Rata Die days and seconds purely as seconds.
+This number ignores any fractional seconds stored in the object,
+as well as leap seconds.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>local_rd_as_seconds()</I> - deprecated
+
+
+<P>
+
+
+Returns the current local Rata Die days and seconds purely as seconds.
+This number ignores any fractional seconds stored in the object,
+as well as leap seconds.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>locale()</I>
+
+
+<P>
+
+
+Returns the current locale object.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>formatter()</I>
+
+
+<P>
+
+
+Returns current formatter object or class. See ``Formatters And
+Stringification'' for details.
+</DL>
+<P>
+
+<I>``Set'' Methods</I>
+<A NAME="ixAAR"></A>
+<P>
+
+The remaining methods provided by <TT>&quot;DateTime.pm&quot;</TT>, except where otherwise
+specified, return the object itself, thus making method chaining
+possible. For example:
+<P>
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;now-&gt;set_time_zone( 'Australia/Sydney' );
+
+  my $first = DateTime
+                -&gt;last_day_of_month( year =&gt; 2003, month =&gt; 3 )
+                -&gt;add( days =&gt; 1 )
+                -&gt;subtract( seconds =&gt; 1 );
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;set( .. )
+
+
+<P>
+
+
+This method can be used to change the local components of a date time,
+or its locale.  This method accepts any parameter allowed by the
+<TT>&quot;new()&quot;</TT> method except for ``time_zone''.  Time zones may be set using
+the <TT>&quot;set_time_zone()&quot;</TT> method.
+
+
+<P>
+
+
+This method performs parameters validation just as is done in the
+<TT>&quot;new()&quot;</TT> method.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>set_year()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>set_month()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>set_day()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>set_hour()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>set_minute()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>set_second()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>set_nanosecond()</I>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>set_locale()</I>
+
+
+<P>
+
+
+These are shortcuts to calling <TT>&quot;set()&quot;</TT> with a single key.  They all
+take a single parameter.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;truncate( to =&gt; ... )
+
+
+<P>
+
+
+This method allows you to reset some of the local time components in
+the object to their ``zero'' values.  The ``to'' parameter is used to
+specify which values to truncate, and it may be one of ``year'',
+``month'', ``week'', ``day'', ``hour'', ``minute'', or ``second''.  For example,
+if ``month'' is specified, then the local day becomes 1, and the hour,
+minute, and second all become 0.
+
+
+<P>
+
+
+If ``week'' is given, then the datetime is set to the beginning of the
+week in which it occurs, and the time components are all set to 0.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;set_time_zone( <TT>$tz</TT> )
+
+
+<P>
+
+
+This method accepts either a time zone object or a string that can be
+passed as the ``name'' parameter to <TT>&quot;DateTime::TimeZone-&gt;new()&quot;</TT>.
+If the new time zone's offset is different from the old time zone,
+then the <I>local</I> time is adjusted accordingly.
+
+
+<P>
+
+
+For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;new( year =&gt; 2000, month =&gt; 5, day =&gt; 10,
+                          hour =&gt; 15, minute =&gt; 15,
+                          time_zone =&gt; 'America/Los_Angeles', );
+
+  print $dt-&gt;hour; # prints 15
+
+  $dt-&gt;set_time_zone( 'America/Chicago' );
+
+  print $dt-&gt;hour; # prints 17
+
+</PRE>
+
+
+
+
+<P>
+
+
+If the old time zone was a floating time zone, then no adjustments to
+the local time are made, except to account for leap seconds.  If the
+new time zone is floating, then the <I></I><FONT SIZE="-1"><I>UTC</I></FONT><I></I> time is adjusted in order
+to leave the local time untouched.
+
+
+<P>
+
+
+Fans of Tsai Ming-Liang's films will be happy to know that this does
+work:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;now( time_zone =&gt; 'Asia/Taipei' );
+
+  $dt-&gt;set_time_zone( 'Europe/Paris' );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Yes, now we can know ``ni3 na4 bian1 ji2dian3?''
+<DT>*<DD>
+<TT>$dt</TT>-&gt;set_formatter( <TT>$formatter</TT> )
+
+
+<P>
+
+
+Set the formatter for the object. See ``Formatters And
+Stringification'' for details.
+</DL>
+<P>
+
+<I>Math Methods</I>
+<A NAME="ixAAS"></A>
+<P>
+
+Like the set methods, math related methods always return the object
+itself, to allow for chaining:
+<P>
+
+
+
+<PRE>
+  $dt-&gt;add( days =&gt; 1 )-&gt;subtract( seconds =&gt; 1 );
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>*<DD>
+<TT>$dt</TT>-&gt;<I>duration_class()</I>
+
+
+<P>
+
+
+This returns <TT>&quot;DateTime::Duration&quot;</TT>, but exists so that a subclass of
+<TT>&quot;DateTime.pm&quot;</TT> can provide a different value.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;add_duration( <TT>$duration_object</TT> )
+
+
+<P>
+
+
+This method adds a <TT>&quot;DateTime::Duration&quot;</TT> to the current datetime.  See
+the DateTime::Duration docs for more details.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;add( DateTime::Duration-&gt;new parameters )
+
+
+<P>
+
+
+This method is syntactic sugar around the <TT>&quot;add_duration()&quot;</TT> method.  It
+simply creates a new <TT>&quot;DateTime::Duration&quot;</TT> object using the parameters
+given, and then calls the <TT>&quot;add_duration()&quot;</TT> method.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;subtract_duration( <TT>$duration_object</TT> )
+
+
+<P>
+
+
+When given a <TT>&quot;DateTime::Duration&quot;</TT> object, this method simply calls
+<TT>&quot;invert()&quot;</TT> on that object and passes that new duration to the
+<TT>&quot;add_duration&quot;</TT> method.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;subtract( DateTime::Duration-&gt;new parameters )
+
+
+<P>
+
+
+Like <TT>&quot;add()&quot;</TT>, this is syntactic sugar for the <TT>&quot;subtract_duration()&quot;</TT>
+method.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;subtract_datetime( <TT>$datetime</TT> )
+
+
+<P>
+
+
+This method returns a new <TT>&quot;DateTime::Duration&quot;</TT> object representing
+the difference between the two dates.  The duration is <B>relative</B> to
+the object from which <TT>$datetime</TT> is subtracted.  For example:
+
+
+<P>
+
+
+
+
+<PRE>
+    2003-03-15 00:00:00.00000000
+ -  2003-02-15 00:00:00.00000000
+
+ -------------------------------
+
+ = 1 month
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that this duration is not an absolute measure of the amount of
+time between the two datetimes, because the length of a month varies,
+as well as due to the presence of leap seconds.
+
+
+<P>
+
+
+The returned duration may have deltas for months, days, minutes,
+seconds, and nanoseconds.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;delta_md( <TT>$datetime</TT> )
+<DT>*<DD>
+<TT>$dt</TT>-&gt;delta_days( <TT>$datetime</TT> )
+
+
+<P>
+
+
+Each of these methods returns a new <TT>&quot;DateTime::Duration&quot;</TT> object
+representing some portion of the difference between two datetimes.
+The <TT>&quot;delta_md()&quot;</TT> method returns a duration which contains only the
+month and day portions of the duration is represented.  The
+<TT>&quot;delta_days()&quot;</TT> method returns a duration which contains only days.
+
+
+<P>
+
+
+The <TT>&quot;delta_md&quot;</TT> and <TT>&quot;delta_days&quot;</TT> methods truncate the duration so
+that any fractional portion of a day is ignored.  Both of these
+methods operate on the date portion of a datetime only, and so
+effectively ignore the time zone.
+
+
+<P>
+
+
+Unlike the subtraction methods, <B>these methods always return a
+positive (or zero) duration</B>.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;delta_ms( <TT>$datetime</TT> )
+
+
+<P>
+
+
+Returns a duration which contains only minutes and seconds.  Any day
+and month differences to minutes are converted to minutes and
+seconds. This method also <B>always return a positive (or zero)
+duration</B>.
+<DT>*<DD>
+<TT>$dt</TT>-&gt;subtract_datetime_absolute( <TT>$datetime</TT> )
+
+
+<P>
+
+
+This method returns a new <TT>&quot;DateTime::Duration&quot;</TT> object representing
+the difference between the two dates in seconds and nanoseconds.  This
+is the only way to accurately measure the absolute amount of time
+between two datetimes, since units larger than a second do not
+represent a fixed number of seconds.
+</DL>
+<P>
+
+<I>Class Methods</I>
+<A NAME="ixAAT"></A>
+<DL COMPACT>
+<DT>*<DD>
+DateTime-&gt;DefaultLocale( <TT>$locale</TT> )
+
+
+<P>
+
+
+This can be used to specify the default locale to be used when
+creating DateTime objects.  If unset, then ``en_US'' is used.
+<DT>*<DD>
+DateTime-&gt;compare( <TT>$dt1</TT>, <TT>$dt2</TT> )
+<DT>*<DD>
+DateTime-&gt;compare_ignore_floating( <TT>$dt1</TT>, <TT>$dt2</TT> )
+
+
+<P>
+
+
+
+
+<PRE>
+  $cmp = DateTime-&gt;compare( $dt1, $dt2 );
+
+  $cmp = DateTime-&gt;compare_ignore_floating( $dt1, $dt2 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Compare two DateTime objects.  The semantics are compatible with Perl's
+<TT>&quot;sort()&quot;</TT> function; it returns -1 if <TT>$dt1</TT> &lt; <TT>$dt2</TT>, 0 if <TT>$dt1</TT> == <TT>$dt2</TT>, 1 if <TT>$dt1</TT>
+&gt; <TT>$dt2</TT>.
+
+
+<P>
+
+
+If one of the two DateTime objects has a floating time zone, it will
+first be converted to the time zone of the other object.  This is what
+you want most of the time, but it can lead to inconsistent results
+when you compare a number of DateTime objects, some of which are
+floating, and some of which are in other time zones.
+
+
+<P>
+
+
+If you want to have consistent results (because you want to sort a
+number of objects, for example), you can use the
+<TT>&quot;compare_ignore_floating()&quot;</TT> method:
+
+
+<P>
+
+
+
+
+<PRE>
+  @dates = sort { DateTime-&gt;compare_ignore_floating($a, $b) } @dates;
+
+</PRE>
+
+
+
+
+<P>
+
+
+In this case, objects with a floating time zone will be sorted as if
+they were <FONT SIZE="-1">UTC</FONT> times.
+
+
+<P>
+
+
+Since DateTime objects overload comparison operators, this:
+
+
+<P>
+
+
+
+
+<PRE>
+  @dates = sort @dates;
+
+</PRE>
+
+
+
+
+<P>
+
+
+is equivalent to this:
+
+
+<P>
+
+
+
+
+<PRE>
+  @dates = sort { DateTime-&gt;compare($a, $b) } @dates;
+
+</PRE>
+
+
+
+
+<P>
+
+
+DateTime objects can be compared to any other calendar class that
+implements the <TT>&quot;utc_rd_values()&quot;</TT> method.
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H3>How Datetime Math is Done</H3>
+
+<A NAME="ixAAU"></A>
+It's important to have some understanding of how datetime math is
+implemented in order to effectively use this module and
+<TT>&quot;DateTime::Duration&quot;</TT>.
+<P>
+
+<I>Making Things Simple</I>
+<A NAME="ixAAV"></A>
+<P>
+
+If you want to simplify your life and not have to think too hard about
+the nitty-gritty of datetime math, I have several recommendations:
+<DL COMPACT>
+<DT>*<DD>
+use the floating time zone
+
+
+<P>
+
+
+If you do not care about time zones or leap seconds, use the
+``floating'' timezone:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;now( time_zone =&gt; 'floating' );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Math done on two objects in the floating time zone produces very
+predictable results.
+<DT>*<DD>
+use <FONT SIZE="-1">UTC</FONT> for all calculations
+
+
+<P>
+
+
+If you do care about time zones (particularly <FONT SIZE="-1">DST</FONT>) or leap seconds,
+try to use non-UTC time zones for presentation and user input only.
+Convert to <FONT SIZE="-1">UTC</FONT> immediately and convert back to the local time zone for
+presentation:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;new( %user_input, time_zone =&gt; $user_tz );
+  $dt-&gt;set_time_zone('UTC');
+
+  # do various operations - store it, retrieve it, add, subtract, etc.
+
+  $dt-&gt;set_time_zone($user_tz);
+  print $dt-&gt;datetime;
+
+</PRE>
+
+
+<DT>*<DD>
+math on non-UTC time zones
+
+
+<P>
+
+
+If you need to do date math on objects with non-UTC time zones, please
+read the caveats below carefully.  The results <TT>&quot;DateTime.pm&quot;</TT> produces are
+predictable and correct, and mostly intuitive, but datetime math gets
+very ugly when time zones are involved, and there are a few strange
+corner cases involving subtraction of two datetimes across a <FONT SIZE="-1">DST</FONT>
+change.
+
+
+<P>
+
+
+If you can always use the floating or <FONT SIZE="-1">UTC</FONT> time zones, you can skip
+ahead to Leap Seconds and Date Math
+<DT>*<DD>
+date vs datetime math
+
+
+<P>
+
+
+If you only care about the date (calendar) portion of a datetime, you
+should use either <TT>&quot;delta_md()&quot;</TT> or <TT>&quot;delta_days()&quot;</TT>, not
+<TT>&quot;subtract_datetime()&quot;</TT>.  This will give predictable, unsurprising
+results, free from DST-related complications.
+<DT>*<DD>
+<I>subtract_datetime()</I> and <I>add_duration()</I>
+
+
+<P>
+
+
+You must convert your datetime objects to the <FONT SIZE="-1">UTC</FONT> time zone before
+doing date math if you want to make sure that the following formulas
+are always true:
+
+
+<P>
+
+
+
+
+<PRE>
+  $dt2 - $dt1 = $dur
+  $dt1 + $dur = $dt2
+  $dt2 - $dur = $dt1
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that using <TT>&quot;delta_days&quot;</TT> ensures that this formula always works,
+regardless of the timezone of the objects involved, as does using
+<TT>&quot;subtract_datetime_absolute()&quot;</TT>. Other methods of subtraction are not
+always reversible.
+</DL>
+<P>
+
+<I>Adding a Duration to a Datetime</I>
+<A NAME="ixAAW"></A>
+<P>
+
+The parts of a duration can be broken down into five parts.  These are
+months, days, minutes, seconds, and nanoseconds.  Adding one month to
+a date is different than adding 4 weeks or 28, 29, 30, or 31 days.
+Similarly, due to <FONT SIZE="-1">DST</FONT> and leap seconds, adding a day can be different
+than adding 86,400 seconds, and adding a minute is not exactly the
+same as 60 seconds.
+<P>
+
+We cannot convert between these units, except for seconds and
+nanoseconds, because there is no fixed conversion between the two
+units, because of things like leap seconds, <FONT SIZE="-1">DST</FONT> changes, etc.
+<P>
+
+<TT>&quot;DateTime.pm&quot;</TT> always adds (or subtracts) days, then months, minutes, and then
+seconds and nanoseconds.  If there are any boundary overflows, these are
+normalized at each step.  For the days and months the local (not <FONT SIZE="-1">UTC</FONT>) values
+are used.  For minutes and seconds, the local values are used.  This generally
+just works.
+<P>
+
+This means that adding one month and one day to February 28, 2003 will
+produce the date April 1, 2003, not March 29, 2003.
+<P>
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;new( year =&gt; 2003, month =&gt; 2, day =&gt; 28 );
+
+  $dt-&gt;add( months =&gt; 1, days =&gt; 1 );
+
+  # 2003-04-01 - the result
+
+</PRE>
+
+
+<P>
+
+On the other hand, if we add months first, and then separately add
+days, we end up with March 29, 2003:
+<P>
+
+
+
+<PRE>
+  $dt-&gt;add( months =&gt; 1 )-&gt;add( days =&gt; 1 );
+
+  # 2003-03-29
+
+</PRE>
+
+
+<P>
+
+We see similar strangeness when math crosses a <FONT SIZE="-1">DST</FONT> boundary:
+<P>
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;new( year =&gt; 2003, month =&gt; 4, day =&gt; 5,
+                          hour =&gt; 1, minute =&gt; 58,
+                          time_zone =&gt; &quot;America/Chicago&quot;,
+                        );
+
+  $dt-&gt;add( days =&gt; 1, minutes =&gt; 3 );
+  # 2003-04-06 02:01:00
+
+  $dt-&gt;add( minutes =&gt; 3 )-&gt;add( days =&gt; 1 );
+  # 2003-04-06 03:01:00
+
+</PRE>
+
+
+<P>
+
+Note that if you converted the datetime object to <FONT SIZE="-1">UTC</FONT> first you would
+get predictable results.
+<P>
+
+If you want to know how many seconds a duration object represents, you
+have to add it to a datetime to find out, so you could do:
+<P>
+
+
+
+<PRE>
+ my $now = DateTime-&gt;now( time_zone =&gt; 'UTC' );
+ my $later = $now-&gt;clone-&gt;add_duration($duration);
+
+ my $seconds_dur = $later-&gt;subtract_datetime_absolute($now);
+
+</PRE>
+
+
+<P>
+
+This returns a duration which only contains seconds and nanoseconds.
+<P>
+
+If we were add the duration to a different datetime object we might
+get a different number of seconds.
+<P>
+
+If you need to do lots of work with durations, take a look at Rick
+Measham's <TT>&quot;DateTime::Format::Duration&quot;</TT> module, which lets you present
+information from durations in many useful ways.
+<P>
+
+There are other subtract/delta methods in DateTime.pm to generate
+different types of durations.  These methods are
+<TT>&quot;subtract_datetime()&quot;</TT>, <TT>&quot;subtract_datetime_absolute()&quot;</TT>,
+<TT>&quot;delta_md()&quot;</TT>, <TT>&quot;delta_days()&quot;</TT>, and <TT>&quot;delta_ms()&quot;</TT>.
+<P>
+
+<I>Datetime Subtraction</I>
+<A NAME="ixAAX"></A>
+<P>
+
+Date subtraction is done solely based on the two object's local
+datetimes, with one exception to handle <FONT SIZE="-1">DST</FONT> changes.  Also, if the two
+datetime objects are in different time zones, one of them is converted
+to the other's time zone first before subtraction.  This is best
+explained through examples:
+<P>
+
+The first of these probably makes the most sense:
+<P>
+
+
+
+<PRE>
+    my $dt1 = DateTime-&gt;new( year =&gt; 2003, month =&gt; 5, day =&gt; 6,
+                             time_zone =&gt; 'America/Chicago',
+                           );
+    # not DST
+
+    my $dt2 = DateTime-&gt;new( year =&gt; 2003, month =&gt; 11, day =&gt; 6,
+                             time_zone =&gt; 'America/Chicago',
+                           );
+    # is DST
+
+    my $dur = $dt2-&gt;subtract_datetime($dt1);
+    # 6 months
+
+</PRE>
+
+
+<P>
+
+Nice and simple.
+<P>
+
+This one is a little trickier, but still fairly logical:
+<P>
+
+
+
+<PRE>
+    my $dt1 = DateTime-&gt;new( year =&gt; 2003, month =&gt; 4, day =&gt; 5,
+                             hour =&gt; 1, minute =&gt; 58,
+                             time_zone =&gt; &quot;America/Chicago&quot;,
+                           );
+    # is DST
+
+    my $dt2 = DateTime-&gt;new( year =&gt; 2003, month =&gt; 4, day =&gt; 7,
+                             hour =&gt; 2, minute =&gt; 1,
+                             time_zone =&gt; &quot;America/Chicago&quot;,
+                           );
+    # not DST
+
+    my $dur = $dt2-&gt;subtract_datetime($dt1);
+    # 2 days and 3 minutes
+
+</PRE>
+
+
+<P>
+
+Which contradicts the result this one gives, even though they both
+make sense:
+<P>
+
+
+
+<PRE>
+    my $dt1 = DateTime-&gt;new( year =&gt; 2003, month =&gt; 4, day =&gt; 5,
+                             hour =&gt; 1, minute =&gt; 58,
+                             time_zone =&gt; &quot;America/Chicago&quot;,
+                           );
+    # is DST
+
+    my $dt2 = DateTime-&gt;new( year =&gt; 2003, month =&gt; 4, day =&gt; 6,
+                             hour =&gt; 3, minute =&gt; 1,
+                             time_zone =&gt; &quot;America/Chicago&quot;,
+                           );
+    # not DST
+
+    my $dur = $dt2-&gt;subtract_datetime($dt1);
+    # 1 day and 3 minutes
+
+</PRE>
+
+
+<P>
+
+This last example illustrates the ``<FONT SIZE="-1">DST</FONT>'' exception mentioned earlier.
+The exception accounts for the fact 2003-04-06 only lasts 23 hours.
+<P>
+
+And finally:
+<P>
+
+
+
+<PRE>
+    my $dt2 = DateTime-&gt;new( year =&gt; 2003, month =&gt; 10, day =&gt; 26,
+                             hour =&gt; 1,
+                             time_zone =&gt; 'America/Chicago',
+                           );
+
+    my $dt1 = $dt2-&gt;clone-&gt;subtract( hours =&gt; 1 );
+
+    my $dur = $dt2-&gt;subtract_datetime($dt1);
+    # 60 minutes
+
+</PRE>
+
+
+<P>
+
+This seems obvious until you realize that subtracting 60 minutes from
+<TT>$dt2</TT> in the above example still leaves the clock time at
+``01:00:00''.  This time we are accounting for a 25 hour day.
+<P>
+
+<I>Reversibility</I>
+<A NAME="ixAAY"></A>
+<P>
+
+Date math operations are not always reversible.  This is because of
+the way that addition operations are ordered.  As was discussed
+earlier, adding 1 day and 3 minutes in one call to <TT>&quot;add()&quot;</TT> is not the
+same as first adding 3 minutes and 1 day in two separate calls.
+<P>
+
+If we take a duration returned from <TT>&quot;subtract_datetime()&quot;</TT> and then
+try to add or subtract that duration from one of the datetimes we just
+used, we sometimes get interesting results:
+<P>
+
+
+
+<PRE>
+  my $dt1 = DateTime-&gt;new( year =&gt; 2003, month =&gt; 4, day =&gt; 5,
+                           hour =&gt; 1, minute =&gt; 58,
+                           time_zone =&gt; &quot;America/Chicago&quot;,
+                         );
+
+  my $dt2 = DateTime-&gt;new( year =&gt; 2003, month =&gt; 4, day =&gt; 6,
+                           hour =&gt; 3, minute =&gt; 1,
+                           time_zone =&gt; &quot;America/Chicago&quot;,
+                         );
+
+  my $dur = $dt2-&gt;subtract_datetime($dt1);
+  # 1 day and 3 minutes
+
+  $dt1-&gt;add_duration($dur);
+  # gives us $dt2
+
+  $dt2-&gt;subtract_duration($dur);
+  # gives us 2003-04-05 02:58:00 - 1 hour later than $dt1
+
+</PRE>
+
+
+<P>
+
+The <TT>&quot;subtract_dauration()&quot;</TT> operation gives us a (perhaps) unexpected
+answer because it first subtracts one day to get 2003-04-05T03:01:00
+and then subtracts 3 minutes to get the final result.
+<P>
+
+If we explicitly reverse the order we can get the original value of
+<TT>$dt1</TT>. This can be facilitated by <TT>&quot;DateTime::Duration&quot;</TT>'s
+<TT>&quot;calendar_duration()&quot;</TT> and <TT>&quot;clock_duration()&quot;</TT> methods:
+<P>
+
+
+
+<PRE>
+  $dt2-&gt;subtract_duration( $dur-&gt;clock_duration )
+      -&gt;subtract_duration( $dur-&gt;calendar_duration );
+
+</PRE>
+
+
+<P>
+
+<I>Leap Seconds and Date Math</I>
+<A NAME="ixAAZ"></A>
+<P>
+
+The presence of leap seconds can cause even more anomalies in date
+math.  For example, the following is a legal datetime:
+<P>
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;new( year =&gt; 1972, month =&gt; 12, day =&gt; 31,
+                          hour =&gt; 23, minute =&gt; 59, second =&gt; 60,
+                          time_zone =&gt; 'UTC' );
+
+</PRE>
+
+
+<P>
+
+If we do the following:
+<P>
+
+
+
+<PRE>
+ $dt-&gt;add( months =&gt; 1 );
+
+</PRE>
+
+
+<P>
+
+Then the datetime is now ``1973-02-01 00:00:00'', because there is no
+23:59:60 on 1973-01-31.
+<P>
+
+Leap seconds also force us to distinguish between minutes and seconds
+during date math.  Given the following datetime:
+<P>
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;new( year =&gt; 1972, month =&gt; 12, day =&gt; 31,
+                          hour =&gt; 23, minute =&gt; 59, second =&gt; 30,
+                          time_zone =&gt; 'UTC' );
+
+</PRE>
+
+
+<P>
+
+we will get different results when adding 1 minute than we get if we
+add 60 seconds.  This is because in this case, the last minute of the
+day, beginning at 23:59:00, actually contains 61 seconds.
+<P>
+
+Here are the results we get:
+<P>
+
+
+
+<PRE>
+  # 1972-12-31 23:59:30 - our starting datetime
+
+  $dt-&gt;clone-&gt;add( minutes =&gt; 1 );
+  # 1973-01-01 00:00:30 - one minute later
+
+  $dt-&gt;clone-&gt;add( seconds =&gt; 60 );
+  # 1973-01-01 00:00:29 - 60 seconds later
+
+  $dt-&gt;clone-&gt;add( seconds =&gt; 61 );
+  # 1973-01-01 00:00:30 - 61 seconds later
+
+</PRE>
+
+
+<P>
+
+<I>Local vs. </I><FONT SIZE="-1"><I>UTC</I></FONT><I> and 24 hours vs. 1 day</I>
+<A NAME="ixABA"></A>
+<P>
+
+When math crosses a daylight saving boundary, a single day may have
+more or less than 24 hours.
+<P>
+
+For example, if you do this:
+<P>
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;new( year =&gt; 2003, month =&gt; 4, day =&gt; 5,
+                          hour =&gt; 2,
+                          time_zone =&gt; 'America/Chicago',
+                        );
+  $dt-&gt;add( days =&gt; 1 );
+
+</PRE>
+
+
+<P>
+
+then you will produce an <I>invalid</I> local time, and therefore an
+exception will be thrown.
+<P>
+
+However, this works:
+<P>
+
+
+
+<PRE>
+  my $dt = DateTime-&gt;new( year =&gt; 2003, month =&gt; 4, day =&gt; 5,
+                          hour =&gt; 2,
+                          time_zone =&gt; 'America/Chicago',
+                        );
+  $dt-&gt;add( hours =&gt; 24 );
+
+</PRE>
+
+
+<P>
+
+and produces a datetime with the local time of ``03:00''.
+<P>
+
+If all this makes your head hurt, there is a simple alternative.  Just
+convert your datetime object to the ``<FONT SIZE="-1">UTC</FONT>'' time zone before doing date
+math on it, and switch it back to the local time zone afterwards.
+This avoids the possibility of having date math throw an exception,
+and makes sure that 1 day equals 24 hours.  Of course, this may not
+always be desirable, so caveat user!
+<A NAME="lbAN">&nbsp;</A>
+<H3>Overloading</H3>
+
+<A NAME="ixABB"></A>
+This module explicitly overloads the addition (+), subtraction (-),
+string and numeric comparison operators.  This means that the
+following all do sensible things:
+<P>
+
+
+
+<PRE>
+  my $new_dt = $dt + $duration_obj;
+
+  my $new_dt = $dt - $duration_obj;
+
+  my $duration_obj = $dt - $new_dt;
+
+  foreach my $dt ( sort @dts ) { ... }
+
+</PRE>
+
+
+<P>
+
+Additionally, the fallback parameter is set to true, so other
+derivable operators (+=, -=, etc.) will work properly.  Do not expect
+increment (++) or decrement (--) to do anything useful.
+<P>
+
+If you attempt to sort DateTime objects with non-DateTime.pm objects
+or scalars (strings, number, whatever) then an exception will be
+thrown. Using the string comparison operators, <TT>&quot;eq&quot;</TT> or <TT>&quot;ne&quot;</TT>, to
+compare a DateTime.pm always returns false.
+<P>
+
+The module also overloads stringification to use the <TT>&quot;iso8601()&quot;</TT>
+method.
+<A NAME="lbAO">&nbsp;</A>
+<H3>Formatters And Stringification</H3>
+
+<A NAME="ixABC"></A>
+You can optionally specify a ``formatter'', which is usually a
+DateTime::Format::* object/class, to control the stringification of
+the DateTime object.
+<P>
+
+Any of the constructor methods can accept a formatter argument:
+<P>
+
+
+
+<PRE>
+  my $formatter = DateTime::Format::Strptime-&gt;new(...);
+  my $dt = DateTime-&gt;new(year =&gt; 2004, formatter =&gt; $formatter);
+
+</PRE>
+
+
+<P>
+
+Or, you can set it afterwards:
+<P>
+
+
+
+<PRE>
+  $dt-&gt;set_formatter($formatter);
+  $formatter = $dt-&gt;formatter();
+
+</PRE>
+
+
+<P>
+
+Once you set the formatter, the overloaded stringification method will
+use the formatter. If unspecified, the <TT>&quot;iso8601()&quot;</TT> method is used.
+<P>
+
+A formatter can be handy when you know that in your application you
+want to stringify your DateTime objects into a special format all the
+time, for example to a different language.
+<P>
+
+If you provide a formatter class name or object, it must implement a
+<TT>&quot;format_datetime&quot;</TT> method. This method will be called with just the
+DateTime object as its argument.
+<A NAME="lbAP">&nbsp;</A>
+<H3>strftime Patterns</H3>
+
+<A NAME="ixABD"></A>
+The following patterns are allowed in the format string given to the
+<TT>&quot;$dt-&gt;strftime()&quot;</TT> method:
+<DL COMPACT>
+<DT>*<DD>
+<TT>%a</TT>
+
+
+<P>
+
+
+The abbreviated weekday name.
+<DT>*<DD>
+<TT>%A</TT>
+
+
+<P>
+
+
+The full weekday name.
+<DT>*<DD>
+<TT>%b</TT>
+
+
+<P>
+
+
+The abbreviated month name.
+<DT>*<DD>
+<TT>%B</TT>
+
+
+<P>
+
+
+The full month name.
+<DT>*<DD>
+<TT>%c</TT>
+
+
+<P>
+
+
+The default datetime format for the object's locale.
+<DT>*<DD>
+<TT>%C</TT>
+
+
+<P>
+
+
+The century number (year/100) as a 2-digit integer.
+<DT>*<DD>
+<TT>%d</TT>
+
+
+<P>
+
+
+The day of the month as a decimal number (range 01 to 31).
+<DT>*<DD>
+<TT>%D</TT>
+
+
+<P>
+
+
+Equivalent to <TT>%m</TT>/%d/%y.  This is not a good standard format if you
+want folks from both the United States and the rest of the world to
+understand the date!
+<DT>*<DD>
+<TT>%e</TT>
+
+
+<P>
+
+
+Like <TT>%d</TT>, the day of the month as a decimal number, but a leading zero
+is replaced by a space.
+<DT>*<DD>
+<TT>%F</TT>
+
+
+<P>
+
+
+Equivalent to <TT>%Y</TT>-%m-%d (the <FONT SIZE="-1">ISO</FONT> 8601 date format)
+<DT>*<DD>
+<TT>%G</TT>
+
+
+<P>
+
+
+The <FONT SIZE="-1">ISO</FONT> 8601 year with century as a decimal number.  The 4-digit year
+corresponding to the <FONT SIZE="-1">ISO</FONT> week number (see <TT>%V</TT>).  This has the same
+format and value as <TT>%Y</TT>, except that if the <FONT SIZE="-1">ISO</FONT> week number belongs to
+the previous or next year, that year is used instead. (<FONT SIZE="-1">TZ</FONT>)
+<DT>*<DD>
+<TT>%g</TT>
+
+
+<P>
+
+
+Like <TT>%G</TT>, but without century, i.e., with a 2-digit year (00-99).
+<DT>*<DD>
+<TT>%h</TT>
+
+
+<P>
+
+
+Equivalent to <TT>%b</TT>.
+<DT>*<DD>
+<TT>%H</TT>
+
+
+<P>
+
+
+The hour as a decimal number using a 24-hour clock (range 00 to 23).
+<DT>*<DD>
+<TT>%I</TT>
+
+
+<P>
+
+
+The hour as a decimal number using a 12-hour clock (range 01 to 12).
+<DT>*<DD>
+<TT>%j</TT>
+
+
+<P>
+
+
+The day of the year as a decimal number (range 001 to 366).
+<DT>*<DD>
+<TT>%k</TT>
+
+
+<P>
+
+
+The hour (24-hour clock) as a decimal number (range 0 to 23); single
+digits are preceded by a blank. (See also <TT>%H</TT>.)
+<DT>*<DD>
+<TT>%l</TT>
+
+
+<P>
+
+
+The hour (12-hour clock) as a decimal number (range 1 to 12); single
+digits are preceded by a blank. (See also <TT>%I</TT>.)
+<DT>*<DD>
+<TT>%m</TT>
+
+
+<P>
+
+
+The month as a decimal number (range 01 to 12).
+<DT>*<DD>
+<TT>%M</TT>
+
+
+<P>
+
+
+The minute as a decimal number (range 00 to 59).
+<DT>*<DD>
+<TT>%n</TT>
+
+
+<P>
+
+
+A newline character.
+<DT>*<DD>
+<TT>%N</TT>
+
+
+<P>
+
+
+The fractional seconds digits. Default is 9 digits (nanoseconds).
+
+
+<P>
+
+
+
+
+<PRE>
+  %3N   milliseconds (3 digits)
+  %6N   microseconds (6 digits)
+  %9N   nanoseconds  (9 digits)
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>%p</TT>
+
+
+<P>
+
+
+Either `<FONT SIZE="-1">AM</FONT>' or `<FONT SIZE="-1">PM</FONT>' according to the given time value, or the
+corresponding strings for the current locale.  Noon is treated as `pm'
+and midnight as `am'.
+<DT>*<DD>
+<TT>%P</TT>
+
+
+<P>
+
+
+Like <TT>%p</TT> but in lowercase: `am' or `pm' or a corresponding string for
+the current locale.
+<DT>*<DD>
+<TT>%r</TT>
+
+
+<P>
+
+
+The time in a.m.  or p.m. notation.  In the <FONT SIZE="-1">POSIX</FONT> locale this is
+equivalent to `%I:%M:%S <TT>%p</TT>'.
+<DT>*<DD>
+<TT>%R</TT>
+
+
+<P>
+
+
+The time in 24-hour notation (%H:%M). (<FONT SIZE="-1">SU</FONT>) For a version including the
+seconds, see <TT>%T</TT> below.
+<DT>*<DD>
+<TT>%s</TT>
+
+
+<P>
+
+
+The number of seconds since the epoch.
+<DT>*<DD>
+<TT>%S</TT>
+
+
+<P>
+
+
+The second as a decimal number (range 00 to 61).
+<DT>*<DD>
+<TT>%t</TT>
+
+
+<P>
+
+
+A tab character.
+<DT>*<DD>
+<TT>%T</TT>
+
+
+<P>
+
+
+The time in 24-hour notation (%H:%M:%S).
+<DT>*<DD>
+<TT>%u</TT>
+
+
+<P>
+
+
+The day of the week as a decimal, range 1 to 7, Monday being 1.  See
+also <TT>%w</TT>.
+<DT>*<DD>
+<TT>%U</TT>
+
+
+<P>
+
+
+The week number of the current year as a decimal number, range 00 to
+53, starting with the first Sunday as the first day of week 01. See
+also <TT>%V</TT> and <TT>%W</TT>.
+<DT>*<DD>
+<TT>%V</TT>
+
+
+<P>
+
+
+The <FONT SIZE="-1">ISO</FONT> 8601:1988 week number of the current year as a decimal number,
+range 01 to 53, where week 1 is the first week that has at least 4
+days in the current year, and with Monday as the first day of the
+week. See also <TT>%U</TT> and <TT>%W</TT>.
+<DT>*<DD>
+<TT>%w</TT>
+
+
+<P>
+
+
+The day of the week as a decimal, range 0 to 6, Sunday being 0.  See
+also <TT>%u</TT>.
+<DT>*<DD>
+<TT>%W</TT>
+
+
+<P>
+
+
+The week number of the current year as a decimal number, range 00 to
+53, starting with the first Monday as the first day of week 01.
+<DT>*<DD>
+<TT>%x</TT>
+
+
+<P>
+
+
+The default date format for the object's locale.
+<DT>*<DD>
+<TT>%X</TT>
+
+
+<P>
+
+
+The default time format for the object's locale.
+<DT>*<DD>
+<TT>%y</TT>
+
+
+<P>
+
+
+The year as a decimal number without a century (range 00 to 99).
+<DT>*<DD>
+<TT>%Y</TT>
+
+
+<P>
+
+
+The year as a decimal number including the century.
+<DT>*<DD>
+<TT>%z</TT>
+
+
+<P>
+
+
+The time-zone as hour offset from <FONT SIZE="-1">UTC</FONT>.  Required to emit
+RFC822-conformant dates (using ``%a, <TT>%d</TT> <TT>%b</TT> <TT>%Y</TT> <TT>%H:</TT>%M:%S <TT>%z</TT>'').
+<DT>*<DD>
+<TT>%Z</TT>
+
+
+<P>
+
+
+The time zone or name or abbreviation.
+<DT>*<DD>
+%%
+
+
+<P>
+
+
+A literal `%' character.
+<DT>*<DD>
+%{method}
+
+
+<P>
+
+
+Any method name may be specified using the format <TT>&quot;%{method}&quot;</TT> name
+where ``method'' is a valid <TT>&quot;DateTime.pm&quot;</TT> object method.
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H3><FONT SIZE="-1">CLDR</FONT> Patterns</H3>
+
+<A NAME="ixABE"></A>
+The <FONT SIZE="-1">CLDR</FONT> pattern language is both more powerful and more complex than
+strftime. Unlike strftime patterns, you often have to explicitly
+escape text that you do not want formatted, as the patterns are simply
+letters without any prefix.
+<P>
+
+For example, ``yyyy-MM-dd'' is a valid <FONT SIZE="-1">CLDR</FONT> pattern. If you want to
+include any lower or upper case <FONT SIZE="-1">ASCII</FONT> characters as-is, you can
+surround them with single quotes ('). If you want to include a single
+quote, you must escape it as two single quotes ('').
+<P>
+
+
+
+<PRE>
+  'Today is ' EEEE
+  'It is now' h 'o''clock' a
+
+</PRE>
+
+
+<P>
+
+Spaces and any non-letter text will always be passed through as-is.
+<P>
+
+Many <FONT SIZE="-1">CLDR</FONT> patterns which produce numbers will pad the number with
+leading zeroes depending on the length of the format specifier. For
+example, ``h'' represents the current hour from 1-12. If you specify
+``hh'' then the 1-9 will have a leading zero prepended.
+<P>
+
+However, <FONT SIZE="-1">CLDR</FONT> often uses five of a letter to represent the narrow form
+of a pattern. This inconsistency is necessary for backwards
+compatibility.
+<P>
+
+<FONT SIZE="-1">CLDR</FONT> often distinguishes between the ``format'' and ``stand-alone'' forms
+of a pattern. The format pattern is used when the thing in question is
+being placed into a larger string. The stand-alone form is used when
+displaying that item by itself, for example in a calendar.
+<P>
+
+It also often provides three sizes for each item, wide (the full
+name), abbreviated, and narrow. The narrow form is often just a single
+character, for example ``T'' for ``Tuesday'', and may not be unique.
+<P>
+
+<FONT SIZE="-1">CLDR</FONT> provides a fairly complex system for localizing time zones that
+we ignore entirely. The time zone patterns just use the information
+provided by <TT>&quot;DateTime::TimeZone&quot;</TT>, and <I>do not follow the </I><FONT SIZE="-1"><I>CLDR</I></FONT><I> spec</I>.
+<P>
+
+The output of a <FONT SIZE="-1">CLDR</FONT> pattern is always localized, when applicable.
+<P>
+
+<FONT SIZE="-1">CLDR</FONT> provides the following patterns:
+<DL COMPACT>
+<DT>*<DD>
+G{1,3}
+
+
+<P>
+
+
+The abbreviated era (<FONT SIZE="-1">BC</FONT>, <FONT SIZE="-1">AD</FONT>).
+<DT>*<DD>
+<FONT SIZE="-1">GGGG</FONT>
+
+
+<P>
+
+
+The wide era (Before Christ, Anno Domini).
+<DT>*<DD>
+<FONT SIZE="-1">GGGGG</FONT>
+
+
+<P>
+
+
+The narrow era, if it exists (and it mostly doesn't).
+<DT>*<DD>
+y and y{3,}
+
+
+<P>
+
+
+The year, zero-prefixed as needed. Negative years will start with a ``-'',
+and this will be included in the length calculation.
+
+
+<P>
+
+
+In other, words the ``yyyyy'' pattern will format year -1234 as ``-1234'', not
+``-01234''.
+<DT>*<DD>
+yy
+
+
+<P>
+
+
+This is a special case. It always produces a two-digit year, so ``1976'' becomes
+``76''. Negative years will start with a ``-'', making them one character longer.
+<DT>*<DD>
+Y{1,}
+
+
+<P>
+
+
+The week of the year, from <TT>&quot;$dt-&gt;week_year()&quot;</TT>.
+<DT>*<DD>
+u{1,}
+
+
+<P>
+
+
+Same as ``y'' except that ``uu'' is not a special case.
+<DT>*<DD>
+Q{1,2}
+
+
+<P>
+
+
+The quarter as a number (1..4).
+<DT>*<DD>
+<FONT SIZE="-1">QQQ</FONT>
+
+
+<P>
+
+
+The abbreviated format form for the quarter.
+<DT>*<DD>
+<FONT SIZE="-1">QQQQ</FONT>
+
+
+<P>
+
+
+The wide format form for the quarter.
+<DT>*<DD>
+q{1,2}
+
+
+<P>
+
+
+The quarter as a number (1..4).
+<DT>*<DD>
+qqq
+
+
+<P>
+
+
+The abbreviated stand-alone form for the quarter.
+<DT>*<DD>
+qqqq
+
+
+<P>
+
+
+The wide stand-alone form for the quarter.
+<DT>*<DD>
+M{1,2]
+
+
+<P>
+
+
+The numerical month.
+<DT>*<DD>
+<FONT SIZE="-1">MMM</FONT>
+
+
+<P>
+
+
+The abbreviated format form for the month.
+<DT>*<DD>
+<FONT SIZE="-1">MMMM</FONT>
+
+
+<P>
+
+
+The wide format form for the month.
+<DT>*<DD>
+<FONT SIZE="-1">MMMMM</FONT>
+
+
+<P>
+
+
+The narrow format form for the month.
+<DT>*<DD>
+L{1,2]
+
+
+<P>
+
+
+The numerical month.
+<DT>*<DD>
+<FONT SIZE="-1">LLL</FONT>
+
+
+<P>
+
+
+The abbreviated stand-alone form for the month.
+<DT>*<DD>
+<FONT SIZE="-1">LLLL</FONT>
+
+
+<P>
+
+
+The wide stand-alone form for the month.
+<DT>*<DD>
+<FONT SIZE="-1">LLLLL</FONT>
+
+
+<P>
+
+
+The narrow stand-alone form for the month.
+<DT>*<DD>
+w{1,2}
+
+
+<P>
+
+
+The week of the year, from <TT>&quot;$dt-&gt;week_number()&quot;</TT>.
+<DT>*<DD>
+W
+
+
+<P>
+
+
+The week of the month, from <TT>&quot;$dt-&gt;week_of_month()&quot;</TT>.
+<DT>*<DD>
+d{1,2}
+
+
+<P>
+
+
+The numeric day of of the month.
+<DT>*<DD>
+D{1,3}
+
+
+<P>
+
+
+The numeric day of of the year.
+<DT>*<DD>
+F
+
+
+<P>
+
+
+The day of the week in the month, from <TT>&quot;$dt-&gt;weekday_of_month()&quot;</TT>.
+<DT>*<DD>
+g{1,}
+
+
+<P>
+
+
+The modified Julian day, from <TT>&quot;$dt-&gt;mjd()&quot;</TT>.
+<DT>*<DD>
+E{1,3} and eee
+
+
+<P>
+
+
+The abbreviated format form for the day of the week.
+<DT>*<DD>
+<FONT SIZE="-1">EEEE</FONT> and eeee
+
+
+<P>
+
+
+The wide format form for the day of the week.
+<DT>*<DD>
+<FONT SIZE="-1">EEEEE</FONT> and eeeee
+
+
+<P>
+
+
+The narrow format form for the day of the week.
+<DT>*<DD>
+e{1,2}
+
+
+<P>
+
+
+The <I>local</I> numeric day of the week, from 1 to 7. This number depends
+on what day is considered the first day of the week, which varies by
+locale. For example, in the <FONT SIZE="-1">US</FONT>, Sunday is the first day of the week,
+so this returns 2 for Monday.
+<DT>*<DD>
+c
+
+
+<P>
+
+
+The numeric day of the week from 1 to 7, treating Monday as the first
+of the week, regardless of locale.
+<DT>*<DD>
+ccc
+
+
+<P>
+
+
+The abbreviated stand-alone form for the day of the week.
+<DT>*<DD>
+cccc
+
+
+<P>
+
+
+The wide stand-alone form for the day of the week.
+<DT>*<DD>
+ccccc
+
+
+<P>
+
+
+The narrow format form for the day of the week.
+<DT>*<DD>
+a
+
+
+<P>
+
+
+The localized form of <FONT SIZE="-1">AM</FONT> or <FONT SIZE="-1">PM</FONT> for the time.
+<DT>*<DD>
+h{1,2}
+
+
+<P>
+
+
+The hour from 1-12.
+<DT>*<DD>
+H{1,2}
+
+
+<P>
+
+
+The hour from 0-23.
+<DT>*<DD>
+K{1,2}
+
+
+<P>
+
+
+The hour from 0-11.
+<DT>*<DD>
+k{1,2}
+
+
+<P>
+
+
+The hour from 1-24.
+<DT>*<DD>
+j{1,2}
+
+
+<P>
+
+
+The hour, in 12 or 24 hour form, based on the preferred form for the
+locale. In other words, this is equivalent to either ``h{1,2}'' or
+``H{1,2}''.
+<DT>*<DD>
+m{1,2}
+
+
+<P>
+
+
+The minute.
+<DT>*<DD>
+s{1,2}
+
+
+<P>
+
+
+The second.
+<DT>*<DD>
+S{1,}
+
+
+<P>
+
+
+The fractional portion of the seconds, rounded based on the length of
+the specifier. This returned <I>without</I> a leading decimal point, but
+may have leading or trailing zeroes.
+<DT>*<DD>
+A{1,}
+
+
+<P>
+
+
+The millisecond of the day, based on the current time. In other words,
+if it is 12:00:00.00, this returns 43200000.
+<DT>*<DD>
+z{1,3}
+
+
+<P>
+
+
+The time zone short name.
+<DT>*<DD>
+zzzz
+
+
+<P>
+
+
+The time zone long name.
+<DT>*<DD>
+Z{1,3}
+
+
+<P>
+
+
+The time zone short name and the offset as one string, so something
+like ``<FONT SIZE="-1">CDT-0500</FONT>''.
+<DT>*<DD>
+<FONT SIZE="-1">ZZZZ</FONT>
+
+
+<P>
+
+
+The time zone long name.
+<DT>*<DD>
+v{1,3}
+
+
+<P>
+
+
+The time zone short name.
+<DT>*<DD>
+vvvv
+
+
+<P>
+
+
+The time zone long name.
+<DT>*<DD>
+V{1,3}
+
+
+<P>
+
+
+The time zone short name.
+<DT>*<DD>
+<FONT SIZE="-1">VVVV</FONT>
+
+
+<P>
+
+
+The time zone long name.
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H2>DateTime.pm and Storable</H2>
+
+<A NAME="ixABF"></A>
+DateTime implements Storable hooks in order to reduce the size of a
+serialized DateTime object.
+<A NAME="lbAS">&nbsp;</A>
+<H2>KNOWN BUGS</H2>
+
+<A NAME="ixABG"></A>
+The tests in <I>20infinite.t</I> seem to fail on some machines,
+particularly on Win32.  This appears to be related to Perl's internal
+handling of <FONT SIZE="-1">IEEE</FONT> infinity and NaN, and seems to be highly
+platform/compiler/phase of moon dependent.
+<P>
+
+If you don't plan to use infinite datetimes you can probably ignore
+this.  This will be fixed (somehow) in future versions.
+<A NAME="lbAT">&nbsp;</A>
+<H2>SUPPORT</H2>
+
+<A NAME="ixABH"></A>
+Support for this module is provided via the <A HREF="mailto:datetime@perl.org">datetime@perl.org</A> email
+list. See <A HREF="http://datetime.perl.org/?MailingList">http://datetime.perl.org/?MailingList</A> for details.
+<P>
+
+Please submit bugs to the <FONT SIZE="-1">CPAN</FONT> <FONT SIZE="-1">RT</FONT> system at
+<A HREF="http://rt.cpan.org/NoAuth/ReportBug.html?Queue=datetime">http://rt.cpan.org/NoAuth/ReportBug.html?Queue=datetime</A> or via email
+at <A HREF="mailto:bug-datetime@rt.cpan.org">bug-datetime@rt.cpan.org</A>.
+<A NAME="lbAU">&nbsp;</A>
+<H2>DONATIONS</H2>
+
+<A NAME="ixABI"></A>
+If you'd like to thank me for the work I've done on this module,
+please consider making a ``donation'' to me via PayPal. I spend a lot of
+free time creating free software, and would appreciate any support
+you'd care to offer.
+<P>
+
+Please note that <B>I am not suggesting that you must do this</B> in order
+for me to continue working on this particular software. I will
+continue to do so, inasmuch as I have in the past, for as long as it
+interests me.
+<P>
+
+Similarly, a donation made in this way will probably not make me work
+on this software much more, unless I get so many donations that I can
+consider working on free software full time, which seems unlikely at
+best.
+<P>
+
+To donate, log into PayPal and send money to <A HREF="mailto:autarch@urth.org">autarch@urth.org</A> or use
+the button on this page:
+&lt;<A HREF="http://www.urth.org/~autarch/fs-donation.html">http://www.urth.org/~autarch/fs-donation.html</A>&gt;
+<A NAME="lbAV">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABJ"></A>
+Dave Rolsky &lt;<A HREF="mailto:autarch@urth.org">autarch@urth.org</A>&gt;
+<P>
+
+However, please see the <FONT SIZE="-1">CREDITS</FONT> file for more details on who I really
+stole all the code from.
+<A NAME="lbAW">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABK"></A>
+Copyright (c) 2003-2009 David Rolsky.  All rights reserved.  This
+program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+<P>
+
+Portions of the code in this distribution are derived from other
+works.  Please see the <FONT SIZE="-1">CREDITS</FONT> file for more details.
+<P>
+
+The full text of the license can be found in the <FONT SIZE="-1">LICENSE</FONT> file included
+with this module.
+<A NAME="lbAX">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABL"></A>
+<A HREF="mailto:datetime@perl.org">datetime@perl.org</A> mailing list
+<P>
+
+<A HREF="http://datetime.perl.org/">http://datetime.perl.org/</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">USAGE</A><DD>
+<DL>
+<DT><A HREF="#lbAF">0-based Versus 1-based Numbers</A><DD>
+<DT><A HREF="#lbAG">Error Handling</A><DD>
+<DT><A HREF="#lbAH">Locales</A><DD>
+<DT><A HREF="#lbAI">Floating DateTimes</A><DD>
+<DT><A HREF="#lbAJ">Math</A><DD>
+<DT><A HREF="#lbAK">Time Zone Warnings</A><DD>
+<DT><A HREF="#lbAL">Methods</A><DD>
+<DT><A HREF="#lbAM">How Datetime Math is Done</A><DD>
+<DT><A HREF="#lbAN">Overloading</A><DD>
+<DT><A HREF="#lbAO">Formatters And Stringification</A><DD>
+<DT><A HREF="#lbAP">strftime Patterns</A><DD>
+<DT><A HREF="#lbAQ"><FONT SIZE="-1">CLDR</FONT> Patterns</A><DD>
+</DL>
+<DT><A HREF="#lbAR">DateTime.pm and Storable</A><DD>
+<DT><A HREF="#lbAS">KNOWN BUGS</A><DD>
+<DT><A HREF="#lbAT">SUPPORT</A><DD>
+<DT><A HREF="#lbAU">DONATIONS</A><DD>
+<DT><A HREF="#lbAV">AUTHOR</A><DD>
+<DT><A HREF="#lbAW">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAX">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:17 GMT, December 24, 2015
+</div></body>
+</HTML>

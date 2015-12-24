@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of XML::XPathEngine</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>XML::XPathEngine</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-02-04<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+XML::XPathEngine - a re-usable XPath engine for DOM-like trees
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+This module provides an XPath engine, that can be re-used by other
+module/classes that implement trees.
+<P>
+
+In order to use the XPath engine, nodes in the user module need to mimick
+<FONT SIZE="-1">DOM</FONT> nodes. The degree of similitude between the user tree and a <FONT SIZE="-1">DOM</FONT> dictates 
+how much of the XPath features can be used. A module implementing all of the
+<FONT SIZE="-1">DOM</FONT> should be able to use this module very easily (you might need to add
+the cmp method on nodes in order to get ordered result sets).
+<P>
+
+This code is a more or less direct copy of the XML::XPath module by
+Matt Sergeant. I only removed the <FONT SIZE="-1">XML</FONT> processing part to remove the dependency
+on XML::Parser, applied a couple of patches, renamed a whole lot of methods
+to make Pod::Coverage happy, and changed the docs.
+<P>
+
+The article eXtending <FONT SIZE="-1">XML</FONT> XPath, <A HREF="http://www.xmltwig.com/article/extending_xml_xpath/">http://www.xmltwig.com/article/extending_xml_xpath/</A>
+should give authors who want to use this module enough background to do so.
+<P>
+
+Otherwise, my email is below ;--)
+<P>
+
+<B></B><FONT SIZE="-1"><B>WARNING</B></FONT><B></B>: while the underlying code is rather solid, this module mostly lacks docs.
+As they say, ``patches welcome''...
+<A NAME="lbAD">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAD"></A>
+
+
+<PRE>
+    use XML::XPathEngine;
+    
+    my $tree= my_tree-&gt;new( ...);
+    my $xp = XML::XPathEngine-&gt;new();
+    
+    my @nodeset = $xp-&gt;find('/root/kid/grandkid[1]', $tree); # find all first grankids
+
+    package XML::MyTree;
+
+    # needs to provide DOM methods
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>DETAILS</H2>
+
+<A NAME="ixAAE"></A>
+<A NAME="lbAF">&nbsp;</A>
+<H2>API</H2>
+
+<A NAME="ixAAF"></A>
+XML::XPathEngine will provide the following methods:
+<A NAME="lbAG">&nbsp;</A>
+<H3>new</H3>
+
+<A NAME="ixAAG"></A>
+<A NAME="lbAH">&nbsp;</A>
+<H3>findnodes ($path, $context)</H3>
+
+
+
+<A NAME="ixAAH"></A>
+Returns a list of nodes found by <TT>$path</TT>, optionally in context <TT>$context</TT>. 
+In scalar context returns an XML::XPathEngine::NodeSet object.
+<A NAME="lbAI">&nbsp;</A>
+<H3>findnodes_as_string ($path, $context)</H3>
+
+
+
+<A NAME="ixAAI"></A>
+Returns the nodes found as a single string. The result is 
+not guaranteed to be valid <FONT SIZE="-1">XML</FONT> though (it could for example be just text
+if the query returns attribute values).
+<A NAME="lbAJ">&nbsp;</A>
+<H3>findnodes_as_strings ($path, $context)</H3>
+
+
+
+<A NAME="ixAAJ"></A>
+Returns the nodes found as a list of strings, one per node found.
+<A NAME="lbAK">&nbsp;</A>
+<H3>findvalue ($path, $context)</H3>
+
+
+
+<A NAME="ixAAK"></A>
+Returns the result as a string (the concatenation of the values of the
+result nodes).
+<A NAME="lbAL">&nbsp;</A>
+<H3>findvalues($path, $context)</H3>
+
+
+
+<A NAME="ixAAL"></A>
+Returns the values of the result nodes as a list of strings.
+<A NAME="lbAM">&nbsp;</A>
+<H3>exists ($path, $context)</H3>
+
+
+
+<A NAME="ixAAM"></A>
+Returns true if the given path exists.
+<A NAME="lbAN">&nbsp;</A>
+<H3>matches($node, $path, $context)</H3>
+
+
+
+<A NAME="ixAAN"></A>
+Returns true if the node matches the path.
+<A NAME="lbAO">&nbsp;</A>
+<H3>find ($path, $context)</H3>
+
+
+
+<A NAME="ixAAO"></A>
+The find function takes an XPath expression (a string) and returns either a
+XML::XPathEngine::NodeSet object containing the nodes it found (or empty if
+no nodes matched the path), or one of XML::XPathEngine::Literal (a string),
+XML::XPathEngine::Number, or XML::XPathEngine::Boolean. It should always return 
+something - and you can use -&gt;<I>isa()</I> to find out what it returned. If you
+need to check how many nodes it found you should check <TT>$nodeset</TT>-&gt;size.
+See XML::XPathEngine::NodeSet.
+<A NAME="lbAP">&nbsp;</A>
+<H3>getNodeText ($path)</H3>
+
+<A NAME="ixAAP"></A>
+Returns the text string for a particular node. Returns a string,
+or undef if the node doesn't exist.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>set_namespace ($prefix, $uri)</H3>
+
+
+
+<A NAME="ixAAQ"></A>
+Sets the namespace prefix mapping to the uri.
+<P>
+
+Normally in XML::XPathEngine the prefixes in XPath node tests take their
+context from the current node. This means that foo:bar will always
+match an element &lt;foo:bar&gt; regardless of the namespace that the prefix
+foo is mapped to (which might even change within the document, resulting
+in unexpected results). In order to make prefixes in XPath node tests
+actually map to a real <FONT SIZE="-1">URI</FONT>, you need to enable that via a call
+to the set_namespace method of your XML::XPathEngine object.
+<A NAME="lbAR">&nbsp;</A>
+<H3>clear_namespaces ()</H3>
+
+<A NAME="ixAAR"></A>
+Clears all previously set namespace mappings.
+<A NAME="lbAS">&nbsp;</A>
+<H3>get_namespace ($prefix, $node)</H3>
+
+
+
+<A NAME="ixAAS"></A>
+Returns the uri associated to the prefix for the node (mostly for internal usage)
+<A NAME="lbAT">&nbsp;</A>
+<H3>set_strict_namespaces ($strict)</H3>
+
+<A NAME="ixAAT"></A>
+By default, for historical as well as convenience reasons, XML::XPathEngine
+has a slightly non-standard way of dealing with the default namespace.
+<P>
+
+If you search for <TT>&quot;//tag&quot;</TT> it will return elements <TT>&quot;tag&quot;</TT>. As far as I understand it,
+if the document has a default namespace, this should not return anything.
+You would have to first do a <TT>&quot;set_namespace&quot;</TT>, and then search using the namespace.
+<P>
+
+Passing a true value to <TT>&quot;set_strict_namespaces&quot;</TT> will activate this behaviour, passing a
+false value will return it to its default behaviour.
+<A NAME="lbAU">&nbsp;</A>
+<H3>set_var ($var. $val)</H3>
+
+
+
+<A NAME="ixAAU"></A>
+Sets an XPath variable (that can be used in queries as <TT>$var</TT>)
+<A NAME="lbAV">&nbsp;</A>
+<H3>get_var ($var)</H3>
+
+<A NAME="ixAAV"></A>
+Returns the value of the XPath variable (mostly for internal usage)
+<A NAME="lbAW">&nbsp;</A>
+<H3>$XML::XPathEngine::Namespaces</H3>
+
+
+
+<A NAME="ixAAW"></A>
+Set this to 0 if you <I>don't</I> want namespace processing to occur. This
+will make everything a little (tiny) bit faster, but you'll suffer for it,
+probably.
+<A NAME="lbAX">&nbsp;</A>
+<H2>Node Object Model</H2>
+
+<A NAME="ixAAX"></A>
+Nodes need to provide the same <FONT SIZE="-1">API</FONT> as nodes in XML::XPath (at least the access 
+<FONT SIZE="-1">API</FONT>, not the tree manipulation one).
+<A NAME="lbAY">&nbsp;</A>
+<H2>Example</H2>
+
+<A NAME="ixAAY"></A>
+Please see the test files in t/ for examples on how to use XPath.
+<A NAME="lbAZ">&nbsp;</A>
+<H2>XPath extension</H2>
+
+<A NAME="ixAAZ"></A>
+The module supports the XPath recommendation to the same extend as XML::XPath 
+(that is, rather completely).
+<P>
+
+It includes a perl-specific extension: direct support for regular expressions.
+<P>
+
+You can use the usual (in Perl!) <TT>&quot;=~&quot;</TT> and <TT>&quot;!~&quot;</TT> operators. Regular expressions 
+are / delimited (no other delimiter is accepted, \ inside regexp must be 
+backslashed), the <TT>&quot;imsx&quot;</TT> modifiers can be used.
+<P>
+
+
+
+<PRE>
+  $xp-&gt;findnodes( '//@att[.=~ /^v.$/]'); # returns the list of attributes att
+                                         # whose value matches ^v.$
+
+</PRE>
+
+
+<A NAME="lbBA">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABA"></A>
+XML::XPath
+<P>
+
+HTML::TreeBuilder::XPath, XML::Twig::XPath for exemples of using this module
+<P>
+
+Tree::XPathEngine for a similar module for non-XML trees.
+<P>
+
+``/<A HREF="http://www.xmltwig.com">www.xmltwig.com</A>/article/extending_xml_xpath/ '' in http: for background 
+information. The last section of the article summarizes how to reuse XML::XPath.
+As XML::XPathEngine offers the same <FONT SIZE="-1">API</FONT> it should help you
+<A NAME="lbBB">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABB"></A>
+Michel Rodriguez, <TT>&quot;&lt;<A HREF="mailto:mirod@cpan.org">mirod@cpan.org</A>&gt;&quot;</TT>
+Most code comes directly from XML::XPath, by Matt Sergeant.
+<A NAME="lbBC">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixABC"></A>
+Please report any bugs or feature requests to
+<TT>&quot;<A HREF="mailto:bug-tree-xpathengine@rt.cpan.org">bug-tree-xpathengine@rt.cpan.org</A>&quot;</TT>, or through the web interface at
+&lt;<A HREF="http://rt.cpan.org/NoAuth/ReportBug.html?Queue=XML-XPathEngine">http://rt.cpan.org/NoAuth/ReportBug.html?Queue=XML-XPathEngine</A>&gt;.
+I will be notified, and then you'll automatically be notified of progress on
+your bug as I make changes.
+<A NAME="lbBD">&nbsp;</A>
+<H2>ACKNOWLEDGEMENTS</H2>
+
+<A NAME="ixABD"></A>
+<A NAME="lbBE">&nbsp;</A>
+<H2>COPYRIGHT &amp; LICENSE</H2>
+
+<A NAME="ixABE"></A>
+XML::XPath Copyright 2000 AxKit.com Ltd.
+Copyright 2006 Michel Rodriguez, All Rights Reserved.
+<P>
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAE">DETAILS</A><DD>
+<DT><A HREF="#lbAF">API</A><DD>
+<DL>
+<DT><A HREF="#lbAG">new</A><DD>
+<DT><A HREF="#lbAH">findnodes ($path, $context)</A><DD>
+<DT><A HREF="#lbAI">findnodes_as_string ($path, $context)</A><DD>
+<DT><A HREF="#lbAJ">findnodes_as_strings ($path, $context)</A><DD>
+<DT><A HREF="#lbAK">findvalue ($path, $context)</A><DD>
+<DT><A HREF="#lbAL">findvalues($path, $context)</A><DD>
+<DT><A HREF="#lbAM">exists ($path, $context)</A><DD>
+<DT><A HREF="#lbAN">matches($node, $path, $context)</A><DD>
+<DT><A HREF="#lbAO">find ($path, $context)</A><DD>
+<DT><A HREF="#lbAP">getNodeText ($path)</A><DD>
+<DT><A HREF="#lbAQ">set_namespace ($prefix, $uri)</A><DD>
+<DT><A HREF="#lbAR">clear_namespaces ()</A><DD>
+<DT><A HREF="#lbAS">get_namespace ($prefix, $node)</A><DD>
+<DT><A HREF="#lbAT">set_strict_namespaces ($strict)</A><DD>
+<DT><A HREF="#lbAU">set_var ($var. $val)</A><DD>
+<DT><A HREF="#lbAV">get_var ($var)</A><DD>
+<DT><A HREF="#lbAW">$XML::XPathEngine::Namespaces</A><DD>
+</DL>
+<DT><A HREF="#lbAX">Node Object Model</A><DD>
+<DT><A HREF="#lbAY">Example</A><DD>
+<DT><A HREF="#lbAZ">XPath extension</A><DD>
+<DT><A HREF="#lbBA">SEE ALSO</A><DD>
+<DT><A HREF="#lbBB">AUTHOR</A><DD>
+<DT><A HREF="#lbBC">BUGS</A><DD>
+<DT><A HREF="#lbBD">ACKNOWLEDGEMENTS</A><DD>
+<DT><A HREF="#lbBE">COPYRIGHT &amp; LICENSE</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:46 GMT, December 24, 2015
+</div></body>
+</HTML>

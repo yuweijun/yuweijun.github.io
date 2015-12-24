@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Win::Hivex</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Win::Hivex</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2011-11-19<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Win::Hivex - Perl bindings for reading and writing Windows Registry hive files
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ use Win::Hivex;
+
+ $h = Win::Hivex-&gt;open ('SOFTWARE');
+ $root_node = $h-&gt;root ();
+ print $h-&gt;node_name ($root_node);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <TT>&quot;Win::Hivex&quot;</TT> module provides a Perl <FONT SIZE="-1">XS</FONT> binding to the
+<I><A HREF="/manpages/index.html?3+hivex">hivex</A></I>(3) <FONT SIZE="-1">API</FONT> for reading and writing Windows Registry binary
+hive files.
+<A NAME="lbAE">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<A NAME="ixAAE"></A>
+All errors turn into calls to <TT>&quot;croak&quot;</TT> (see <I><A HREF="/manpages/index.html?3+Carp">Carp</A></I>(3)).
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAF"></A>
+<DL COMPACT>
+<DT>open<DD>
+<A NAME="ixAAG"></A>
+
+
+<PRE>
+ $h = Win::Hivex-&gt;open ($filename,
+                        [verbose =&gt; 1,]
+                        [debug =&gt; 1,]
+                        [write =&gt; 1,])
+
+</PRE>
+
+
+
+
+<P>
+
+
+Open a Windows Registry binary hive file.
+
+
+<P>
+
+
+The <TT>&quot;verbose&quot;</TT> and <TT>&quot;debug&quot;</TT> flags enable different levels of
+debugging messages.
+
+
+<P>
+
+
+The <TT>&quot;write&quot;</TT> flag is required if you will be modifying the
+hive file (see ``<FONT SIZE="-1">WRITING</FONT> <FONT SIZE="-1">TO</FONT> <FONT SIZE="-1">HIVE</FONT> <FONT SIZE="-1">FILES</FONT>'' in <I><A HREF="/manpages/index.html?3+hivex">hivex</A></I>(3)).
+
+
+<P>
+
+
+This function returns a hive handle.  The hive handle is
+closed automatically when its reference count drops to 0.
+<DT>root<DD>
+<A NAME="ixAAH"></A>
+
+
+<PRE>
+ $node = $h-&gt;root ()
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return root node of the hive.  All valid hives must contain a root node.
+
+
+<P>
+
+
+This returns a node handle.
+<DT>last_modified<DD>
+<A NAME="ixAAI"></A>
+
+
+<PRE>
+ $int64 = $h-&gt;last_modified ()
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the modification time from the header of the hive.
+
+
+<P>
+
+
+The returned value is a Windows filetime.
+To convert this to a Unix <TT>&quot;time_t&quot;</TT> see:
+&lt;<A HREF="http://stackoverflow.com/questions/6161776/convert-windows-filetime-to-second-in-unix-linux/6161842#6161842">http://stackoverflow.com/questions/6161776/convert-windows-filetime-to-second-in-unix-linux/6161842#6161842</A>&gt;
+<DT>node_name<DD>
+<A NAME="ixAAJ"></A>
+
+
+<PRE>
+ $string = $h-&gt;node_name ($node)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the name of the node.
+
+
+<P>
+
+
+Note that the name of the root node is a dummy, such as
+<TT>&quot;$$$PROTO.HIV&quot;</TT> (other names are possible: it seems to depend on the
+tool or program that created the hive in the first place).  You can
+only know the ``real'' name of the root node by knowing which registry
+file this hive originally comes from, which is knowledge that is
+outside the scope of this library.
+<DT>node_timestamp<DD>
+<A NAME="ixAAK"></A>
+
+
+<PRE>
+ $int64 = $h-&gt;node_timestamp ($node)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the modification time of the node.
+
+
+<P>
+
+
+The returned value is a Windows filetime.
+To convert this to a Unix <TT>&quot;time_t&quot;</TT> see:
+&lt;<A HREF="http://stackoverflow.com/questions/6161776/convert-windows-filetime-to-second-in-unix-linux/6161842#6161842">http://stackoverflow.com/questions/6161776/convert-windows-filetime-to-second-in-unix-linux/6161842#6161842</A>&gt;
+<DT>node_children<DD>
+<A NAME="ixAAL"></A>
+
+
+<PRE>
+ @nodes = $h-&gt;node_children ($node)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return an array of nodes which are the subkeys
+(children) of <TT>&quot;node&quot;</TT>.
+
+
+<P>
+
+
+This returns a list of node handles.
+<DT>node_get_child<DD>
+<A NAME="ixAAM"></A>
+
+
+<PRE>
+ $node = $h-&gt;node_get_child ($node, $name)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the child of node with the name <TT>&quot;name&quot;</TT>, if it exists.
+
+
+<P>
+
+
+The name is matched case insensitively.
+
+
+<P>
+
+
+This returns a node handle, or <TT>&quot;undef&quot;</TT> if the node was not found.
+<DT>node_parent<DD>
+<A NAME="ixAAN"></A>
+
+
+<PRE>
+ $node = $h-&gt;node_parent ($node)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the parent of <TT>&quot;node&quot;</TT>.
+
+
+<P>
+
+
+The parent pointer of the root node in registry files that we
+have examined seems to be invalid, and so this function will
+return an error if called on the root node.
+
+
+<P>
+
+
+This returns a node handle.
+<DT>node_values<DD>
+<A NAME="ixAAO"></A>
+
+
+<PRE>
+ @values = $h-&gt;node_values ($node)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the array of (key, value) pairs attached to this node.
+
+
+<P>
+
+
+This returns a list of value handles.
+<DT>node_get_value<DD>
+<A NAME="ixAAP"></A>
+
+
+<PRE>
+ $value = $h-&gt;node_get_value ($node, $key)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the value attached to this node which has the name <TT>&quot;key&quot;</TT>,
+if it exists.
+
+
+<P>
+
+
+The key name is matched case insensitively.
+
+
+<P>
+
+
+Note that to get the default key, you should pass the empty
+string <TT>&quot;&quot;</TT> here.  The default key is often written <TT>&quot;@&quot;</TT>, but
+inside hives that has no meaning and won't give you the
+default key.
+
+
+<P>
+
+
+This returns a value handle.
+<DT>value_key_len<DD>
+<A NAME="ixAAQ"></A>
+
+
+<PRE>
+ $size = $h-&gt;value_key_len ($val)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the length of the key (name) of a (key, value) pair.  The
+length can legitimately be 0, so errno is the necesary mechanism
+to check for errors.
+
+
+<P>
+
+
+In the context of Windows Registries, a zero-length name means
+that this value is the default key for this node in the tree.
+This is usually written as <TT>&quot;@&quot;</TT>.
+
+
+<P>
+
+
+This returns a size.
+<DT>value_key<DD>
+<A NAME="ixAAR"></A>
+
+
+<PRE>
+ $string = $h-&gt;value_key ($val)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the key (name) of a (key, value) pair.  The name
+is reencoded as <FONT SIZE="-1">UTF-8</FONT> and returned as a string.
+
+
+<P>
+
+
+The string should be freed by the caller when it is no longer needed.
+
+
+<P>
+
+
+Note that this function can return a zero-length string.  In the
+context of Windows Registries, this means that this value is the
+default key for this node in the tree.  This is usually written
+as <TT>&quot;@&quot;</TT>.
+<DT>value_type<DD>
+<A NAME="ixAAS"></A>
+
+
+<PRE>
+ ($type, $len) = $h-&gt;value_type ($val)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the data length and data type of the value in this (key, value)
+pair.  See also <TT>&quot;value_value&quot;</TT> which returns all this
+information, and the value itself.  Also, <TT>&quot;value_*&quot;</TT> functions
+below which can be used to return the value in a more useful form when
+you know the type in advance.
+<DT>node_struct_length<DD>
+<A NAME="ixAAT"></A>
+
+
+<PRE>
+ $size = $h-&gt;node_struct_length ($node)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the length of the node data structure.
+
+
+<P>
+
+
+This returns a size.
+<DT>value_struct_length<DD>
+<A NAME="ixAAU"></A>
+
+
+<PRE>
+ $size = $h-&gt;value_struct_length ($val)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the length of the value data structure.
+
+
+<P>
+
+
+This returns a size.
+<DT>value_value<DD>
+<A NAME="ixAAV"></A>
+
+
+<PRE>
+ ($type, $data) = $h-&gt;value_value ($val)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the value of this (key, value) pair.  The value should
+be interpreted according to its type (see <TT>&quot;hive_type&quot;</TT>).
+<DT>value_string<DD>
+<A NAME="ixAAW"></A>
+
+
+<PRE>
+ $string = $h-&gt;value_string ($val)
+
+</PRE>
+
+
+
+
+<P>
+
+
+If this value is a string, return the string reencoded as <FONT SIZE="-1">UTF-8</FONT>
+(as a C string).  This only works for values which have type
+<TT>&quot;hive_t_string&quot;</TT>, <TT>&quot;hive_t_expand_string&quot;</TT> or <TT>&quot;hive_t_link&quot;</TT>.
+<DT>value_multiple_strings<DD>
+<A NAME="ixAAX"></A>
+
+
+<PRE>
+ @strings = $h-&gt;value_multiple_strings ($val)
+
+</PRE>
+
+
+
+
+<P>
+
+
+If this value is a multiple-string, return the strings reencoded
+as <FONT SIZE="-1">UTF-8</FONT> (in C, as a NULL-terminated array of C strings, in other
+language bindings, as a list of strings).  This only
+works for values which have type <TT>&quot;hive_t_multiple_strings&quot;</TT>.
+<DT>value_dword<DD>
+<A NAME="ixAAY"></A>
+
+
+<PRE>
+ $int32 = $h-&gt;value_dword ($val)
+
+</PRE>
+
+
+
+
+<P>
+
+
+If this value is a <FONT SIZE="-1">DWORD</FONT> (Windows int32), return it.  This only works
+for values which have type <TT>&quot;hive_t_dword&quot;</TT> or <TT>&quot;hive_t_dword_be&quot;</TT>.
+<DT>value_qword<DD>
+<A NAME="ixAAZ"></A>
+
+
+<PRE>
+ $int64 = $h-&gt;value_qword ($val)
+
+</PRE>
+
+
+
+
+<P>
+
+
+If this value is a <FONT SIZE="-1">QWORD</FONT> (Windows int64), return it.  This only
+works for values which have type <TT>&quot;hive_t_qword&quot;</TT>.
+<DT>commit<DD>
+<A NAME="ixABA"></A>
+
+
+<PRE>
+ $h-&gt;commit ([$filename|undef])
+
+</PRE>
+
+
+
+
+<P>
+
+
+Commit (write) any changes which have been made.
+
+
+<P>
+
+
+<TT>&quot;filename&quot;</TT> is the new file to write.  If <TT>&quot;filename&quot;</TT> is null/undefined
+then we overwrite the original file (ie. the file name that was passed to
+<TT>&quot;open&quot;</TT>).
+
+
+<P>
+
+
+Note this does not close the hive handle.  You can perform further
+operations on the hive after committing, including making more
+modifications.  If you no longer wish to use the hive, then you
+should close the handle after committing.
+<DT>node_add_child<DD>
+<A NAME="ixABB"></A>
+
+
+<PRE>
+ $node = $h-&gt;node_add_child ($parent, $name)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Add a new child node named <TT>&quot;name&quot;</TT> to the existing node <TT>&quot;parent&quot;</TT>.
+The new child initially has no subnodes and contains no keys or
+values.  The sk-record (security descriptor) is inherited from
+the parent.
+
+
+<P>
+
+
+The parent must not have an existing child called <TT>&quot;name&quot;</TT>, so if you
+want to overwrite an existing child, call <TT>&quot;node_delete_child&quot;</TT>
+first.
+
+
+<P>
+
+
+This returns a node handle.
+<DT>node_delete_child<DD>
+<A NAME="ixABC"></A>
+
+
+<PRE>
+ $h-&gt;node_delete_child ($node)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Delete the node <TT>&quot;node&quot;</TT>.  All values at the node and all subnodes are
+deleted (recursively).  The <TT>&quot;node&quot;</TT> handle and the handles of all
+subnodes become invalid.  You cannot delete the root node.
+<DT>node_set_values<DD>
+<A NAME="ixABD"></A>
+
+
+<PRE>
+ $h-&gt;node_set_values ($node, \@values)
+
+</PRE>
+
+
+
+
+<P>
+
+
+This call can be used to set all the (key, value) pairs
+stored in <TT>&quot;node&quot;</TT>.
+
+
+<P>
+
+
+<TT>&quot;node&quot;</TT> is the node to modify.
+
+
+<P>
+
+
+<TT>@values</TT> is an array of (keys, value) pairs.
+Each element should be a hashref containing <TT>&quot;key&quot;</TT>, <TT>&quot;t&quot;</TT> (type)
+and <TT>&quot;data&quot;</TT>.
+
+
+<P>
+
+
+Any existing values stored at the node are discarded, and their
+<TT>&quot;value&quot;</TT> handles become invalid.  Thus you can remove all
+values stored at <TT>&quot;node&quot;</TT> by passing <TT>&quot;@values = []&quot;</TT>.
+<DT>node_set_value<DD>
+<A NAME="ixABE"></A>
+
+
+<PRE>
+ $h-&gt;node_set_value ($node, $val)
+
+</PRE>
+
+
+
+
+<P>
+
+
+This call can be used to replace a single <TT>&quot;(key, value)&quot;</TT> pair
+stored in <TT>&quot;node&quot;</TT>.  If the key does not already exist, then a
+new key is added.  Key matching is case insensitive.
+
+
+<P>
+
+
+<TT>&quot;node&quot;</TT> is the node to modify.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABF"></A>
+Copyright (C) 2009-2011 Red Hat Inc.
+<A NAME="lbAH">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixABG"></A>
+Please see the file <FONT SIZE="-1">COPYING</FONT>.LIB for the full license.
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABH"></A>
+<I><A HREF="/manpages/index.html?3+hivex">hivex</A></I>(3),
+<I><A HREF="/manpages/index.html?1+hivexsh">hivexsh</A></I>(1),
+&lt;<A HREF="http://libguestfs.org">http://libguestfs.org</A>&gt;,
+<I><A HREF="/manpages/index.html?3+Sys::Guestfs">Sys::Guestfs</A></I>(3).
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">ERRORS</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DT><A HREF="#lbAG">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAH">LICENSE</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:45 GMT, December 24, 2015
+</div></body>
+</HTML>

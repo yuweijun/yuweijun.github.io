@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of docs::api::Apache2::Response</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>docs::api::Apache2::Response</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2008-04-17<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Apache2::Response - Perl API for Apache HTTP request response methods
+<A NAME="lbAC">&nbsp;</A>
+<H2>Synopsis</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Apache2::Response ();
+  
+  $r-&gt;custom_response(Apache2::Const::FORBIDDEN, &quot;No Entry today&quot;);
+  
+  $etag = $r-&gt;make_etag($force_weak);
+  $r-&gt;set_etag();
+  $status = $r-&gt;meets_conditions();
+  
+  $mtime_rat = $r-&gt;rationalize_mtime($mtime);
+  $r-&gt;set_last_modified($mtime);
+  $r-&gt;update_mtime($mtime);
+  
+  $r-&gt;send_cgi_header($buffer);
+  
+  $r-&gt;set_content_length($length);
+  
+  $ret = $r-&gt;set_keepalive();
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>Description</H2>
+
+<A NAME="ixAAD"></A>
+<TT>&quot;Apache2::Response&quot;</TT> provides the Apache request
+object utilities <FONT SIZE="-1">API</FONT> for dealing
+with <FONT SIZE="-1">HTTP</FONT> response generation process.
+<A NAME="lbAE">&nbsp;</A>
+<H2>API</H2>
+
+<A NAME="ixAAE"></A>
+<TT>&quot;Apache2::Response&quot;</TT> provides the following functions and/or methods:
+<A NAME="lbAF">&nbsp;</A>
+<H3>custom_response</H3>
+
+
+
+<A NAME="ixAAF"></A>
+Install a custom response handler for a given status
+<P>
+
+
+
+<PRE>
+  $r-&gt;custom_response($status, $string);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAG"></A>
+The current request
+<DT>arg1: $status ( Apache2::Const constant )<DD>
+
+
+<A NAME="ixAAH"></A>
+The status for which the custom response should be used
+(e.g. <TT>&quot;Apache2::Const::AUTH_REQUIRED&quot;</TT>)
+<DT>arg2: $string (string)<DD>
+
+
+<A NAME="ixAAI"></A>
+The custom response to use.  This can be a static string, or a <FONT SIZE="-1">URL</FONT>,
+full or just the uri path (<I>/foo/bar.txt</I>).
+<DT>ret: no return value<DD>
+<A NAME="ixAAJ"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAK"></A>
+
+</DL>
+<P>
+
+<TT>&quot;custom_response()&quot;</TT> doesn't alter the response code, but is used to
+replace the standard response body. For example, here is how to change
+the response body for the access handler failure:
+<P>
+
+
+
+<PRE>
+  package MyApache2::MyShop;
+  use Apache2::Response ();
+  use Apache2::Const -compile =&gt; qw(FORBIDDEN OK);
+  sub access {
+      my $r = shift;
+   
+      if (MyApache2::MyShop::tired_squirrels()) {
+          $r-&gt;custom_response(Apache2::Const::FORBIDDEN,
+              &quot;It's siesta time, please try later&quot;);
+          return Apache2::Const::FORBIDDEN;
+      }
+  
+      return Apache2::Const::OK;
+  }
+  ...
+
+  # httpd.conf
+  PerlModule MyApache2::MyShop
+  &lt;Location /TestAPI__custom_response&gt;
+      AuthName dummy
+      AuthType none
+      PerlAccessHandler   MyApache2::MyShop::access
+      PerlResponseHandler MyApache2::MyShop::response
+  &lt;/Location&gt;
+
+</PRE>
+
+
+<P>
+
+When squirrels can't run any more, the handler will return 403, with
+the custom message:
+<P>
+
+
+
+<PRE>
+  It's siesta time, please try later
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>make_etag</H3>
+
+
+
+<A NAME="ixAAL"></A>
+Construct an entity tag from the resource information.  If it's a real
+file, build in some of the file characteristics.
+<P>
+
+
+
+<PRE>
+  $etag = $r-&gt;make_etag($force_weak);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAM"></A>
+The current request
+<DT>arg1: $force_weak (number)<DD>
+
+
+<A NAME="ixAAN"></A>
+Force the entity tag to be weak - it could be modified
+again in as short an interval.
+<DT>ret: $etag (string)<DD>
+
+
+<A NAME="ixAAO"></A>
+The entity tag
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAP"></A>
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>meets_conditions</H3>
+
+
+
+<A NAME="ixAAQ"></A>
+Implements condition <TT>&quot;GET&quot;</TT> rules for <FONT SIZE="-1">HTTP/1</FONT>.1 specification.  This
+function inspects the client headers and determines if the response
+fulfills the specified requirements.
+<P>
+
+
+
+<PRE>
+  $status = $r-&gt;meets_conditions();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAR"></A>
+The current request
+<DT>ret: $status ( Apache2::Const status constant )<DD>
+
+
+<A NAME="ixAAS"></A>
+<TT>&quot;Apache2::Const::OK&quot;</TT> if the response fulfills the condition <FONT SIZE="-1">GET</FONT>
+rules. Otherwise some other status code (which should be returned to
+Apache).
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAT"></A>
+</DL>
+<P>
+
+Refer to the Generating Correct <FONT SIZE="-1">HTTP</FONT>
+Headers document
+for an indepth discussion of this method.
+<A NAME="lbAI">&nbsp;</A>
+<H3>rationalize_mtime</H3>
+
+
+
+<A NAME="ixAAU"></A>
+Return the latest rational time from a request/mtime pair.
+<P>
+
+
+
+<PRE>
+  $mtime_rat = $r-&gt;rationalize_mtime($mtime);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAV"></A>
+The current request
+<DT>arg1: $mtime ( time in seconds )<DD>
+
+
+<A NAME="ixAAW"></A>
+The last modified time
+<DT>ret: $mtime_rat ( time in seconds )<DD>
+
+
+<A NAME="ixAAX"></A>
+the latest rational time from a request/mtime pair.  Mtime is
+returned unless it's in the future, in which case we return the
+current time.
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAY"></A>
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3>send_cgi_header</H3>
+
+
+
+<A NAME="ixAAZ"></A>
+Parse the header
+<P>
+
+
+
+<PRE>
+  $r-&gt;send_cgi_header($buffer);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABA"></A>
+
+<DT>arg1: $buffer (string)<DD>
+
+
+<A NAME="ixABB"></A>
+
+headers and optionally a response body
+<DT>ret: no return value<DD>
+<A NAME="ixABC"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixABD"></A>
+
+</DL>
+<P>
+
+This method is really for back-compatibility with mod_perl 1.0. It's
+very inefficient to send headers this way, because of the parsing
+overhead.
+<P>
+
+If there is a response body following the headers it'll be handled too
+(as if it was sent via
+<TT>&quot;print()&quot;</TT>).
+<P>
+
+Notice that if only <FONT SIZE="-1">HTTP</FONT> headers are included they won't be sent until
+some body is sent (again the ``send'' part is retained from the mod_perl
+1.0 method).
+<A NAME="lbAK">&nbsp;</A>
+<H3>set_content_length</H3>
+
+
+
+<A NAME="ixABE"></A>
+Set the content length for this request.
+<P>
+
+
+
+<PRE>
+  $r-&gt;set_content_length($length);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABF"></A>
+The current request
+<DT>arg1: $length (integer)<DD>
+
+
+<A NAME="ixABG"></A>
+The new content length
+<DT>ret: no return value<DD>
+<A NAME="ixABH"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixABI"></A>
+
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>set_etag</H3>
+
+
+
+<A NAME="ixABJ"></A>
+Set the E-tag outgoing header
+<P>
+
+
+
+<PRE>
+  $r-&gt;set_etag();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABK"></A>
+
+<DT>ret: no return value<DD>
+<A NAME="ixABL"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixABM"></A>
+
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H3>set_keepalive</H3>
+
+
+
+<A NAME="ixABN"></A>
+Set the keepalive status for this request
+<P>
+
+
+
+<PRE>
+  $ret = $r-&gt;set_keepalive();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABO"></A>
+The current request
+<DT>ret: $ret ( boolean )<DD>
+
+
+<A NAME="ixABP"></A>
+true if keepalive can be set, false otherwise
+<DT>since: 2.0.00<DD>
+<A NAME="ixABQ"></A>
+</DL>
+<P>
+
+It's called by <TT>&quot;ap_http_header_filter()&quot;</TT>. For the complete
+complicated logic implemented by this method see
+<I>httpd-2.0/server/http_protocol.c</I>.
+<A NAME="lbAN">&nbsp;</A>
+<H3>set_last_modified</H3>
+
+
+
+<A NAME="ixABR"></A>
+sets the <TT>&quot;Last-Modified&quot;</TT> response header field to the value of the
+mtime field in the request structure --- rationalized to keep it from
+being in the future.
+<P>
+
+
+
+<PRE>
+  $r-&gt;set_last_modified($mtime);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABS"></A>
+
+<DT>opt arg1: $mtime ( time in seconds )<DD>
+
+
+<A NAME="ixABT"></A>
+
+if the <TT>$mtime</TT> argument is passed,
+<TT>$r</TT>-&gt;update_mtime will be first run with that
+argument.
+<DT>ret: no return value<DD>
+<A NAME="ixABU"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixABV"></A>
+
+</DL>
+<A NAME="lbAO">&nbsp;</A>
+<H3>update_mtime</H3>
+
+
+
+<A NAME="ixABW"></A>
+Set the
+<TT>&quot;$r-&gt;mtime&quot;</TT> field
+to the specified value if it's later than what's already there.
+<P>
+
+
+
+<PRE>
+  $r-&gt;update_mtime($mtime);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABX"></A>
+The current request
+<DT>arg1: $mtime ( time in seconds )<DD>
+
+
+<A NAME="ixABY"></A>
+
+<DT>ret: no return value<DD>
+<A NAME="ixABZ"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixACA"></A>
+
+</DL>
+<P>
+
+See also: <TT>$r</TT>-&gt;set_last_modified.
+<A NAME="lbAP">&nbsp;</A>
+<H2>Unsupported API</H2>
+
+<A NAME="ixACB"></A>
+<TT>&quot;Apache2::Response&quot;</TT> also provides auto-generated Perl interface for a
+few other methods which aren't tested at the moment and therefore
+their <FONT SIZE="-1">API</FONT> is a subject to change. These methods will be finalized
+later as a need arises. If you want to rely on any of the following
+methods please contact the the mod_perl development mailing
+list so we can help each other take the steps necessary
+to shift the method to an officially supported <FONT SIZE="-1">API</FONT>.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>send_error_response</H3>
+
+
+
+<A NAME="ixACC"></A>
+Send an ``error'' response back to client. It is used for any response
+that can be generated by the server from the request record.  This
+includes all 204 (no content), 3xx (redirect), 4xx (client error), and
+5xx (server error) messages that have not been redirected to another
+handler via the ErrorDocument feature.
+<P>
+
+
+
+<PRE>
+  $r-&gt;send_error_response($recursive_error);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixACD"></A>
+The current request
+<DT>arg1: $recursive_error ( boolean )<DD>
+
+
+<A NAME="ixACE"></A>
+the error status in case we get an error in the process of trying to
+deal with an <TT>&quot;ErrorDocument&quot;</TT> to handle some other error.  In that
+case, we print the default report for the first thing that went wrong,
+and more briefly report on the problem with the <TT>&quot;ErrorDocument&quot;</TT>.
+<DT>ret: no return value<DD>
+<A NAME="ixACF"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixACG"></A>
+
+</DL>
+<P>
+
+<FONT SIZE="-1">META:</FONT> it's really an internal Apache method, I'm not quite sure how
+can it be used externally.
+<A NAME="lbAR">&nbsp;</A>
+<H3>send_mmap</H3>
+
+
+
+<A NAME="ixACH"></A>
+<FONT SIZE="-1">META:</FONT> Autogenerated - needs to be reviewed/completed
+<P>
+
+Send an <FONT SIZE="-1">MMAP</FONT>'ed file to the client
+<P>
+
+
+
+<PRE>
+  $ret = $r-&gt;send_mmap($mm, $offset, $length);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixACI"></A>
+The current request
+<DT>arg1: $mm (APR::Mmap)<DD>
+
+
+<A NAME="ixACJ"></A>
+The <FONT SIZE="-1">MMAP</FONT>'ed file to send
+<DT>arg2: $offset (number)<DD>
+
+
+<A NAME="ixACK"></A>
+The offset into the <FONT SIZE="-1">MMAP</FONT> to start sending
+<DT>arg3: $length (integer)<DD>
+
+
+<A NAME="ixACL"></A>
+The amount of data to send
+<DT>ret: $ret (integer)<DD>
+
+
+<A NAME="ixACM"></A>
+The number of bytes sent
+<DT>since: 2.0.00<DD>
+<A NAME="ixACN"></A>
+</DL>
+<P>
+
+<FONT SIZE="-1">META:</FONT> requires a working APR::Mmap, which is not supported at the
+moment.
+<A NAME="lbAS">&nbsp;</A>
+<H2>See Also</H2>
+
+<A NAME="ixACO"></A>
+mod_perl 2.0 documentation.
+<A NAME="lbAT">&nbsp;</A>
+<H2>Copyright</H2>
+
+<A NAME="ixACP"></A>
+mod_perl 2.0 and its core modules are copyrighted under
+The Apache Software License, Version 2.0.
+<A NAME="lbAU">&nbsp;</A>
+<H2>Authors</H2>
+
+<A NAME="ixACQ"></A>
+The mod_perl development team and numerous
+contributors.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">Synopsis</A><DD>
+<DT><A HREF="#lbAD">Description</A><DD>
+<DT><A HREF="#lbAE">API</A><DD>
+<DL>
+<DT><A HREF="#lbAF">custom_response</A><DD>
+<DT><A HREF="#lbAG">make_etag</A><DD>
+<DT><A HREF="#lbAH">meets_conditions</A><DD>
+<DT><A HREF="#lbAI">rationalize_mtime</A><DD>
+<DT><A HREF="#lbAJ">send_cgi_header</A><DD>
+<DT><A HREF="#lbAK">set_content_length</A><DD>
+<DT><A HREF="#lbAL">set_etag</A><DD>
+<DT><A HREF="#lbAM">set_keepalive</A><DD>
+<DT><A HREF="#lbAN">set_last_modified</A><DD>
+<DT><A HREF="#lbAO">update_mtime</A><DD>
+</DL>
+<DT><A HREF="#lbAP">Unsupported API</A><DD>
+<DL>
+<DT><A HREF="#lbAQ">send_error_response</A><DD>
+<DT><A HREF="#lbAR">send_mmap</A><DD>
+</DL>
+<DT><A HREF="#lbAS">See Also</A><DD>
+<DT><A HREF="#lbAT">Copyright</A><DD>
+<DT><A HREF="#lbAU">Authors</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

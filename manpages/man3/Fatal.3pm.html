@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Fatal</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Fatal</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-07-25<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Fatal - Replace functions with equivalents which succeed or die
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Fatal qw(open close);
+
+    open(my $fh, &quot;&lt;&quot;, $filename);  # No need to check errors!
+
+    use File::Copy qw(move);
+    use Fatal qw(move);
+
+    move($file1, $file2); # No need to check errors!
+
+    sub juggle { . . . }
+    Fatal-&gt;import('juggle');
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>BEST PRACTICE</H2>
+
+<A NAME="ixAAD"></A>
+<B>Fatal has been obsoleted by the new autodie pragma.</B> Please use
+autodie in preference to <TT>&quot;Fatal&quot;</TT>.  autodie supports lexical scoping,
+throws real exception objects, and provides much nicer error messages.
+<P>
+
+The use of <TT>&quot;:void&quot;</TT> with Fatal is discouraged.
+<A NAME="lbAE">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAE"></A>
+<TT>&quot;Fatal&quot;</TT> provides a way to conveniently replace
+functions which normally return a false value when they fail with
+equivalents which raise exceptions if they are not successful.  This
+lets you use these functions without having to test their return
+values explicitly on each call.  Exceptions can be caught using
+<TT>&quot;eval{}&quot;</TT>.  See perlfunc and perlvar for details.
+<P>
+
+The do-or-die equivalents are set up simply by calling Fatal's
+<TT>&quot;import&quot;</TT> routine, passing it the names of the functions to be
+replaced.  You may wrap both user-defined functions and overridable
+<FONT SIZE="-1">CORE</FONT> operators (except <TT>&quot;exec&quot;</TT>, <TT>&quot;system&quot;</TT>, <TT>&quot;print&quot;</TT>, or any other
+built-in that cannot be expressed via prototypes) in this way.
+<P>
+
+If the symbol <TT>&quot;:void&quot;</TT> appears in the import list, then functions
+named later in that import list raise an exception only when
+these are called in void context---that is, when their return
+values are ignored.  For example
+<P>
+
+
+
+<PRE>
+    use Fatal qw/:void open close/;
+
+    # properly checked, so no exception raised on error
+    if (not open(my $fh, '&lt;', '/bogotic') {
+        warn &quot;Can't open /bogotic: $!&quot;;
+    }
+
+    # not checked, so error raises an exception
+    close FH;
+
+</PRE>
+
+
+<P>
+
+The use of <TT>&quot;:void&quot;</TT> is discouraged, as it can result in exceptions
+not being thrown if you <I>accidentally</I> call a method without
+void context.  Use autodie instead if you need to be able to
+disable autodying/Fatal behaviour for a small block of code.
+<A NAME="lbAF">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+<A NAME="ixAAF"></A>
+<DL COMPACT>
+<DT>Bad subroutine name for Fatal: %s<DD>
+
+
+<A NAME="ixAAG"></A>
+You've called <TT>&quot;Fatal&quot;</TT> with an argument that doesn't look like
+a subroutine name, nor a switch that this version of Fatal
+understands.
+<DT>%s is not a Perl subroutine<DD>
+
+
+<A NAME="ixAAH"></A>
+You've asked <TT>&quot;Fatal&quot;</TT> to try and replace a subroutine which does not
+exist, or has not yet been defined.
+<DT>%s is neither a builtin, nor a Perl subroutine<DD>
+
+
+<A NAME="ixAAI"></A>
+You've asked <TT>&quot;Fatal&quot;</TT> to replace a subroutine, but it's not a Perl
+built-in, and <TT>&quot;Fatal&quot;</TT> couldn't find it as a regular subroutine.
+It either doesn't exist or has not yet been defined.
+<DT>Cannot make the non-overridable %s fatal<DD>
+
+
+<A NAME="ixAAJ"></A>
+You've tried to use <TT>&quot;Fatal&quot;</TT> on a Perl built-in that can't be
+overridden, such as <TT>&quot;print&quot;</TT> or <TT>&quot;system&quot;</TT>, which means that
+<TT>&quot;Fatal&quot;</TT> can't help you, although some other modules might.
+See the ``<FONT SIZE="-1">SEE</FONT> <FONT SIZE="-1">ALSO</FONT>'' section of this documentation.
+<DT>Internal error: %s<DD>
+
+
+<A NAME="ixAAK"></A>
+You've found a bug in <TT>&quot;Fatal&quot;</TT>.  Please report it using
+the <TT>&quot;perlbug&quot;</TT> command.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAL"></A>
+<TT>&quot;Fatal&quot;</TT> clobbers the context in which a function is called and always
+makes it a scalar context, except when the <TT>&quot;:void&quot;</TT> tag is used.
+This problem does not exist in autodie.
+<P>
+
+``Used only once'' warnings can be generated when <TT>&quot;autodie&quot;</TT> or <TT>&quot;Fatal&quot;</TT>
+is used with package filehandles (eg, <TT>&quot;FILE&quot;</TT>).  It's strongly recommended
+you use scalar filehandles instead.
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAM"></A>
+Original module by Lionel Cons (<FONT SIZE="-1">CERN</FONT>).
+<P>
+
+Prototype updates by Ilya Zakharevich &lt;<A HREF="mailto:ilya@math.ohio-state.edu">ilya@math.ohio-state.edu</A>&gt;.
+<P>
+
+autodie support, bugfixes, extended diagnostics, <TT>&quot;system&quot;</TT>
+support, and major overhauling by Paul Fenwick &lt;<A HREF="mailto:pjf@perltraining.com.au">pjf@perltraining.com.au</A>&gt;
+<A NAME="lbAI">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixAAN"></A>
+This module is free software, you may distribute it under the
+same terms as Perl itself.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAO"></A>
+autodie for a nicer way to use lexical Fatal.
+<P>
+
+IPC::System::Simple for a similar idea for calls to <TT>&quot;system()&quot;</TT>
+and backticks.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">BEST PRACTICE</A><DD>
+<DT><A HREF="#lbAE">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAF">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAG">BUGS</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+<DT><A HREF="#lbAI">LICENSE</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:26 GMT, December 24, 2015
+</div></body>
+</HTML>

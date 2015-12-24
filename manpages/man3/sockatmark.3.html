@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SOCKATMARK</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SOCKATMARK</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2008-12-03<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+sockatmark - determine whether socket is at out-of-band mark
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>#include &lt;<A HREF="file:/usr/include/sys/socket.h">sys/socket.h</A>&gt;</B>
+
+<P>
+<B>int sockatmark(int </B><I>sockfd</I><B>);</B>
+
+<P>
+
+Feature Test Macro Requirements for glibc (see
+<B><A HREF="/manpages/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)):
+
+
+<P>
+
+<B>sockatmark</B>():
+
+_POSIX_C_SOURCE&nbsp;&gt;=&nbsp;200112L || _XOPEN_SOURCE&nbsp;&gt;=&nbsp;600
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>sockatmark</B>()
+
+returns a value indicating whether or not the socket referred
+to by the file descriptor
+<I>sockfd</I>
+
+is at the out-of-band mark.
+If the socket is at the mark, then 1 is returned;
+if the socket is not at the mark, 0 is returned.
+This function does not remove the out-of-band mark.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+A successful call to
+<B>sockatmark</B>()
+
+returns 1 if the socket is at the out-of-band mark, or 0 if it is not.
+On error, -1 is returned and <I>errno</I> is set to indicate the error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EBADF</B>
+
+<DD>
+<I>sockfd</I>
+
+is not a valid file descriptor.
+<DT><B>EINVAL</B>
+
+<DD>
+
+<I>sockfd</I>
+
+is not a file descriptor to which
+<B>sockatmark</B>()
+
+can be applied.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+<B>sockatmark</B>()
+
+was added to glibc in version 2.2.4.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+POSIX.1-2001.
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+If
+<B>sockatmark</B>()
+
+returns 1, then the out-of-band data can be read using the
+<B>MSG_OOB</B>
+
+flag of
+<B><A HREF="/manpages/index.html?2+recv">recv</A></B>(2).
+
+<P>
+Out-of-band data is only supported on some stream socket protocols.
+<P>
+<B>sockatmark</B>()
+
+can safely be called from a handler for the
+<B>SIGURG</B>
+
+signal.
+<P>
+<B>sockatmark</B>()
+
+is implemented using the
+<B>SIOCATMARK</B>
+
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+operation.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>BUGS</H2>
+
+Prior to glibc 2.4,
+<B>sockatmark</B>()
+
+did not work.
+<A NAME="lbAK">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+The following code can be used after receipt of a
+<B>SIGURG</B>
+
+signal to read (and discard) all data up to the mark,
+and then read the byte of data at the mark:
+<PRE>
+
+    char buf[BUF_LEN];
+    char oobdata;
+    int atmark, s;
+
+    for (;;) {
+        atmark = sockatmark(sockfd);
+        if (atmark == -1) {
+            perror(&quot;sockatmark&quot;);
+            break;
+        }
+
+        if (atmark)
+            break;
+
+        s = read(sockfd, buf, BUF_LEN) &lt;= 0);
+        if (s == -1)
+            perror(&quot;read&quot;);
+        if (s &lt;= 0)
+            break;
+    }
+
+    if (atmark == 1) {
+        if (recv(sockfd, &amp;oobdata, 1, MSG_OOB) == -1) {
+            perror(&quot;recv&quot;);
+            ...
+        }
+    }
+</PRE>
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?2+fcntl">fcntl</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+recv">recv</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+send">send</A></B>(2),
+
+<B><A HREF="/manpages/index.html?7+tcp">tcp</A></B>(7)
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">VERSIONS</A><DD>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DT><A HREF="#lbAJ">BUGS</A><DD>
+<DT><A HREF="#lbAK">EXAMPLE</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+<DT><A HREF="#lbAM">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:40 GMT, December 24, 2015
+</div></body>
+</HTML>

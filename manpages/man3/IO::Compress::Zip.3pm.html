@@ -1,0 +1,1660 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of IO::Compress::Zip</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>IO::Compress::Zip</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-06-10<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+IO::Compress::Zip - Write zip files/buffers
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use IO::Compress::Zip qw(zip $ZipError) ;
+
+    my $status = zip $input =&gt; $output [,OPTS] 
+        or die &quot;zip failed: $ZipError\n&quot;;
+
+    my $z = new IO::Compress::Zip $output [,OPTS]
+        or die &quot;zip failed: $ZipError\n&quot;;
+
+    $z-&gt;print($string);
+    $z-&gt;printf($format, $string);
+    $z-&gt;write($string);
+    $z-&gt;syswrite($string [, $length, $offset]);
+    $z-&gt;flush();
+    $z-&gt;tell();
+    $z-&gt;eof();
+    $z-&gt;seek($position, $whence);
+    $z-&gt;binmode();
+    $z-&gt;fileno();
+    $z-&gt;opened();
+    $z-&gt;autoflush();
+    $z-&gt;input_line_number();
+    $z-&gt;newStream( [OPTS] );
+    
+    $z-&gt;deflateParams();
+    
+    $z-&gt;close() ;
+
+    $ZipError ;
+
+    # IO::File mode
+
+    print $z $string;
+    printf $z $format, $string;
+    tell $z
+    eof $z
+    seek $z, $position, $whence
+    binmode $z
+    fileno $z
+    close $z ;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This module provides a Perl interface that allows writing zip 
+compressed data to files or buffer.
+<P>
+
+The primary purpose of this module is to provide streaming write access to
+zip files and buffers. It is not a general-purpose file archiver. If that
+is what you want, check out <TT>&quot;Archive::Zip&quot;</TT>.
+<P>
+
+At present three compression methods are supported by IO::Compress::Zip,
+namely Store (no compression at all), Deflate and Bzip2.
+<P>
+
+Note that to create Bzip2 content, the module <TT>&quot;IO::Compress::Bzip2&quot;</TT> must
+be installed.
+<P>
+
+For reading zip files/buffers, see the companion module 
+IO::Uncompress::Unzip.
+<A NAME="lbAE">&nbsp;</A>
+<H2>Functional Interface</H2>
+
+<A NAME="ixAAE"></A>
+A top-level function, <TT>&quot;zip&quot;</TT>, is provided to carry out
+``one-shot'' compression between buffers and/or files. For finer
+control over the compression process, see the ``<FONT SIZE="-1">OO</FONT> Interface''
+section.
+<P>
+
+
+
+<PRE>
+    use IO::Compress::Zip qw(zip $ZipError) ;
+
+    zip $input =&gt; $output [,OPTS] 
+        or die &quot;zip failed: $ZipError\n&quot;;
+
+</PRE>
+
+
+<P>
+
+The functional interface needs Perl5.005 or better.
+<A NAME="lbAF">&nbsp;</A>
+<H3>zip $input =&gt; $output [, <FONT SIZE="-1">OPTS</FONT>]</H3>
+
+
+
+<A NAME="ixAAF"></A>
+<TT>&quot;zip&quot;</TT> expects at least two parameters, <TT>$input</TT> and <TT>$output</TT>.
+<P>
+
+<I>The </I>$input<I> parameter</I>
+<A NAME="ixAAG"></A>
+<P>
+
+The parameter, <TT>$input</TT>, is used to define the source of
+the uncompressed data.
+<P>
+
+It can take one of the following forms:
+<DL COMPACT>
+<DT>A filename<DD>
+<A NAME="ixAAH"></A>
+If the <TT>$input</TT> parameter is a simple scalar, it is assumed to be a
+filename. This file will be opened for reading and the input data
+will be read from it.
+<DT>A filehandle<DD>
+<A NAME="ixAAI"></A>
+If the <TT>$input</TT> parameter is a filehandle, the input data will be
+read from it.
+The string '-' can be used as an alias for standard input.
+<DT>A scalar reference<DD>
+<A NAME="ixAAJ"></A>
+If <TT>$input</TT> is a scalar reference, the input data will be read
+from <TT>$$input</TT>.
+<DT>An array reference<DD>
+<A NAME="ixAAK"></A>
+If <TT>$input</TT> is an array reference, each element in the array must be a
+filename.
+
+
+<P>
+
+
+The input data will be read from each file in turn.
+
+
+<P>
+
+
+The complete array will be walked to ensure that it only
+contains valid filenames before any data is compressed.
+<DT>An Input FileGlob string<DD>
+<A NAME="ixAAL"></A>
+If <TT>$input</TT> is a string that is delimited by the characters ``&lt;'' and ``&gt;''
+<TT>&quot;zip&quot;</TT> will assume that it is an <I>input fileglob string</I>. The
+input is the list of files that match the fileglob.
+
+
+<P>
+
+
+If the fileglob does not match any files ...
+
+
+<P>
+
+
+See File::GlobMapper for more details.
+</DL>
+<P>
+
+If the <TT>$input</TT> parameter is any other type, <TT>&quot;undef&quot;</TT> will be returned.
+<P>
+
+In addition, if <TT>$input</TT> is a simple filename, the default values for
+the <TT>&quot;Name&quot;</TT>, <TT>&quot;Time&quot;</TT>, <TT>&quot;ExtAttr&quot;</TT> and <TT>&quot;exTime&quot;</TT> options will be sourced from that file.
+<P>
+
+If you do not want to use these defaults they can be overridden by
+explicitly setting the <TT>&quot;Name&quot;</TT>, <TT>&quot;Time&quot;</TT>, <TT>&quot;ExtAttr&quot;</TT> and <TT>&quot;exTime&quot;</TT> options or by setting the
+<TT>&quot;Minimal&quot;</TT> parameter.
+<P>
+
+<I>The </I>$output<I> parameter</I>
+<A NAME="ixAAM"></A>
+<P>
+
+The parameter <TT>$output</TT> is used to control the destination of the
+compressed data. This parameter can take one of these forms.
+<DL COMPACT>
+<DT>A filename<DD>
+<A NAME="ixAAN"></A>
+If the <TT>$output</TT> parameter is a simple scalar, it is assumed to be a
+filename.  This file will be opened for writing and the compressed
+data will be written to it.
+<DT>A filehandle<DD>
+<A NAME="ixAAO"></A>
+If the <TT>$output</TT> parameter is a filehandle, the compressed data
+will be written to it.
+The string '-' can be used as an alias for standard output.
+<DT>A scalar reference<DD>
+<A NAME="ixAAP"></A>
+If <TT>$output</TT> is a scalar reference, the compressed data will be
+stored in <TT>$$output</TT>.
+<DT>An Array Reference<DD>
+<A NAME="ixAAQ"></A>
+If <TT>$output</TT> is an array reference, the compressed data will be
+pushed onto the array.
+<DT>An Output FileGlob<DD>
+<A NAME="ixAAR"></A>
+If <TT>$output</TT> is a string that is delimited by the characters ``&lt;'' and ``&gt;''
+<TT>&quot;zip&quot;</TT> will assume that it is an <I>output fileglob string</I>. The
+output is the list of files that match the fileglob.
+
+
+<P>
+
+
+When <TT>$output</TT> is an fileglob string, <TT>$input</TT> must also be a fileglob
+string. Anything else is an error.
+</DL>
+<P>
+
+If the <TT>$output</TT> parameter is any other type, <TT>&quot;undef&quot;</TT> will be returned.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Notes</H3>
+
+<A NAME="ixAAS"></A>
+When <TT>$input</TT> maps to multiple files/buffers and <TT>$output</TT> is a single
+file/buffer the input files/buffers will each be stored
+in <TT>$output</TT> as a distinct entry.
+<A NAME="lbAH">&nbsp;</A>
+<H3>Optional Parameters</H3>
+
+<A NAME="ixAAT"></A>
+Unless specified below, the optional parameters for <TT>&quot;zip&quot;</TT>,
+<TT>&quot;OPTS&quot;</TT>, are the same as those used with the <FONT SIZE="-1">OO</FONT> interface defined in the
+``Constructor Options'' section below.
+<DL COMPACT>
+<DT>AutoClose =&gt; 0|1<DD>
+
+
+<A NAME="ixAAU"></A>
+This option applies to any input or output data streams to 
+<TT>&quot;zip&quot;</TT> that are filehandles.
+
+
+<P>
+
+
+If <TT>&quot;AutoClose&quot;</TT> is specified, and the value is true, it will result in all
+input and/or output filehandles being closed once <TT>&quot;zip&quot;</TT> has
+completed.
+
+
+<P>
+
+
+This parameter defaults to 0.
+<DT>BinModeIn =&gt; 0|1<DD>
+
+
+<A NAME="ixAAV"></A>
+When reading from a file or filehandle, set <TT>&quot;binmode&quot;</TT> before reading.
+
+
+<P>
+
+
+Defaults to 0.
+<DT>Append =&gt; 0|1<DD>
+
+
+<A NAME="ixAAW"></A>
+<FONT SIZE="-1">TODO</FONT>
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Examples</H3>
+
+<A NAME="ixAAX"></A>
+To read the contents of the file <TT>&quot;file1.txt&quot;</TT> and write the compressed
+data to the file <TT>&quot;file1.txt.zip&quot;</TT>.
+<P>
+
+
+
+<PRE>
+    use strict ;
+    use warnings ;
+    use IO::Compress::Zip qw(zip $ZipError) ;
+
+    my $input = &quot;file1.txt&quot;;
+    zip $input =&gt; &quot;$input.zip&quot;
+        or die &quot;zip failed: $ZipError\n&quot;;
+
+</PRE>
+
+
+<P>
+
+To read from an existing Perl filehandle, <TT>$input</TT>, and write the
+compressed data to a buffer, <TT>$buffer</TT>.
+<P>
+
+
+
+<PRE>
+    use strict ;
+    use warnings ;
+    use IO::Compress::Zip qw(zip $ZipError) ;
+    use IO::File ;
+
+    my $input = new IO::File &quot;&lt;file1.txt&quot;
+        or die &quot;Cannot open 'file1.txt': $!\n&quot; ;
+    my $buffer ;
+    zip $input =&gt; \$buffer 
+        or die &quot;zip failed: $ZipError\n&quot;;
+
+</PRE>
+
+
+<P>
+
+To compress all files in the directory ``/my/home'' that match ``*.txt''
+and store the compressed data in the same directory
+<P>
+
+
+
+<PRE>
+    use strict ;
+    use warnings ;
+    use IO::Compress::Zip qw(zip $ZipError) ;
+
+    zip '&lt;/my/home/*.txt&gt;' =&gt; '&lt;*.zip&gt;'
+        or die &quot;zip failed: $ZipError\n&quot;;
+
+</PRE>
+
+
+<P>
+
+and if you want to compress each file one at a time, this will do the trick
+<P>
+
+
+
+<PRE>
+    use strict ;
+    use warnings ;
+    use IO::Compress::Zip qw(zip $ZipError) ;
+
+    for my $input ( glob &quot;/my/home/*.txt&quot; )
+    {
+        my $output = &quot;$input.zip&quot; ;
+        zip $input =&gt; $output 
+            or die &quot;Error compressing '$input': $ZipError\n&quot;;
+    }
+
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>OO Interface</H2>
+
+<A NAME="ixAAY"></A>
+<A NAME="lbAK">&nbsp;</A>
+<H3>Constructor</H3>
+
+<A NAME="ixAAZ"></A>
+The format of the constructor for <TT>&quot;IO::Compress::Zip&quot;</TT> is shown below
+<P>
+
+
+
+<PRE>
+    my $z = new IO::Compress::Zip $output [,OPTS]
+        or die &quot;IO::Compress::Zip failed: $ZipError\n&quot;;
+
+</PRE>
+
+
+<P>
+
+It returns an <TT>&quot;IO::Compress::Zip&quot;</TT> object on success and undef on failure. 
+The variable <TT>$ZipError</TT> will contain an error message on failure.
+<P>
+
+If you are running Perl 5.005 or better the object, <TT>$z</TT>, returned from 
+IO::Compress::Zip can be used exactly like an IO::File filehandle. 
+This means that all normal output file operations can be carried out 
+with <TT>$z</TT>. 
+For example, to write to a compressed file/buffer you can use either of 
+these forms
+<P>
+
+
+
+<PRE>
+    $z-&gt;print(&quot;hello world\n&quot;);
+    print $z &quot;hello world\n&quot;;
+
+</PRE>
+
+
+<P>
+
+The mandatory parameter <TT>$output</TT> is used to control the destination
+of the compressed data. This parameter can take one of these forms.
+<DL COMPACT>
+<DT>A filename<DD>
+<A NAME="ixABA"></A>
+If the <TT>$output</TT> parameter is a simple scalar, it is assumed to be a
+filename. This file will be opened for writing and the compressed data
+will be written to it.
+<DT>A filehandle<DD>
+<A NAME="ixABB"></A>
+If the <TT>$output</TT> parameter is a filehandle, the compressed data will be
+written to it.
+The string '-' can be used as an alias for standard output.
+<DT>A scalar reference<DD>
+<A NAME="ixABC"></A>
+If <TT>$output</TT> is a scalar reference, the compressed data will be stored
+in <TT>$$output</TT>.
+</DL>
+<P>
+
+If the <TT>$output</TT> parameter is any other type, <TT>&quot;IO::Compress::Zip&quot;</TT>::new will
+return undef.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Constructor Options</H3>
+
+<A NAME="ixABD"></A>
+<TT>&quot;OPTS&quot;</TT> is any combination of the following options:
+<DL COMPACT>
+<DT>AutoClose =&gt; 0|1<DD>
+
+
+<A NAME="ixABE"></A>
+This option is only valid when the <TT>$output</TT> parameter is a filehandle. If
+specified, and the value is true, it will result in the <TT>$output</TT> being
+closed once either the <TT>&quot;close&quot;</TT> method is called or the <TT>&quot;IO::Compress::Zip&quot;</TT>
+object is destroyed.
+
+
+<P>
+
+
+This parameter defaults to 0.
+<DT>Append =&gt; 0|1<DD>
+
+
+<A NAME="ixABF"></A>
+Opens <TT>$output</TT> in append mode.
+
+
+<P>
+
+
+The behaviour of this option is dependent on the type of <TT>$output</TT>.
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+A Buffer
+
+
+<P>
+
+
+If <TT>$output</TT> is a buffer and <TT>&quot;Append&quot;</TT> is enabled, all compressed data
+will be append to the end if <TT>$output</TT>. Otherwise <TT>$output</TT> will be
+cleared before any data is written to it.
+<DT>*<DD>
+A Filename
+
+
+<P>
+
+
+If <TT>$output</TT> is a filename and <TT>&quot;Append&quot;</TT> is enabled, the file will be
+opened in append mode. Otherwise the contents of the file, if any, will be
+truncated before any compressed data is written to it.
+<DT>*<DD>
+A Filehandle
+
+
+<P>
+
+
+If <TT>$output</TT> is a filehandle, the file pointer will be positioned to the
+end of the file via a call to <TT>&quot;seek&quot;</TT> before any compressed data is written
+to it.  Otherwise the file pointer will not be moved.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+This parameter defaults to 0.
+</DL>
+
+<DT>Name =&gt; $string<DD>
+
+
+<A NAME="ixABG"></A>
+Stores the contents of <TT>$string</TT> in the zip filename header field. If
+<TT>&quot;Name&quot;</TT> is not specified, no zip filename field will be created.
+<DT>Time =&gt; $number<DD>
+
+
+<A NAME="ixABH"></A>
+Sets the last modified time field in the zip header to <TT>$number</TT>.
+
+
+<P>
+
+
+This field defaults to the time the <TT>&quot;IO::Compress::Zip&quot;</TT> object was created
+if this option is not specified.
+<DT>ExtAttr =&gt; $attr<DD>
+
+
+<A NAME="ixABI"></A>
+This option controls the ``external file attributes'' field in the central
+header of the zip file. This is a 4 byte field.
+
+
+<P>
+
+
+If you are running a Unix derivative this value defaults to
+
+
+<P>
+
+
+
+
+<PRE>
+    0666 &lt;&lt; 16
+
+</PRE>
+
+
+
+
+<P>
+
+
+This should allow read/write access to any files that are extracted from
+the zip file/buffer.
+
+
+<P>
+
+
+For all other systems it defaults to 0.
+<DT>exTime =&gt; [$atime, $mtime, $ctime]<DD>
+
+
+<A NAME="ixABJ"></A>
+This option expects an array reference with exactly three elements:
+<TT>$atime</TT>, <TT>&quot;mtime&quot;</TT> and <TT>$ctime</TT>. These correspond to the last access
+time, last modification time and creation time respectively.
+
+
+<P>
+
+
+It uses these values to set the extended timestamp field (<FONT SIZE="-1">ID</FONT> is ``<FONT SIZE="-1">UT</FONT>'') in
+the local zip header using the three values, <TT>$atime</TT>, <TT>$mtime</TT>, <TT>$ctime</TT>. In
+addition it sets the extended timestamp field in the central zip header
+using <TT>$mtime</TT>.
+
+
+<P>
+
+
+If any of the three values is <TT>&quot;undef&quot;</TT> that time value will not be used.
+So, for example, to set only the <TT>$mtime</TT> you would use this
+
+
+<P>
+
+
+
+
+<PRE>
+    exTime =&gt; [undef, $mtime, undef]
+
+</PRE>
+
+
+
+
+<P>
+
+
+If the <TT>&quot;Minimal&quot;</TT> option is set to true, this option will be ignored.
+
+
+<P>
+
+
+By default no extended time field is created.
+<DT>exUnix2 =&gt; [$uid, $gid]<DD>
+
+
+<A NAME="ixABK"></A>
+This option expects an array reference with exactly two elements: <TT>$uid</TT>
+and <TT>$gid</TT>. These values correspond to the numeric user <FONT SIZE="-1">ID</FONT> and group <FONT SIZE="-1">ID</FONT>
+of the owner of the files respectively.
+
+
+<P>
+
+
+When the <TT>&quot;exUnix2&quot;</TT> option is present it will trigger the creation of a
+Unix2 extra field (<FONT SIZE="-1">ID</FONT> is ``Ux'') in the local zip. This will be populated
+with <TT>$uid</TT> and <TT>$gid</TT>. In addition an empty Unix2 extra field will also
+be created in the central zip header
+
+
+<P>
+
+
+If the <TT>&quot;Minimal&quot;</TT> option is set to true, this option will be ignored.
+
+
+<P>
+
+
+By default no Unix2 extra field is created.
+<DT>Comment =&gt; $comment<DD>
+
+
+<A NAME="ixABL"></A>
+Stores the contents of <TT>$comment</TT> in the Central File Header of
+the zip file.
+
+
+<P>
+
+
+By default, no comment field is written to the zip file.
+<DT>ZipComment =&gt; $comment<DD>
+
+
+<A NAME="ixABM"></A>
+Stores the contents of <TT>$comment</TT> in the End of Central Directory record
+of the zip file.
+
+
+<P>
+
+
+By default, no comment field is written to the zip file.
+<DT>Method =&gt; $method<DD>
+
+
+<A NAME="ixABN"></A>
+Controls which compression method is used. At present three compression
+methods are supported, namely Store (no compression at all), Deflate and
+Bzip2.
+
+
+<P>
+
+
+The symbols, <FONT SIZE="-1">ZIP_CM_STORE</FONT>, <FONT SIZE="-1">ZIP_CM_DEFLATE</FONT> and <FONT SIZE="-1">ZIP_CM_BZIP2</FONT> are used to
+select the compression method.
+
+
+<P>
+
+
+These constants are not imported by <TT>&quot;IO::Compress::Zip&quot;</TT> by default.
+
+
+<P>
+
+
+
+
+<PRE>
+    use IO::Compress::Zip qw(:zip_method);
+    use IO::Compress::Zip qw(:constants);
+    use IO::Compress::Zip qw(:all);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that to create Bzip2 content, the module <TT>&quot;IO::Compress::Bzip2&quot;</TT> must
+be installed. A fatal error will be thrown if you attempt to create Bzip2
+content when <TT>&quot;IO::Compress::Bzip2&quot;</TT> is not available.
+
+
+<P>
+
+
+The default method is <FONT SIZE="-1">ZIP_CM_DEFLATE</FONT>.
+<DT>Stream =&gt; 0|1<DD>
+
+
+<A NAME="ixABO"></A>
+This option controls whether the zip file/buffer output is created in
+streaming mode.
+
+
+<P>
+
+
+Note that when outputting to a file with streaming mode disabled (<TT>&quot;Stream&quot;</TT>
+is 0), the output file must be seekable.
+
+
+<P>
+
+
+The default is 1.
+<DT>Zip64 =&gt; 0|1<DD>
+
+
+<A NAME="ixABP"></A>
+Create a Zip64 zip file/buffer. This option should only be used if you want
+to store files larger than 4 Gig.
+
+
+<P>
+
+
+If you intend to manipulate the Zip64 zip files created with this module
+using an external zip/unzip make sure that it supports streaming Zip64.
+
+
+<P>
+
+
+In particular, if you are using Info-Zip you need to have zip version 3.x
+or better to update a Zip64 archive and unzip version 6.x to read a zip64
+archive. At the time of writing both are beta status.
+
+
+<P>
+
+
+When the <TT>&quot;Zip64&quot;</TT> option is enabled, the <TT>&quot;Stream&quot;</TT> option <I>must</I> be
+enabled as well.
+
+
+<P>
+
+
+The default is 0.
+<DT>TextFlag =&gt; 0|1<DD>
+
+
+<A NAME="ixABQ"></A>
+This parameter controls the setting of a bit in the zip central header. It
+is used to signal that the data stored in the zip file/buffer is probably
+text.
+
+
+<P>
+
+
+The default is 0.
+<DT>ExtraFieldLocal =&gt; $data =item ExtraFieldCentral =&gt; $data<DD>
+
+
+<A NAME="ixABR"></A>
+The <TT>&quot;ExtraFieldLocal&quot;</TT> option is used to store additional metadata in the
+local header for the zip file/buffer. The <TT>&quot;ExtraFieldCentral&quot;</TT> does the
+same for the matching central header.
+
+
+<P>
+
+
+An extra field consists of zero or more subfields. Each subfield consists
+of a two byte header followed by the subfield data.
+
+
+<P>
+
+
+The list of subfields can be supplied in any of the following formats
+
+
+<P>
+
+
+
+
+<PRE>
+    ExtraFieldLocal =&gt; [$id1, $data1,
+                        $id2, $data2,
+                         ...
+                       ]
+
+    ExtraFieldLocal =&gt; [ [$id1 =&gt; $data1],
+                         [$id2 =&gt; $data2],
+                         ...
+                       ]
+
+    ExtraFieldLocal =&gt; { $id1 =&gt; $data1,
+                         $id2 =&gt; $data2,
+                         ...
+                       }
+
+</PRE>
+
+
+
+
+<P>
+
+
+Where <TT>$id1</TT>, <TT>$id2</TT> are two byte subfield <FONT SIZE="-1">ID</FONT>'s.
+
+
+<P>
+
+
+If you use the hash syntax, you have no control over the order in which
+the ExtraSubFields are stored, plus you cannot have SubFields with
+duplicate <FONT SIZE="-1">ID</FONT>.
+
+
+<P>
+
+
+Alternatively the list of subfields can by supplied as a scalar, thus
+
+
+<P>
+
+
+
+
+<PRE>
+    ExtraField =&gt; $rawdata
+
+</PRE>
+
+
+
+
+<P>
+
+
+The Extended Time field (<FONT SIZE="-1">ID</FONT> ``<FONT SIZE="-1">UT</FONT>''), set using the <TT>&quot;exTime&quot;</TT> option, and the
+Unix2 extra field (<FONT SIZE="-1">ID</FONT> &quot;Ux), set using the <TT>&quot;exUnix2&quot;</TT> option, are examples
+of extra fields.
+
+
+<P>
+
+
+If the <TT>&quot;Minimal&quot;</TT> option is set to true, this option will be ignored.
+
+
+<P>
+
+
+The maximum size of an extra field 65535 bytes.
+<DT>Minimal =&gt; 1|0<DD>
+
+
+<A NAME="ixABS"></A>
+If specified, this option will disable the creation of all extra fields
+in the zip local and central headers. So the <TT>&quot;exTime&quot;</TT>, <TT>&quot;exUnix2&quot;</TT>,
+<TT>&quot;ExtraFieldLocal&quot;</TT> and <TT>&quot;ExtraFieldCentral&quot;</TT> options will be ignored.
+
+
+<P>
+
+
+This parameter defaults to 0.
+<DT>BlockSize100K =&gt; number<DD>
+
+
+<A NAME="ixABT"></A>
+Specify the number of 100K blocks bzip2 uses during compression.
+
+
+<P>
+
+
+Valid values are from 1 to 9, where 9 is best compression.
+
+
+<P>
+
+
+This option is only valid if the <TT>&quot;Method&quot;</TT> is <FONT SIZE="-1">ZIP_CM_BZIP2</FONT>. It is ignored
+otherwise.
+
+
+<P>
+
+
+The default is 1.
+<DT>WorkFactor =&gt; number<DD>
+
+
+<A NAME="ixABU"></A>
+Specifies how much effort bzip2 should take before resorting to a slower
+fallback compression algorithm.
+
+
+<P>
+
+
+Valid values range from 0 to 250, where 0 means use the default value 30.
+
+
+<P>
+
+
+This option is only valid if the <TT>&quot;Method&quot;</TT> is <FONT SIZE="-1">ZIP_CM_BZIP2</FONT>. It is ignored
+otherwise.
+
+
+<P>
+
+
+The default is 0.
+<DT>-Level<DD>
+<A NAME="ixABV"></A>
+Defines the compression level used by zlib. The value should either be
+a number between 0 and 9 (0 means no compression and 9 is maximum
+compression), or one of the symbolic constants defined below.
+
+
+<P>
+
+
+
+
+<PRE>
+   Z_NO_COMPRESSION
+   Z_BEST_SPEED
+   Z_BEST_COMPRESSION
+   Z_DEFAULT_COMPRESSION
+
+</PRE>
+
+
+
+
+<P>
+
+
+The default is Z_DEFAULT_COMPRESSION.
+
+
+<P>
+
+
+Note, these constants are not imported by <TT>&quot;IO::Compress::Zip&quot;</TT> by default.
+
+
+<P>
+
+
+
+
+<PRE>
+    use IO::Compress::Zip qw(:strategy);
+    use IO::Compress::Zip qw(:constants);
+    use IO::Compress::Zip qw(:all);
+
+</PRE>
+
+
+<DT>-Strategy<DD>
+<A NAME="ixABW"></A>
+Defines the strategy used to tune the compression. Use one of the symbolic
+constants defined below.
+
+
+<P>
+
+
+
+
+<PRE>
+   Z_FILTERED
+   Z_HUFFMAN_ONLY
+   Z_RLE
+   Z_FIXED
+   Z_DEFAULT_STRATEGY
+
+</PRE>
+
+
+
+
+<P>
+
+
+The default is Z_DEFAULT_STRATEGY.
+<DT>Strict =&gt; 0|1<DD>
+
+
+<A NAME="ixABX"></A>
+This is a placeholder option.
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H3>Examples</H3>
+
+<A NAME="ixABY"></A>
+<FONT SIZE="-1">TODO</FONT>
+<A NAME="lbAN">&nbsp;</A>
+<H2>Methods</H2>
+
+<A NAME="ixABZ"></A>
+<A NAME="lbAO">&nbsp;</A>
+<H3>print</H3>
+
+<A NAME="ixACA"></A>
+Usage is
+<P>
+
+
+
+<PRE>
+    $z-&gt;print($data)
+    print $z $data
+
+</PRE>
+
+
+<P>
+
+Compresses and outputs the contents of the <TT>$data</TT> parameter. This
+has the same behaviour as the <TT>&quot;print&quot;</TT> built-in.
+<P>
+
+Returns true if successful.
+<A NAME="lbAP">&nbsp;</A>
+<H3>printf</H3>
+
+<A NAME="ixACB"></A>
+Usage is
+<P>
+
+
+
+<PRE>
+    $z-&gt;printf($format, $data)
+    printf $z $format, $data
+
+</PRE>
+
+
+<P>
+
+Compresses and outputs the contents of the <TT>$data</TT> parameter.
+<P>
+
+Returns true if successful.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>syswrite</H3>
+
+<A NAME="ixACC"></A>
+Usage is
+<P>
+
+
+
+<PRE>
+    $z-&gt;syswrite $data
+    $z-&gt;syswrite $data, $length
+    $z-&gt;syswrite $data, $length, $offset
+
+</PRE>
+
+
+<P>
+
+Compresses and outputs the contents of the <TT>$data</TT> parameter.
+<P>
+
+Returns the number of uncompressed bytes written, or <TT>&quot;undef&quot;</TT> if
+unsuccessful.
+<A NAME="lbAR">&nbsp;</A>
+<H3>write</H3>
+
+<A NAME="ixACD"></A>
+Usage is
+<P>
+
+
+
+<PRE>
+    $z-&gt;write $data
+    $z-&gt;write $data, $length
+    $z-&gt;write $data, $length, $offset
+
+</PRE>
+
+
+<P>
+
+Compresses and outputs the contents of the <TT>$data</TT> parameter.
+<P>
+
+Returns the number of uncompressed bytes written, or <TT>&quot;undef&quot;</TT> if
+unsuccessful.
+<A NAME="lbAS">&nbsp;</A>
+<H3>flush</H3>
+
+<A NAME="ixACE"></A>
+Usage is
+<P>
+
+
+
+<PRE>
+    $z-&gt;flush;
+    $z-&gt;flush($flush_type);
+
+</PRE>
+
+
+<P>
+
+Flushes any pending compressed data to the output file/buffer.
+<P>
+
+This method takes an optional parameter, <TT>$flush_type</TT>, that controls
+how the flushing will be carried out. By default the <TT>$flush_type</TT>
+used is <TT>&quot;Z_FINISH&quot;</TT>. Other valid values for <TT>$flush_type</TT> are
+<TT>&quot;Z_NO_FLUSH&quot;</TT>, <TT>&quot;Z_SYNC_FLUSH&quot;</TT>, <TT>&quot;Z_FULL_FLUSH&quot;</TT> and <TT>&quot;Z_BLOCK&quot;</TT>. It is
+strongly recommended that you only set the <TT>&quot;flush_type&quot;</TT> parameter if
+you fully understand the implications of what it does - overuse of <TT>&quot;flush&quot;</TT>
+can seriously degrade the level of compression achieved. See the <TT>&quot;zlib&quot;</TT>
+documentation for details.
+<P>
+
+Returns true on success.
+<A NAME="lbAT">&nbsp;</A>
+<H3>tell</H3>
+
+<A NAME="ixACF"></A>
+Usage is
+<P>
+
+
+
+<PRE>
+    $z-&gt;tell()
+    tell $z
+
+</PRE>
+
+
+<P>
+
+Returns the uncompressed file offset.
+<A NAME="lbAU">&nbsp;</A>
+<H3>eof</H3>
+
+<A NAME="ixACG"></A>
+Usage is
+<P>
+
+
+
+<PRE>
+    $z-&gt;eof();
+    eof($z);
+
+</PRE>
+
+
+<P>
+
+Returns true if the <TT>&quot;close&quot;</TT> method has been called.
+<A NAME="lbAV">&nbsp;</A>
+<H3>seek</H3>
+
+<A NAME="ixACH"></A>
+
+
+<PRE>
+    $z-&gt;seek($position, $whence);
+    seek($z, $position, $whence);
+
+</PRE>
+
+
+<P>
+
+Provides a sub-set of the <TT>&quot;seek&quot;</TT> functionality, with the restriction
+that it is only legal to seek forward in the output file/buffer.
+It is a fatal error to attempt to seek backward.
+<P>
+
+Empty parts of the file/buffer will have <FONT SIZE="-1">NULL</FONT> (0x00) bytes written to them.
+<P>
+
+The <TT>$whence</TT> parameter takes one the usual values, namely <FONT SIZE="-1">SEEK_SET</FONT>,
+<FONT SIZE="-1">SEEK_CUR</FONT> or <FONT SIZE="-1">SEEK_END</FONT>.
+<P>
+
+Returns 1 on success, 0 on failure.
+<A NAME="lbAW">&nbsp;</A>
+<H3>binmode</H3>
+
+<A NAME="ixACI"></A>
+Usage is
+<P>
+
+
+
+<PRE>
+    $z-&gt;binmode
+    binmode $z ;
+
+</PRE>
+
+
+<P>
+
+This is a noop provided for completeness.
+<A NAME="lbAX">&nbsp;</A>
+<H3>opened</H3>
+
+<A NAME="ixACJ"></A>
+
+
+<PRE>
+    $z-&gt;opened()
+
+</PRE>
+
+
+<P>
+
+Returns true if the object currently refers to a opened file/buffer.
+<A NAME="lbAY">&nbsp;</A>
+<H3>autoflush</H3>
+
+<A NAME="ixACK"></A>
+
+
+<PRE>
+    my $prev = $z-&gt;autoflush()
+    my $prev = $z-&gt;autoflush(EXPR)
+
+</PRE>
+
+
+<P>
+
+If the <TT>$z</TT> object is associated with a file or a filehandle, this method
+returns the current autoflush setting for the underlying filehandle. If
+<TT>&quot;EXPR&quot;</TT> is present, and is non-zero, it will enable flushing after every
+write/print operation.
+<P>
+
+If <TT>$z</TT> is associated with a buffer, this method has no effect and always
+returns <TT>&quot;undef&quot;</TT>.
+<P>
+
+<B>Note</B> that the special variable <TT>$|</TT> <B>cannot</B> be used to set or
+retrieve the autoflush setting.
+<A NAME="lbAZ">&nbsp;</A>
+<H3>input_line_number</H3>
+
+<A NAME="ixACL"></A>
+
+
+<PRE>
+    $z-&gt;input_line_number()
+    $z-&gt;input_line_number(EXPR)
+
+</PRE>
+
+
+<P>
+
+This method always returns <TT>&quot;undef&quot;</TT> when compressing.
+<A NAME="lbBA">&nbsp;</A>
+<H3>fileno</H3>
+
+<A NAME="ixACM"></A>
+
+
+<PRE>
+    $z-&gt;fileno()
+    fileno($z)
+
+</PRE>
+
+
+<P>
+
+If the <TT>$z</TT> object is associated with a file or a filehandle, <TT>&quot;fileno&quot;</TT>
+will return the underlying file descriptor. Once the <TT>&quot;close&quot;</TT> method is
+called <TT>&quot;fileno&quot;</TT> will return <TT>&quot;undef&quot;</TT>.
+<P>
+
+If the <TT>$z</TT> object is is associated with a buffer, this method will return
+<TT>&quot;undef&quot;</TT>.
+<A NAME="lbBB">&nbsp;</A>
+<H3>close</H3>
+
+<A NAME="ixACN"></A>
+
+
+<PRE>
+    $z-&gt;close() ;
+    close $z ;
+
+</PRE>
+
+
+<P>
+
+Flushes any pending compressed data and then closes the output file/buffer.
+<P>
+
+For most versions of Perl this method will be automatically invoked if
+the IO::Compress::Zip object is destroyed (either explicitly or by the
+variable with the reference to the object going out of scope). The
+exceptions are Perl versions 5.005 through 5.00504 and 5.8.0. In
+these cases, the <TT>&quot;close&quot;</TT> method will be called automatically, but
+not until global destruction of all live objects when the program is
+terminating.
+<P>
+
+Therefore, if you want your scripts to be able to run on all versions
+of Perl, you should call <TT>&quot;close&quot;</TT> explicitly and not rely on automatic
+closing.
+<P>
+
+Returns true on success, otherwise 0.
+<P>
+
+If the <TT>&quot;AutoClose&quot;</TT> option has been enabled when the IO::Compress::Zip
+object was created, and the object is associated with a file, the
+underlying file will also be closed.
+<A NAME="lbBC">&nbsp;</A>
+<H3>newStream([<FONT SIZE="-1">OPTS</FONT>])</H3>
+
+<A NAME="ixACO"></A>
+Usage is
+<P>
+
+
+
+<PRE>
+    $z-&gt;newStream( [OPTS] )
+
+</PRE>
+
+
+<P>
+
+Closes the current compressed data stream and starts a new one.
+<P>
+
+<FONT SIZE="-1">OPTS</FONT> consists of any of the the options that are available when creating
+the <TT>$z</TT> object.
+<P>
+
+See the ``Constructor Options'' section for more details.
+<A NAME="lbBD">&nbsp;</A>
+<H3>deflateParams</H3>
+
+<A NAME="ixACP"></A>
+Usage is
+<P>
+
+
+
+<PRE>
+    $z-&gt;deflateParams
+
+</PRE>
+
+
+<P>
+
+<FONT SIZE="-1">TODO</FONT>
+<A NAME="lbBE">&nbsp;</A>
+<H2>Importing</H2>
+
+<A NAME="ixACQ"></A>
+A number of symbolic constants are required by some methods in 
+<TT>&quot;IO::Compress::Zip&quot;</TT>. None are imported by default.
+<DL COMPACT>
+<DT>:all<DD>
+<A NAME="ixACR"></A>
+Imports <TT>&quot;zip&quot;</TT>, <TT>$ZipError</TT> and all symbolic
+constants that can be used by <TT>&quot;IO::Compress::Zip&quot;</TT>. Same as doing this
+
+
+<P>
+
+
+
+
+<PRE>
+    use IO::Compress::Zip qw(zip $ZipError :constants) ;
+
+</PRE>
+
+
+<DT>:constants<DD>
+<A NAME="ixACS"></A>
+Import all symbolic constants. Same as doing this
+
+
+<P>
+
+
+
+
+<PRE>
+    use IO::Compress::Zip qw(:flush :level :strategy :zip_method) ;
+
+</PRE>
+
+
+<DT>:flush<DD>
+<A NAME="ixACT"></A>
+These symbolic constants are used by the <TT>&quot;flush&quot;</TT> method.
+
+
+<P>
+
+
+
+
+<PRE>
+    Z_NO_FLUSH
+    Z_PARTIAL_FLUSH
+    Z_SYNC_FLUSH
+    Z_FULL_FLUSH
+    Z_FINISH
+    Z_BLOCK
+
+</PRE>
+
+
+<DT>:level<DD>
+<A NAME="ixACU"></A>
+These symbolic constants are used by the <TT>&quot;Level&quot;</TT> option in the constructor.
+
+
+<P>
+
+
+
+
+<PRE>
+    Z_NO_COMPRESSION
+    Z_BEST_SPEED
+    Z_BEST_COMPRESSION
+    Z_DEFAULT_COMPRESSION
+
+</PRE>
+
+
+<DT>:strategy<DD>
+<A NAME="ixACV"></A>
+These symbolic constants are used by the <TT>&quot;Strategy&quot;</TT> option in the constructor.
+
+
+<P>
+
+
+
+
+<PRE>
+    Z_FILTERED
+    Z_HUFFMAN_ONLY
+    Z_RLE
+    Z_FIXED
+    Z_DEFAULT_STRATEGY
+
+</PRE>
+
+
+<DT>:zip_method<DD>
+<A NAME="ixACW"></A>
+These symbolic constants are used by the <TT>&quot;Method&quot;</TT> option in the
+constructor.
+
+
+<P>
+
+
+
+
+<PRE>
+    ZIP_CM_STORE
+    ZIP_CM_DEFLATE
+    ZIP_CM_BZIP2
+
+</PRE>
+
+
+</DL>
+<A NAME="lbBF">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixACX"></A>
+<A NAME="lbBG">&nbsp;</A>
+<H3>Apache::GZip Revisited</H3>
+
+<A NAME="ixACY"></A>
+See IO::Compress::FAQ
+<A NAME="lbBH">&nbsp;</A>
+<H3>Working with Net::FTP</H3>
+
+<A NAME="ixACZ"></A>
+See IO::Compress::FAQ
+<A NAME="lbBI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixADA"></A>
+Compress::Zlib, IO::Compress::Gzip, IO::Uncompress::Gunzip, IO::Compress::Deflate, IO::Uncompress::Inflate, IO::Compress::RawDeflate, IO::Uncompress::RawInflate, IO::Compress::Bzip2, IO::Uncompress::Bunzip2, IO::Compress::Lzop, IO::Uncompress::UnLzop, IO::Compress::Lzf, IO::Uncompress::UnLzf, IO::Uncompress::AnyInflate, IO::Uncompress::AnyUncompress
+<P>
+
+Compress::Zlib::FAQ
+<P>
+
+File::GlobMapper, Archive::Zip,
+Archive::Tar,
+IO::Zlib
+<P>
+
+For <FONT SIZE="-1">RFC</FONT> 1950, 1951 and 1952 see 
+<I><A HREF="http://www.faqs.org/rfcs/rfc1950.html">http://www.faqs.org/rfcs/rfc1950.html</A></I>,
+<I><A HREF="http://www.faqs.org/rfcs/rfc1951.html">http://www.faqs.org/rfcs/rfc1951.html</A></I> and
+<I><A HREF="http://www.faqs.org/rfcs/rfc1952.html">http://www.faqs.org/rfcs/rfc1952.html</A></I>
+<P>
+
+The <I>zlib</I> compression library was written by Jean-loup Gailly
+<I><A HREF="mailto:gzip@prep.ai.mit.edu">gzip@prep.ai.mit.edu</A></I> and Mark Adler <I><A HREF="mailto:madler@alumni.caltech.edu">madler@alumni.caltech.edu</A></I>.
+<P>
+
+The primary site for the <I>zlib</I> compression library is
+<I><A HREF="http://www.zlib.org">http://www.zlib.org</A></I>.
+<P>
+
+The primary site for gzip is <I><A HREF="http://www.gzip.org">http://www.gzip.org</A></I>.
+<A NAME="lbBJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixADB"></A>
+This module was written by Paul Marquess, <I><A HREF="mailto:pmqs@cpan.org">pmqs@cpan.org</A></I>.
+<A NAME="lbBK">&nbsp;</A>
+<H2>MODIFICATION HISTORY</H2>
+
+<A NAME="ixADC"></A>
+See the Changes file.
+<A NAME="lbBL">&nbsp;</A>
+<H2>COPYRIGHT AND LICENSE</H2>
+
+<A NAME="ixADD"></A>
+Copyright (c) 2005-2009 Paul Marquess. All rights reserved.
+<P>
+
+This program is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">Functional Interface</A><DD>
+<DL>
+<DT><A HREF="#lbAF">zip $input =&gt; $output [, <FONT SIZE="-1">OPTS</FONT>]</A><DD>
+<DT><A HREF="#lbAG">Notes</A><DD>
+<DT><A HREF="#lbAH">Optional Parameters</A><DD>
+<DT><A HREF="#lbAI">Examples</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">OO Interface</A><DD>
+<DL>
+<DT><A HREF="#lbAK">Constructor</A><DD>
+<DT><A HREF="#lbAL">Constructor Options</A><DD>
+<DT><A HREF="#lbAM">Examples</A><DD>
+</DL>
+<DT><A HREF="#lbAN">Methods</A><DD>
+<DL>
+<DT><A HREF="#lbAO">print</A><DD>
+<DT><A HREF="#lbAP">printf</A><DD>
+<DT><A HREF="#lbAQ">syswrite</A><DD>
+<DT><A HREF="#lbAR">write</A><DD>
+<DT><A HREF="#lbAS">flush</A><DD>
+<DT><A HREF="#lbAT">tell</A><DD>
+<DT><A HREF="#lbAU">eof</A><DD>
+<DT><A HREF="#lbAV">seek</A><DD>
+<DT><A HREF="#lbAW">binmode</A><DD>
+<DT><A HREF="#lbAX">opened</A><DD>
+<DT><A HREF="#lbAY">autoflush</A><DD>
+<DT><A HREF="#lbAZ">input_line_number</A><DD>
+<DT><A HREF="#lbBA">fileno</A><DD>
+<DT><A HREF="#lbBB">close</A><DD>
+<DT><A HREF="#lbBC">newStream([<FONT SIZE="-1">OPTS</FONT>])</A><DD>
+<DT><A HREF="#lbBD">deflateParams</A><DD>
+</DL>
+<DT><A HREF="#lbBE">Importing</A><DD>
+<DT><A HREF="#lbBF">EXAMPLES</A><DD>
+<DL>
+<DT><A HREF="#lbBG">Apache::GZip Revisited</A><DD>
+<DT><A HREF="#lbBH">Working with Net::FTP</A><DD>
+</DL>
+<DT><A HREF="#lbBI">SEE ALSO</A><DD>
+<DT><A HREF="#lbBJ">AUTHOR</A><DD>
+<DT><A HREF="#lbBK">MODIFICATION HISTORY</A><DD>
+<DT><A HREF="#lbBL">COPYRIGHT AND LICENSE</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:29 GMT, December 24, 2015
+</div></body>
+</HTML>

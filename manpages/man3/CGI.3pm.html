@@ -1,0 +1,5889 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CGI</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CGI</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+CGI - Handle Common Gateway Interface requests and responses
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use CGI;
+
+    my $q = CGI-&gt;new;
+
+    # Process an HTTP request
+     @values  = $q-&gt;param('form_field');
+
+     $fh      = $q-&gt;upload('file_field');
+
+     $riddle  = $query-&gt;cookie('riddle_name');
+     %answers = $query-&gt;cookie('answers');
+
+    # Prepare various HTTP responses
+    print $q-&gt;header();
+    print $q-&gt;header('application/json');
+
+        $cookie1 = $q-&gt;cookie(-name=&gt;'riddle_name', -value=&gt;&quot;The Sphynx's Question&quot;);
+        $cookie2 = $q-&gt;cookie(-name=&gt;'answers', -value=&gt;\%answers);
+    print $q-&gt;header(
+        -type    =&gt; 'image/gif',
+        -expires =&gt; '+3d',
+        -cookie  =&gt; [$cookie1,$cookie2]
+        );
+
+   print  $q-&gt;redirect('<A HREF="http://somewhere.else/in/movie/land');">http://somewhere.else/in/movie/land');</A>
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<FONT SIZE="-1">CGI</FONT>.pm is a stable, complete and mature solution for processing and preparing
+<FONT SIZE="-1">HTTP</FONT> requests and responses.  Major features including processing form
+submissions, file uploads, reading and writing cookies, query string generation
+and manipulation, and processing and preparing <FONT SIZE="-1">HTTP</FONT> headers. Some <FONT SIZE="-1">HTML</FONT>
+generation utilities are included as well.
+<P>
+
+<FONT SIZE="-1">CGI</FONT>.pm performs very well in in a vanilla <FONT SIZE="-1">CGI</FONT>.pm environment and also comes
+with built-in support for mod_perl and mod_perl2 as well as FastCGI.
+<P>
+
+It has the benefit of having developed and refined over 10 years with input
+from dozens of contributors and being deployed on thousands of websites.
+<FONT SIZE="-1">CGI</FONT>.pm has been included in the Perl distribution since Perl 5.4, and has
+become a de-facto standard.
+<A NAME="lbAE">&nbsp;</A>
+<H3><FONT SIZE="-1">PROGRAMMING</FONT> <FONT SIZE="-1">STYLE</FONT></H3>
+
+<A NAME="ixAAE"></A>
+There are two styles of programming with <FONT SIZE="-1">CGI</FONT>.pm, an object-oriented
+style and a function-oriented style.  In the object-oriented style you
+create one or more <FONT SIZE="-1">CGI</FONT> objects and then use object methods to create
+the various elements of the page.  Each <FONT SIZE="-1">CGI</FONT> object starts out with the
+list of named parameters that were passed to your <FONT SIZE="-1">CGI</FONT> script by the
+server.  You can modify the objects, save them to a file or database
+and recreate them.  Because each object corresponds to the ``state'' of
+the <FONT SIZE="-1">CGI</FONT> script, and because each object's parameter list is
+independent of the others, this allows you to save the state of the
+script and restore it later.
+<P>
+
+For example, using the object oriented style, here is how you create
+a simple ``Hello World'' <FONT SIZE="-1">HTML</FONT> page:
+<P>
+
+
+
+<PRE>
+   #!/usr/local/bin/perl -w
+   use CGI;                             # load CGI routines
+   $q = CGI-&gt;new;                        # create new CGI object
+   print $q-&gt;header,                    # create the HTTP header
+         $q-&gt;start_html('hello world'), # start the HTML
+         $q-&gt;h1('hello world'),         # level 1 header
+         $q-&gt;end_html;                  # end the HTML
+
+</PRE>
+
+
+<P>
+
+In the function-oriented style, there is one default <FONT SIZE="-1">CGI</FONT> object that
+you rarely deal with directly.  Instead you just call functions to
+retrieve <FONT SIZE="-1">CGI</FONT> parameters, create <FONT SIZE="-1">HTML</FONT> tags, manage cookies, and so
+on.  This provides you with a cleaner programming interface, but
+limits you to using one <FONT SIZE="-1">CGI</FONT> object at a time.  The following example
+prints the same page, but uses the function-oriented interface.
+The main differences are that we now need to import a set of functions
+into our name space (usually the ``standard'' functions), and we don't
+need to create the <FONT SIZE="-1">CGI</FONT> object.
+<P>
+
+
+
+<PRE>
+   #!/usr/local/bin/perl
+   use CGI qw/:standard/;           # load standard CGI routines
+   print header,                    # create the HTTP header
+         start_html('hello world'), # start the HTML
+         h1('hello world'),         # level 1 header
+         end_html;                  # end the HTML
+
+</PRE>
+
+
+<P>
+
+The examples in this document mainly use the object-oriented style.
+See <FONT SIZE="-1">HOW</FONT> <FONT SIZE="-1">TO</FONT> <FONT SIZE="-1">IMPORT</FONT> <FONT SIZE="-1">FUNCTIONS</FONT> for important information on
+function-oriented programming in <FONT SIZE="-1">CGI</FONT>.pm
+<A NAME="lbAF">&nbsp;</A>
+<H3><FONT SIZE="-1">CALLING</FONT> <FONT SIZE="-1">CGI</FONT>.PM <FONT SIZE="-1">ROUTINES</FONT></H3>
+
+<A NAME="ixAAF"></A>
+Most <FONT SIZE="-1">CGI</FONT>.pm routines accept several arguments, sometimes as many as 20
+optional ones!  To simplify this interface, all routines use a named
+argument calling style that looks like this:
+<P>
+
+
+
+<PRE>
+   print $q-&gt;header(-type=&gt;'image/gif',-expires=&gt;'+3d');
+
+</PRE>
+
+
+<P>
+
+Each argument name is preceded by a dash.  Neither case nor order
+matters in the argument list.  -type, -Type, and -TYPE are all
+acceptable.  In fact, only the first argument needs to begin with a
+dash.  If a dash is present in the first argument, <FONT SIZE="-1">CGI</FONT>.pm assumes
+dashes for the subsequent ones.
+<P>
+
+Several routines are commonly called with just one argument.  In the
+case of these routines you can provide the single argument without an
+argument name.  <I>header()</I> happens to be one of these routines.  In this
+case, the single argument is the document type.
+<P>
+
+
+
+<PRE>
+   print $q-&gt;header('text/html');
+
+</PRE>
+
+
+<P>
+
+Other such routines are documented below.
+<P>
+
+Sometimes named arguments expect a scalar, sometimes a reference to an
+array, and sometimes a reference to a hash.  Often, you can pass any
+type of argument and the routine will do whatever is most appropriate.
+For example, the <I>param()</I> routine is used to set a <FONT SIZE="-1">CGI</FONT> parameter to a
+single or a multi-valued value.  The two cases are shown below:
+<P>
+
+
+
+<PRE>
+   $q-&gt;param(-name=&gt;'veggie',-value=&gt;'tomato');
+   $q-&gt;param(-name=&gt;'veggie',-value=&gt;['tomato','tomahto','potato','potahto']);
+
+</PRE>
+
+
+<P>
+
+A large number of routines in <FONT SIZE="-1">CGI</FONT>.pm actually aren't specifically
+defined in the module, but are generated automatically as needed.
+These are the ``<FONT SIZE="-1">HTML</FONT> shortcuts,'' routines that generate <FONT SIZE="-1">HTML</FONT> tags for
+use in dynamically-generated pages.  <FONT SIZE="-1">HTML</FONT> tags have both attributes
+(the attribute=``value'' pairs within the tag itself) and contents (the
+part between the opening and closing pairs.)  To distinguish between
+attributes and contents, <FONT SIZE="-1">CGI</FONT>.pm uses the convention of passing <FONT SIZE="-1">HTML</FONT>
+attributes as a hash reference as the first argument, and the
+contents, if any, as any subsequent arguments.  It works out like
+this:
+<P>
+
+
+
+<PRE>
+   Code                           Generated HTML
+   ----                           --------------
+   h1()                           &lt;h1&gt;
+   h1('some','contents');         &lt;h1&gt;some contents&lt;/h1&gt;
+   h1({-align=&gt;left});            &lt;h1 align=&quot;LEFT&quot;&gt;
+   h1({-align=&gt;left},'contents'); &lt;h1 align=&quot;LEFT&quot;&gt;contents&lt;/h1&gt;
+
+</PRE>
+
+
+<P>
+
+<FONT SIZE="-1">HTML</FONT> tags are described in more detail later.
+<P>
+
+Many newcomers to <FONT SIZE="-1">CGI</FONT>.pm are puzzled by the difference between the
+calling conventions for the <FONT SIZE="-1">HTML</FONT> shortcuts, which require curly braces
+around the <FONT SIZE="-1">HTML</FONT> tag attributes, and the calling conventions for other
+routines, which manage to generate attributes without the curly
+brackets.  Don't be confused.  As a convenience the curly braces are
+optional in all but the <FONT SIZE="-1">HTML</FONT> shortcuts.  If you like, you can use
+curly braces when calling any routine that takes named arguments.  For
+example:
+<P>
+
+
+
+<PRE>
+   print $q-&gt;header( {-type=&gt;'image/gif',-expires=&gt;'+3d'} );
+
+</PRE>
+
+
+<P>
+
+If you use the <B>-w</B> switch, you will be warned that some <FONT SIZE="-1">CGI</FONT>.pm argument
+names conflict with built-in Perl functions.  The most frequent of
+these is the -values argument, used to create multi-valued menus,
+radio button clusters and the like.  To get around this warning, you
+have several choices:
+<DL COMPACT>
+<DT>1.<DD>
+Use another name for the argument, if one is available. 
+For example, -value is an alias for -values.
+<DT>2.<DD>
+Change the capitalization, e.g. -Values
+<DT>3.<DD>
+Put quotes around the argument name, e.g. '-values'
+</DL>
+<P>
+
+Many routines will do something useful with a named argument that it
+doesn't recognize.  For example, you can produce non-standard <FONT SIZE="-1">HTTP</FONT>
+header fields by providing them as named arguments:
+<P>
+
+
+
+<PRE>
+  print $q-&gt;header(-type  =&gt;  'text/html',
+                   -cost  =&gt;  'Three smackers',
+                   -annoyance_level =&gt; 'high',
+                   -complaints_to   =&gt; 'bit bucket');
+
+</PRE>
+
+
+<P>
+
+This will produce the following nonstandard <FONT SIZE="-1">HTTP</FONT> header:
+<P>
+
+
+
+<PRE>
+   HTTP/1.0 200 OK
+   Cost: Three smackers
+   Annoyance-level: high
+   Complaints-to: bit bucket
+   Content-type: text/html
+
+</PRE>
+
+
+<P>
+
+Notice the way that underscores are translated automatically into
+hyphens.  HTML-generating routines perform a different type of
+translation.
+<P>
+
+This feature allows you to keep up with the rapidly changing <FONT SIZE="-1">HTTP</FONT> and
+<FONT SIZE="-1">HTML</FONT> ``standards''.
+<A NAME="lbAG">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">NEW</FONT> <FONT SIZE="-1">QUERY</FONT> <FONT SIZE="-1">OBJECT</FONT> (OBJECT-ORIENTED <FONT SIZE="-1">STYLE</FONT>):</H3>
+
+<A NAME="ixAAG"></A>
+
+
+<PRE>
+     $query = CGI-&gt;new;
+
+</PRE>
+
+
+<P>
+
+This will parse the input (from both <FONT SIZE="-1">POST</FONT> and <FONT SIZE="-1">GET</FONT> methods) and store
+it into a perl5 object called <TT>$query</TT>.
+<P>
+
+Any filehandles from file uploads will have their position reset to 
+the beginning of the file.
+<A NAME="lbAH">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">NEW</FONT> <FONT SIZE="-1">QUERY</FONT> <FONT SIZE="-1">OBJECT</FONT> <FONT SIZE="-1">FROM</FONT> <FONT SIZE="-1">AN</FONT> <FONT SIZE="-1">INPUT</FONT> <FONT SIZE="-1">FILE</FONT></H3>
+
+<A NAME="ixAAH"></A>
+
+
+<PRE>
+     $query = CGI-&gt;new(INPUTFILE);
+
+</PRE>
+
+
+<P>
+
+If you provide a file handle to the <I>new()</I> method, it will read
+parameters from the file (or <FONT SIZE="-1">STDIN</FONT>, or whatever).  The file can be in
+any of the forms describing below under debugging (i.e. a series of
+newline delimited TAG=VALUE pairs will work).  Conveniently, this type
+of file is created by the <I>save()</I> method (see below).  Multiple records
+can be saved and restored.
+<P>
+
+Perl purists will be pleased to know that this syntax accepts
+references to file handles, or even references to filehandle globs,
+which is the ``official'' way to pass a filehandle:
+<P>
+
+
+
+<PRE>
+    $query = CGI-&gt;new(\*STDIN);
+
+</PRE>
+
+
+<P>
+
+You can also initialize the <FONT SIZE="-1">CGI</FONT> object with a FileHandle or IO::File
+object.
+<P>
+
+If you are using the function-oriented interface and want to
+initialize <FONT SIZE="-1">CGI</FONT> state from a file handle, the way to do this is with
+<B></B>restore_parameters()<B></B>.  This will (re)initialize the
+default <FONT SIZE="-1">CGI</FONT> object from the indicated file handle.
+<P>
+
+
+
+<PRE>
+    open (IN,&quot;test.in&quot;) || die;
+    restore_parameters(IN);
+    close IN;
+
+</PRE>
+
+
+<P>
+
+You can also initialize the query object from a hash
+reference:
+<P>
+
+
+
+<PRE>
+    $query = CGI-&gt;new( {'dinosaur'=&gt;'barney',
+                       'song'=&gt;'I love you',
+                       'friends'=&gt;[qw/Jessica George Nancy/]}
+                    );
+
+</PRE>
+
+
+<P>
+
+or from a properly formatted, URL-escaped query string:
+<P>
+
+
+
+<PRE>
+    $query = CGI-&gt;new('dinosaur=barney&amp;color=purple');
+
+</PRE>
+
+
+<P>
+
+or from a previously existing <FONT SIZE="-1">CGI</FONT> object (currently this clones the
+parameter list, but none of the other object-specific fields, such as
+autoescaping):
+<P>
+
+
+
+<PRE>
+    $old_query = CGI-&gt;new;
+    $new_query = CGI-&gt;new($old_query);
+
+</PRE>
+
+
+<P>
+
+To create an empty query, initialize it from an empty string or hash:
+<P>
+
+
+
+<PRE>
+   $empty_query = CGI-&gt;new(&quot;&quot;);
+
+       -or-
+
+   $empty_query = CGI-&gt;new({});
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3><FONT SIZE="-1">FETCHING</FONT> A <FONT SIZE="-1">LIST</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">KEYWORDS</FONT> <FONT SIZE="-1">FROM</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">QUERY:</FONT></H3>
+
+<A NAME="ixAAI"></A>
+
+
+<PRE>
+     @keywords = $query-&gt;keywords
+
+</PRE>
+
+
+<P>
+
+If the script was invoked as the result of an &lt;<FONT SIZE="-1">ISINDEX</FONT>&gt; search, the
+parsed keywords can be obtained as an array using the <I>keywords()</I> method.
+<A NAME="lbAJ">&nbsp;</A>
+<H3><FONT SIZE="-1">FETCHING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">NAMES</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">ALL</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">PARAMETERS</FONT> <FONT SIZE="-1">PASSED</FONT> <FONT SIZE="-1">TO</FONT> <FONT SIZE="-1">YOUR</FONT> <FONT SIZE="-1">SCRIPT:</FONT></H3>
+
+<A NAME="ixAAJ"></A>
+
+
+<PRE>
+     @names = $query-&gt;param
+
+</PRE>
+
+
+<P>
+
+If the script was invoked with a parameter list
+(e.g. ``name1=value1&amp;name2=value2&amp;name3=value3''), the <I>param()</I> method
+will return the parameter names as a list.  If the script was invoked
+as an &lt;<FONT SIZE="-1">ISINDEX</FONT>&gt; script and contains a string without ampersands
+(e.g. ``value1+value2+value3'') , there will be a single parameter named
+``keywords'' containing the ``+''-delimited keywords.
+<P>
+
+<FONT SIZE="-1">NOTE:</FONT> As of version 1.5, the array of parameter names returned will
+be in the same order as they were submitted by the browser.
+Usually this order is the same as the order in which the 
+parameters are defined in the form (however, this isn't part
+of the spec, and so isn't guaranteed).
+<A NAME="lbAK">&nbsp;</A>
+<H3><FONT SIZE="-1">FETCHING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">VALUE</FONT> <FONT SIZE="-1">OR</FONT> <FONT SIZE="-1">VALUES</FONT> <FONT SIZE="-1">OF</FONT> A <FONT SIZE="-1">SINGLE</FONT> <FONT SIZE="-1">NAMED</FONT> <FONT SIZE="-1">PARAMETER:</FONT></H3>
+
+<A NAME="ixAAK"></A>
+
+
+<PRE>
+    @values = $query-&gt;param('foo');
+
+              -or-
+
+    $value = $query-&gt;param('foo');
+
+</PRE>
+
+
+<P>
+
+Pass the <I>param()</I> method a single argument to fetch the value of the
+named parameter. If the parameter is multivalued (e.g. from multiple
+selections in a scrolling list), you can ask to receive an array.  Otherwise
+the method will return a single value.
+<P>
+
+If a value is not given in the query string, as in the queries
+``name1=&amp;name2='', it will be returned as an empty string.
+<P>
+
+If the parameter does not exist at all, then <I>param()</I> will return undef
+in a scalar context, and the empty list in a list context.
+<A NAME="lbAL">&nbsp;</A>
+<H3><FONT SIZE="-1">SETTING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">VALUE</FONT>(S) <FONT SIZE="-1">OF</FONT> A <FONT SIZE="-1">NAMED</FONT> <FONT SIZE="-1">PARAMETER:</FONT></H3>
+
+<A NAME="ixAAL"></A>
+
+
+<PRE>
+    $query-&gt;param('foo','an','array','of','values');
+
+</PRE>
+
+
+<P>
+
+This sets the value for the named parameter 'foo' to an array of
+values.  This is one way to change the value of a field <FONT SIZE="-1">AFTER</FONT>
+the script has been invoked once before.  (Another way is with
+the -override parameter accepted by all methods that generate
+form elements.)
+<P>
+
+<I>param()</I> also recognizes a named parameter style of calling described
+in more detail later:
+<P>
+
+
+
+<PRE>
+    $query-&gt;param(-name=&gt;'foo',-values=&gt;['an','array','of','values']);
+
+                              -or-
+
+    $query-&gt;param(-name=&gt;'foo',-value=&gt;'the value');
+
+</PRE>
+
+
+<A NAME="lbAM">&nbsp;</A>
+<H3><FONT SIZE="-1">APPENDING</FONT> <FONT SIZE="-1">ADDITIONAL</FONT> <FONT SIZE="-1">VALUES</FONT> <FONT SIZE="-1">TO</FONT> A <FONT SIZE="-1">NAMED</FONT> <FONT SIZE="-1">PARAMETER:</FONT></H3>
+
+<A NAME="ixAAM"></A>
+
+
+<PRE>
+   $query-&gt;append(-name=&gt;'foo',-values=&gt;['yet','more','values']);
+
+</PRE>
+
+
+<P>
+
+This adds a value or list of values to the named parameter.  The
+values are appended to the end of the parameter if it already exists.
+Otherwise the parameter is created.  Note that this method only
+recognizes the named argument calling syntax.
+<A NAME="lbAN">&nbsp;</A>
+<H3><FONT SIZE="-1">IMPORTING</FONT> <FONT SIZE="-1">ALL</FONT> <FONT SIZE="-1">PARAMETERS</FONT> <FONT SIZE="-1">INTO</FONT> A <FONT SIZE="-1">NAMESPACE:</FONT></H3>
+
+<A NAME="ixAAN"></A>
+
+
+<PRE>
+   $query-&gt;import_names('R');
+
+</PRE>
+
+
+<P>
+
+This creates a series of variables in the 'R' namespace.  For example,
+<TT>$R::foo</TT>, <TT>@R:foo</TT>.  For keyword lists, a variable <TT>@R::keywords</TT> will appear.
+If no namespace is given, this method will assume 'Q'.
+<FONT SIZE="-1">WARNING:</FONT>  don't import anything into 'main'; this is a major security
+risk!!!!
+<P>
+
+<FONT SIZE="-1">NOTE</FONT> 1: Variable names are transformed as necessary into legal Perl
+variable names.  All non-legal characters are transformed into
+underscores.  If you need to keep the original names, you should use
+the <I>param()</I> method instead to access <FONT SIZE="-1">CGI</FONT> variables by name.
+<P>
+
+<FONT SIZE="-1">NOTE</FONT> 2: In older versions, this method was called <B></B>import()<B></B>.  As of version 2.20, 
+this name has been removed completely to avoid conflict with the built-in
+Perl module <B>import</B> operator.
+<A NAME="lbAO">&nbsp;</A>
+<H3><FONT SIZE="-1">DELETING</FONT> A <FONT SIZE="-1">PARAMETER</FONT> <FONT SIZE="-1">COMPLETELY:</FONT></H3>
+
+<A NAME="ixAAO"></A>
+
+
+<PRE>
+    $query-&gt;delete('foo','bar','baz');
+
+</PRE>
+
+
+<P>
+
+This completely clears a list of parameters.  It sometimes useful for
+resetting parameters that you don't want passed down between script
+invocations.
+<P>
+
+If you are using the function call interface, use ``<I>Delete()</I>'' instead
+to avoid conflicts with Perl's built-in delete operator.
+<A NAME="lbAP">&nbsp;</A>
+<H3><FONT SIZE="-1">DELETING</FONT> <FONT SIZE="-1">ALL</FONT> <FONT SIZE="-1">PARAMETERS:</FONT></H3>
+
+<A NAME="ixAAP"></A>
+
+
+<PRE>
+   $query-&gt;delete_all();
+
+</PRE>
+
+
+<P>
+
+This clears the <FONT SIZE="-1">CGI</FONT> object completely.  It might be useful to ensure
+that all the defaults are taken when you create a fill-out form.
+<P>
+
+Use <I>Delete_all()</I> instead if you are using the function call interface.
+<A NAME="lbAQ">&nbsp;</A>
+<H3><FONT SIZE="-1">HANDLING</FONT> NON-URLENCODED <FONT SIZE="-1">ARGUMENTS</FONT></H3>
+
+<A NAME="ixAAQ"></A>
+If POSTed data is not of type application/x-www-form-urlencoded or
+multipart/form-data, then the POSTed data will not be processed, but
+instead be returned as-is in a parameter named <FONT SIZE="-1">POSTDATA</FONT>.  To retrieve
+it, use code like this:
+<P>
+
+
+
+<PRE>
+   my $data = $query-&gt;param('POSTDATA');
+
+</PRE>
+
+
+<P>
+
+Likewise if PUTed data can be retrieved with code like this:
+<P>
+
+
+
+<PRE>
+   my $data = $query-&gt;param('PUTDATA');
+
+</PRE>
+
+
+<P>
+
+(If you don't know what the preceding means, don't worry about it.  It
+only affects people trying to use <FONT SIZE="-1">CGI</FONT> for <FONT SIZE="-1">XML</FONT> processing and other
+specialized tasks.)
+<A NAME="lbAR">&nbsp;</A>
+<H3><FONT SIZE="-1">DIRECT</FONT> <FONT SIZE="-1">ACCESS</FONT> <FONT SIZE="-1">TO</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">PARAMETER</FONT> <FONT SIZE="-1">LIST:</FONT></H3>
+
+<A NAME="ixAAR"></A>
+
+
+<PRE>
+   $q-&gt;param_fetch('address')-&gt;[1] = '1313 Mockingbird Lane';
+   unshift @{$q-&gt;param_fetch(-name=&gt;'address')},'George Munster';
+
+</PRE>
+
+
+<P>
+
+If you need access to the parameter list in a way that isn't covered
+by the methods given in the previous sections, you can obtain a direct 
+reference to it by
+calling the <B></B>param_fetch()<B></B> method with the name of the parameter.  This
+will return an array reference to the named parameter, which you then
+can manipulate in any way you like.
+<P>
+
+You can also use a named argument style using the <B>-name</B> argument.
+<A NAME="lbAS">&nbsp;</A>
+<H3><FONT SIZE="-1">FETCHING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">PARAMETER</FONT> <FONT SIZE="-1">LIST</FONT> <FONT SIZE="-1">AS</FONT> A <FONT SIZE="-1">HASH:</FONT></H3>
+
+<A NAME="ixAAS"></A>
+
+
+<PRE>
+    $params = $q-&gt;Vars;
+    print $params-&gt;{'address'};
+    @foo = split(&quot;\0&quot;,$params-&gt;{'foo'});
+    %params = $q-&gt;Vars;
+
+    use CGI ':cgi-lib';
+    $params = Vars;
+
+</PRE>
+
+
+<P>
+
+Many people want to fetch the entire parameter list as a hash in which
+the keys are the names of the <FONT SIZE="-1">CGI</FONT> parameters, and the values are the
+parameters' values.  The <I>Vars()</I> method does this.  Called in a scalar
+context, it returns the parameter list as a tied hash reference.
+Changing a key changes the value of the parameter in the underlying
+<FONT SIZE="-1">CGI</FONT> parameter list.  Called in a list context, it returns the
+parameter list as an ordinary hash.  This allows you to read the
+contents of the parameter list, but not to change it.
+<P>
+
+When using this, the thing you must watch out for are multivalued <FONT SIZE="-1">CGI</FONT>
+parameters.  Because a hash cannot distinguish between scalar and
+list context, multivalued parameters will be returned as a packed
+string, separated by the ``\0'' (null) character.  You must split this
+packed string in order to get at the individual values.  This is the
+convention introduced long ago by Steve Brenner in his cgi-lib.pl
+module for Perl version 4.
+<P>
+
+If you wish to use <I>Vars()</I> as a function, import the <I>:cgi-lib</I> set of
+function calls (also see the section on CGI-LIB compatibility).
+<A NAME="lbAT">&nbsp;</A>
+<H3><FONT SIZE="-1">SAVING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">STATE</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">SCRIPT</FONT> <FONT SIZE="-1">TO</FONT> A <FONT SIZE="-1">FILE:</FONT></H3>
+
+<A NAME="ixAAT"></A>
+
+
+<PRE>
+    $query-&gt;save(\*FILEHANDLE)
+
+</PRE>
+
+
+<P>
+
+This will write the current state of the form to the provided
+filehandle.  You can read it back in by providing a filehandle
+to the <I>new()</I> method.  Note that the filehandle can be a file, a pipe,
+or whatever!
+<P>
+
+The format of the saved file is:
+<P>
+
+
+
+<PRE>
+        NAME1=VALUE1
+        NAME1=VALUE1'
+        NAME2=VALUE2
+        NAME3=VALUE3
+        =
+
+</PRE>
+
+
+<P>
+
+Both name and value are <FONT SIZE="-1">URL</FONT> escaped.  Multi-valued <FONT SIZE="-1">CGI</FONT> parameters are
+represented as repeated names.  A session record is delimited by a
+single = symbol.  You can write out multiple records and read them
+back in with several calls to <B>new</B>.  You can do this across several
+sessions by opening the file in append mode, allowing you to create
+primitive guest books, or to keep a history of users' queries.  Here's
+a short example of creating multiple session records:
+<P>
+
+
+
+<PRE>
+   use CGI;
+
+   open (OUT,'&gt;&gt;','test.out') || die;
+   $records = 5;
+   for (0..$records) {
+       my $q = CGI-&gt;new;
+       $q-&gt;param(-name=&gt;'counter',-value=&gt;$_);
+       $q-&gt;save(\*OUT);
+   }
+   close OUT;
+
+   # reopen for reading
+   open (IN,'&lt;','test.out') || die;
+   while (!eof(IN)) {
+       my $q = CGI-&gt;new(\*IN);
+       print $q-&gt;param('counter'),&quot;\n&quot;;
+   }
+
+</PRE>
+
+
+<P>
+
+The file format used for save/restore is identical to that used by the
+Whitehead Genome Center's data exchange format ``Boulderio'', and can be
+manipulated and even databased using Boulderio utilities.  See
+<P>
+
+
+
+<PRE>
+  <A HREF="http://stein.cshl.org/boulder/">http://stein.cshl.org/boulder/</A>
+
+</PRE>
+
+
+<P>
+
+for further details.
+<P>
+
+If you wish to use this method from the function-oriented (non-OO)
+interface, the exported name for this method is <B></B>save_parameters()<B></B>.
+<A NAME="lbAU">&nbsp;</A>
+<H3><FONT SIZE="-1">RETRIEVING</FONT> <FONT SIZE="-1">CGI</FONT> <FONT SIZE="-1">ERRORS</FONT></H3>
+
+<A NAME="ixAAU"></A>
+Errors can occur while processing user input, particularly when
+processing uploaded files.  When these errors occur, <FONT SIZE="-1">CGI</FONT> will stop
+processing and return an empty parameter list.  You can test for
+the existence and nature of errors using the <I>cgi_error()</I> function.
+The error messages are formatted as <FONT SIZE="-1">HTTP</FONT> status codes. You can either
+incorporate the error text into an <FONT SIZE="-1">HTML</FONT> page, or use it as the value
+of the <FONT SIZE="-1">HTTP</FONT> status:
+<P>
+
+
+
+<PRE>
+    my $error = $q-&gt;cgi_error;
+    if ($error) {
+        print $q-&gt;header(-status=&gt;$error),
+              $q-&gt;start_html('Problems'),
+              $q-&gt;h2('Request not processed'),
+              $q-&gt;strong($error);
+        exit 0;
+    }
+
+</PRE>
+
+
+<P>
+
+When using the function-oriented interface (see the next section),
+errors may only occur the first time you call <I>param()</I>. Be ready
+for this!
+<A NAME="lbAV">&nbsp;</A>
+<H3><FONT SIZE="-1">USING</FONT> <FONT SIZE="-1">THE</FONT> FUNCTION-ORIENTED <FONT SIZE="-1">INTERFACE</FONT></H3>
+
+<A NAME="ixAAV"></A>
+To use the function-oriented interface, you must specify which <FONT SIZE="-1">CGI</FONT>.pm
+routines or sets of routines to import into your script's namespace.
+There is a small overhead associated with this importation, but it
+isn't much.
+<P>
+
+
+
+<PRE>
+   use CGI &lt;list of methods&gt;;
+
+</PRE>
+
+
+<P>
+
+The listed methods will be imported into the current package; you can
+call them directly without creating a <FONT SIZE="-1">CGI</FONT> object first.  This example
+shows how to import the <B></B>param()<B></B> and <B></B>header()<B></B>
+methods, and then use them directly:
+<P>
+
+
+
+<PRE>
+   use CGI 'param','header';
+   print header('text/plain');
+   $zipcode = param('zipcode');
+
+</PRE>
+
+
+<P>
+
+More frequently, you'll import common sets of functions by referring
+to the groups by name.  All function sets are preceded with a ``:''
+character as in ``:html3'' (for tags defined in the <FONT SIZE="-1">HTML</FONT> 3 standard).
+<P>
+
+Here is a list of the function sets you can import:
+<DL COMPACT>
+<DT><B>:cgi</B><DD>
+<A NAME="ixAAW"></A>
+Import all CGI-handling methods, such as <B></B>param()<B></B>, <B></B>path_info()<B></B>
+and the like.
+<DT><B>:form</B><DD>
+<A NAME="ixAAX"></A>
+Import all fill-out form generating methods, such as <B></B>textfield()<B></B>.
+<DT><B>:html2</B><DD>
+<A NAME="ixAAY"></A>
+Import all methods that generate <FONT SIZE="-1">HTML</FONT> 2.0 standard elements.
+<DT><B>:html3</B><DD>
+<A NAME="ixAAZ"></A>
+Import all methods that generate <FONT SIZE="-1">HTML</FONT> 3.0 elements (such as
+&lt;table&gt;, &lt;super&gt; and &lt;sub&gt;).
+<DT><B>:html4</B><DD>
+<A NAME="ixABA"></A>
+Import all methods that generate <FONT SIZE="-1">HTML</FONT> 4 elements (such as
+&lt;abbrev&gt;, &lt;acronym&gt; and &lt;thead&gt;).
+<DT><B>:netscape</B><DD>
+<A NAME="ixABB"></A>
+Import the &lt;blink&gt;, &lt;fontsize&gt; and &lt;center&gt; tags.
+<DT><B>:html</B><DD>
+<A NAME="ixABC"></A>
+Import all HTML-generating shortcuts (i.e. 'html2', 'html3', 'html4' and 'netscape')
+<DT><B>:standard</B><DD>
+<A NAME="ixABD"></A>
+Import ``standard'' features, 'html2', 'html3', 'html4', 'form' and 'cgi'.
+<DT><B>:all</B><DD>
+<A NAME="ixABE"></A>
+Import all the available methods.  For the full list, see the <FONT SIZE="-1">CGI</FONT>.pm
+code, where the variable <TT>%EXPORT_TAGS</TT> is defined.
+</DL>
+<P>
+
+If you import a function name that is not part of <FONT SIZE="-1">CGI</FONT>.pm, the module
+will treat it as a new <FONT SIZE="-1">HTML</FONT> tag and generate the appropriate
+subroutine.  You can then use it like any other <FONT SIZE="-1">HTML</FONT> tag.  This is to
+provide for the rapidly-evolving <FONT SIZE="-1">HTML</FONT> ``standard.''  For example, say
+Microsoft comes out with a new tag called &lt;gradient&gt; (which causes the
+user's desktop to be flooded with a rotating gradient fill until his
+machine reboots).  You don't need to wait for a new version of <FONT SIZE="-1">CGI</FONT>.pm
+to start using it immediately:
+<P>
+
+
+
+<PRE>
+   use CGI qw/:standard :html3 gradient/;
+   print gradient({-start=&gt;'red',-end=&gt;'blue'});
+
+</PRE>
+
+
+<P>
+
+Note that in the interests of execution speed <FONT SIZE="-1">CGI</FONT>.pm does <B>not</B> use
+the standard Exporter syntax for specifying load symbols.  This may
+change in the future.
+<P>
+
+If you import any of the state-maintaining <FONT SIZE="-1">CGI</FONT> or form-generating
+methods, a default <FONT SIZE="-1">CGI</FONT> object will be created and initialized
+automatically the first time you use any of the methods that require
+one to be present.  This includes <B></B>param()<B></B>, <B></B>textfield()<B></B>,
+<B></B>submit()<B></B> and the like.  (If you need direct access to the <FONT SIZE="-1">CGI</FONT>
+object, you can find it in the global variable <B></B>$CGI::Q<B></B>).  By
+importing <FONT SIZE="-1">CGI</FONT>.pm methods, you can create visually elegant scripts:
+<P>
+
+
+
+<PRE>
+   use CGI qw/:standard/;
+   print 
+       header,
+       start_html('Simple Script'),
+       h1('Simple Script'),
+       start_form,
+       &quot;What's your name? &quot;,textfield('name'),p,
+       &quot;What's the combination?&quot;,
+       checkbox_group(-name=&gt;'words',
+                      -values=&gt;['eenie','meenie','minie','moe'],
+                      -defaults=&gt;['eenie','moe']),p,
+       &quot;What's your favorite color?&quot;,
+       popup_menu(-name=&gt;'color',
+                  -values=&gt;['red','green','blue','chartreuse']),p,
+       submit,
+       end_form,
+       hr,&quot;\n&quot;;
+
+    if (param) {
+       print 
+           &quot;Your name is &quot;,em(param('name')),p,
+           &quot;The keywords are: &quot;,em(join(&quot;, &quot;,param('words'))),p,
+           &quot;Your favorite color is &quot;,em(param('color')),&quot;.\n&quot;;
+    }
+    print end_html;
+
+</PRE>
+
+
+<A NAME="lbAW">&nbsp;</A>
+<H3><FONT SIZE="-1">PRAGMAS</FONT></H3>
+
+<A NAME="ixABF"></A>
+In addition to the function sets, there are a number of pragmas that
+you can import.  Pragmas, which are always preceded by a hyphen,
+change the way that <FONT SIZE="-1">CGI</FONT>.pm functions in various ways.  Pragmas,
+function sets, and individual functions can all be imported in the
+same <I>use()</I> line.  For example, the following use statement imports the
+standard set of functions and enables debugging mode (pragma
+-debug):
+<P>
+
+
+
+<PRE>
+   use CGI qw/:standard -debug/;
+
+</PRE>
+
+
+<P>
+
+The current list of pragmas is as follows:
+<DL COMPACT>
+<DT>-any<DD>
+<A NAME="ixABG"></A>
+When you <I>use </I><FONT SIZE="-1"><I>CGI</I></FONT><I> -any</I>, then any method that the query object
+doesn't recognize will be interpreted as a new <FONT SIZE="-1">HTML</FONT> tag.  This allows
+you to support the next <I>ad hoc</I> <FONT SIZE="-1">HTML</FONT>
+extension.  This lets you go wild with new and unsupported tags:
+
+
+<P>
+
+
+
+
+<PRE>
+   use CGI qw(-any);
+   $q=CGI-&gt;new;
+   print $q-&gt;gradient({speed=&gt;'fast',start=&gt;'red',end=&gt;'blue'});
+
+</PRE>
+
+
+
+
+<P>
+
+
+Since using &lt;cite&gt;any&lt;/cite&gt; causes any mistyped method name
+to be interpreted as an <FONT SIZE="-1">HTML</FONT> tag, use it with care or not at
+all.
+<DT>-compile<DD>
+<A NAME="ixABH"></A>
+This causes the indicated autoloaded methods to be compiled up front,
+rather than deferred to later.  This is useful for scripts that run
+for an extended period of time under FastCGI or mod_perl, and for
+those destined to be crunched by Malcolm Beattie's Perl compiler.  Use
+it in conjunction with the methods or method families you plan to use.
+
+
+<P>
+
+
+
+
+<PRE>
+   use CGI qw(-compile :standard :html3);
+
+</PRE>
+
+
+
+
+<P>
+
+
+or even
+
+
+<P>
+
+
+
+
+<PRE>
+   use CGI qw(-compile :all);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that using the -compile pragma in this way will always have
+the effect of importing the compiled functions into the current
+namespace.  If you want to compile without importing use the
+<I>compile()</I> method instead:
+
+
+<P>
+
+
+
+
+<PRE>
+   use CGI();
+   CGI-&gt;compile();
+
+</PRE>
+
+
+
+
+<P>
+
+
+This is particularly useful in a mod_perl environment, in which you
+might want to precompile all <FONT SIZE="-1">CGI</FONT> routines in a startup script, and
+then import the functions individually in each mod_perl script.
+<DT>-nosticky<DD>
+<A NAME="ixABI"></A>
+By default the <FONT SIZE="-1">CGI</FONT> module implements a state-preserving behavior
+called ``sticky'' fields.  The way this works is that if you are
+regenerating a form, the methods that generate the form field values
+will interrogate <I>param()</I> to see if similarly-named parameters are
+present in the query string. If they find a like-named parameter, they
+will use it to set their default values.
+
+
+<P>
+
+
+Sometimes this isn't what you want.  The <B>-nosticky</B> pragma prevents
+this behavior.  You can also selectively change the sticky behavior in
+each element that you generate.
+<DT>-tabindex<DD>
+<A NAME="ixABJ"></A>
+Automatically add tab index attributes to each form field. With this
+option turned off, you can still add tab indexes manually by passing a
+-tabindex option to each field-generating method.
+<DT>-no_undef_params<DD>
+<A NAME="ixABK"></A>
+This keeps <FONT SIZE="-1">CGI</FONT>.pm from including undef params in the parameter list.
+<DT>-no_xhtml<DD>
+<A NAME="ixABL"></A>
+By default, <FONT SIZE="-1">CGI</FONT>.pm versions 2.69 and higher emit <FONT SIZE="-1">XHTML</FONT>
+(<A HREF="http://www.w3.org/TR/xhtml1/).">http://www.w3.org/TR/xhtml1/).</A>  The -no_xhtml pragma disables this
+feature.  Thanks to Michalis Kabrianis &lt;<A HREF="mailto:kabrianis@hellug.gr">kabrianis@hellug.gr</A>&gt; for this
+feature.
+
+
+<P>
+
+
+If <I>start_html()</I>'s -dtd parameter specifies an <FONT SIZE="-1">HTML</FONT> 2.0, 
+3.2, 4.0 or 4.01 <FONT SIZE="-1">DTD</FONT>, 
+<FONT SIZE="-1">XHTML</FONT> will automatically be disabled without needing to use this 
+pragma.
+<DT>-utf8<DD>
+<A NAME="ixABM"></A>
+This makes <FONT SIZE="-1">CGI</FONT>.pm treat all parameters as <FONT SIZE="-1">UTF-8</FONT> strings. Use this with
+care, as it will interfere with the processing of binary uploads. It
+is better to manually select which fields are expected to return utf-8
+strings and convert them using code like this:
+
+
+<P>
+
+
+
+
+<PRE>
+ use Encode;
+ my $arg = decode utf8=&gt;param('foo');
+
+</PRE>
+
+
+<DT>-nph<DD>
+<A NAME="ixABN"></A>
+This makes <FONT SIZE="-1">CGI</FONT>.pm produce a header appropriate for an <FONT SIZE="-1">NPH</FONT> (no
+parsed header) script.  You may need to do other things as well
+to tell the server that the script is <FONT SIZE="-1">NPH</FONT>.  See the discussion
+of <FONT SIZE="-1">NPH</FONT> scripts below.
+<DT>-newstyle_urls<DD>
+<A NAME="ixABO"></A>
+Separate the name=value pairs in <FONT SIZE="-1">CGI</FONT> parameter query strings with
+semicolons rather than ampersands.  For example:
+
+
+<P>
+
+
+
+
+<PRE>
+   ?name=fred;age=24;favorite_color=3
+
+</PRE>
+
+
+
+
+<P>
+
+
+Semicolon-delimited query strings are always accepted, and will be emitted by
+<I>self_url()</I> and <I>query_string()</I>. newstyle_urls became the default in version
+2.64.
+<DT>-oldstyle_urls<DD>
+<A NAME="ixABP"></A>
+Separate the name=value pairs in <FONT SIZE="-1">CGI</FONT> parameter query strings with
+ampersands rather than semicolons.  This is no longer the default.
+<DT>-autoload<DD>
+<A NAME="ixABQ"></A>
+This overrides the autoloader so that any function in your program
+that is not recognized is referred to <FONT SIZE="-1">CGI</FONT>.pm for possible evaluation.
+This allows you to use all the <FONT SIZE="-1">CGI</FONT>.pm functions without adding them to
+your symbol table, which is of concern for mod_perl users who are
+worried about memory consumption.  <I>Warning:</I> when
+<I>-autoload</I> is in effect, you cannot use ``poetry mode''
+(functions without the parenthesis).  Use <I>hr()</I> rather
+than <I>hr</I>, or add something like <I>use subs qw/hr p header/</I> 
+to the top of your script.
+<DT>-no_debug<DD>
+<A NAME="ixABR"></A>
+This turns off the command-line processing features.  If you want to
+run a <FONT SIZE="-1">CGI</FONT>.pm script from the command line to produce <FONT SIZE="-1">HTML</FONT>, and you
+don't want it to read <FONT SIZE="-1">CGI</FONT> parameters from the command line or <FONT SIZE="-1">STDIN</FONT>,
+then use this pragma:
+
+
+<P>
+
+
+
+
+<PRE>
+   use CGI qw(-no_debug :standard);
+
+</PRE>
+
+
+<DT>-debug<DD>
+<A NAME="ixABS"></A>
+This turns on full debugging.  In addition to reading <FONT SIZE="-1">CGI</FONT> arguments
+from the command-line processing, <FONT SIZE="-1">CGI</FONT>.pm will pause and try to read
+arguments from <FONT SIZE="-1">STDIN</FONT>, producing the message ``(offline mode: enter
+name=value pairs on standard input)'' features.
+
+
+<P>
+
+
+See the section on debugging for more details.
+<DT>-private_tempfiles<DD>
+<A NAME="ixABT"></A>
+<FONT SIZE="-1">CGI</FONT>.pm can process uploaded file. Ordinarily it spools the uploaded
+file to a temporary directory, then deletes the file when done.
+However, this opens the risk of eavesdropping as described in the file
+upload section.  Another <FONT SIZE="-1">CGI</FONT> script author could peek at this data
+during the upload, even if it is confidential information. On Unix
+systems, the -private_tempfiles pragma will cause the temporary file
+to be unlinked as soon as it is opened and before any data is written
+into it, reducing, but not eliminating the risk of eavesdropping
+(there is still a potential race condition).  To make life harder for
+the attacker, the program chooses tempfile names by calculating a 32
+bit checksum of the incoming <FONT SIZE="-1">HTTP</FONT> headers.
+
+
+<P>
+
+
+To ensure that the temporary file cannot be read by other <FONT SIZE="-1">CGI</FONT> scripts,
+use suEXEC or a <FONT SIZE="-1">CGI</FONT> wrapper program to run your script.  The temporary
+file is created with mode 0600 (neither world nor group readable).
+
+
+<P>
+
+
+The temporary directory is selected using the following algorithm:
+
+
+<P>
+
+
+
+
+<PRE>
+    1. if $CGITempFile::TMPDIRECTORY is already set, use that
+
+    2. if the environment variable TMPDIR exists, use the location
+    indicated.
+
+    3. Otherwise try the locations /usr/tmp, /var/tmp, C:\temp,
+    /tmp, /temp, ::Temporary Items, and \WWW_ROOT.
+
+</PRE>
+
+
+
+
+<P>
+
+
+Each of these locations is checked that it is a directory and is
+writable.  If not, the algorithm tries the next choice.
+</DL>
+<A NAME="lbAX">&nbsp;</A>
+<H3><FONT SIZE="-1">SPECIAL</FONT> <FONT SIZE="-1">FORMS</FONT> <FONT SIZE="-1">FOR</FONT> <FONT SIZE="-1">IMPORTING</FONT> HTML-TAG <FONT SIZE="-1">FUNCTIONS</FONT></H3>
+
+<A NAME="ixABU"></A>
+Many of the methods generate <FONT SIZE="-1">HTML</FONT> tags.  As described below, tag
+functions automatically generate both the opening and closing tags.
+For example:
+<P>
+
+
+
+<PRE>
+  print h1('Level 1 Header');
+
+</PRE>
+
+
+<P>
+
+produces
+<P>
+
+
+
+<PRE>
+  &lt;h1&gt;Level 1 Header&lt;/h1&gt;
+
+</PRE>
+
+
+<P>
+
+There will be some times when you want to produce the start and end
+tags yourself.  In this case, you can use the form start_<I>tag_name</I>
+and end_<I>tag_name</I>, as in:
+<P>
+
+
+
+<PRE>
+  print start_h1,'Level 1 Header',end_h1;
+
+</PRE>
+
+
+<P>
+
+With a few exceptions (described below), start_<I>tag_name</I> and
+end_<I>tag_name</I> functions are not generated automatically when you
+<I>use </I><FONT SIZE="-1"><I>CGI</I></FONT><I></I>.  However, you can specify the tags you want to generate
+<I>start/end</I> functions for by putting an asterisk in front of their
+name, or, alternatively, requesting either &quot;start_<I>tag_name</I>`` or
+''end_<I>tag_name</I>&quot; in the import list.
+<P>
+
+Example:
+<P>
+
+
+
+<PRE>
+  use CGI qw/:standard *table start_ul/;
+
+</PRE>
+
+
+<P>
+
+In this example, the following functions are generated in addition to
+the standard ones:
+<DL COMPACT>
+<DT>1. <I>start_table()</I> (generates a &lt;table&gt; tag)<DD>
+<A NAME="ixABV"></A>
+
+<DT>2. <I>end_table()</I> (generates a &lt;/table&gt; tag)<DD>
+<A NAME="ixABW"></A>
+<DT>3. <I>start_ul()</I> (generates a &lt;ul&gt; tag)<DD>
+<A NAME="ixABX"></A>
+<DT>4. <I>end_ul()</I> (generates a &lt;/ul&gt; tag)<DD>
+<A NAME="ixABY"></A>
+
+</DL>
+<A NAME="lbAY">&nbsp;</A>
+<H2>GENERATING DYNAMIC DOCUMENTS</H2>
+
+<A NAME="ixABZ"></A>
+Most of <FONT SIZE="-1">CGI</FONT>.pm's functions deal with creating documents on the fly.
+Generally you will produce the <FONT SIZE="-1">HTTP</FONT> header first, followed by the
+document itself.  <FONT SIZE="-1">CGI</FONT>.pm provides functions for generating <FONT SIZE="-1">HTTP</FONT>
+headers of various types as well as for generating <FONT SIZE="-1">HTML</FONT>.  For creating
+<FONT SIZE="-1">GIF</FONT> images, see the <FONT SIZE="-1">GD</FONT>.pm module.
+<P>
+
+Each of these functions produces a fragment of <FONT SIZE="-1">HTML</FONT> or <FONT SIZE="-1">HTTP</FONT> which you
+can print out directly so that it displays in the browser window,
+append to a string, or save to a file for later use.
+<A NAME="lbAZ">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">STANDARD</FONT> <FONT SIZE="-1">HTTP</FONT> <FONT SIZE="-1">HEADER:</FONT></H3>
+
+<A NAME="ixACA"></A>
+Normally the first thing you will do in any <FONT SIZE="-1">CGI</FONT> script is print out an
+<FONT SIZE="-1">HTTP</FONT> header.  This tells the browser what type of document to expect,
+and gives other optional information, such as the language, expiration
+date, and whether to cache the document.  The header can also be
+manipulated for special purposes, such as server push and pay per view
+pages.
+<P>
+
+
+
+<PRE>
+        print header;
+
+             -or-
+
+        print header('image/gif');
+
+             -or-
+
+        print header('text/html','204 No response');
+
+             -or-
+
+        print header(-type=&gt;'image/gif',
+                             -nph=&gt;1,
+                             -status=&gt;'402 Payment required',
+                             -expires=&gt;'+3d',
+                             -cookie=&gt;$cookie,
+                             -charset=&gt;'utf-7',
+                             -attachment=&gt;'foo.gif',
+                             -Cost=&gt;'$2.00');
+
+</PRE>
+
+
+<P>
+
+<I>header()</I> returns the Content-type: header.  You can provide your own
+<FONT SIZE="-1">MIME</FONT> type if you choose, otherwise it defaults to text/html.  An
+optional second parameter specifies the status code and a human-readable
+message.  For example, you can specify 204, ``No response'' to create a
+script that tells the browser to do nothing at all.
+<P>
+
+The last example shows the named argument style for passing arguments
+to the <FONT SIZE="-1">CGI</FONT> methods using named parameters.  Recognized parameters are
+<B>-type</B>, <B>-status</B>, <B>-expires</B>, and <B>-cookie</B>.  Any other named
+parameters will be stripped of their initial hyphens and turned into
+header fields, allowing you to specify any <FONT SIZE="-1">HTTP</FONT> header you desire.
+Internal underscores will be turned into hyphens:
+<P>
+
+
+
+<PRE>
+    print header(-Content_length=&gt;3002);
+
+</PRE>
+
+
+<P>
+
+Most browsers will not cache the output from <FONT SIZE="-1">CGI</FONT> scripts.  Every time
+the browser reloads the page, the script is invoked anew.  You can
+change this behavior with the <B>-expires</B> parameter.  When you specify
+an absolute or relative expiration interval with this parameter, some
+browsers and proxy servers will cache the script's output until the
+indicated expiration date.  The following forms are all valid for the
+-expires field:
+<P>
+
+
+
+<PRE>
+        +30s                              30 seconds from now
+        +10m                              ten minutes from now
+        +1h                               one hour from now
+        -1d                               yesterday (i.e. &quot;ASAP!&quot;)
+        now                               immediately
+        +3M                               in three months
+        +10y                              in ten years time
+        Thursday, 25-Apr-1999 00:40:33 GMT  at the indicated time &amp; date
+
+</PRE>
+
+
+<P>
+
+The <B>-cookie</B> parameter generates a header that tells the browser to provide
+a ``magic cookie'' during all subsequent transactions with your script.
+Some cookies have a special format that includes interesting attributes
+such as expiration time.  Use the <I>cookie()</I> method to create and retrieve
+session cookies.
+<P>
+
+The <B>-nph</B> parameter, if set to a true value, will issue the correct
+headers to work with a <FONT SIZE="-1">NPH</FONT> (no-parse-header) script.  This is important
+to use with certain servers that expect all their scripts to be <FONT SIZE="-1">NPH</FONT>.
+<P>
+
+The <B>-charset</B> parameter can be used to control the character set
+sent to the browser.  If not provided, defaults to <FONT SIZE="-1">ISO-8859-1</FONT>.  As a
+side effect, this sets the <I>charset()</I> method as well.
+<P>
+
+The <B>-attachment</B> parameter can be used to turn the page into an
+attachment.  Instead of displaying the page, some browsers will prompt
+the user to save it to disk.  The value of the argument is the
+suggested name for the saved file.  In order for this to work, you may
+have to set the <B>-type</B> to ``application/octet-stream''.
+<P>
+
+The <B>-p3p</B> parameter will add a P3P tag to the outgoing header.  The
+parameter can be an arrayref or a space-delimited string of P3P tags.
+For example:
+<P>
+
+
+
+<PRE>
+   print header(-p3p=&gt;[qw(CAO DSP LAW CURa)]);
+   print header(-p3p=&gt;'CAO DSP LAW CURa');
+
+</PRE>
+
+
+<P>
+
+In either case, the outgoing header will be formatted as:
+<P>
+
+
+
+<PRE>
+  P3P: policyref=&quot;/w3c/p3p.xml&quot; cp=&quot;CAO DSP LAW CURa&quot;
+
+</PRE>
+
+
+<P>
+
+Note that if a header value contains a carriage return, a leading space will be
+added to each new line that doesn't already have one as specified by <FONT SIZE="-1">RFC2616</FONT>
+section 4.2.  For example:
+<P>
+
+
+
+<PRE>
+    print header( -ingredients =&gt; &quot;ham\neggs\nbacon&quot; );
+
+</PRE>
+
+
+<P>
+
+will generate
+<P>
+
+
+
+<PRE>
+    Ingredients: ham
+     eggs
+     bacon
+
+</PRE>
+
+
+<A NAME="lbBA">&nbsp;</A>
+<H3><FONT SIZE="-1">GENERATING</FONT> A <FONT SIZE="-1">REDIRECTION</FONT> <FONT SIZE="-1">HEADER</FONT></H3>
+
+<A NAME="ixACB"></A>
+
+
+<PRE>
+   print $q-&gt;redirect('<A HREF="http://somewhere.else/in/movie/land');">http://somewhere.else/in/movie/land');</A>
+
+</PRE>
+
+
+<P>
+
+Sometimes you don't want to produce a document yourself, but simply
+redirect the browser elsewhere, perhaps choosing a <FONT SIZE="-1">URL</FONT> based on the
+time of day or the identity of the user.
+<P>
+
+The <I>redirect()</I> method redirects the browser to a different <FONT SIZE="-1">URL</FONT>.  If
+you use redirection like this, you should <B>not</B> print out a header as
+well.
+<P>
+
+You should always use full URLs (including the http: or ftp: part) in
+redirection requests.  Relative URLs will not work correctly.
+<P>
+
+You can also use named arguments:
+<P>
+
+
+
+<PRE>
+    print $q-&gt;redirect(
+        -uri=&gt;'<A HREF="http://somewhere.else/in/movie/land',">http://somewhere.else/in/movie/land',</A>
+            -nph=&gt;1,
+         -status=&gt;301);
+
+</PRE>
+
+
+<P>
+
+All names arguments recognized by <I>header()</I> are also recognized by
+<I>redirect()</I>. However, most <FONT SIZE="-1">HTTP</FONT> headers, including those generated by
+-cookie and -target, are ignored by the browser.
+<P>
+
+The <B>-nph</B> parameter, if set to a true value, will issue the correct
+headers to work with a <FONT SIZE="-1">NPH</FONT> (no-parse-header) script.  This is important
+to use with certain servers, such as Microsoft <FONT SIZE="-1">IIS</FONT>, which
+expect all their scripts to be <FONT SIZE="-1">NPH</FONT>.
+<P>
+
+The <B>-status</B> parameter will set the status of the redirect.  <FONT SIZE="-1">HTTP</FONT>
+defines three different possible redirection status codes:
+<P>
+
+
+
+<PRE>
+     301 Moved Permanently
+     302 Found
+     303 See Other
+
+</PRE>
+
+
+<P>
+
+The default if not specified is 302, which means ``moved temporarily.''
+You may change the status to another status code if you wish.  Be
+advised that changing the status to anything other than 301, 302 or
+303 will probably break redirection.
+<A NAME="lbBB">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">DOCUMENT</FONT> <FONT SIZE="-1">HEADER</FONT></H3>
+
+<A NAME="ixACC"></A>
+
+
+<PRE>
+   print start_html(-title=&gt;'Secrets of the Pyramids',
+                            -author=&gt;'<A HREF="mailto:fred@capricorn.org">fred@capricorn.org</A>',
+                            -base=&gt;'true',
+                            -target=&gt;'_blank',
+                            -meta=&gt;{'keywords'=&gt;'pharaoh secret mummy',
+                                    'copyright'=&gt;'copyright 1996 King Tut'},
+                            -style=&gt;{'src'=&gt;'/styles/style1.css'},
+                            -BGCOLOR=&gt;'blue');
+
+</PRE>
+
+
+<P>
+
+The <I>start_html()</I> routine creates the top of the
+page, along with a lot of optional information that controls the
+page's appearance and behavior.
+<P>
+
+This method returns a canned <FONT SIZE="-1">HTML</FONT> header and the opening &lt;body&gt; tag.
+All parameters are optional.  In the named parameter form, recognized
+parameters are -title, -author, -base, -xbase, -dtd, -lang and -target
+(see below for the explanation).  Any additional parameters you
+provide, such as the unofficial <FONT SIZE="-1">BGCOLOR</FONT> attribute, are added
+to the &lt;body&gt; tag.  Additional parameters must be proceeded by a
+hyphen.
+<P>
+
+The argument <B>-xbase</B> allows you to provide an <FONT SIZE="-1">HREF</FONT> for the &lt;base&gt; tag
+different from the current location, as in
+<P>
+
+
+
+<PRE>
+    -xbase=&gt;&quot;<A HREF="http://home.mcom.com/">http://home.mcom.com/</A>&quot;
+
+</PRE>
+
+
+<P>
+
+All relative links will be interpreted relative to this tag.
+<P>
+
+The argument <B>-target</B> allows you to provide a default target frame
+for all the links and fill-out forms on the page.  <B>This is a
+non-standard </B><FONT SIZE="-1"><B>HTTP</B></FONT><B> feature which only works with some browsers!</B>
+<P>
+
+
+
+<PRE>
+    -target=&gt;&quot;answer_window&quot;
+
+</PRE>
+
+
+<P>
+
+All relative links will be interpreted relative to this tag.
+You add arbitrary meta information to the header with the <B>-meta</B>
+argument.  This argument expects a reference to a hash
+containing name/value pairs of meta information.  These will be turned
+into a series of header &lt;meta&gt; tags that look something like this:
+<P>
+
+
+
+<PRE>
+    &lt;meta name=&quot;keywords&quot; content=&quot;pharaoh secret mummy&quot;&gt;
+    &lt;meta name=&quot;description&quot; content=&quot;copyright 1996 King Tut&quot;&gt;
+
+</PRE>
+
+
+<P>
+
+To create an HTTP-EQUIV type of &lt;meta&gt; tag, use <B>-head</B>, described
+below.
+<P>
+
+The <B>-style</B> argument is used to incorporate cascading stylesheets
+into your code.  See the section on <FONT SIZE="-1">CASCADING</FONT> <FONT SIZE="-1">STYLESHEETS</FONT> for more
+information.
+<P>
+
+The <B>-lang</B> argument is used to incorporate a language attribute into
+the &lt;html&gt; tag.  For example:
+<P>
+
+
+
+<PRE>
+    print $q-&gt;start_html(-lang=&gt;'fr-CA');
+
+</PRE>
+
+
+<P>
+
+The default if not specified is ``en-US'' for <FONT SIZE="-1">US</FONT> English, unless the 
+-dtd parameter specifies an <FONT SIZE="-1">HTML</FONT> 2.0 or 3.2 <FONT SIZE="-1">DTD</FONT>, in which case the
+lang attribute is left off.  You can force the lang attribute to left
+off in other cases by passing an empty string (-lang=&gt;'').
+<P>
+
+The <B>-encoding</B> argument can be used to specify the character set for
+<FONT SIZE="-1">XHTML</FONT>.  It defaults to iso-8859-1 if not specified.
+<P>
+
+The <B>-dtd</B> argument can be used to specify a public <FONT SIZE="-1">DTD</FONT> identifier string. For example:
+<P>
+
+
+
+<PRE>
+    -dtd =&gt; '-//W3C//DTD HTML 4.01 Transitional//EN')
+
+</PRE>
+
+
+<P>
+
+Alternatively, it can take public and system <FONT SIZE="-1">DTD</FONT> identifiers as an array:
+<P>
+
+
+
+<PRE>
+    dtd =&gt; [ '-//W3C//DTD HTML 4.01 Transitional//EN', '<A HREF="http://www.w3.org/TR/html4/loose.dtd'">http://www.w3.org/TR/html4/loose.dtd'</A> ]
+
+</PRE>
+
+
+<P>
+
+For the public <FONT SIZE="-1">DTD</FONT> identifier to be considered, it must be valid. Otherwise it
+will be replaced by the default <FONT SIZE="-1">DTD</FONT>. If the public <FONT SIZE="-1">DTD</FONT> contains '<FONT SIZE="-1">XHTML</FONT>', <FONT SIZE="-1">CGI</FONT>.pm
+will emit <FONT SIZE="-1">XML</FONT>.
+<P>
+
+The <B>-declare_xml</B> argument, when used in conjunction with <FONT SIZE="-1">XHTML</FONT>,
+will put a &lt;?xml&gt; declaration at the top of the <FONT SIZE="-1">HTML</FONT> header. The sole
+purpose of this declaration is to declare the character set
+encoding. In the absence of -declare_xml, the output <FONT SIZE="-1">HTML</FONT> will contain
+a &lt;meta&gt; tag that specifies the encoding, allowing the <FONT SIZE="-1">HTML</FONT> to pass
+most validators.  The default for -declare_xml is false.
+<P>
+
+You can place other arbitrary <FONT SIZE="-1">HTML</FONT> elements to the &lt;head&gt; section with the
+<B>-head</B> tag.  For example, to place a &lt;link&gt; element in the
+head section, use this:
+<P>
+
+
+
+<PRE>
+    print start_html(-head=&gt;Link({-rel=&gt;'shortcut icon',
+                                  -href=&gt;'favicon.ico'}));
+
+</PRE>
+
+
+<P>
+
+To incorporate multiple <FONT SIZE="-1">HTML</FONT> elements into the &lt;head&gt; section, just pass an
+array reference:
+<P>
+
+
+
+<PRE>
+    print start_html(-head=&gt;[ 
+                             Link({-rel=&gt;'next',
+                                   -href=&gt;'<A HREF="http://www.capricorn.com/s2.html'}),">http://www.capricorn.com/s2.html'}),</A>
+                             Link({-rel=&gt;'previous',
+                                   -href=&gt;'<A HREF="http://www.capricorn.com/s1.html'})">http://www.capricorn.com/s1.html'})</A>
+                             ]
+                     );
+
+</PRE>
+
+
+<P>
+
+And here's how to create an HTTP-EQUIV &lt;meta&gt; tag:
+<P>
+
+
+
+<PRE>
+      print start_html(-head=&gt;meta({-http_equiv =&gt; 'Content-Type',
+                                    -content    =&gt; 'text/html'}))
+
+</PRE>
+
+
+<P>
+
+<FONT SIZE="-1">JAVASCRIPTING:</FONT> The <B>-script</B>, <B>-noScript</B>, <B>-onLoad</B>,
+<B>-onMouseOver</B>, <B>-onMouseOut</B> and <B>-onUnload</B> parameters are used
+to add JavaScript calls to your pages.  <B>-script</B> should
+point to a block of text containing JavaScript function definitions.
+This block will be placed within a &lt;script&gt; block inside the <FONT SIZE="-1">HTML</FONT> (not
+<FONT SIZE="-1">HTTP</FONT>) header.  The block is placed in the header in order to give your
+page a fighting chance of having all its JavaScript functions in place
+even if the user presses the stop button before the page has loaded
+completely.  <FONT SIZE="-1">CGI</FONT>.pm attempts to format the script in such a way that
+JavaScript-naive browsers will not choke on the code: unfortunately
+there are some browsers, such as Chimera for Unix, that get confused
+by it nevertheless.
+<P>
+
+The <B>-onLoad</B> and <B>-onUnload</B> parameters point to fragments of JavaScript
+code to execute when the page is respectively opened and closed by the
+browser.  Usually these parameters are calls to functions defined in the
+<B>-script</B> field:
+<P>
+
+
+
+<PRE>
+      $query = CGI-&gt;new;
+      print header;
+      $JSCRIPT=&lt;&lt;END;
+      // Ask a silly question
+      function riddle_me_this() {
+         var r = prompt(&quot;What walks on four legs in the morning, &quot; +
+                       &quot;two legs in the afternoon, &quot; +
+                       &quot;and three legs in the evening?&quot;);
+         response(r);
+      }
+      // Get a silly answer
+      function response(answer) {
+         if (answer == &quot;man&quot;)
+            alert(&quot;Right you are!&quot;);
+         else
+            alert(&quot;Wrong!  Guess again.&quot;);
+      }
+      END
+      print start_html(-title=&gt;'The Riddle of the Sphinx',
+                               -script=&gt;$JSCRIPT);
+
+</PRE>
+
+
+<P>
+
+Use the <B>-noScript</B> parameter to pass some <FONT SIZE="-1">HTML</FONT> text that will be displayed on 
+browsers that do not have JavaScript (or browsers where JavaScript is turned
+off).
+<P>
+
+The &lt;script&gt; tag, has several attributes including ``type'', ``charset'' and ``src''.
+``src'' allows you to keep JavaScript code in an external file. To use these
+attributes pass a <FONT SIZE="-1">HASH</FONT> reference in the <B>-script</B> parameter containing one or
+more of -type, -src, or -code:
+<P>
+
+
+
+<PRE>
+    print $q-&gt;start_html(-title=&gt;'The Riddle of the Sphinx',
+                         -script=&gt;{-type=&gt;'JAVASCRIPT',
+                                   -src=&gt;'/javascript/sphinx.js'}
+                         );
+
+    print $q-&gt;(-title=&gt;'The Riddle of the Sphinx',
+               -script=&gt;{-type=&gt;'PERLSCRIPT',
+                         -code=&gt;'print &quot;hello world!\n;&quot;'}
+               );
+
+</PRE>
+
+
+<P>
+
+A final feature allows you to incorporate multiple &lt;script&gt; sections into the
+header.  Just pass the list of script sections as an array reference.
+this allows you to specify different source files for different dialects
+of JavaScript.  Example:
+<P>
+
+
+
+<PRE>
+     print $q-&gt;start_html(-title=&gt;'The Riddle of the Sphinx',
+                          -script=&gt;[
+                                    { -type =&gt; 'text/javascript',
+                                      -src      =&gt; '/javascript/utilities10.js'
+                                    },
+                                    { -type =&gt; 'text/javascript',
+                                      -src      =&gt; '/javascript/utilities11.js'
+                                    },
+                                    { -type =&gt; 'text/jscript',
+                                      -src      =&gt; '/javascript/utilities12.js'
+                                    },
+                                    { -type =&gt; 'text/ecmascript',
+                                      -src      =&gt; '/javascript/utilities219.js'
+                                    }
+                                 ]
+                             );
+
+</PRE>
+
+
+<P>
+
+The option ``-language'' is a synonym for -type, and is supported for
+backwards compatibility.
+<P>
+
+The old-style positional parameters are as follows:
+<DL COMPACT>
+<DT><B>Parameters:</B><DD>
+<A NAME="ixACD"></A>
+
+<DT>1.<DD>
+<A NAME="ixACE"></A>
+
+The title
+<DT>2.<DD>
+<A NAME="ixACF"></A>
+The author's e-mail address (will create a &lt;link rev=``<FONT SIZE="-1">MADE</FONT>''&gt; tag if present
+<DT>3.<DD>
+<A NAME="ixACG"></A>
+A 'true' flag if you want to include a &lt;base&gt; tag in the header.  This
+helps resolve relative addresses to absolute ones when the document is moved, 
+but makes the document hierarchy non-portable.  Use with care!
+<DT>4, 5, 6...<DD>
+<A NAME="ixACH"></A>
+Any other parameters you want to include in the &lt;body&gt; tag.  This is a good
+place to put <FONT SIZE="-1">HTML</FONT> extensions, such as colors and wallpaper patterns.
+</DL>
+<A NAME="lbBC">&nbsp;</A>
+<H3><FONT SIZE="-1">ENDING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">DOCUMENT:</FONT></H3>
+
+<A NAME="ixACI"></A>
+
+
+<PRE>
+        print end_html
+
+</PRE>
+
+
+<P>
+
+This ends an <FONT SIZE="-1">HTML</FONT> document by printing the &lt;/body&gt;&lt;/html&gt; tags.
+<A NAME="lbBD">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A SELF-REFERENCING <FONT SIZE="-1">URL</FONT> <FONT SIZE="-1">THAT</FONT> <FONT SIZE="-1">PRESERVES</FONT> <FONT SIZE="-1">STATE</FONT> <FONT SIZE="-1">INFORMATION:</FONT></H3>
+
+<A NAME="ixACJ"></A>
+
+
+<PRE>
+    $myself = self_url;
+    print q(&lt;a href=&quot;$myself&quot;&gt;I'm talking to myself.&lt;/a&gt;);
+
+</PRE>
+
+
+<P>
+
+<I>self_url()</I> will return a <FONT SIZE="-1">URL</FONT>, that, when selected, will reinvoke
+this script with all its state information intact.  This is most
+useful when you want to jump around within the document using
+internal anchors but you don't want to disrupt the current contents
+of the form(s).  Something like this will do the trick.
+<P>
+
+
+
+<PRE>
+     $myself = self_url;
+     print &quot;&lt;a href=\&quot;$myself#table1\&quot;&gt;See table 1&lt;/a&gt;&quot;;
+     print &quot;&lt;a href=\&quot;$myself#table2\&quot;&gt;See table 2&lt;/a&gt;&quot;;
+     print &quot;&lt;a href=\&quot;$myself#yourself\&quot;&gt;See for yourself&lt;/a&gt;&quot;;
+
+</PRE>
+
+
+<P>
+
+If you want more control over what's returned, using the <B></B>url()<B></B>
+method instead.
+<P>
+
+You can also retrieve the unprocessed query string with <I>query_string()</I>:
+<P>
+
+
+
+<PRE>
+    $the_string = query_string;
+
+</PRE>
+
+
+<A NAME="lbBE">&nbsp;</A>
+<H3><FONT SIZE="-1">OBTAINING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">SCRIPT</FONT>'S <FONT SIZE="-1">URL</FONT></H3>
+
+<A NAME="ixACK"></A>
+
+
+<PRE>
+    $full_url      = url();
+    $full_url      = url(-full=&gt;1);  #alternative syntax
+    $relative_url  = url(-relative=&gt;1);
+    $absolute_url  = url(-absolute=&gt;1);
+    $url_with_path = url(-path_info=&gt;1);
+    $url_with_path_and_query = url(-path_info=&gt;1,-query=&gt;1);
+    $netloc        = url(-base =&gt; 1);
+
+</PRE>
+
+
+<P>
+
+<B></B>url()<B></B> returns the script's <FONT SIZE="-1">URL</FONT> in a variety of formats.  Called
+without any arguments, it returns the full form of the <FONT SIZE="-1">URL</FONT>, including
+host name and port number
+<P>
+
+
+
+<PRE>
+    <A HREF="http://your.host.com/path/to/script.cgi">http://your.host.com/path/to/script.cgi</A>
+
+</PRE>
+
+
+<P>
+
+You can modify this format with the following named arguments:
+<DL COMPACT>
+<DT><B>-absolute</B><DD>
+<A NAME="ixACL"></A>
+If true, produce an absolute <FONT SIZE="-1">URL</FONT>, e.g.
+
+
+<P>
+
+
+
+
+<PRE>
+    /path/to/script.cgi
+
+</PRE>
+
+
+<DT><B>-relative</B><DD>
+<A NAME="ixACM"></A>
+Produce a relative <FONT SIZE="-1">URL</FONT>.  This is useful if you want to reinvoke your
+script with different parameters. For example:
+
+
+<P>
+
+
+
+
+<PRE>
+    script.cgi
+
+</PRE>
+
+
+<DT><B>-full</B><DD>
+<A NAME="ixACN"></A>
+Produce the full <FONT SIZE="-1">URL</FONT>, exactly as if called without any arguments.
+This overrides the -relative and -absolute arguments.
+<DT><B>-path</B> (<B>-path_info</B>)<DD>
+<A NAME="ixACO"></A>
+Append the additional path information to the <FONT SIZE="-1">URL</FONT>.  This can be
+combined with <B>-full</B>, <B>-absolute</B> or <B>-relative</B>.  <B>-path_info</B>
+is provided as a synonym.
+<DT><B>-query</B> (<B>-query_string</B>)<DD>
+<A NAME="ixACP"></A>
+Append the query string to the <FONT SIZE="-1">URL</FONT>.  This can be combined with
+<B>-full</B>, <B>-absolute</B> or <B>-relative</B>.  <B>-query_string</B> is provided
+as a synonym.
+<DT><B>-base</B><DD>
+<A NAME="ixACQ"></A>
+Generate just the protocol and net location, as in <A HREF="http://www.foo.com:8000">http://www.foo.com:8000</A>
+<DT><B>-rewrite</B><DD>
+<A NAME="ixACR"></A>
+If Apache's mod_rewrite is turned on, then the script name and path
+info probably won't match the request that the user sent. Set
+-rewrite=&gt;1 (default) to return URLs that match what the user sent
+(the original request <FONT SIZE="-1">URI</FONT>). Set -rewrite=&gt;0 to return URLs that match
+the <FONT SIZE="-1">URL</FONT> after mod_rewrite's rules have run. Because the additional
+path information only makes sense in the context of the rewritten <FONT SIZE="-1">URL</FONT>,
+-rewrite is set to false when you request path info in the <FONT SIZE="-1">URL</FONT>.
+</DL>
+<A NAME="lbBF">&nbsp;</A>
+<H3><FONT SIZE="-1">MIXING</FONT> <FONT SIZE="-1">POST</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">URL</FONT> <FONT SIZE="-1">PARAMETERS</FONT></H3>
+
+<A NAME="ixACS"></A>
+
+
+<PRE>
+   $color = url_param('color');
+
+</PRE>
+
+
+<P>
+
+It is possible for a script to receive <FONT SIZE="-1">CGI</FONT> parameters in the <FONT SIZE="-1">URL</FONT> as
+well as in the fill-out form by creating a form that POSTs to a <FONT SIZE="-1">URL</FONT>
+containing a query string (a ``?'' mark followed by arguments).  The
+<B></B>param()<B></B> method will always return the contents of the POSTed
+fill-out form, ignoring the <FONT SIZE="-1">URL</FONT>'s query string.  To retrieve <FONT SIZE="-1">URL</FONT>
+parameters, call the <B></B>url_param()<B></B> method.  Use it in the same way as
+<B></B>param()<B></B>.  The main difference is that it allows you to read the
+parameters, but not set them.
+<P>
+
+Under no circumstances will the contents of the <FONT SIZE="-1">URL</FONT> query string
+interfere with similarly-named <FONT SIZE="-1">CGI</FONT> parameters in POSTed forms.  If you
+try to mix a <FONT SIZE="-1">URL</FONT> query string with a form submitted with the <FONT SIZE="-1">GET</FONT>
+method, the results will not be what you expect.
+<A NAME="lbBG">&nbsp;</A>
+<H2>CREATING STANDARD HTML ELEMENTS:</H2>
+
+<A NAME="ixACT"></A>
+<FONT SIZE="-1">CGI</FONT>.pm defines general <FONT SIZE="-1">HTML</FONT> shortcut methods for many <FONT SIZE="-1">HTML</FONT> tags.  <FONT SIZE="-1">HTML</FONT> shortcuts are named after a single
+<FONT SIZE="-1">HTML</FONT> element and return a fragment of <FONT SIZE="-1">HTML</FONT> text. Example:
+<P>
+
+
+
+<PRE>
+   print $q-&gt;blockquote(
+                     &quot;Many years ago on the island of&quot;,
+                     $q-&gt;a({href=&gt;&quot;<A HREF="http://crete.org/">http://crete.org/</A>&quot;},&quot;Crete&quot;),
+                     &quot;there lived a Minotaur named&quot;,
+                     $q-&gt;strong(&quot;Fred.&quot;),
+                    ),
+       $q-&gt;hr;
+
+</PRE>
+
+
+<P>
+
+This results in the following <FONT SIZE="-1">HTML</FONT> code (extra newlines have been
+added for readability):
+<P>
+
+
+
+<PRE>
+   &lt;blockquote&gt;
+   Many years ago on the island of
+   &lt;a href=&quot;<A HREF="http://crete.org/">http://crete.org/</A>&quot;&gt;Crete&lt;/a&gt; there lived
+   a minotaur named &lt;strong&gt;Fred.&lt;/strong&gt; 
+   &lt;/blockquote&gt;
+   &lt;hr&gt;
+
+</PRE>
+
+
+<P>
+
+If you find the syntax for calling the <FONT SIZE="-1">HTML</FONT> shortcuts awkward, you can
+import them into your namespace and dispense with the object syntax
+completely (see the next section for more details):
+<P>
+
+
+
+<PRE>
+   use CGI ':standard';
+   print blockquote(
+      &quot;Many years ago on the island of&quot;,
+      a({href=&gt;&quot;<A HREF="http://crete.org/">http://crete.org/</A>&quot;},&quot;Crete&quot;),
+      &quot;there lived a minotaur named&quot;,
+      strong(&quot;Fred.&quot;),
+      ),
+      hr;
+
+</PRE>
+
+
+<A NAME="lbBH">&nbsp;</A>
+<H3><FONT SIZE="-1">PROVIDING</FONT> <FONT SIZE="-1">ARGUMENTS</FONT> <FONT SIZE="-1">TO</FONT> <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">SHORTCUTS</FONT></H3>
+
+<A NAME="ixACU"></A>
+The <FONT SIZE="-1">HTML</FONT> methods will accept zero, one or multiple arguments.  If you
+provide no arguments, you get a single tag:
+<P>
+
+
+
+<PRE>
+   print hr;    #  &lt;hr&gt;
+
+</PRE>
+
+
+<P>
+
+If you provide one or more string arguments, they are concatenated
+together with spaces and placed between opening and closing tags:
+<P>
+
+
+
+<PRE>
+   print h1(&quot;Chapter&quot;,&quot;1&quot;); # &lt;h1&gt;Chapter 1&lt;/h1&gt;&quot;
+
+</PRE>
+
+
+<P>
+
+If the first argument is a hash reference, then the keys
+and values of the hash become the <FONT SIZE="-1">HTML</FONT> tag's attributes:
+<P>
+
+
+
+<PRE>
+   print a({-href=&gt;'fred.html',-target=&gt;'_new'},
+      &quot;Open a new frame&quot;);
+
+            &lt;a href=&quot;fred.html&quot;,target=&quot;_new&quot;&gt;Open a new frame&lt;/a&gt;
+
+</PRE>
+
+
+<P>
+
+You may dispense with the dashes in front of the attribute names if
+you prefer:
+<P>
+
+
+
+<PRE>
+   print img {src=&gt;'fred.gif',align=&gt;'LEFT'};
+
+           &lt;img align=&quot;LEFT&quot; src=&quot;fred.gif&quot;&gt;
+
+</PRE>
+
+
+<P>
+
+Sometimes an <FONT SIZE="-1">HTML</FONT> tag attribute has no argument.  For example, ordered
+lists can be marked as <FONT SIZE="-1">COMPACT</FONT>.  The syntax for this is an argument that
+that points to an undef string:
+<P>
+
+
+
+<PRE>
+   print ol({compact=&gt;undef},li('one'),li('two'),li('three'));
+
+</PRE>
+
+
+<P>
+
+Prior to <FONT SIZE="-1">CGI</FONT>.pm version 2.41, providing an empty ('') string as an
+attribute argument was the same as providing undef.  However, this has
+changed in order to accommodate those who want to create tags of the form 
+&lt;img alt=&quot;&quot;&gt;.  The difference is shown in these two pieces of code:
+<P>
+
+
+
+<PRE>
+   CODE                   RESULT
+   img({alt=&gt;undef})      &lt;img alt&gt;
+   img({alt=&gt;''})         &lt;img alt=&quot;&quot;&gt;
+
+</PRE>
+
+
+<A NAME="lbBI">&nbsp;</A>
+<H3><FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">DISTRIBUTIVE</FONT> <FONT SIZE="-1">PROPERTY</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">SHORTCUTS</FONT></H3>
+
+<A NAME="ixACV"></A>
+One of the cool features of the <FONT SIZE="-1">HTML</FONT> shortcuts is that they are
+distributive.  If you give them an argument consisting of a
+<B>reference</B> to a list, the tag will be distributed across each
+element of the list.  For example, here's one way to make an ordered
+list:
+<P>
+
+
+
+<PRE>
+   print ul(
+             li({-type=&gt;'disc'},['Sneezy','Doc','Sleepy','Happy'])
+           );
+
+</PRE>
+
+
+<P>
+
+This example will result in <FONT SIZE="-1">HTML</FONT> output that looks like this:
+<P>
+
+
+
+<PRE>
+   &lt;ul&gt;
+     &lt;li type=&quot;disc&quot;&gt;Sneezy&lt;/li&gt;
+     &lt;li type=&quot;disc&quot;&gt;Doc&lt;/li&gt;
+     &lt;li type=&quot;disc&quot;&gt;Sleepy&lt;/li&gt;
+     &lt;li type=&quot;disc&quot;&gt;Happy&lt;/li&gt;
+   &lt;/ul&gt;
+
+</PRE>
+
+
+<P>
+
+This is extremely useful for creating tables.  For example:
+<P>
+
+
+
+<PRE>
+   print table({-border=&gt;undef},
+           caption('When Should You Eat Your Vegetables?'),
+           Tr({-align=&gt;'CENTER',-valign=&gt;'TOP'},
+           [
+              th(['Vegetable', 'Breakfast','Lunch','Dinner']),
+              td(['Tomatoes' , 'no', 'yes', 'yes']),
+              td(['Broccoli' , 'no', 'no',  'yes']),
+              td(['Onions'   , 'yes','yes', 'yes'])
+           ]
+           )
+        );
+
+</PRE>
+
+
+<A NAME="lbBJ">&nbsp;</A>
+<H3><FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">SHORTCUTS</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">LIST</FONT> <FONT SIZE="-1">INTERPOLATION</FONT></H3>
+
+<A NAME="ixACW"></A>
+Consider this bit of code:
+<P>
+
+
+
+<PRE>
+   print blockquote(em('Hi'),'mom!'));
+
+</PRE>
+
+
+<P>
+
+It will ordinarily return the string that you probably expect, namely:
+<P>
+
+
+
+<PRE>
+   &lt;blockquote&gt;&lt;em&gt;Hi&lt;/em&gt; mom!&lt;/blockquote&gt;
+
+</PRE>
+
+
+<P>
+
+Note the space between the element ``Hi'' and the element ``mom!''.
+<FONT SIZE="-1">CGI</FONT>.pm puts the extra space there using array interpolation, which is
+controlled by the magic $`` variable.  Sometimes this extra space is
+not what you want, for example, when you are trying to align a series
+of images.  In this case, you can simply change the value of $'' to an
+empty string.
+<P>
+
+
+
+<PRE>
+   {
+      local($&quot;) = '';
+      print blockquote(em('Hi'),'mom!'));
+    }
+
+</PRE>
+
+
+<P>
+
+I suggest you put the code in a block as shown here.  Otherwise the
+change to $&quot; will affect all subsequent code until you explicitly
+reset it.
+<A NAME="lbBK">&nbsp;</A>
+<H3>NON-STANDARD <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">SHORTCUTS</FONT></H3>
+
+<A NAME="ixACX"></A>
+A few <FONT SIZE="-1">HTML</FONT> tags don't follow the standard pattern for various
+reasons.
+<P>
+
+<B></B>comment()<B></B> generates an <FONT SIZE="-1">HTML</FONT> comment (&lt;!-- comment --&gt;).  Call it
+like
+<P>
+
+
+
+<PRE>
+    print comment('here is my comment');
+
+</PRE>
+
+
+<P>
+
+Because of conflicts with built-in Perl functions, the following functions
+begin with initial caps:
+<P>
+
+
+
+<PRE>
+    Select
+    Tr
+    Link
+    Delete
+    Accept
+    Sub
+
+</PRE>
+
+
+<P>
+
+In addition, <I>start_html()</I>, <I>end_html()</I>, <I>start_form()</I>, <I>end_form()</I>,
+<I>start_multipart_form()</I> and all the fill-out form tags are special.
+See their respective sections.
+<A NAME="lbBL">&nbsp;</A>
+<H3><FONT SIZE="-1">AUTOESCAPING</FONT> <FONT SIZE="-1">HTML</FONT></H3>
+
+<A NAME="ixACY"></A>
+By default, all <FONT SIZE="-1">HTML</FONT> that is emitted by the form-generating functions
+is passed through a function called <I>escapeHTML()</I>:
+<DL COMPACT>
+<DT>$escaped_string = escapeHTML(unescaped string);<DD>
+
+
+<A NAME="ixACZ"></A>
+Escape <FONT SIZE="-1">HTML</FONT> formatting characters in a string.
+</DL>
+<P>
+
+Provided that you have specified a character set of <FONT SIZE="-1">ISO-8859-1</FONT> (the
+default), the standard <FONT SIZE="-1">HTML</FONT> escaping rules will be used.  The ``&lt;''
+character becomes ``&amp;lt;'', ``&gt;'' becomes ``&amp;gt;'', ``&amp;'' becomes ``&amp;amp;'', and
+the quote character becomes ``&amp;quot;''.  In addition, the hexadecimal
+0x8b and 0x9b characters, which some browsers incorrectly interpret
+as the left and right angle-bracket characters, are replaced by their
+numeric character entities (``&amp;#8249'' and ``&amp;#8250;'').  If you manually change
+the charset, either by calling the <I>charset()</I> method explicitly or by
+passing a -charset argument to <I>header()</I>, then <B>all</B> characters will
+be replaced by their numeric entities, since <FONT SIZE="-1">CGI</FONT>.pm has no lookup
+table for all the possible encodings.
+<P>
+
+<TT>&quot;escapeHTML()&quot;</TT> expects the supplied string to be a character string. This means you
+should Encode::decode data received from ``outside'' and Encode::encode your
+strings before sending them back outside. If your source code <FONT SIZE="-1">UTF-8</FONT> encoded and
+you want to upgrade string literals in your source to character strings, you
+can use ``use utf8''. See perlunitut, perlunifaq and perlunicode for more
+information on how Perl handles the difference between bytes and characters.
+<P>
+
+The automatic escaping does not apply to other shortcuts, such as
+<I>h1()</I>.  You should call <I>escapeHTML()</I> yourself on untrusted data in
+order to protect your pages against nasty tricks that people may enter
+into guestbooks, etc..  To change the character set, use <I>charset()</I>.
+To turn autoescaping off completely, use <I>autoEscape</I>(0):
+<DL COMPACT>
+<DT>$charset = charset([$charset]);<DD>
+
+
+<A NAME="ixADA"></A>
+Get or set the current character set.
+<DT>$flag = autoEscape([$flag]);<DD>
+
+
+<A NAME="ixADB"></A>
+Get or set the value of the autoescape flag.
+</DL>
+<A NAME="lbBM">&nbsp;</A>
+<H3>PRETTY-PRINTING <FONT SIZE="-1">HTML</FONT></H3>
+
+<A NAME="ixADC"></A>
+By default, all the <FONT SIZE="-1">HTML</FONT> produced by these functions comes out as one
+long line without carriage returns or indentation. This is yuck, but
+it does reduce the size of the documents by 10-20%.  To get
+pretty-printed output, please use CGI::Pretty, a subclass
+contributed by Brian Paulsen.
+<A NAME="lbBN">&nbsp;</A>
+<H2>CREATING FILL-OUT FORMS:</H2>
+
+<A NAME="ixADD"></A>
+<I>General note</I>  The various form-creating methods all return strings
+to the caller, containing the tag or tags that will create the requested
+form element.  You are responsible for actually printing out these strings.
+It's set up this way so that you can place formatting tags
+around the form elements.
+<P>
+
+<I>Another note</I> The default values that you specify for the forms are only
+used the <B>first</B> time the script is invoked (when there is no query
+string).  On subsequent invocations of the script (when there is a query
+string), the former values are used even if they are blank.
+<P>
+
+If you want to change the value of a field from its previous value, you have two
+choices:
+<P>
+
+(1) call the <I>param()</I> method to set it.
+<P>
+
+(2) use the -override (alias -force) parameter (a new feature in version 2.15).
+This forces the default value to be used, regardless of the previous value:
+<P>
+
+
+
+<PRE>
+   print textfield(-name=&gt;'field_name',
+                           -default=&gt;'starting value',
+                           -override=&gt;1,
+                           -size=&gt;50,
+                           -maxlength=&gt;80);
+
+</PRE>
+
+
+<P>
+
+<I>Yet another note</I> By default, the text and labels of form elements are
+escaped according to <FONT SIZE="-1">HTML</FONT> rules.  This means that you can safely use
+``&lt;<FONT SIZE="-1">CLICK</FONT> <FONT SIZE="-1">ME</FONT>&gt;'' as the label for a button.  However, it also interferes with
+your ability to incorporate special <FONT SIZE="-1">HTML</FONT> character sequences, such as &amp;Aacute;,
+into your fields.  If you wish to turn off automatic escaping, call the
+<I>autoEscape()</I> method with a false value immediately after creating the <FONT SIZE="-1">CGI</FONT> object:
+<P>
+
+
+
+<PRE>
+   $query = CGI-&gt;new;
+   $query-&gt;autoEscape(0);
+
+</PRE>
+
+
+<P>
+
+Note that <I>autoEscape()</I> is exclusively used to effect the behavior of how some
+<FONT SIZE="-1">CGI</FONT>.pm <FONT SIZE="-1">HTML</FONT> generation functions handle escaping. Calling <I>escapeHTML()</I>
+explicitly will always escape the <FONT SIZE="-1">HTML</FONT>.
+<P>
+
+<I>A Lurking Trap!</I> Some of the form-element generating methods return
+multiple tags.  In a scalar context, the tags will be concatenated
+together with spaces, or whatever is the current value of the $&quot;
+global.  In a list context, the methods will return a list of
+elements, allowing you to modify them if you wish.  Usually you will
+not notice this behavior, but beware of this:
+<P>
+
+
+
+<PRE>
+    printf(&quot;%s\n&quot;,end_form())
+
+</PRE>
+
+
+<P>
+
+<I>end_form()</I> produces several tags, and only the first of them will be
+printed because the format only expects one value.
+<P>
+
+&lt;p&gt;
+<A NAME="lbBO">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> <FONT SIZE="-1">AN</FONT> <FONT SIZE="-1">ISINDEX</FONT> <FONT SIZE="-1">TAG</FONT></H3>
+
+<A NAME="ixADE"></A>
+
+
+<PRE>
+   print isindex(-action=&gt;$action);
+
+         -or-
+
+   print isindex($action);
+
+</PRE>
+
+
+<P>
+
+Prints out an &lt;isindex&gt; tag.  Not very exciting.  The parameter
+-action specifies the <FONT SIZE="-1">URL</FONT> of the script to process the query.  The
+default is to process the query with the current script.
+<A NAME="lbBP">&nbsp;</A>
+<H3><FONT SIZE="-1">STARTING</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">ENDING</FONT> A <FONT SIZE="-1">FORM</FONT></H3>
+
+<A NAME="ixADF"></A>
+
+
+<PRE>
+    print start_form(-method=&gt;$method,
+                    -action=&gt;$action,
+                    -enctype=&gt;$encoding);
+      &lt;... various form stuff ...&gt;
+    print end_form;
+
+        -or-
+
+    print start_form($method,$action,$encoding);
+      &lt;... various form stuff ...&gt;
+    print end_form;
+
+</PRE>
+
+
+<P>
+
+<I>start_form()</I> will return a &lt;form&gt; tag with the optional method,
+action and form encoding that you specify.  The defaults are:
+<P>
+
+
+
+<PRE>
+    method: POST
+    action: this script
+    enctype: application/x-www-form-urlencoded for non-XHTML
+             multipart/form-data for XHTML, see multipart/form-data below.
+
+</PRE>
+
+
+<P>
+
+<I>end_form()</I> returns the closing &lt;/form&gt; tag.
+<P>
+
+<I>Start_form()</I>'s enctype argument tells the browser how to package the various
+fields of the form before sending the form to the server.  Two
+values are possible:
+<P>
+
+<B>Note:</B> These methods were previously named <I>startform()</I> and <I>endform()</I>.
+These methods are now <FONT SIZE="-1">DEPRECATED</FONT>.
+Please use <I>start_form()</I> and <I>end_form()</I> instead.
+<DL COMPACT>
+<DT><B>application/x-www-form-urlencoded</B><DD>
+<A NAME="ixADG"></A>
+This is the older type of encoding.  It is compatible with many <FONT SIZE="-1">CGI</FONT> scripts and is
+suitable for short fields containing text data.  For your
+convenience, <FONT SIZE="-1">CGI</FONT>.pm stores the name of this encoding
+type in <B>&amp;CGI::URL_ENCODED</B>.
+<DT><B>multipart/form-data</B><DD>
+<A NAME="ixADH"></A>
+This is the newer type of encoding.
+It is suitable for forms that contain very large fields or that
+are intended for transferring binary data.  Most importantly,
+it enables the ``file upload'' feature.  For
+your convenience, <FONT SIZE="-1">CGI</FONT>.pm stores the name of this encoding type
+in <B>&amp;CGI::MULTIPART</B>
+
+
+<P>
+
+
+Forms that use this type of encoding are not easily interpreted
+by <FONT SIZE="-1">CGI</FONT> scripts unless they use <FONT SIZE="-1">CGI</FONT>.pm or another library designed
+to handle them.
+
+
+<P>
+
+
+If <FONT SIZE="-1">XHTML</FONT> is activated (the default), then forms will be automatically
+created using this type of encoding.
+</DL>
+<P>
+
+The <I>start_form()</I> method uses the older form of encoding by
+default unless <FONT SIZE="-1">XHTML</FONT> is requested.  If you want to use the
+newer form of encoding by default, you can call
+<B></B>start_multipart_form()<B></B> instead of <B></B>start_form()<B></B>.  The
+method <B></B>end_multipart_form()<B></B> is an alias to <B></B>end_form()<B></B>.
+<P>
+
+<FONT SIZE="-1">JAVASCRIPTING:</FONT> The <B>-name</B> and <B>-onSubmit</B> parameters are provided
+for use with JavaScript.  The -name parameter gives the
+form a name so that it can be identified and manipulated by
+JavaScript functions.  -onSubmit should point to a JavaScript
+function that will be executed just before the form is submitted to your
+server.  You can use this opportunity to check the contents of the form 
+for consistency and completeness.  If you find something wrong, you
+can put up an alert box or maybe fix things up yourself.  You can 
+abort the submission by returning false from this function.
+<P>
+
+Usually the bulk of JavaScript functions are defined in a &lt;script&gt;
+block in the <FONT SIZE="-1">HTML</FONT> header and -onSubmit points to one of these function
+call.  See <I>start_html()</I> for details.
+<A NAME="lbBQ">&nbsp;</A>
+<H3><FONT SIZE="-1">FORM</FONT> <FONT SIZE="-1">ELEMENTS</FONT></H3>
+
+<A NAME="ixADI"></A>
+After starting a form, you will typically create one or more
+textfields, popup menus, radio groups and other form elements.  Each
+of these elements takes a standard set of named arguments.  Some
+elements also have optional arguments.  The standard arguments are as
+follows:
+<DL COMPACT>
+<DT><B>-name</B><DD>
+<A NAME="ixADJ"></A>
+The name of the field. After submission this name can be used to
+retrieve the field's value using the <I>param()</I> method.
+<DT><B>-value</B>, <B>-values</B><DD>
+<A NAME="ixADK"></A>
+The initial value of the field which will be returned to the script
+after form submission.  Some form elements, such as text fields, take
+a single scalar -value argument. Others, such as popup menus, take a
+reference to an array of values. The two arguments are synonyms.
+<DT><B>-tabindex</B><DD>
+<A NAME="ixADL"></A>
+A numeric value that sets the order in which the form element receives
+focus when the user presses the tab key. Elements with lower values
+receive focus first.
+<DT><B>-id</B><DD>
+<A NAME="ixADM"></A>
+A string identifier that can be used to identify this element to
+JavaScript and <FONT SIZE="-1">DHTML</FONT>.
+<DT><B>-override</B><DD>
+<A NAME="ixADN"></A>
+A boolean, which, if true, forces the element to take on the value
+specified by <B>-value</B>, overriding the sticky behavior described
+earlier for the <B>-nosticky</B> pragma.
+<DT><B>-onChange</B>, <B>-onFocus</B>, <B>-onBlur</B>, <B>-onMouseOver</B>, <B>-onMouseOut</B>, <B>-onSelect</B><DD>
+<A NAME="ixADO"></A>
+These are used to assign JavaScript event handlers. See the
+JavaScripting section for more details.
+</DL>
+<P>
+
+Other common arguments are described in the next section. In addition
+to these, all attributes described in the <FONT SIZE="-1">HTML</FONT> specifications are
+supported.
+<A NAME="lbBR">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">TEXT</FONT> <FONT SIZE="-1">FIELD</FONT></H3>
+
+<A NAME="ixADP"></A>
+
+
+<PRE>
+    print textfield(-name=&gt;'field_name',
+                    -value=&gt;'starting value',
+                    -size=&gt;50,
+                    -maxlength=&gt;80);
+        -or-
+
+    print textfield('field_name','starting value',50,80);
+
+</PRE>
+
+
+<P>
+
+<I>textfield()</I> will return a text input field.
+<DL COMPACT>
+<DT><B>Parameters</B><DD>
+<A NAME="ixADQ"></A>
+
+<DT>1.<DD>
+<A NAME="ixADR"></A>
+
+The first parameter is the required name for the field (-name).
+<DT>2.<DD>
+<A NAME="ixADS"></A>
+The optional second parameter is the default starting value for the field
+contents (-value, formerly known as -default).
+<DT>3.<DD>
+<A NAME="ixADT"></A>
+The optional third parameter is the size of the field in
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;characters&nbsp;(-size).
+<DT>4.<DD>
+<A NAME="ixADU"></A>
+The optional fourth parameter is the maximum number of characters the
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;field&nbsp;will&nbsp;accept&nbsp;(-maxlength).
+</DL>
+<P>
+
+As with all these methods, the field will be initialized with its 
+previous contents from earlier invocations of the script.
+When the form is processed, the value of the text field can be
+retrieved with:
+<P>
+
+
+
+<PRE>
+       $value = param('foo');
+
+</PRE>
+
+
+<P>
+
+If you want to reset it from its initial value after the script has been
+called once, you can do so like this:
+<P>
+
+
+
+<PRE>
+       param('foo',&quot;I'm taking over this value!&quot;);
+
+</PRE>
+
+
+<A NAME="lbBS">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">BIG</FONT> <FONT SIZE="-1">TEXT</FONT> <FONT SIZE="-1">FIELD</FONT></H3>
+
+<A NAME="ixADV"></A>
+
+
+<PRE>
+   print textarea(-name=&gt;'foo',
+                          -default=&gt;'starting value',
+                          -rows=&gt;10,
+                          -columns=&gt;50);
+
+        -or
+
+   print textarea('foo','starting value',10,50);
+
+</PRE>
+
+
+<P>
+
+<I>textarea()</I> is just like textfield, but it allows you to specify
+rows and columns for a multiline text entry box.  You can provide
+a starting value for the field, which can be long and contain
+multiple lines.
+<A NAME="lbBT">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">PASSWORD</FONT> <FONT SIZE="-1">FIELD</FONT></H3>
+
+<A NAME="ixADW"></A>
+
+
+<PRE>
+   print password_field(-name=&gt;'secret',
+                                -value=&gt;'starting value',
+                                -size=&gt;50,
+                                -maxlength=&gt;80);
+        -or-
+
+   print password_field('secret','starting value',50,80);
+
+</PRE>
+
+
+<P>
+
+<I>password_field()</I> is identical to <I>textfield()</I>, except that its contents 
+will be starred out on the web page.
+<A NAME="lbBU">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">FILE</FONT> <FONT SIZE="-1">UPLOAD</FONT> <FONT SIZE="-1">FIELD</FONT></H3>
+
+<A NAME="ixADX"></A>
+
+
+<PRE>
+    print filefield(-name=&gt;'uploaded_file',
+                            -default=&gt;'starting value',
+                            -size=&gt;50,
+                            -maxlength=&gt;80);
+        -or-
+
+    print filefield('uploaded_file','starting value',50,80);
+
+</PRE>
+
+
+<P>
+
+<I>filefield()</I> will return a file upload field.
+In order to take full advantage of this <I>you must use the new 
+multipart encoding scheme</I> for the form.  You can do this either
+by calling <B></B>start_form()<B></B> with an encoding type of <B>&amp;CGI::MULTIPART</B>,
+or by calling the new method <B></B>start_multipart_form()<B></B> instead of
+vanilla <B></B>start_form()<B></B>.
+<DL COMPACT>
+<DT><B>Parameters</B><DD>
+<A NAME="ixADY"></A>
+
+<DT>1.<DD>
+<A NAME="ixADZ"></A>
+
+The first parameter is the required name for the field (-name).
+<DT>2.<DD>
+<A NAME="ixAEA"></A>
+The optional second parameter is the starting value for the field contents
+to be used as the default file name (-default).
+
+
+<P>
+
+
+For security reasons, browsers don't pay any attention to this field,
+and so the starting value will always be blank.  Worse, the field
+loses its ``sticky'' behavior and forgets its previous contents.  The
+starting value field is called for in the <FONT SIZE="-1">HTML</FONT> specification, however,
+and possibly some browser will eventually provide support for it.
+<DT>3.<DD>
+<A NAME="ixAEB"></A>
+The optional third parameter is the size of the field in
+characters (-size).
+<DT>4.<DD>
+<A NAME="ixAEC"></A>
+The optional fourth parameter is the maximum number of characters the
+field will accept (-maxlength).
+</DL>
+<P>
+
+<FONT SIZE="-1">JAVASCRIPTING:</FONT> The <B>-onChange</B>, <B>-onFocus</B>, <B>-onBlur</B>,
+<B>-onMouseOver</B>, <B>-onMouseOut</B> and <B>-onSelect</B> parameters are
+recognized.  See <I>textfield()</I> for details.
+<A NAME="lbBV">&nbsp;</A>
+<H3><FONT SIZE="-1">PROCESSING</FONT> A <FONT SIZE="-1">FILE</FONT> <FONT SIZE="-1">UPLOAD</FONT> <FONT SIZE="-1">FIELD</FONT></H3>
+
+<A NAME="ixAED"></A>
+<I>Basics</I>
+<A NAME="ixAEE"></A>
+<P>
+
+When the form is processed, you can retrieve an IO::Handle compatible
+handle for a file upload field like this:
+<P>
+
+
+
+<PRE>
+  $lightweight_fh  = $q-&gt;upload('field_name');
+
+  # undef may be returned if it's not a valid file handle
+  if (defined $lightweight_fh) {
+    # Upgrade the handle to one compatible with IO::Handle:
+    my $io_handle = $lightweight_fh-&gt;handle;
+
+    open (OUTFILE,'&gt;&gt;','/usr/local/web/users/feedback');
+    while ($bytesread = $io_handle-&gt;read($buffer,1024)) {
+      print OUTFILE $buffer;
+    }
+  }
+
+</PRE>
+
+
+<P>
+
+In a list context, <I>upload()</I> will return an array of filehandles.
+This makes it possible to process forms that use the same name for
+multiple upload fields.
+<P>
+
+If you want the entered file name for the file, you can just call <I>param()</I>:
+<P>
+
+
+
+<PRE>
+  $filename = $q-&gt;param('field_name');
+
+</PRE>
+
+
+<P>
+
+Different browsers will return slightly different things for the
+name.  Some browsers return the filename only.  Others return the full
+path to the file, using the path conventions of the user's machine.
+Regardless, the name returned is always the name of the file on the
+<I>user's</I> machine, and is unrelated to the name of the temporary file
+that <FONT SIZE="-1">CGI</FONT>.pm creates during upload spooling (see below).
+<P>
+
+When a file is uploaded the browser usually sends along some
+information along with it in the format of headers.  The information
+usually includes the <FONT SIZE="-1">MIME</FONT> content type. To
+retrieve this information, call <I>uploadInfo()</I>.  It returns a reference to
+a hash containing all the document headers.
+<P>
+
+
+
+<PRE>
+       $filename = $q-&gt;param('uploaded_file');
+       $type = $q-&gt;uploadInfo($filename)-&gt;{'Content-Type'};
+       unless ($type eq 'text/html') {
+        die &quot;HTML FILES ONLY!&quot;;
+       }
+
+</PRE>
+
+
+<P>
+
+If you are using a machine that recognizes ``text'' and ``binary'' data
+modes, be sure to understand when and how to use them (see the Camel book).  
+Otherwise you may find that binary files are corrupted during file
+uploads.
+<P>
+
+<I>Accessing the temp files directly</I>
+<A NAME="ixAEF"></A>
+<P>
+
+When processing an uploaded file, <FONT SIZE="-1">CGI</FONT>.pm creates a temporary file on your hard
+disk and passes you a file handle to that file. After you are finished with the
+file handle, <FONT SIZE="-1">CGI</FONT>.pm unlinks (deletes) the temporary file. If you need to you
+can access the temporary file directly. You can access the temp file for a file
+upload by passing the file name to the <I>tmpFileName()</I> method:
+<P>
+
+
+
+<PRE>
+       $filename = $query-&gt;param('uploaded_file');
+       $tmpfilename = $query-&gt;tmpFileName($filename);
+
+</PRE>
+
+
+<P>
+
+The temporary file will be deleted automatically when your program exits unless
+you manually rename it. On some operating systems (such as Windows <FONT SIZE="-1">NT</FONT>), you
+will need to close the temporary file's filehandle before your program exits.
+Otherwise the attempt to delete the temporary file will fail.
+<P>
+
+<I>Handling interrupted file uploads</I>
+<A NAME="ixAEG"></A>
+<P>
+
+There are occasionally problems involving parsing the uploaded file.
+This usually happens when the user presses ``Stop'' before the upload is
+finished.  In this case, <FONT SIZE="-1">CGI</FONT>.pm will return undef for the name of the
+uploaded file and set <I>cgi_error()</I> to the string ``400 Bad request
+(malformed multipart <FONT SIZE="-1">POST</FONT>)''.  This error message is designed so that
+you can incorporate it into a status code to be sent to the browser.
+Example:
+<P>
+
+
+
+<PRE>
+   $file = $q-&gt;upload('uploaded_file');
+   if (!$file &amp;&amp; $q-&gt;cgi_error) {
+      print $q-&gt;header(-status=&gt;$q-&gt;cgi_error);
+      exit 0;
+   }
+
+</PRE>
+
+
+<P>
+
+You are free to create a custom <FONT SIZE="-1">HTML</FONT> page to complain about the error,
+if you wish.
+<P>
+
+<I>Progress bars for file uploads and avoiding temp files</I>
+<A NAME="ixAEH"></A>
+<P>
+
+<FONT SIZE="-1">CGI</FONT>.pm gives you low-level access to file upload management through
+a file upload hook. You can use this feature to completely turn off
+the temp file storage of file uploads, or potentially write your own
+file upload progress meter.
+<P>
+
+This is much like the <FONT SIZE="-1">UPLOAD_HOOK</FONT> facility available in Apache::Request, with
+the exception that the first argument to the callback is an Apache::Upload
+object, here it's the remote filename.
+<P>
+
+
+
+<PRE>
+ $q = CGI-&gt;new(\&amp;hook [,$data [,$use_tempfile]]);
+
+ sub hook {
+        my ($filename, $buffer, $bytes_read, $data) = @_;
+        print  &quot;Read $bytes_read bytes of $filename\n&quot;;
+ }
+
+</PRE>
+
+
+<P>
+
+The <TT>$data</TT> field is optional; it lets you pass configuration
+information (e.g. a database handle) to your hook callback.
+<P>
+
+The <TT>$use_tempfile</TT> field is a flag that lets you turn on and off
+<FONT SIZE="-1">CGI</FONT>.pm's use of a temporary disk-based file during file upload. If you
+set this to a <FONT SIZE="-1">FALSE</FONT> value (default true) then <TT>$q</TT>-&gt;param('uploaded_file')
+will no longer work, and the only way to get at the uploaded data is
+via the hook you provide.
+<P>
+
+If using the function-oriented interface, call the <I>CGI::upload_hook()</I>
+method before calling <I>param()</I> or any other <FONT SIZE="-1">CGI</FONT> functions:
+<P>
+
+
+
+<PRE>
+  CGI::upload_hook(\&amp;hook [,$data [,$use_tempfile]]);
+
+</PRE>
+
+
+<P>
+
+This method is not exported by default.  You will have to import it
+explicitly if you wish to use it without the <FONT SIZE="-1">CGI::</FONT> prefix.
+<P>
+
+<I>Troubleshooting file uploads on Windows</I>
+<A NAME="ixAEI"></A>
+<P>
+
+If you are using <FONT SIZE="-1">CGI</FONT>.pm on a Windows platform and find that binary
+files get slightly larger when uploaded but that text files remain the
+same, then you have forgotten to activate binary mode on the output
+filehandle.  Be sure to call <I>binmode()</I> on any handle that you create
+to write the uploaded file to disk.
+<P>
+
+<I>Older ways to process file uploads</I>
+<A NAME="ixAEJ"></A>
+<P>
+
+( This section is here for completeness. if you are building a new application with <FONT SIZE="-1">CGI</FONT>.pm, you can skip it. )
+<P>
+
+The original way to process file uploads with <FONT SIZE="-1">CGI</FONT>.pm was to use <I>param()</I>. The
+value it returns has a dual nature as both a file name and a lightweight
+filehandle. This dual nature is problematic if you following the recommended
+practice of having <TT>&quot;use strict&quot;</TT> in your code. Perl will complain when you try
+to use a string as a filehandle.  More seriously, it is possible for the remote
+user to type garbage into the upload field, in which case what you get from
+<I>param()</I> is not a filehandle at all, but a string.
+<P>
+
+To solve this problem the <I>upload()</I> method was added, which always returns a
+lightweight filehandle. This generally works well, but will have trouble
+interoperating with some other modules because the file handle is not derived
+from IO::Handle. So that brings us to current recommendation given above,
+which is to call the <I>handle()</I> method on the file handle returned by <I>upload()</I>.
+That upgrades the handle to an IO::Handle. It's a big win for compatibility for
+a small penalty of loading IO::Handle the first time you call it.
+<A NAME="lbBW">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">POPUP</FONT> <FONT SIZE="-1">MENU</FONT></H3>
+
+<A NAME="ixAEK"></A>
+
+
+<PRE>
+   print popup_menu('menu_name',
+                            ['eenie','meenie','minie'],
+                            'meenie');
+
+      -or-
+
+   %labels = ('eenie'=&gt;'your first choice',
+              'meenie'=&gt;'your second choice',
+              'minie'=&gt;'your third choice');
+   %attributes = ('eenie'=&gt;{'class'=&gt;'class of first choice'});
+   print popup_menu('menu_name',
+                            ['eenie','meenie','minie'],
+          'meenie',\%labels,\%attributes);
+
+        -or (named parameter style)-
+
+   print popup_menu(-name=&gt;'menu_name',
+                            -values=&gt;['eenie','meenie','minie'],
+                            -default=&gt;['meenie','minie'],
+          -labels=&gt;\%labels,
+          -attributes=&gt;\%attributes);
+
+</PRE>
+
+
+<P>
+
+<I>popup_menu()</I> creates a menu.
+<DL COMPACT>
+<DT>1.<DD>
+The required first argument is the menu's name (-name).
+<DT>2.<DD>
+The required second argument (-values) is an array <B>reference</B>
+containing the list of menu items in the menu.  You can pass the
+method an anonymous array, as shown in the example, or a reference to
+a named array, such as ``\@foo''.
+<DT>3.<DD>
+The optional third parameter (-default) is the name of the default
+menu choice.  If not specified, the first item will be the default.
+The values of the previous choice will be maintained across
+queries. Pass an array reference to select multiple defaults.
+<DT>4.<DD>
+The optional fourth parameter (-labels) is provided for people who
+want to use different values for the user-visible label inside the
+popup menu and the value returned to your script.  It's a pointer to an
+hash relating menu values to user-visible labels.  If you
+leave this parameter blank, the menu values will be displayed by
+default.  (You can also leave a label undefined if you want to).
+<DT>5.<DD>
+The optional fifth parameter (-attributes) is provided to assign
+any of the common <FONT SIZE="-1">HTML</FONT> attributes to an individual menu item. It's
+a pointer to a hash relating menu values to another
+hash with the attribute's name as the key and the
+attribute's value as the value.
+</DL>
+<P>
+
+When the form is processed, the selected value of the popup menu can
+be retrieved using:
+<P>
+
+
+
+<PRE>
+      $popup_menu_value = param('menu_name');
+
+</PRE>
+
+
+<A NAME="lbBX">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> <FONT SIZE="-1">AN</FONT> <FONT SIZE="-1">OPTION</FONT> <FONT SIZE="-1">GROUP</FONT></H3>
+
+<A NAME="ixAEL"></A>
+Named parameter style
+<P>
+
+
+
+<PRE>
+  print popup_menu(-name=&gt;'menu_name',
+                  -values=&gt;[qw/eenie meenie minie/,
+                            optgroup(-name=&gt;'optgroup_name',
+                                             -values =&gt; ['moe','catch'],
+                                             -attributes=&gt;{'catch'=&gt;{'class'=&gt;'red'}})],
+                  -labels=&gt;{'eenie'=&gt;'one',
+                            'meenie'=&gt;'two',
+                            'minie'=&gt;'three'},
+                  -default=&gt;'meenie');
+
+  Old style
+  print popup_menu('menu_name',
+                  ['eenie','meenie','minie',
+                   optgroup('optgroup_name', ['moe', 'catch'],
+                                   {'catch'=&gt;{'class'=&gt;'red'}})],'meenie',
+                  {'eenie'=&gt;'one','meenie'=&gt;'two','minie'=&gt;'three'});
+
+</PRE>
+
+
+<P>
+
+<I>optgroup()</I> creates an option group within a popup menu.
+<DL COMPACT>
+<DT>1.<DD>
+The required first argument (<B>-name</B>) is the label attribute of the
+optgroup and is <B>not</B> inserted in the parameter list of the query.
+<DT>2.<DD>
+The required second argument (<B>-values</B>)  is an array reference
+containing the list of menu items in the menu.  You can pass the
+method an anonymous array, as shown in the example, or a reference
+to a named array, such as \@foo.  If you pass a <FONT SIZE="-1">HASH</FONT> reference,
+the keys will be used for the menu values, and the values will be
+used for the menu labels (see -labels below).
+<DT>3.<DD>
+The optional third parameter (<B>-labels</B>) allows you to pass a reference
+to a hash containing user-visible labels for one or more
+of the menu items.  You can use this when you want the user to see one
+menu string, but have the browser return your program a different one.
+If you don't specify this, the value string will be used instead
+(``eenie'', ``meenie'' and ``minie'' in this example).  This is equivalent
+to using a hash reference for the -values parameter.
+<DT>4.<DD>
+An optional fourth parameter (<B>-labeled</B>) can be set to a true value
+and indicates that the values should be used as the label attribute
+for each option element within the optgroup.
+<DT>5.<DD>
+An optional fifth parameter (-novals) can be set to a true value and
+indicates to suppress the val attribute in each option element within
+the optgroup.
+
+
+<P>
+
+
+See the discussion on optgroup at W3C
+(<A HREF="http://www.w3.org/TR/REC-html40/interact/forms.html#edef-OPTGROUP)">http://www.w3.org/TR/REC-html40/interact/forms.html#edef-OPTGROUP)</A>
+for details.
+<DT>6.<DD>
+An optional sixth parameter (-attributes) is provided to assign
+any of the common <FONT SIZE="-1">HTML</FONT> attributes to an individual menu item. It's
+a pointer to a hash relating menu values to another
+hash with the attribute's name as the key and the
+attribute's value as the value.
+</DL>
+<A NAME="lbBY">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">SCROLLING</FONT> <FONT SIZE="-1">LIST</FONT></H3>
+
+<A NAME="ixAEM"></A>
+
+
+<PRE>
+   print scrolling_list('list_name',
+                                ['eenie','meenie','minie','moe'],
+        ['eenie','moe'],5,'true',{'moe'=&gt;{'class'=&gt;'red'}});
+      -or-
+
+   print scrolling_list('list_name',
+                                ['eenie','meenie','minie','moe'],
+                                ['eenie','moe'],5,'true',
+        \%labels,%attributes);
+
+        -or-
+
+   print scrolling_list(-name=&gt;'list_name',
+                                -values=&gt;['eenie','meenie','minie','moe'],
+                                -default=&gt;['eenie','moe'],
+                                -size=&gt;5,
+                                -multiple=&gt;'true',
+        -labels=&gt;\%labels,
+        -attributes=&gt;\%attributes);
+
+</PRE>
+
+
+<P>
+
+<I>scrolling_list()</I> creates a scrolling list.
+<DL COMPACT>
+<DT><B>Parameters:</B><DD>
+<A NAME="ixAEN"></A>
+
+<DT>1.<DD>
+<A NAME="ixAEO"></A>
+
+The first and second arguments are the list name (-name) and values
+(-values).  As in the popup menu, the second argument should be an
+array reference.
+<DT>2.<DD>
+<A NAME="ixAEP"></A>
+The optional third argument (-default) can be either a reference to a
+list containing the values to be selected by default, or can be a
+single value to select.  If this argument is missing or undefined,
+then nothing is selected when the list first appears.  In the named
+parameter version, you can use the synonym ``-defaults'' for this
+parameter.
+<DT>3.<DD>
+<A NAME="ixAEQ"></A>
+The optional fourth argument is the size of the list (-size).
+<DT>4.<DD>
+<A NAME="ixAER"></A>
+The optional fifth argument can be set to true to allow multiple
+simultaneous selections (-multiple).  Otherwise only one selection
+will be allowed at a time.
+<DT>5.<DD>
+<A NAME="ixAES"></A>
+The optional sixth argument is a pointer to a hash
+containing long user-visible labels for the list items (-labels).
+If not provided, the values will be displayed.
+<DT>6.<DD>
+<A NAME="ixAET"></A>
+The optional sixth parameter (-attributes) is provided to assign
+any of the common <FONT SIZE="-1">HTML</FONT> attributes to an individual menu item. It's
+a pointer to a hash relating menu values to another
+hash with the attribute's name as the key and the
+attribute's value as the value.
+
+
+<P>
+
+
+When this form is processed, all selected list items will be returned as
+a list under the parameter name 'list_name'.  The values of the
+selected items can be retrieved with:
+
+
+<P>
+
+
+
+
+<PRE>
+      @selected = param('list_name');
+
+</PRE>
+
+
+</DL>
+<A NAME="lbBZ">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">GROUP</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">RELATED</FONT> <FONT SIZE="-1">CHECKBOXES</FONT></H3>
+
+<A NAME="ixAEU"></A>
+
+
+<PRE>
+   print checkbox_group(-name=&gt;'group_name',
+                                -values=&gt;['eenie','meenie','minie','moe'],
+                                -default=&gt;['eenie','moe'],
+                                -linebreak=&gt;'true',
+                                -disabled =&gt; ['moe'],
+        -labels=&gt;\%labels,
+        -attributes=&gt;\%attributes);
+
+   print checkbox_group('group_name',
+                                ['eenie','meenie','minie','moe'],
+        ['eenie','moe'],'true',\%labels,
+        {'moe'=&gt;{'class'=&gt;'red'}});
+
+   HTML3-COMPATIBLE BROWSERS ONLY:
+
+   print checkbox_group(-name=&gt;'group_name',
+                                -values=&gt;['eenie','meenie','minie','moe'],
+                                -rows=2,-columns=&gt;2);
+
+</PRE>
+
+
+<P>
+
+<I>checkbox_group()</I> creates a list of checkboxes that are related
+by the same name.
+<DL COMPACT>
+<DT><B>Parameters:</B><DD>
+<A NAME="ixAEV"></A>
+
+<DT>1.<DD>
+<A NAME="ixAEW"></A>
+
+The first and second arguments are the checkbox name and values,
+respectively (-name and -values).  As in the popup menu, the second
+argument should be an array reference.  These values are used for the
+user-readable labels printed next to the checkboxes as well as for the
+values passed to your script in the query string.
+<DT>2.<DD>
+<A NAME="ixAEX"></A>
+The optional third argument (-default) can be either a reference to a
+list containing the values to be checked by default, or can be a
+single value to checked.  If this argument is missing or undefined,
+then nothing is selected when the list first appears.
+<DT>3.<DD>
+<A NAME="ixAEY"></A>
+The optional fourth argument (-linebreak) can be set to true to place
+line breaks between the checkboxes so that they appear as a vertical
+list.  Otherwise, they will be strung together on a horizontal line.
+</DL>
+<P>
+
+The optional <B>-labels</B> argument is a pointer to a hash
+relating the checkbox values to the user-visible labels that will be
+printed next to them.  If not provided, the values will be used as the
+default.
+<P>
+
+The optional parameters <B>-rows</B>, and <B>-columns</B> cause
+<I>checkbox_group()</I> to return an <FONT SIZE="-1">HTML3</FONT> compatible table containing the
+checkbox group formatted with the specified number of rows and
+columns.  You can provide just the -columns parameter if you wish;
+checkbox_group will calculate the correct number of rows for you.
+<P>
+
+The option <B>-disabled</B> takes an array of checkbox values and disables
+them by greying them out (this may not be supported by all browsers).
+<P>
+
+The optional <B>-attributes</B> argument is provided to assign any of the
+common <FONT SIZE="-1">HTML</FONT> attributes to an individual menu item. It's a pointer to
+a hash relating menu values to another hash
+with the attribute's name as the key and the attribute's value as the
+value.
+<P>
+
+The optional <B>-tabindex</B> argument can be used to control the order in which
+radio buttons receive focus when the user presses the tab button.  If
+passed a scalar numeric value, the first element in the group will
+receive this tab index and subsequent elements will be incremented by
+one.  If given a reference to an array of radio button values, then
+the indexes will be jiggered so that the order specified in the array
+will correspond to the tab order.  You can also pass a reference to a
+hash in which the hash keys are the radio button values and the values
+are the tab indexes of each button.  Examples:
+<P>
+
+
+
+<PRE>
+  -tabindex =&gt; 100    #  this group starts at index 100 and counts up
+  -tabindex =&gt; ['moe','minie','eenie','meenie']  # tab in this order
+  -tabindex =&gt; {meenie=&gt;100,moe=&gt;101,minie=&gt;102,eenie=&gt;200} # tab in this order
+
+</PRE>
+
+
+<P>
+
+The optional <B>-labelattributes</B> argument will contain attributes
+attached to the &lt;label&gt; element that surrounds each button.
+<P>
+
+When the form is processed, all checked boxes will be returned as
+a list under the parameter name 'group_name'.  The values of the
+``on'' checkboxes can be retrieved with:
+<P>
+
+
+
+<PRE>
+      @turned_on = param('group_name');
+
+</PRE>
+
+
+<P>
+
+The value returned by <I>checkbox_group()</I> is actually an array of button
+elements.  You can capture them and use them within tables, lists,
+or in other creative ways:
+<P>
+
+
+
+<PRE>
+    @h = checkbox_group(-name=&gt;'group_name',-values=&gt;\@values);
+    &amp;use_in_creative_way(@h);
+
+</PRE>
+
+
+<A NAME="lbCA">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">STANDALONE</FONT> <FONT SIZE="-1">CHECKBOX</FONT></H3>
+
+<A NAME="ixAEZ"></A>
+
+
+<PRE>
+    print checkbox(-name=&gt;'checkbox_name',
+                           -checked=&gt;1,
+                           -value=&gt;'ON',
+                           -label=&gt;'CLICK ME');
+
+        -or-
+
+    print checkbox('checkbox_name','checked','ON','CLICK ME');
+
+</PRE>
+
+
+<P>
+
+<I>checkbox()</I> is used to create an isolated checkbox that isn't logically
+related to any others.
+<DL COMPACT>
+<DT><B>Parameters:</B><DD>
+<A NAME="ixAFA"></A>
+
+<DT>1.<DD>
+<A NAME="ixAFB"></A>
+
+The first parameter is the required name for the checkbox (-name).  It
+will also be used for the user-readable label printed next to the
+checkbox.
+<DT>2.<DD>
+<A NAME="ixAFC"></A>
+The optional second parameter (-checked) specifies that the checkbox
+is turned on by default.  Synonyms are -selected and -on.
+<DT>3.<DD>
+<A NAME="ixAFD"></A>
+The optional third parameter (-value) specifies the value of the
+checkbox when it is checked.  If not provided, the word ``on'' is
+assumed.
+<DT>4.<DD>
+<A NAME="ixAFE"></A>
+The optional fourth parameter (-label) is the user-readable label to
+be attached to the checkbox.  If not provided, the checkbox name is
+used.
+</DL>
+<P>
+
+The value of the checkbox can be retrieved using:
+<P>
+
+
+
+<PRE>
+    $turned_on = param('checkbox_name');
+
+</PRE>
+
+
+<A NAME="lbCB">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">RADIO</FONT> <FONT SIZE="-1">BUTTON</FONT> <FONT SIZE="-1">GROUP</FONT></H3>
+
+<A NAME="ixAFF"></A>
+
+
+<PRE>
+   print radio_group(-name=&gt;'group_name',
+                             -values=&gt;['eenie','meenie','minie'],
+                             -default=&gt;'meenie',
+                             -linebreak=&gt;'true',
+           -labels=&gt;\%labels,
+           -attributes=&gt;\%attributes);
+
+        -or-
+
+   print radio_group('group_name',['eenie','meenie','minie'],
+            'meenie','true',\%labels,\%attributes);
+
+
+   HTML3-COMPATIBLE BROWSERS ONLY:
+
+   print radio_group(-name=&gt;'group_name',
+                             -values=&gt;['eenie','meenie','minie','moe'],
+                             -rows=2,-columns=&gt;2);
+
+</PRE>
+
+
+<P>
+
+<I>radio_group()</I> creates a set of logically-related radio buttons
+(turning one member of the group on turns the others off)
+<DL COMPACT>
+<DT><B>Parameters:</B><DD>
+<A NAME="ixAFG"></A>
+
+<DT>1.<DD>
+<A NAME="ixAFH"></A>
+
+The first argument is the name of the group and is required (-name).
+<DT>2.<DD>
+<A NAME="ixAFI"></A>
+The second argument (-values) is the list of values for the radio
+buttons.  The values and the labels that appear on the page are
+identical.  Pass an array <I>reference</I> in the second argument, either
+using an anonymous array, as shown, or by referencing a named array as
+in ``\@foo''.
+<DT>3.<DD>
+<A NAME="ixAFJ"></A>
+The optional third parameter (-default) is the name of the default
+button to turn on. If not specified, the first item will be the
+default.  You can provide a nonexistent button name, such as ``-'' to
+start up with no buttons selected.
+<DT>4.<DD>
+<A NAME="ixAFK"></A>
+The optional fourth parameter (-linebreak) can be set to 'true' to put
+line breaks between the buttons, creating a vertical list.
+<DT>5.<DD>
+<A NAME="ixAFL"></A>
+The optional fifth parameter (-labels) is a pointer to an associative
+array relating the radio button values to user-visible labels to be
+used in the display.  If not provided, the values themselves are
+displayed.
+</DL>
+<P>
+
+All modern browsers can take advantage of the optional parameters
+<B>-rows</B>, and <B>-columns</B>.  These parameters cause <I>radio_group()</I> to
+return an <FONT SIZE="-1">HTML3</FONT> compatible table containing the radio group formatted
+with the specified number of rows and columns.  You can provide just
+the -columns parameter if you wish; radio_group will calculate the
+correct number of rows for you.
+<P>
+
+To include row and column headings in the returned table, you
+can use the <B>-rowheaders</B> and <B>-colheaders</B> parameters.  Both
+of these accept a pointer to an array of headings to use.
+The headings are just decorative.  They don't reorganize the
+interpretation of the radio buttons --- they're still a single named
+unit.
+<P>
+
+The optional <B>-tabindex</B> argument can be used to control the order in which
+radio buttons receive focus when the user presses the tab button.  If
+passed a scalar numeric value, the first element in the group will
+receive this tab index and subsequent elements will be incremented by
+one.  If given a reference to an array of radio button values, then
+the indexes will be jiggered so that the order specified in the array
+will correspond to the tab order.  You can also pass a reference to a
+hash in which the hash keys are the radio button values and the values
+are the tab indexes of each button.  Examples:
+<P>
+
+
+
+<PRE>
+  -tabindex =&gt; 100    #  this group starts at index 100 and counts up
+  -tabindex =&gt; ['moe','minie','eenie','meenie']  # tab in this order
+  -tabindex =&gt; {meenie=&gt;100,moe=&gt;101,minie=&gt;102,eenie=&gt;200} # tab in this order
+
+</PRE>
+
+
+<P>
+
+The optional <B>-attributes</B> argument is provided to assign any of the
+common <FONT SIZE="-1">HTML</FONT> attributes to an individual menu item. It's a pointer to
+a hash relating menu values to another hash
+with the attribute's name as the key and the attribute's value as the
+value.
+<P>
+
+The optional <B>-labelattributes</B> argument will contain attributes
+attached to the &lt;label&gt; element that surrounds each button.
+<P>
+
+When the form is processed, the selected radio button can
+be retrieved using:
+<P>
+
+
+
+<PRE>
+      $which_radio_button = param('group_name');
+
+</PRE>
+
+
+<P>
+
+The value returned by <I>radio_group()</I> is actually an array of button
+elements.  You can capture them and use them within tables, lists,
+or in other creative ways:
+<P>
+
+
+
+<PRE>
+    @h = radio_group(-name=&gt;'group_name',-values=&gt;\@values);
+    &amp;use_in_creative_way(@h);
+
+</PRE>
+
+
+<A NAME="lbCC">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">SUBMIT</FONT> <FONT SIZE="-1">BUTTON</FONT></H3>
+
+<A NAME="ixAFM"></A>
+
+
+<PRE>
+   print submit(-name=&gt;'button_name',
+                        -value=&gt;'value');
+
+        -or-
+
+   print submit('button_name','value');
+
+</PRE>
+
+
+<P>
+
+<I>submit()</I> will create the query submission button.  Every form
+should have one of these.
+<DL COMPACT>
+<DT><B>Parameters:</B><DD>
+<A NAME="ixAFN"></A>
+
+<DT>1.<DD>
+<A NAME="ixAFO"></A>
+
+The first argument (-name) is optional.  You can give the button a
+name if you have several submission buttons in your form and you want
+to distinguish between them.
+<DT>2.<DD>
+<A NAME="ixAFP"></A>
+The second argument (-value) is also optional.  This gives the button
+a value that will be passed to your script in the query string. The
+name will also be used as the user-visible label.
+<DT>3.<DD>
+<A NAME="ixAFQ"></A>
+You can use -label as an alias for -value.  I always get confused
+about which of -name and -value changes the user-visible label on the
+button.
+</DL>
+<P>
+
+You can figure out which button was pressed by using different
+values for each one:
+<P>
+
+
+
+<PRE>
+     $which_one = param('button_name');
+
+</PRE>
+
+
+<A NAME="lbCD">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">RESET</FONT> <FONT SIZE="-1">BUTTON</FONT></H3>
+
+<A NAME="ixAFR"></A>
+
+
+<PRE>
+   print reset
+
+</PRE>
+
+
+<P>
+
+<I>reset()</I> creates the ``reset'' button.  Note that it restores the
+form to its value from the last time the script was called, 
+<FONT SIZE="-1">NOT</FONT> necessarily to the defaults.
+<P>
+
+Note that this conflicts with the Perl <I>reset()</I> built-in.  Use
+<I>CORE::reset()</I> to get the original reset function.
+<A NAME="lbCE">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">DEFAULT</FONT> <FONT SIZE="-1">BUTTON</FONT></H3>
+
+<A NAME="ixAFS"></A>
+
+
+<PRE>
+   print defaults('button_label')
+
+</PRE>
+
+
+<P>
+
+<I>defaults()</I> creates a button that, when invoked, will cause the
+form to be completely reset to its defaults, wiping out all the
+changes the user ever made.
+<A NAME="lbCF">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">HIDDEN</FONT> <FONT SIZE="-1">FIELD</FONT></H3>
+
+<A NAME="ixAFT"></A>
+
+
+<PRE>
+        print hidden(-name=&gt;'hidden_name',
+                             -default=&gt;['value1','value2'...]);
+
+                -or-
+
+        print hidden('hidden_name','value1','value2'...);
+
+</PRE>
+
+
+<P>
+
+<I>hidden()</I> produces a text field that can't be seen by the user.  It
+is useful for passing state variable information from one invocation
+of the script to the next.
+<DL COMPACT>
+<DT><B>Parameters:</B><DD>
+<A NAME="ixAFU"></A>
+
+<DT>1.<DD>
+<A NAME="ixAFV"></A>
+
+The first argument is required and specifies the name of this
+field (-name).
+<DT>2.<DD>
+<A NAME="ixAFW"></A>
+The second argument is also required and specifies its value
+(-default).  In the named parameter style of calling, you can provide
+a single value here or a reference to a whole list
+</DL>
+<P>
+
+Fetch the value of a hidden field this way:
+<P>
+
+
+
+<PRE>
+     $hidden_value = param('hidden_name');
+
+</PRE>
+
+
+<P>
+
+Note, that just like all the other form elements, the value of a
+hidden field is ``sticky''.  If you want to replace a hidden field with
+some other values after the script has been called once you'll have to
+do it manually:
+<P>
+
+
+
+<PRE>
+     param('hidden_name','new','values','here');
+
+</PRE>
+
+
+<A NAME="lbCG">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">CLICKABLE</FONT> <FONT SIZE="-1">IMAGE</FONT> <FONT SIZE="-1">BUTTON</FONT></H3>
+
+<A NAME="ixAFX"></A>
+
+
+<PRE>
+     print image_button(-name=&gt;'button_name',
+                                -src=&gt;'/source/URL',
+                                -align=&gt;'MIDDLE');      
+
+        -or-
+
+     print image_button('button_name','/source/URL','MIDDLE');
+
+</PRE>
+
+
+<P>
+
+<I>image_button()</I> produces a clickable image.  When it's clicked on the
+position of the click is returned to your script as ``button_name.x''
+and ``button_name.y'', where ``button_name'' is the name you've assigned
+to it.
+<DL COMPACT>
+<DT><B>Parameters:</B><DD>
+<A NAME="ixAFY"></A>
+
+<DT>1.<DD>
+<A NAME="ixAFZ"></A>
+
+The first argument (-name) is required and specifies the name of this
+field.
+<DT>2.<DD>
+<A NAME="ixAGA"></A>
+The second argument (-src) is also required and specifies the <FONT SIZE="-1">URL</FONT>
+<DT>3. The third option (-align, optional) is an alignment type, and may be <FONT SIZE="-1">TOP</FONT>, <FONT SIZE="-1">BOTTOM</FONT> or <FONT SIZE="-1">MIDDLE</FONT><DD>
+<A NAME="ixAGB"></A>
+</DL>
+<P>
+
+Fetch the value of the button this way:
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<TT>$x</TT>&nbsp;=&nbsp;param('button_name.x');
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<TT>$y</TT>&nbsp;=&nbsp;param('button_name.y');
+<A NAME="lbCH">&nbsp;</A>
+<H3><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">JAVASCRIPT</FONT> <FONT SIZE="-1">ACTION</FONT> <FONT SIZE="-1">BUTTON</FONT></H3>
+
+<A NAME="ixAGC"></A>
+
+
+<PRE>
+     print button(-name=&gt;'button_name',
+                          -value=&gt;'user visible label',
+                          -onClick=&gt;&quot;do_something()&quot;);
+
+        -or-
+
+     print button('button_name',&quot;user visible value&quot;,&quot;do_something()&quot;);
+
+</PRE>
+
+
+<P>
+
+<I>button()</I> produces an <TT>&quot;&lt;input&gt;&quot;</TT> tag with <TT>&quot;type=&quot;button&quot;&quot;</TT>.  When it's
+pressed the fragment of JavaScript code pointed to by the <B>-onClick</B> parameter
+will be executed.
+<A NAME="lbCI">&nbsp;</A>
+<H2>HTTP COOKIES</H2>
+
+<A NAME="ixAGD"></A>
+Browsers support a so-called ``cookie'' designed to help maintain state
+within a browser session.  <FONT SIZE="-1">CGI</FONT>.pm has several methods that support
+cookies.
+<P>
+
+A cookie is a name=value pair much like the named parameters in a <FONT SIZE="-1">CGI</FONT>
+query string.  <FONT SIZE="-1">CGI</FONT> scripts create one or more cookies and send
+them to the browser in the <FONT SIZE="-1">HTTP</FONT> header.  The browser maintains a list
+of cookies that belong to a particular Web server, and returns them
+to the <FONT SIZE="-1">CGI</FONT> script during subsequent interactions.
+<P>
+
+In addition to the required name=value pair, each cookie has several
+optional attributes:
+<DL COMPACT>
+<DT>1. an expiration time<DD>
+<A NAME="ixAGE"></A>
+This is a time/date string (in a special <FONT SIZE="-1">GMT</FONT> format) that indicates
+when a cookie expires.  The cookie will be saved and returned to your
+script until this expiration date is reached if the user exits
+the browser and restarts it.  If an expiration date isn't specified, the cookie
+will remain active until the user quits the browser.
+<DT>2. a domain<DD>
+<A NAME="ixAGF"></A>
+This is a partial or complete domain name for which the cookie is 
+valid.  The browser will return the cookie to any host that matches
+the partial domain name.  For example, if you specify a domain name
+of ``.capricorn.com'', then the browser will return the cookie to
+Web servers running on any of the machines ``<A HREF="http://www.capricorn.com">www.capricorn.com</A>'', 
+``www2.capricorn.com'', ``feckless.capricorn.com'', etc.  Domain names
+must contain at least two periods to prevent attempts to match
+on top level domains like ``.edu''.  If no domain is specified, then
+the browser will only return the cookie to servers on the host the
+cookie originated from.
+<DT>3. a path<DD>
+<A NAME="ixAGG"></A>
+If you provide a cookie path attribute, the browser will check it
+against your script's <FONT SIZE="-1">URL</FONT> before returning the cookie.  For example,
+if you specify the path ``/cgi-bin'', then the cookie will be returned
+to each of the scripts ``/cgi-bin/tally.pl'', ``/cgi-bin/order.pl'',
+and ``/cgi-bin/customer_service/complain.pl'', but not to the script
+``/cgi-private/site_admin.pl''.  By default, path is set to ``/'', which
+causes the cookie to be sent to any <FONT SIZE="-1">CGI</FONT> script on your site.
+<DT>4. a secure flag<DD>
+
+
+<A NAME="ixAGH"></A>
+If the ``secure'' attribute is set, the cookie will only be sent to your
+script if the <FONT SIZE="-1">CGI</FONT> request is occurring on a secure channel, such as <FONT SIZE="-1">SSL</FONT>.
+</DL>
+<P>
+
+The interface to <FONT SIZE="-1">HTTP</FONT> cookies is the <B></B>cookie()<B></B> method:
+<P>
+
+
+
+<PRE>
+    $cookie = cookie(-name=&gt;'sessionID',
+                             -value=&gt;'xyzzy',
+                             -expires=&gt;'+1h',
+                             -path=&gt;'/cgi-bin/database',
+                             -domain=&gt;'.capricorn.org',
+                             -secure=&gt;1);
+    print header(-cookie=&gt;$cookie);
+
+</PRE>
+
+
+<P>
+
+<B></B>cookie()<B></B> creates a new cookie.  Its parameters include:
+<DL COMPACT>
+<DT><B>-name</B><DD>
+<A NAME="ixAGI"></A>
+The name of the cookie (required).  This can be any string at all.
+Although browsers limit their cookie names to non-whitespace
+alphanumeric characters, <FONT SIZE="-1">CGI</FONT>.pm removes this restriction by escaping
+and unescaping cookies behind the scenes.
+<DT><B>-value</B><DD>
+<A NAME="ixAGJ"></A>
+The value of the cookie.  This can be any scalar value,
+array reference, or even hash reference.  For example,
+you can store an entire hash into a cookie this way:
+
+
+<P>
+
+
+
+
+<PRE>
+        $cookie=cookie(-name=&gt;'family information',
+                               -value=&gt;\%childrens_ages);
+
+</PRE>
+
+
+<DT><B>-path</B><DD>
+<A NAME="ixAGK"></A>
+The optional partial path for which this cookie will be valid, as described
+above.
+<DT><B>-domain</B><DD>
+<A NAME="ixAGL"></A>
+The optional partial domain for which this cookie will be valid, as described
+above.
+<DT><B>-expires</B><DD>
+<A NAME="ixAGM"></A>
+The optional expiration date for this cookie.  The format is as described 
+in the section on the <B></B>header()<B></B> method:
+
+
+<P>
+
+
+
+
+<PRE>
+        &quot;+1h&quot;  one hour from now
+
+</PRE>
+
+
+<DT><B>-secure</B><DD>
+<A NAME="ixAGN"></A>
+If set to true, this cookie will only be used within a secure
+<FONT SIZE="-1">SSL</FONT> session.
+</DL>
+<P>
+
+The cookie created by <I>cookie()</I> must be incorporated into the <FONT SIZE="-1">HTTP</FONT>
+header within the string returned by the <I>header()</I> method:
+<P>
+
+
+
+<PRE>
+        use CGI ':standard';
+        print header(-cookie=&gt;$my_cookie);
+
+</PRE>
+
+
+<P>
+
+To create multiple cookies, give <I>header()</I> an array reference:
+<P>
+
+
+
+<PRE>
+        $cookie1 = cookie(-name=&gt;'riddle_name',
+                                  -value=&gt;&quot;The Sphynx's Question&quot;);
+        $cookie2 = cookie(-name=&gt;'answers',
+                                  -value=&gt;\%answers);
+        print header(-cookie=&gt;[$cookie1,$cookie2]);
+
+</PRE>
+
+
+<P>
+
+To retrieve a cookie, request it by name by calling <I>cookie()</I> method
+without the <B>-value</B> parameter. This example uses the object-oriented
+form:
+<P>
+
+
+
+<PRE>
+        use CGI;
+        $query = CGI-&gt;new;
+        $riddle = $query-&gt;cookie('riddle_name');
+        %answers = $query-&gt;cookie('answers');
+
+</PRE>
+
+
+<P>
+
+Cookies created with a single scalar value, such as the ``riddle_name''
+cookie, will be returned in that form.  Cookies with array and hash
+values can also be retrieved.
+<P>
+
+The cookie and <FONT SIZE="-1">CGI</FONT> namespaces are separate.  If you have a parameter
+named 'answers' and a cookie named 'answers', the values retrieved by
+<I>param()</I> and <I>cookie()</I> are independent of each other.  However, it's
+simple to turn a <FONT SIZE="-1">CGI</FONT> parameter into a cookie, and vice-versa:
+<P>
+
+
+
+<PRE>
+   # turn a CGI parameter into a cookie
+   $c=cookie(-name=&gt;'answers',-value=&gt;[param('answers')]);
+   # vice-versa
+   param(-name=&gt;'answers',-value=&gt;[cookie('answers')]);
+
+</PRE>
+
+
+<P>
+
+If you call <I>cookie()</I> without any parameters, it will return a list of
+the names of all cookies passed to your script:
+<P>
+
+
+
+<PRE>
+  @cookies = cookie();
+
+</PRE>
+
+
+<P>
+
+See the <B>cookie.cgi</B> example script for some ideas on how to use
+cookies effectively.
+<A NAME="lbCJ">&nbsp;</A>
+<H2>WORKING WITH FRAMES</H2>
+
+<A NAME="ixAGO"></A>
+It's possible for <FONT SIZE="-1">CGI</FONT>.pm scripts to write into several browser panels
+and windows using the <FONT SIZE="-1">HTML</FONT> 4 frame mechanism.  There are three
+techniques for defining new frames programmatically:
+<DL COMPACT>
+<DT>1. Create a &lt;Frameset&gt; document<DD>
+<A NAME="ixAGP"></A>
+After writing out the <FONT SIZE="-1">HTTP</FONT> header, instead of creating a standard
+<FONT SIZE="-1">HTML</FONT> document using the <I>start_html()</I> call, create a &lt;frameset&gt; 
+document that defines the frames on the page.  Specify your script(s)
+(with appropriate parameters) as the <FONT SIZE="-1">SRC</FONT> for each of the frames.
+
+
+<P>
+
+
+There is no specific support for creating &lt;frameset&gt; sections 
+in <FONT SIZE="-1">CGI</FONT>.pm, but the <FONT SIZE="-1">HTML</FONT> is very simple to write.
+<DT>2. Specify the destination for the document in the <FONT SIZE="-1">HTTP</FONT> header<DD>
+<A NAME="ixAGQ"></A>
+You may provide a <B>-target</B> parameter to the <I>header()</I> method:
+
+
+<P>
+
+
+
+
+<PRE>
+    print header(-target=&gt;'ResultsWindow');
+
+</PRE>
+
+
+
+
+<P>
+
+
+This will tell the browser to load the output of your script into the
+frame named ``ResultsWindow''.  If a frame of that name doesn't already
+exist, the browser will pop up a new window and load your script's
+document into that.  There are a number of magic names that you can
+use for targets.  See the <FONT SIZE="-1">HTML</FONT> <TT>&quot;&lt;frame&gt;&quot;</TT> documentation for details.
+<DT>3. Specify the destination for the document in the &lt;form&gt; tag<DD>
+<A NAME="ixAGR"></A>
+You can specify the frame to load in the <FONT SIZE="-1">FORM</FONT> tag itself.  With
+<FONT SIZE="-1">CGI</FONT>.pm it looks like this:
+
+
+<P>
+
+
+
+
+<PRE>
+    print start_form(-target=&gt;'ResultsWindow');
+
+</PRE>
+
+
+
+
+<P>
+
+
+When your script is reinvoked by the form, its output will be loaded
+into the frame named ``ResultsWindow''.  If one doesn't already exist
+a new window will be created.
+</DL>
+<P>
+
+The script ``frameset.cgi'' in the examples directory shows one way to
+create pages in which the fill-out form and the response live in
+side-by-side frames.
+<A NAME="lbCK">&nbsp;</A>
+<H2>SUPPORT FOR JAVASCRIPT</H2>
+
+<A NAME="ixAGS"></A>
+The usual way to use JavaScript is to define a set of functions in a
+&lt;<FONT SIZE="-1">SCRIPT</FONT>&gt; block inside the <FONT SIZE="-1">HTML</FONT> header and then to register event
+handlers in the various elements of the page. Events include such
+things as the mouse passing over a form element, a button being
+clicked, the contents of a text field changing, or a form being
+submitted. When an event occurs that involves an element that has
+registered an event handler, its associated JavaScript code gets
+called.
+<P>
+
+The elements that can register event handlers include the &lt;<FONT SIZE="-1">BODY</FONT>&gt; of an
+<FONT SIZE="-1">HTML</FONT> document, hypertext links, all the various elements of a fill-out
+form, and the form itself. There are a large number of events, and
+each applies only to the elements for which it is relevant. Here is a
+partial list:
+<DL COMPACT>
+<DT><B>onLoad</B><DD>
+<A NAME="ixAGT"></A>
+The browser is loading the current document. Valid in:
+
+
+<P>
+
+
+
+
+<PRE>
+     + The HTML &lt;BODY&gt; section only.
+
+</PRE>
+
+
+<DT><B>onUnload</B><DD>
+<A NAME="ixAGU"></A>
+The browser is closing the current page or frame. Valid for:
+
+
+<P>
+
+
+
+
+<PRE>
+     + The HTML &lt;BODY&gt; section only.
+
+</PRE>
+
+
+<DT><B>onSubmit</B><DD>
+<A NAME="ixAGV"></A>
+The user has pressed the submit button of a form. This event happens
+just before the form is submitted, and your function can return a
+value of false in order to abort the submission.  Valid for:
+
+
+<P>
+
+
+
+
+<PRE>
+     + Forms only.
+
+</PRE>
+
+
+<DT><B>onClick</B><DD>
+<A NAME="ixAGW"></A>
+The mouse has clicked on an item in a fill-out form. Valid for:
+
+
+<P>
+
+
+
+
+<PRE>
+     + Buttons (including submit, reset, and image buttons)
+     + Checkboxes
+     + Radio buttons
+
+</PRE>
+
+
+<DT><B>onChange</B><DD>
+<A NAME="ixAGX"></A>
+The user has changed the contents of a field. Valid for:
+
+
+<P>
+
+
+
+
+<PRE>
+     + Text fields
+     + Text areas
+     + Password fields
+     + File fields
+     + Popup Menus
+     + Scrolling lists
+
+</PRE>
+
+
+<DT><B>onFocus</B><DD>
+<A NAME="ixAGY"></A>
+The user has selected a field to work with. Valid for:
+
+
+<P>
+
+
+
+
+<PRE>
+     + Text fields
+     + Text areas
+     + Password fields
+     + File fields
+     + Popup Menus
+     + Scrolling lists
+
+</PRE>
+
+
+<DT><B>onBlur</B><DD>
+<A NAME="ixAGZ"></A>
+The user has deselected a field (gone to work somewhere else).  Valid
+for:
+
+
+<P>
+
+
+
+
+<PRE>
+     + Text fields
+     + Text areas
+     + Password fields
+     + File fields
+     + Popup Menus
+     + Scrolling lists
+
+</PRE>
+
+
+<DT><B>onSelect</B><DD>
+<A NAME="ixAHA"></A>
+The user has changed the part of a text field that is selected.  Valid
+for:
+
+
+<P>
+
+
+
+
+<PRE>
+     + Text fields
+     + Text areas
+     + Password fields
+     + File fields
+
+</PRE>
+
+
+<DT><B>onMouseOver</B><DD>
+<A NAME="ixAHB"></A>
+The mouse has moved over an element.
+
+
+<P>
+
+
+
+
+<PRE>
+     + Text fields
+     + Text areas
+     + Password fields
+     + File fields
+     + Popup Menus
+     + Scrolling lists
+
+</PRE>
+
+
+<DT><B>onMouseOut</B><DD>
+<A NAME="ixAHC"></A>
+The mouse has moved off an element.
+
+
+<P>
+
+
+
+
+<PRE>
+     + Text fields
+     + Text areas
+     + Password fields
+     + File fields
+     + Popup Menus
+     + Scrolling lists
+
+</PRE>
+
+
+</DL>
+<P>
+
+In order to register a JavaScript event handler with an <FONT SIZE="-1">HTML</FONT> element,
+just use the event name as a parameter when you call the corresponding
+<FONT SIZE="-1">CGI</FONT> method. For example, to have your <I>validateAge()</I> JavaScript code
+executed every time the textfield named ``age'' changes, generate the
+field like this:
+<P>
+
+
+
+<PRE>
+ print textfield(-name=&gt;'age',-onChange=&gt;&quot;validateAge(this)&quot;);
+
+</PRE>
+
+
+<P>
+
+This example assumes that you've already declared the <I>validateAge()</I>
+function by incorporating it into a &lt;<FONT SIZE="-1">SCRIPT</FONT>&gt; block. The <FONT SIZE="-1">CGI</FONT>.pm
+<I>start_html()</I> method provides a convenient way to create this section.
+<P>
+
+Similarly, you can create a form that checks itself over for
+consistency and alerts the user if some essential value is missing by
+creating it this way: 
+<BR>&nbsp;&nbsp;print&nbsp;start_form(-onSubmit=&gt;``validateMe(this)'');
+<P>
+
+See the javascript.cgi script for a demonstration of how this all
+works.
+<A NAME="lbCL">&nbsp;</A>
+<H2>LIMITED SUPPORT FOR CASCADING STYLE SHEETS</H2>
+
+<A NAME="ixAHD"></A>
+<FONT SIZE="-1">CGI</FONT>.pm has limited support for <FONT SIZE="-1">HTML3</FONT>'s cascading style sheets (css).
+To incorporate a stylesheet into your document, pass the
+<I>start_html()</I> method a <B>-style</B> parameter.  The value of this
+parameter may be a scalar, in which case it is treated as the source
+<FONT SIZE="-1">URL</FONT> for the stylesheet, or it may be a hash reference.  In the latter
+case you should provide the hash with one or more of <B>-src</B> or
+<B>-code</B>.  <B>-src</B> points to a <FONT SIZE="-1">URL</FONT> where an externally-defined
+stylesheet can be found.  <B>-code</B> points to a scalar value to be
+incorporated into a &lt;style&gt; section.  Style definitions in <B>-code</B>
+override similarly-named ones in <B>-src</B>, hence the name ``cascading.''
+<P>
+
+You may also specify the type of the stylesheet by adding the optional
+<B>-type</B> parameter to the hash pointed to by <B>-style</B>.  If not
+specified, the style defaults to 'text/css'.
+<P>
+
+To refer to a style within the body of your document, add the
+<B>-class</B> parameter to any <FONT SIZE="-1">HTML</FONT> element:
+<P>
+
+
+
+<PRE>
+    print h1({-class=&gt;'Fancy'},'Welcome to the Party');
+
+</PRE>
+
+
+<P>
+
+Or define styles on the fly with the <B>-style</B> parameter:
+<P>
+
+
+
+<PRE>
+    print h1({-style=&gt;'Color: red;'},'Welcome to Hell');
+
+</PRE>
+
+
+<P>
+
+You may also use the new <B></B>span()<B></B> element to apply a style to a
+section of text:
+<P>
+
+
+
+<PRE>
+    print span({-style=&gt;'Color: red;'},
+               h1('Welcome to Hell'),
+               &quot;Where did that handbasket get to?&quot;
+               );
+
+</PRE>
+
+
+<P>
+
+Note that you must import the ``:html3'' definitions to have the
+<B></B>span()<B></B> method available.  Here's a quick and dirty example of using
+<FONT SIZE="-1">CSS</FONT>'s.  See the <FONT SIZE="-1">CSS</FONT> specification at
+<A HREF="http://www.w3.org/Style/CSS/">http://www.w3.org/Style/CSS/</A> for more information.
+<P>
+
+
+
+<PRE>
+    use CGI qw/:standard :html3/;
+
+    #here's a stylesheet incorporated directly into the page
+    $newStyle=&lt;&lt;END;
+    &lt;!-- 
+    P.Tip {
+        margin-right: 50pt;
+        margin-left: 50pt;
+        color: red;
+    }
+    P.Alert {
+        font-size: 30pt;
+        font-family: sans-serif;
+      color: red;
+    }
+    --&gt;
+    END
+    print header();
+    print start_html( -title=&gt;'CGI with Style',
+                      -style=&gt;{-src=&gt;'<A HREF="http://www.capricorn.com/style/st1.css',">http://www.capricorn.com/style/st1.css',</A>
+                               -code=&gt;$newStyle}
+                     );
+    print h1('CGI with Style'),
+          p({-class=&gt;'Tip'},
+            &quot;Better read the cascading style sheet spec before playing with this!&quot;),
+          span({-style=&gt;'color: magenta'},
+               &quot;Look Mom, no hands!&quot;,
+               p(),
+               &quot;Whooo wee!&quot;
+               );
+    print end_html;
+
+</PRE>
+
+
+<P>
+
+Pass an array reference to <B>-code</B> or <B>-src</B> in order to incorporate
+multiple stylesheets into your document.
+<P>
+
+Should you wish to incorporate a verbatim stylesheet that includes
+arbitrary formatting in the header, you may pass a -verbatim tag to
+the -style hash, as follows:
+<P>
+
+print start_html (-style  =&gt;  {-verbatim =&gt; '@import url(``/server-common/css/'.$cssFile.''');',
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-src&nbsp;&nbsp;&nbsp;&nbsp;=&gt;&nbsp;&nbsp;'/server-common/css/core.css'});
+<P>
+
+This will generate an <FONT SIZE="-1">HTML</FONT> header that contains this:
+<P>
+
+
+
+<PRE>
+ &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot;  href=&quot;/server-common/css/core.css&quot;&gt;
+   &lt;style type=&quot;text/css&quot;&gt;
+   @import url(&quot;/server-common/css/main.css&quot;);
+   &lt;/style&gt;
+
+</PRE>
+
+
+<P>
+
+Any additional arguments passed in the -style value will be
+incorporated into the &lt;link&gt; tag.  For example:
+<P>
+
+
+
+<PRE>
+ start_html(-style=&gt;{-src=&gt;['/styles/print.css','/styles/layout.css'],
+                          -media =&gt; 'all'});
+
+</PRE>
+
+
+<P>
+
+This will give:
+<P>
+
+
+
+<PRE>
+ &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;/styles/print.css&quot; media=&quot;all&quot;/&gt;
+ &lt;link rel=&quot;stylesheet&quot; type=&quot;text/css&quot; href=&quot;/styles/layout.css&quot; media=&quot;all&quot;/&gt;
+
+</PRE>
+
+
+<P>
+
+&lt;p&gt;
+<P>
+
+To make more complicated &lt;link&gt; tags, use the <I>Link()</I> function
+and pass it to <I>start_html()</I> in the -head argument, as in:
+<P>
+
+
+
+<PRE>
+  @h = (Link({-rel=&gt;'stylesheet',-type=&gt;'text/css',-src=&gt;'/ss/ss.css',-media=&gt;'all'}),
+        Link({-rel=&gt;'stylesheet',-type=&gt;'text/css',-src=&gt;'/ss/fred.css',-media=&gt;'paper'}));
+  print start_html({-head=&gt;\@h})
+
+</PRE>
+
+
+<P>
+
+To create primary and  ``alternate'' stylesheet, use the <B>-alternate</B> option:
+<P>
+
+
+
+<PRE>
+ start_html(-style=&gt;{-src=&gt;[
+                           {-src=&gt;'/styles/print.css'},
+                           {-src=&gt;'/styles/alt.css',-alternate=&gt;1}
+                           ]
+                    });
+
+</PRE>
+
+
+<A NAME="lbCM">&nbsp;</A>
+<H2>DEBUGGING</H2>
+
+<A NAME="ixAHE"></A>
+If you are running the script from the command line or in the perl
+debugger, you can pass the script a list of keywords or
+parameter=value pairs on the command line or from standard input (you
+don't have to worry about tricking your script into reading from
+environment variables).  You can pass keywords like this:
+<P>
+
+
+
+<PRE>
+    your_script.pl keyword1 keyword2 keyword3
+
+</PRE>
+
+
+<P>
+
+or this:
+<P>
+
+
+
+<PRE>
+   your_script.pl keyword1+keyword2+keyword3
+
+</PRE>
+
+
+<P>
+
+or this:
+<P>
+
+
+
+<PRE>
+    your_script.pl name1=value1 name2=value2
+
+</PRE>
+
+
+<P>
+
+or this:
+<P>
+
+
+
+<PRE>
+    your_script.pl name1=value1&amp;name2=value2
+
+</PRE>
+
+
+<P>
+
+To turn off this feature, use the -no_debug pragma.
+<P>
+
+To test the <FONT SIZE="-1">POST</FONT> method, you may enable full debugging with the -debug
+pragma.  This will allow you to feed newline-delimited name=value
+pairs to the script on standard input.
+<P>
+
+When debugging, you can use quotes and backslashes to escape 
+characters in the familiar shell manner, letting you place
+spaces and other funny characters in your parameter=value
+pairs:
+<P>
+
+
+
+<PRE>
+   your_script.pl &quot;name1='I am a long value'&quot; &quot;name2=two\ words&quot;
+
+</PRE>
+
+
+<P>
+
+Finally, you can set the path info for the script by prefixing the first
+name/value parameter with the path followed by a question mark (?):
+<P>
+
+
+
+<PRE>
+    your_script.pl /your/path/here?name1=value1&amp;name2=value2
+
+</PRE>
+
+
+<A NAME="lbCN">&nbsp;</A>
+<H3><FONT SIZE="-1">DUMPING</FONT> <FONT SIZE="-1">OUT</FONT> <FONT SIZE="-1">ALL</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">NAME/VALUE</FONT> <FONT SIZE="-1">PAIRS</FONT></H3>
+
+<A NAME="ixAHF"></A>
+The <I>Dump()</I> method produces a string consisting of all the query's
+name/value pairs formatted nicely as a nested list.  This is useful
+for debugging purposes:
+<P>
+
+
+
+<PRE>
+    print Dump
+
+</PRE>
+
+
+<P>
+
+Produces something that looks like:
+<P>
+
+
+
+<PRE>
+    &lt;ul&gt;
+    &lt;li&gt;name1
+        &lt;ul&gt;
+        &lt;li&gt;value1
+        &lt;li&gt;value2
+        &lt;/ul&gt;
+    &lt;li&gt;name2
+        &lt;ul&gt;
+        &lt;li&gt;value1
+        &lt;/ul&gt;
+    &lt;/ul&gt;
+
+</PRE>
+
+
+<P>
+
+As a shortcut, you can interpolate the entire <FONT SIZE="-1">CGI</FONT> object into a string
+and it will be replaced with the a nice <FONT SIZE="-1">HTML</FONT> dump shown above:
+<P>
+
+
+
+<PRE>
+    $query=CGI-&gt;new;
+    print &quot;&lt;h2&gt;Current Values&lt;/h2&gt; $query\n&quot;;
+
+</PRE>
+
+
+<A NAME="lbCO">&nbsp;</A>
+<H2>FETCHING ENVIRONMENT VARIABLES</H2>
+
+<A NAME="ixAHG"></A>
+Some of the more useful environment variables can be fetched
+through this interface.  The methods are as follows:
+<DL COMPACT>
+<DT><B></B>Accept()<B></B><DD>
+<A NAME="ixAHH"></A>
+Return a list of <FONT SIZE="-1">MIME</FONT> types that the remote browser accepts. If you
+give this method a single argument corresponding to a <FONT SIZE="-1">MIME</FONT> type, as in
+Accept('text/html'), it will return a floating point value
+corresponding to the browser's preference for this type from 0.0
+(don't want) to 1.0.  Glob types (e.g. text/*) in the browser's accept
+list are handled correctly.
+
+
+<P>
+
+
+Note that the capitalization changed between version 2.43 and 2.44 in
+order to avoid conflict with Perl's <I>accept()</I> function.
+<DT><B></B>raw_cookie()<B></B><DD>
+<A NAME="ixAHI"></A>
+Returns the <FONT SIZE="-1">HTTP_COOKIE</FONT> variable.  Cookies have a special format, and
+this method call just returns the raw form (?cookie dough).  See
+<I>cookie()</I> for ways of setting and retrieving cooked cookies.
+
+
+<P>
+
+
+Called with no parameters, <I>raw_cookie()</I> returns the packed cookie
+structure.  You can separate it into individual cookies by splitting
+on the character sequence ``; ''.  Called with the name of a cookie,
+retrieves the <B>unescaped</B> form of the cookie.  You can use the
+regular <I>cookie()</I> method to get the names, or use the <I>raw_fetch()</I>
+method from the CGI::Cookie module.
+<DT><B></B>user_agent()<B></B><DD>
+<A NAME="ixAHJ"></A>
+Returns the <FONT SIZE="-1">HTTP_USER_AGENT</FONT> variable.  If you give
+this method a single argument, it will attempt to
+pattern match on it, allowing you to do something
+like user_agent(Mozilla);
+<DT><B></B>path_info()<B></B><DD>
+<A NAME="ixAHK"></A>
+Returns additional path information from the script <FONT SIZE="-1">URL</FONT>.
+E.G. fetching /cgi-bin/your_script/additional/stuff will result in
+<I>path_info()</I> returning ``/additional/stuff''.
+
+
+<P>
+
+
+<FONT SIZE="-1">NOTE:</FONT> The Microsoft Internet Information Server
+is broken with respect to additional path information.  If
+you use the Perl <FONT SIZE="-1">DLL</FONT> library, the <FONT SIZE="-1">IIS</FONT> server will attempt to
+execute the additional path information as a Perl script.
+If you use the ordinary file associations mapping, the
+path information will be present in the environment, 
+but incorrect.  The best thing to do is to avoid using additional
+path information in <FONT SIZE="-1">CGI</FONT> scripts destined for use with <FONT SIZE="-1">IIS</FONT>.
+<DT><B></B>path_translated()<B></B><DD>
+<A NAME="ixAHL"></A>
+As per <I>path_info()</I> but returns the additional
+path information translated into a physical path, e.g.
+``/usr/local/etc/httpd/htdocs/additional/stuff''.
+
+
+<P>
+
+
+The Microsoft <FONT SIZE="-1">IIS</FONT> is broken with respect to the translated
+path as well.
+<DT><B></B>remote_host()<B></B><DD>
+<A NAME="ixAHM"></A>
+Returns either the remote host name or <FONT SIZE="-1">IP</FONT> address.
+if the former is unavailable.
+<DT><B></B>remote_addr()<B></B><DD>
+<A NAME="ixAHN"></A>
+Returns the remote host <FONT SIZE="-1">IP</FONT> address, or 
+127.0.0.1 if the address is unavailable.
+<DT><B></B>script_name()<B></B> Return the script name as a partial <FONT SIZE="-1">URL</FONT>, for self-referring scripts.<DD>
+<A NAME="ixAHO"></A>
+
+<DT><B></B>referer()<B></B><DD>
+<A NAME="ixAHP"></A>
+
+Return the <FONT SIZE="-1">URL</FONT> of the page the browser was viewing
+prior to fetching your script.  Not available for all
+browsers.
+<DT><B>auth_type ()</B><DD>
+<A NAME="ixAHQ"></A>
+Return the authorization/verification method in use for this
+script, if any.
+<DT><B>server_name ()</B><DD>
+<A NAME="ixAHR"></A>
+Returns the name of the server, usually the machine's host
+name.
+<DT><B>virtual_host ()</B><DD>
+<A NAME="ixAHS"></A>
+When using virtual hosts, returns the name of the host that
+the browser attempted to contact
+<DT><B>server_port ()</B><DD>
+<A NAME="ixAHT"></A>
+Return the port that the server is listening on.
+<DT><B>virtual_port ()</B><DD>
+<A NAME="ixAHU"></A>
+Like <I>server_port()</I> except that it takes virtual hosts into account.
+Use this when running with virtual hosts.
+<DT><B>server_software ()</B><DD>
+<A NAME="ixAHV"></A>
+Returns the server software and version number.
+<DT><B>remote_user ()</B><DD>
+<A NAME="ixAHW"></A>
+Return the authorization/verification name used for user
+verification, if this script is protected.
+<DT><B>user_name ()</B><DD>
+<A NAME="ixAHX"></A>
+Attempt to obtain the remote user's name, using a variety of different
+techniques.  This only works with older browsers such as Mosaic.
+Newer browsers do not report the user name for privacy reasons!
+<DT><B></B>request_method()<B></B><DD>
+<A NAME="ixAHY"></A>
+Returns the method used to access your script, usually
+one of '<FONT SIZE="-1">POST</FONT>', '<FONT SIZE="-1">GET</FONT>' or '<FONT SIZE="-1">HEAD</FONT>'.
+<DT><B></B>content_type()<B></B><DD>
+<A NAME="ixAHZ"></A>
+Returns the content_type of data submitted in a <FONT SIZE="-1">POST</FONT>, generally 
+multipart/form-data or application/x-www-form-urlencoded
+<DT><B></B>http()<B></B><DD>
+<A NAME="ixAIA"></A>
+Called with no arguments returns the list of <FONT SIZE="-1">HTTP</FONT> environment
+variables, including such things as <FONT SIZE="-1">HTTP_USER_AGENT</FONT>,
+<FONT SIZE="-1">HTTP_ACCEPT_LANGUAGE</FONT>, and <FONT SIZE="-1">HTTP_ACCEPT_CHARSET</FONT>, corresponding to the
+like-named <FONT SIZE="-1">HTTP</FONT> header fields in the request.  Called with the name of
+an <FONT SIZE="-1">HTTP</FONT> header field, returns its value.  Capitalization and the use
+of hyphens versus underscores are not significant.
+
+
+<P>
+
+
+For example, all three of these examples are equivalent:
+
+
+<P>
+
+
+
+
+<PRE>
+   $requested_language = http('Accept-language');
+   $requested_language = http('Accept_language');
+   $requested_language = http('HTTP_ACCEPT_LANGUAGE');
+
+</PRE>
+
+
+<DT><B></B>https()<B></B><DD>
+<A NAME="ixAIB"></A>
+The same as <I>http()</I>, but operates on the <FONT SIZE="-1">HTTPS</FONT> environment variables
+present when the <FONT SIZE="-1">SSL</FONT> protocol is in effect.  Can be used to determine
+whether <FONT SIZE="-1">SSL</FONT> is turned on.
+</DL>
+<A NAME="lbCP">&nbsp;</A>
+<H2>USING NPH SCRIPTS</H2>
+
+<A NAME="ixAIC"></A>
+<FONT SIZE="-1">NPH</FONT>, or ``no-parsed-header'', scripts bypass the server completely by
+sending the complete <FONT SIZE="-1">HTTP</FONT> header directly to the browser.  This has
+slight performance benefits, but is of most use for taking advantage
+of <FONT SIZE="-1">HTTP</FONT> extensions that are not directly supported by your server,
+such as server push and <FONT SIZE="-1">PICS</FONT> headers.
+<P>
+
+Servers use a variety of conventions for designating <FONT SIZE="-1">CGI</FONT> scripts as
+<FONT SIZE="-1">NPH</FONT>.  Many Unix servers look at the beginning of the script's name for
+the prefix ``nph-''.  The Macintosh WebSTAR server and Microsoft's
+Internet Information Server, in contrast, try to decide whether a
+program is an <FONT SIZE="-1">NPH</FONT> script by examining the first line of script output.
+<P>
+
+<FONT SIZE="-1">CGI</FONT>.pm supports <FONT SIZE="-1">NPH</FONT> scripts with a special <FONT SIZE="-1">NPH</FONT> mode.  When in this
+mode, <FONT SIZE="-1">CGI</FONT>.pm will output the necessary extra header information when
+the <I>header()</I> and <I>redirect()</I> methods are
+called.
+<P>
+
+The Microsoft Internet Information Server requires <FONT SIZE="-1">NPH</FONT> mode.  As of
+version 2.30, <FONT SIZE="-1">CGI</FONT>.pm will automatically detect when the script is
+running under <FONT SIZE="-1">IIS</FONT> and put itself into this mode.  You do not need to
+do this manually, although it won't hurt anything if you do.  However,
+note that if you have applied Service Pack 6, much of the
+functionality of <FONT SIZE="-1">NPH</FONT> scripts, including the ability to redirect while
+setting a cookie, <B>do not work at all</B> on <FONT SIZE="-1">IIS</FONT> without a special patch
+from Microsoft.  See
+<A HREF="http://web.archive.org/web/20010812012030/http://support.microsoft.com/support/kb/articles/Q280/3/41.ASP">http://web.archive.org/web/20010812012030/http://support.microsoft.com/support/kb/articles/Q280/3/41.ASP</A>
+Non-Parsed Headers Stripped From <FONT SIZE="-1">CGI</FONT> Applications That Have nph-
+Prefix in Name.
+<DL COMPACT>
+<DT>In the <B>use</B> statement<DD>
+<A NAME="ixAID"></A>
+Simply add the ``-nph'' pragma to the list of symbols to be imported into
+your script:
+
+
+<P>
+
+
+
+
+<PRE>
+      use CGI qw(:standard -nph)
+
+</PRE>
+
+
+<DT>By calling the <B></B>nph()<B></B> method:<DD>
+<A NAME="ixAIE"></A>
+Call <B></B>nph()<B></B> with a non-zero parameter at any point after using <FONT SIZE="-1">CGI</FONT>.pm in your program.
+
+
+<P>
+
+
+
+
+<PRE>
+      CGI-&gt;<A HREF="/manpages/index.html?1+nph">nph</A>(1)
+
+</PRE>
+
+
+<DT>By using <B>-nph</B> parameters<DD>
+<A NAME="ixAIF"></A>
+in the <B></B>header()<B></B> and <B></B>redirect()<B></B>  statements:
+
+
+<P>
+
+
+
+
+<PRE>
+      print header(-nph=&gt;1);
+
+</PRE>
+
+
+</DL>
+<A NAME="lbCQ">&nbsp;</A>
+<H2>Server Push</H2>
+
+<A NAME="ixAIG"></A>
+<FONT SIZE="-1">CGI</FONT>.pm provides four simple functions for producing multipart
+documents of the type needed to implement server push.  These
+functions were graciously provided by Ed Jordan &lt;<A HREF="mailto:ed@fidalgo.net">ed@fidalgo.net</A>&gt;.  To
+import these into your namespace, you must import the ``:push'' set.
+You are also advised to put the script into <FONT SIZE="-1">NPH</FONT> mode and to set $| to
+1 to avoid buffering problems.
+<P>
+
+Here is a simple script that demonstrates server push:
+<P>
+
+
+
+<PRE>
+  #!/usr/local/bin/perl
+  use CGI qw/:push -nph/;
+  $| = 1;
+  print multipart_init(-boundary=&gt;'----here we go!');
+  for (0 .. 4) {
+      print multipart_start(-type=&gt;'text/plain'),
+            &quot;The current time is &quot;,scalar(localtime),&quot;\n&quot;;
+      if ($_ &lt; 4) {
+              print multipart_end;
+      } else {
+              print multipart_final;
+      }
+      sleep 1;
+  }
+
+</PRE>
+
+
+<P>
+
+This script initializes server push by calling <B></B>multipart_init()<B></B>.
+It then enters a loop in which it begins a new multipart section by
+calling <B></B>multipart_start()<B></B>, prints the current local time,
+and ends a multipart section with <B></B>multipart_end()<B></B>.  It then sleeps
+a second, and begins again. On the final iteration, it ends the
+multipart section with <B></B>multipart_final()<B></B> rather than with
+<B></B>multipart_end()<B></B>.
+<DL COMPACT>
+<DT><I>multipart_init()</I><DD>
+<A NAME="ixAIH"></A>
+
+
+<PRE>
+  multipart_init(-boundary=&gt;$boundary);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Initialize the multipart system.  The -boundary argument specifies
+what <FONT SIZE="-1">MIME</FONT> boundary string to use to separate parts of the document.
+If not provided, <FONT SIZE="-1">CGI</FONT>.pm chooses a reasonable boundary for you.
+<DT><I>multipart_start()</I><DD>
+<A NAME="ixAII"></A>
+
+
+<PRE>
+  multipart_start(-type=&gt;$type)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Start a new part of the multipart document using the specified <FONT SIZE="-1">MIME</FONT>
+type.  If not specified, text/html is assumed.
+<DT><I>multipart_end()</I><DD>
+<A NAME="ixAIJ"></A>
+
+
+<PRE>
+  multipart_end()
+
+</PRE>
+
+
+
+
+<P>
+
+
+End a part.  You must remember to call <I>multipart_end()</I> once for each
+<I>multipart_start()</I>, except at the end of the last part of the multipart
+document when <I>multipart_final()</I> should be called instead of <I>multipart_end()</I>.
+<DT><I>multipart_final()</I><DD>
+<A NAME="ixAIK"></A>
+
+
+<PRE>
+  multipart_final()
+
+</PRE>
+
+
+
+
+<P>
+
+
+End all parts.  You should call <I>multipart_final()</I> rather than
+<I>multipart_end()</I> at the end of the last part of the multipart document.
+</DL>
+<P>
+
+Users interested in server push applications should also have a look
+at the CGI::Push module.
+<A NAME="lbCR">&nbsp;</A>
+<H2>Avoiding Denial of Service Attacks</H2>
+
+<A NAME="ixAIL"></A>
+A potential problem with <FONT SIZE="-1">CGI</FONT>.pm is that, by default, it attempts to
+process form POSTings no matter how large they are.  A wily hacker
+could attack your site by sending a <FONT SIZE="-1">CGI</FONT> script a huge <FONT SIZE="-1">POST</FONT> of many
+megabytes.  <FONT SIZE="-1">CGI</FONT>.pm will attempt to read the entire <FONT SIZE="-1">POST</FONT> into a
+variable, growing hugely in size until it runs out of memory.  While
+the script attempts to allocate the memory the system may slow down
+dramatically.  This is a form of denial of service attack.
+<P>
+
+Another possible attack is for the remote user to force <FONT SIZE="-1">CGI</FONT>.pm to
+accept a huge file upload.  <FONT SIZE="-1">CGI</FONT>.pm will accept the upload and store it
+in a temporary directory even if your script doesn't expect to receive
+an uploaded file.  <FONT SIZE="-1">CGI</FONT>.pm will delete the file automatically when it
+terminates, but in the meantime the remote user may have filled up the
+server's disk space, causing problems for other programs.
+<P>
+
+The best way to avoid denial of service attacks is to limit the amount
+of memory, <FONT SIZE="-1">CPU</FONT> time and disk space that <FONT SIZE="-1">CGI</FONT> scripts can use.  Some Web
+servers come with built-in facilities to accomplish this. In other
+cases, you can use the shell <I>limit</I> or <I>ulimit</I>
+commands to put ceilings on <FONT SIZE="-1">CGI</FONT> resource usage.
+<P>
+
+<FONT SIZE="-1">CGI</FONT>.pm also has some simple built-in protections against denial of
+service attacks, but you must activate them before you can use them.
+These take the form of two global variables in the <FONT SIZE="-1">CGI</FONT> name space:
+<DL COMPACT>
+<DT><B>$CGI::POST_MAX</B><DD>
+
+
+<A NAME="ixAIM"></A>
+If set to a non-negative integer, this variable puts a ceiling
+on the size of POSTings, in bytes.  If <FONT SIZE="-1">CGI</FONT>.pm detects a <FONT SIZE="-1">POST</FONT>
+that is greater than the ceiling, it will immediately exit with an error
+message.  This value will affect both ordinary POSTs and
+multipart POSTs, meaning that it limits the maximum size of file
+uploads as well.  You should set this to a reasonably high
+value, such as 1 megabyte.
+<DT><B>$CGI::DISABLE_UPLOADS</B><DD>
+
+
+<A NAME="ixAIN"></A>
+If set to a non-zero value, this will disable file uploads
+completely.  Other fill-out form values will work as usual.
+</DL>
+<P>
+
+You can use these variables in either of two ways.
+<DL COMPACT>
+<DT><B>1. On a script-by-script basis</B><DD>
+<A NAME="ixAIO"></A>
+Set the variable at the top of the script, right after the ``use'' statement:
+
+
+<P>
+
+
+
+
+<PRE>
+    use CGI qw/:standard/;
+    use CGI::Carp 'fatalsToBrowser';
+    $CGI::POST_MAX=1024 * 100;  # max 100K posts
+    $CGI::DISABLE_UPLOADS = 1;  # no uploads
+
+</PRE>
+
+
+<DT><B>2. Globally for all scripts</B><DD>
+<A NAME="ixAIP"></A>
+Open up <FONT SIZE="-1">CGI</FONT>.pm, find the definitions for <TT>$POST_MAX</TT> and 
+<TT>$DISABLE_UPLOADS</TT>, and set them to the desired values.  You'll 
+find them towards the top of the file in a subroutine named 
+<I>initialize_globals()</I>.
+</DL>
+<P>
+
+An attempt to send a <FONT SIZE="-1">POST</FONT> larger than <TT>$POST_MAX</TT> bytes will cause
+<I>param()</I> to return an empty <FONT SIZE="-1">CGI</FONT> parameter list.  You can test for
+this event by checking <I>cgi_error()</I>, either after you create the <FONT SIZE="-1">CGI</FONT>
+object or, if you are using the function-oriented interface, call
+&lt;<I>param()</I>&gt; for the first time.  If the <FONT SIZE="-1">POST</FONT> was intercepted, then
+<I>cgi_error()</I> will return the message ``413 <FONT SIZE="-1">POST</FONT> too large''.
+<P>
+
+This error message is actually defined by the <FONT SIZE="-1">HTTP</FONT> protocol, and is
+designed to be returned to the browser as the <FONT SIZE="-1">CGI</FONT> script's status
+<BR>&nbsp;code.&nbsp;&nbsp;For&nbsp;example:
+<P>
+
+
+
+<PRE>
+   $uploaded_file = param('upload');
+   if (!$uploaded_file &amp;&amp; cgi_error()) {
+      print header(-status=&gt;cgi_error());
+      exit 0;
+   }
+
+</PRE>
+
+
+<P>
+
+However it isn't clear that any browser currently knows what to do
+with this status code.  It might be better just to create an
+<FONT SIZE="-1">HTML</FONT> page that warns the user of the problem.
+<A NAME="lbCS">&nbsp;</A>
+<H2>COMPATIBILITY WITH CGI-LIB.PL</H2>
+
+<A NAME="ixAIQ"></A>
+To make it easier to port existing programs that use cgi-lib.pl the
+compatibility routine ``ReadParse'' is provided.  Porting is simple:
+<P>
+
+<FONT SIZE="-1">OLD</FONT> <FONT SIZE="-1">VERSION</FONT>
+<P>
+
+
+
+<PRE>
+    require &quot;cgi-lib.pl&quot;;
+    &amp;ReadParse;
+    print &quot;The value of the antique is $in{antique}.\n&quot;;
+
+</PRE>
+
+
+<P>
+
+<FONT SIZE="-1">NEW</FONT> <FONT SIZE="-1">VERSION</FONT>
+<P>
+
+
+
+<PRE>
+    use CGI;
+    CGI::ReadParse();
+    print &quot;The value of the antique is $in{antique}.\n&quot;;
+
+</PRE>
+
+
+<P>
+
+<FONT SIZE="-1">CGI</FONT>.pm's <I>ReadParse()</I> routine creates a tied variable named <TT>%in</TT>,
+which can be accessed to obtain the query variables.  Like
+ReadParse, you can also provide your own variable.  Infrequently
+used features of ReadParse, such as the creation of <TT>@in</TT> and <TT>$in</TT>
+variables, are not supported.
+<P>
+
+Once you use ReadParse, you can retrieve the query object itself
+this way:
+<P>
+
+
+
+<PRE>
+    $q = $in{CGI};
+    print $q-&gt;textfield(-name=&gt;'wow',
+            -value=&gt;'does this really work?');
+
+</PRE>
+
+
+<P>
+
+This allows you to start using the more interesting features
+of <FONT SIZE="-1">CGI</FONT>.pm without rewriting your old scripts from scratch.
+<P>
+
+An even simpler way to mix cgi-lib calls with <FONT SIZE="-1">CGI</FONT>.pm calls is to import both the
+<TT>&quot;:cgi-lib&quot;</TT> and <TT>&quot;:standard&quot;</TT> method:
+<P>
+
+
+
+<PRE>
+ use CGI qw(:cgi-lib :standard);
+ &amp;ReadParse;
+ print &quot;The price of your purchase is $in{price}.\n&quot;;
+ print textfield(-name=&gt;'price', -default=&gt;'$1.99');
+
+</PRE>
+
+
+<A NAME="lbCT">&nbsp;</A>
+<H3>Cgi-lib functions that are available in <FONT SIZE="-1">CGI</FONT>.pm</H3>
+
+<A NAME="ixAIR"></A>
+In compatability mode, the following cgi-lib.pl functions are
+available for your use:
+<P>
+
+
+
+<PRE>
+ ReadParse()
+ PrintHeader()
+ HtmlTop()
+ HtmlBot()
+ SplitParam()
+ MethGet()
+ MethPost()
+
+</PRE>
+
+
+<A NAME="lbCU">&nbsp;</A>
+<H3>Cgi-lib functions that are not available in <FONT SIZE="-1">CGI</FONT>.pm</H3>
+
+<A NAME="ixAIS"></A>
+
+
+<PRE>
+  * Extended form of ReadParse()
+    The extended form of ReadParse() that provides for file upload
+    spooling, is not available.
+
+  * MyBaseURL()
+    This function is not available.  Use CGI.pm's url() method instead.
+
+  * MyFullURL()
+    This function is not available.  Use CGI.pm's self_url() method
+    instead.
+
+  * CgiError(), CgiDie()
+    These functions are not supported.  Look at CGI::Carp for the way I
+    prefer to handle error messages.
+
+  * PrintVariables()
+    This function is not available.  To achieve the same effect,
+       just print out the CGI object:
+
+       use CGI qw(:standard);
+       $q = CGI-&gt;new;
+       print h1(&quot;The Variables Are&quot;),$q;
+
+  * PrintEnv()
+    This function is not available. You'll have to roll your own if you really need it.
+
+</PRE>
+
+
+<A NAME="lbCV">&nbsp;</A>
+<H2>AUTHOR INFORMATION</H2>
+
+<A NAME="ixAIT"></A>
+The <FONT SIZE="-1">CGI</FONT>.pm distribution is copyright 1995-2007, Lincoln D. Stein.  It is
+distributed under <FONT SIZE="-1">GPL</FONT> and the Artistic License 2.0.
+<P>
+
+Address bug reports and comments to: <A HREF="mailto:lstein@cshl.org">lstein@cshl.org</A>.  When sending
+bug reports, please provide the version of <FONT SIZE="-1">CGI</FONT>.pm, the version of
+Perl, the name and version of your Web server, and the name and
+version of the operating system you are using.  If the problem is even
+remotely browser dependent, please provide information about the
+affected browsers as well.
+<A NAME="lbCW">&nbsp;</A>
+<H2>CREDITS</H2>
+
+<A NAME="ixAIU"></A>
+Thanks very much to:
+<DL COMPACT>
+<DT>Matt Heffron (<A HREF="mailto:heffron@falstaff.css.beckman.com">heffron@falstaff.css.beckman.com</A>)<DD>
+<A NAME="ixAIV"></A>
+
+<DT>James Taylor (<A HREF="mailto:james.taylor@srs.gov">james.taylor@srs.gov</A>)<DD>
+<A NAME="ixAIW"></A>
+<DT>Scott Anguish &lt;<A HREF="mailto:sanguish@digifix.com">sanguish@digifix.com</A>&gt;<DD>
+<A NAME="ixAIX"></A>
+<DT>Mike Jewell (<A HREF="mailto:mlj3u@virginia.edu">mlj3u@virginia.edu</A>)<DD>
+<A NAME="ixAIY"></A>
+<DT>Timothy Shimmin (<A HREF="mailto:tes@kbs.citri.edu.au">tes@kbs.citri.edu.au</A>)<DD>
+<A NAME="ixAIZ"></A>
+<DT>Joergen Haegg (<A HREF="mailto:jh@axis.se">jh@axis.se</A>)<DD>
+<A NAME="ixAJA"></A>
+<DT>Laurent Delfosse (<A HREF="mailto:delfosse@delfosse.com">delfosse@delfosse.com</A>)<DD>
+<A NAME="ixAJB"></A>
+<DT>Richard Resnick (<A HREF="mailto:applepi1@aol.com">applepi1@aol.com</A>)<DD>
+<A NAME="ixAJC"></A>
+<DT>Craig Bishop (<A HREF="mailto:csb@barwonwater.vic.gov.au">csb@barwonwater.vic.gov.au</A>)<DD>
+<A NAME="ixAJD"></A>
+<DT>Tony Curtis (<A HREF="mailto:tc@vcpc.univie.ac.at">tc@vcpc.univie.ac.at</A>)<DD>
+<A NAME="ixAJE"></A>
+<DT>Tim Bunce (<A HREF="mailto:Tim.Bunce@ig.co.uk">Tim.Bunce@ig.co.uk</A>)<DD>
+<A NAME="ixAJF"></A>
+<DT>Tom Christiansen (<A HREF="mailto:tchrist@convex.com">tchrist@convex.com</A>)<DD>
+<A NAME="ixAJG"></A>
+<DT>Andreas Koenig (k@franz.ww.TU-Berlin.DE)<DD>
+<A NAME="ixAJH"></A>
+<DT>Tim MacKenzie (<A HREF="mailto:Tim.MacKenzie@fulcrum.com.au">Tim.MacKenzie@fulcrum.com.au</A>)<DD>
+<A NAME="ixAJI"></A>
+<DT>Kevin B. Hendricks (<A HREF="mailto:kbhend@dogwood.tyler.wm.edu">kbhend@dogwood.tyler.wm.edu</A>)<DD>
+<A NAME="ixAJJ"></A>
+<DT>Stephen Dahmen (<A HREF="mailto:joyfire@inxpress.net">joyfire@inxpress.net</A>)<DD>
+<A NAME="ixAJK"></A>
+<DT>Ed Jordan (<A HREF="mailto:ed@fidalgo.net">ed@fidalgo.net</A>)<DD>
+<A NAME="ixAJL"></A>
+<DT>David Alan Pisoni (<A HREF="mailto:david@cnation.com">david@cnation.com</A>)<DD>
+<A NAME="ixAJM"></A>
+<DT>Doug MacEachern (<A HREF="mailto:dougm@opengroup.org">dougm@opengroup.org</A>)<DD>
+<A NAME="ixAJN"></A>
+<DT>Robin Houston (<A HREF="mailto:robin@oneworld.org">robin@oneworld.org</A>)<DD>
+<A NAME="ixAJO"></A>
+<DT>...and many many more...<DD>
+<A NAME="ixAJP"></A>
+
+for suggestions and bug fixes.
+</DL>
+<A NAME="lbCX">&nbsp;</A>
+<H2>A COMPLETE EXAMPLE OF A SIMPLE FORM-BASED SCRIPT</H2>
+
+<A NAME="ixAJQ"></A>
+
+
+<PRE>
+        #!/usr/local/bin/perl
+
+        use CGI ':standard';
+
+        print header;
+        print start_html(&quot;Example CGI.pm Form&quot;);
+        print &quot;&lt;h1&gt; Example CGI.pm Form&lt;/h1&gt;\n&quot;;
+        print_prompt();
+        do_work();
+        print_tail();
+        print end_html;
+
+        sub print_prompt {
+           print start_form;
+           print &quot;&lt;em&gt;What's your name?&lt;/em&gt;&lt;br&gt;&quot;;
+           print textfield('name');
+           print checkbox('Not my real name');
+
+           print &quot;&lt;p&gt;&lt;em&gt;Where can you find English Sparrows?&lt;/em&gt;&lt;br&gt;&quot;;
+           print checkbox_group(
+                                 -name=&gt;'Sparrow locations',
+                                 -values=&gt;[England,France,Spain,Asia,Hoboken],
+                                 -linebreak=&gt;'yes',
+                                 -defaults=&gt;[England,Asia]);
+
+           print &quot;&lt;p&gt;&lt;em&gt;How far can they fly?&lt;/em&gt;&lt;br&gt;&quot;,
+                radio_group(
+                        -name=&gt;'how far',
+                        -values=&gt;['10 ft','1 mile','10 miles','real far'],
+                        -default=&gt;'1 mile');
+
+           print &quot;&lt;p&gt;&lt;em&gt;What's your favorite color?&lt;/em&gt;  &quot;;
+           print popup_menu(-name=&gt;'Color',
+                                    -values=&gt;['black','brown','red','yellow'],
+                                    -default=&gt;'red');
+
+           print hidden('Reference','Monty Python and the Holy Grail');
+
+           print &quot;&lt;p&gt;&lt;em&gt;What have you got there?&lt;/em&gt;&lt;br&gt;&quot;;
+           print scrolling_list(
+                         -name=&gt;'possessions',
+                         -values=&gt;['A Coconut','A Grail','An Icon',
+                                   'A Sword','A Ticket'],
+                         -size=&gt;5,
+                         -multiple=&gt;'true');
+
+           print &quot;&lt;p&gt;&lt;em&gt;Any parting comments?&lt;/em&gt;&lt;br&gt;&quot;;
+           print textarea(-name=&gt;'Comments',
+                                  -rows=&gt;10,
+                                  -columns=&gt;50);
+
+           print &quot;&lt;p&gt;&quot;,reset;
+           print submit('Action','Shout');
+           print submit('Action','Scream');
+           print end_form;
+           print &quot;&lt;hr&gt;\n&quot;;
+        }
+
+        sub do_work {
+
+           print &quot;&lt;h2&gt;Here are the current settings in this form&lt;/h2&gt;&quot;;
+
+           for my $key (param) {
+              print &quot;&lt;strong&gt;$key&lt;/strong&gt; -&gt; &quot;;
+              my @values = param($key);
+              print join(&quot;, &quot;,@values),&quot;&lt;br&gt;\n&quot;;
+          }
+        }
+
+        sub print_tail {
+           print &lt;&lt;END;
+        &lt;hr&gt;
+        &lt;address&gt;Lincoln D. Stein&lt;/address&gt;&lt;br&gt;
+        &lt;a href=&quot;/&quot;&gt;Home Page&lt;/a&gt;
+        END
+        }
+
+</PRE>
+
+
+<A NAME="lbCY">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAJR"></A>
+Please report them.
+<A NAME="lbCZ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAJS"></A>
+CGI::Carp - provides a Carp implementation tailored to the <FONT SIZE="-1">CGI</FONT> environment.
+<P>
+
+CGI::Fast - supports running <FONT SIZE="-1">CGI</FONT> applications under FastCGI
+<P>
+
+CGI::Pretty - pretty prints <FONT SIZE="-1">HTML</FONT> generated by <FONT SIZE="-1">CGI</FONT>.pm (with a performance penalty)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE"><FONT SIZE="-1">PROGRAMMING</FONT> <FONT SIZE="-1">STYLE</FONT></A><DD>
+<DT><A HREF="#lbAF"><FONT SIZE="-1">CALLING</FONT> <FONT SIZE="-1">CGI</FONT>.PM <FONT SIZE="-1">ROUTINES</FONT></A><DD>
+<DT><A HREF="#lbAG"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">NEW</FONT> <FONT SIZE="-1">QUERY</FONT> <FONT SIZE="-1">OBJECT</FONT> (OBJECT-ORIENTED <FONT SIZE="-1">STYLE</FONT>):</A><DD>
+<DT><A HREF="#lbAH"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">NEW</FONT> <FONT SIZE="-1">QUERY</FONT> <FONT SIZE="-1">OBJECT</FONT> <FONT SIZE="-1">FROM</FONT> <FONT SIZE="-1">AN</FONT> <FONT SIZE="-1">INPUT</FONT> <FONT SIZE="-1">FILE</FONT></A><DD>
+<DT><A HREF="#lbAI"><FONT SIZE="-1">FETCHING</FONT> A <FONT SIZE="-1">LIST</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">KEYWORDS</FONT> <FONT SIZE="-1">FROM</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">QUERY:</FONT></A><DD>
+<DT><A HREF="#lbAJ"><FONT SIZE="-1">FETCHING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">NAMES</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">ALL</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">PARAMETERS</FONT> <FONT SIZE="-1">PASSED</FONT> <FONT SIZE="-1">TO</FONT> <FONT SIZE="-1">YOUR</FONT> <FONT SIZE="-1">SCRIPT:</FONT></A><DD>
+<DT><A HREF="#lbAK"><FONT SIZE="-1">FETCHING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">VALUE</FONT> <FONT SIZE="-1">OR</FONT> <FONT SIZE="-1">VALUES</FONT> <FONT SIZE="-1">OF</FONT> A <FONT SIZE="-1">SINGLE</FONT> <FONT SIZE="-1">NAMED</FONT> <FONT SIZE="-1">PARAMETER:</FONT></A><DD>
+<DT><A HREF="#lbAL"><FONT SIZE="-1">SETTING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">VALUE</FONT>(S) <FONT SIZE="-1">OF</FONT> A <FONT SIZE="-1">NAMED</FONT> <FONT SIZE="-1">PARAMETER:</FONT></A><DD>
+<DT><A HREF="#lbAM"><FONT SIZE="-1">APPENDING</FONT> <FONT SIZE="-1">ADDITIONAL</FONT> <FONT SIZE="-1">VALUES</FONT> <FONT SIZE="-1">TO</FONT> A <FONT SIZE="-1">NAMED</FONT> <FONT SIZE="-1">PARAMETER:</FONT></A><DD>
+<DT><A HREF="#lbAN"><FONT SIZE="-1">IMPORTING</FONT> <FONT SIZE="-1">ALL</FONT> <FONT SIZE="-1">PARAMETERS</FONT> <FONT SIZE="-1">INTO</FONT> A <FONT SIZE="-1">NAMESPACE:</FONT></A><DD>
+<DT><A HREF="#lbAO"><FONT SIZE="-1">DELETING</FONT> A <FONT SIZE="-1">PARAMETER</FONT> <FONT SIZE="-1">COMPLETELY:</FONT></A><DD>
+<DT><A HREF="#lbAP"><FONT SIZE="-1">DELETING</FONT> <FONT SIZE="-1">ALL</FONT> <FONT SIZE="-1">PARAMETERS:</FONT></A><DD>
+<DT><A HREF="#lbAQ"><FONT SIZE="-1">HANDLING</FONT> NON-URLENCODED <FONT SIZE="-1">ARGUMENTS</FONT></A><DD>
+<DT><A HREF="#lbAR"><FONT SIZE="-1">DIRECT</FONT> <FONT SIZE="-1">ACCESS</FONT> <FONT SIZE="-1">TO</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">PARAMETER</FONT> <FONT SIZE="-1">LIST:</FONT></A><DD>
+<DT><A HREF="#lbAS"><FONT SIZE="-1">FETCHING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">PARAMETER</FONT> <FONT SIZE="-1">LIST</FONT> <FONT SIZE="-1">AS</FONT> A <FONT SIZE="-1">HASH:</FONT></A><DD>
+<DT><A HREF="#lbAT"><FONT SIZE="-1">SAVING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">STATE</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">SCRIPT</FONT> <FONT SIZE="-1">TO</FONT> A <FONT SIZE="-1">FILE:</FONT></A><DD>
+<DT><A HREF="#lbAU"><FONT SIZE="-1">RETRIEVING</FONT> <FONT SIZE="-1">CGI</FONT> <FONT SIZE="-1">ERRORS</FONT></A><DD>
+<DT><A HREF="#lbAV"><FONT SIZE="-1">USING</FONT> <FONT SIZE="-1">THE</FONT> FUNCTION-ORIENTED <FONT SIZE="-1">INTERFACE</FONT></A><DD>
+<DT><A HREF="#lbAW"><FONT SIZE="-1">PRAGMAS</FONT></A><DD>
+<DT><A HREF="#lbAX"><FONT SIZE="-1">SPECIAL</FONT> <FONT SIZE="-1">FORMS</FONT> <FONT SIZE="-1">FOR</FONT> <FONT SIZE="-1">IMPORTING</FONT> HTML-TAG <FONT SIZE="-1">FUNCTIONS</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAY">GENERATING DYNAMIC DOCUMENTS</A><DD>
+<DL>
+<DT><A HREF="#lbAZ"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">STANDARD</FONT> <FONT SIZE="-1">HTTP</FONT> <FONT SIZE="-1">HEADER:</FONT></A><DD>
+<DT><A HREF="#lbBA"><FONT SIZE="-1">GENERATING</FONT> A <FONT SIZE="-1">REDIRECTION</FONT> <FONT SIZE="-1">HEADER</FONT></A><DD>
+<DT><A HREF="#lbBB"><FONT SIZE="-1">CREATING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">DOCUMENT</FONT> <FONT SIZE="-1">HEADER</FONT></A><DD>
+<DT><A HREF="#lbBC"><FONT SIZE="-1">ENDING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">DOCUMENT:</FONT></A><DD>
+<DT><A HREF="#lbBD"><FONT SIZE="-1">CREATING</FONT> A SELF-REFERENCING <FONT SIZE="-1">URL</FONT> <FONT SIZE="-1">THAT</FONT> <FONT SIZE="-1">PRESERVES</FONT> <FONT SIZE="-1">STATE</FONT> <FONT SIZE="-1">INFORMATION:</FONT></A><DD>
+<DT><A HREF="#lbBE"><FONT SIZE="-1">OBTAINING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">SCRIPT</FONT>'S <FONT SIZE="-1">URL</FONT></A><DD>
+<DT><A HREF="#lbBF"><FONT SIZE="-1">MIXING</FONT> <FONT SIZE="-1">POST</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">URL</FONT> <FONT SIZE="-1">PARAMETERS</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbBG">CREATING STANDARD HTML ELEMENTS:</A><DD>
+<DL>
+<DT><A HREF="#lbBH"><FONT SIZE="-1">PROVIDING</FONT> <FONT SIZE="-1">ARGUMENTS</FONT> <FONT SIZE="-1">TO</FONT> <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">SHORTCUTS</FONT></A><DD>
+<DT><A HREF="#lbBI"><FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">DISTRIBUTIVE</FONT> <FONT SIZE="-1">PROPERTY</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">SHORTCUTS</FONT></A><DD>
+<DT><A HREF="#lbBJ"><FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">SHORTCUTS</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">LIST</FONT> <FONT SIZE="-1">INTERPOLATION</FONT></A><DD>
+<DT><A HREF="#lbBK">NON-STANDARD <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">SHORTCUTS</FONT></A><DD>
+<DT><A HREF="#lbBL"><FONT SIZE="-1">AUTOESCAPING</FONT> <FONT SIZE="-1">HTML</FONT></A><DD>
+<DT><A HREF="#lbBM">PRETTY-PRINTING <FONT SIZE="-1">HTML</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbBN">CREATING FILL-OUT FORMS:</A><DD>
+<DL>
+<DT><A HREF="#lbBO"><FONT SIZE="-1">CREATING</FONT> <FONT SIZE="-1">AN</FONT> <FONT SIZE="-1">ISINDEX</FONT> <FONT SIZE="-1">TAG</FONT></A><DD>
+<DT><A HREF="#lbBP"><FONT SIZE="-1">STARTING</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">ENDING</FONT> A <FONT SIZE="-1">FORM</FONT></A><DD>
+<DT><A HREF="#lbBQ"><FONT SIZE="-1">FORM</FONT> <FONT SIZE="-1">ELEMENTS</FONT></A><DD>
+<DT><A HREF="#lbBR"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">TEXT</FONT> <FONT SIZE="-1">FIELD</FONT></A><DD>
+<DT><A HREF="#lbBS"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">BIG</FONT> <FONT SIZE="-1">TEXT</FONT> <FONT SIZE="-1">FIELD</FONT></A><DD>
+<DT><A HREF="#lbBT"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">PASSWORD</FONT> <FONT SIZE="-1">FIELD</FONT></A><DD>
+<DT><A HREF="#lbBU"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">FILE</FONT> <FONT SIZE="-1">UPLOAD</FONT> <FONT SIZE="-1">FIELD</FONT></A><DD>
+<DT><A HREF="#lbBV"><FONT SIZE="-1">PROCESSING</FONT> A <FONT SIZE="-1">FILE</FONT> <FONT SIZE="-1">UPLOAD</FONT> <FONT SIZE="-1">FIELD</FONT></A><DD>
+<DT><A HREF="#lbBW"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">POPUP</FONT> <FONT SIZE="-1">MENU</FONT></A><DD>
+<DT><A HREF="#lbBX"><FONT SIZE="-1">CREATING</FONT> <FONT SIZE="-1">AN</FONT> <FONT SIZE="-1">OPTION</FONT> <FONT SIZE="-1">GROUP</FONT></A><DD>
+<DT><A HREF="#lbBY"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">SCROLLING</FONT> <FONT SIZE="-1">LIST</FONT></A><DD>
+<DT><A HREF="#lbBZ"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">GROUP</FONT> <FONT SIZE="-1">OF</FONT> <FONT SIZE="-1">RELATED</FONT> <FONT SIZE="-1">CHECKBOXES</FONT></A><DD>
+<DT><A HREF="#lbCA"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">STANDALONE</FONT> <FONT SIZE="-1">CHECKBOX</FONT></A><DD>
+<DT><A HREF="#lbCB"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">RADIO</FONT> <FONT SIZE="-1">BUTTON</FONT> <FONT SIZE="-1">GROUP</FONT></A><DD>
+<DT><A HREF="#lbCC"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">SUBMIT</FONT> <FONT SIZE="-1">BUTTON</FONT></A><DD>
+<DT><A HREF="#lbCD"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">RESET</FONT> <FONT SIZE="-1">BUTTON</FONT></A><DD>
+<DT><A HREF="#lbCE"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">DEFAULT</FONT> <FONT SIZE="-1">BUTTON</FONT></A><DD>
+<DT><A HREF="#lbCF"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">HIDDEN</FONT> <FONT SIZE="-1">FIELD</FONT></A><DD>
+<DT><A HREF="#lbCG"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">CLICKABLE</FONT> <FONT SIZE="-1">IMAGE</FONT> <FONT SIZE="-1">BUTTON</FONT></A><DD>
+<DT><A HREF="#lbCH"><FONT SIZE="-1">CREATING</FONT> A <FONT SIZE="-1">JAVASCRIPT</FONT> <FONT SIZE="-1">ACTION</FONT> <FONT SIZE="-1">BUTTON</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbCI">HTTP COOKIES</A><DD>
+<DT><A HREF="#lbCJ">WORKING WITH FRAMES</A><DD>
+<DT><A HREF="#lbCK">SUPPORT FOR JAVASCRIPT</A><DD>
+<DT><A HREF="#lbCL">LIMITED SUPPORT FOR CASCADING STYLE SHEETS</A><DD>
+<DT><A HREF="#lbCM">DEBUGGING</A><DD>
+<DL>
+<DT><A HREF="#lbCN"><FONT SIZE="-1">DUMPING</FONT> <FONT SIZE="-1">OUT</FONT> <FONT SIZE="-1">ALL</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">NAME/VALUE</FONT> <FONT SIZE="-1">PAIRS</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbCO">FETCHING ENVIRONMENT VARIABLES</A><DD>
+<DT><A HREF="#lbCP">USING NPH SCRIPTS</A><DD>
+<DT><A HREF="#lbCQ">Server Push</A><DD>
+<DT><A HREF="#lbCR">Avoiding Denial of Service Attacks</A><DD>
+<DT><A HREF="#lbCS">COMPATIBILITY WITH CGI-LIB.PL</A><DD>
+<DL>
+<DT><A HREF="#lbCT">Cgi-lib functions that are available in <FONT SIZE="-1">CGI</FONT>.pm</A><DD>
+<DT><A HREF="#lbCU">Cgi-lib functions that are not available in <FONT SIZE="-1">CGI</FONT>.pm</A><DD>
+</DL>
+<DT><A HREF="#lbCV">AUTHOR INFORMATION</A><DD>
+<DT><A HREF="#lbCW">CREDITS</A><DD>
+<DT><A HREF="#lbCX">A COMPLETE EXAMPLE OF A SIMPLE FORM-BASED SCRIPT</A><DD>
+<DT><A HREF="#lbCY">BUGS</A><DD>
+<DT><A HREF="#lbCZ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:15 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,1095 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of KADMIN</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>KADMIN</H1>
+Section: User Commands  (1)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+kadmin - Kerberos V5 database administration program
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSYS</H2>
+
+<DL COMPACT>
+<DT><B>kadmin</B>
+
+<DD>
+
+[<B>-O</B> | <B>-N</B>]
+[<B>-r</B> <I>realm</I>] [<B>-p</B> <I>principal</I>] [<B>-q</B> <I>query</I>]
+<BR>
+
+[[<B>-c</B> <I>cache_name</I>] | [<B>-k</B> [<B>-t</B>
+<I>keytab</I>]] | <B>-n</B>] [<B>-w</B> <I>password</I>] [<B>-s</B>
+<I>admin_server</I>[<I>:port</I>]
+<DT><B>kadmin.local</B>
+
+<DD>
+[<B>-r</B> <I>realm</I>] [<B>-p</B> <I>principal</I>] [<B>-q</B> <I>query</I>]
+<BR>
+
+[<B>-d</B> <I>dbname</I>] [<B>-e </B><I>&quot;enc:salt ...&quot;</I>] [<B>-m</B>] [<B>-x</B> <I>db_args</I>]
+
+</DL>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>kadmin</B>
+
+and
+<B>kadmin.local</B>
+
+are command-line interfaces to the Kerberos V5 KADM5 administration
+system.  Both
+<B>kadmin</B>
+
+and
+<B>kadmin.local</B>
+
+provide identical functionalities; the difference is that
+<B>kadmin.local</B>
+
+runs on the master KDC if the database is db2 and
+does not use Kerberos to authenticate to the
+database. Except as explicitly noted otherwise, 
+this man page will use
+<B>kadmin</B>
+
+to refer to both versions.
+<B>kadmin</B>
+
+provides for the maintenance of Kerberos principals, KADM5 policies, and
+service key tables (keytabs).  
+<P>
+
+The remote version uses Kerberos authentication and an encrypted RPC, to
+operate securely from anywhere on the network.  It authenticates to the
+KADM5 server using the service principal
+<I>kadmin/admin</I>.
+
+If the credentials cache contains a ticket for the
+<I>kadmin/admin</I>
+
+principal, and the 
+<B>-c</B>
+
+<I>credentials_cache</I>
+
+option is specified, that ticket is used to authenticate to KADM5.
+Otherwise, the
+<B>-p</B>
+
+and
+<B>-k</B>
+
+options are used to specify the client Kerberos principal name used to
+authenticate.  Once
+<B>kadmin</B>
+
+has determined the principal name, it requests a
+<I>kadmin/admin</I>
+
+Kerberos service ticket from the KDC, and uses that service ticket to
+authenticate to KADM5.
+<P>
+
+If the database is db2, the local client
+<B>kadmin.local</B>,
+
+is intended to run directly on the master KDC without Kerberos
+authentication.  The local version provides all of the functionality of
+the now obsolete
+<I><A HREF="/manpages/index.html?8+kdb5_edit">kdb5_edit</A></I>(8),
+
+except for database dump and load, which is now provided by the
+<I><A HREF="/manpages/index.html?8+kdb5_util">kdb5_util</A></I>(8)
+
+utility.
+<P>
+
+If the database is LDAP, kadmin.local need not be run on the KDC. 
+<P>
+
+kadmin.local can be configured to log updates for incremental database
+propagation.  Incremental propagation allows slave KDC servers to
+receive principal and policy updates incrementally instead of
+receiving full dumps of the database.  This facility can be enabled in
+the
+<I>kdc.conf</I>
+
+file with the
+<I>iprop_enable</I>
+
+option.  See the
+<I>kdc.conf</I>
+
+documentation for other options for tuning incremental propagation
+parameters.
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-r</B> <I>realm</I><DD>
+Use
+<I>realm</I>
+
+as the default database realm.
+<DT><B>-p</B> <I>principal</I><DD>
+Use
+<I>principal</I>
+
+to authenticate.  Otherwise, kadmin will append &quot;/admin&quot; to the primary
+principal name of the default ccache, the value of the
+<FONT SIZE="-1">USER</FONT>
+environment variable, or the username as obtained with getpwuid, in
+order of preference.
+<DT><B>-k</B><DD>
+Use a keytab to decrypt the KDC response instead of prompting for a
+password on the TTY.  In this case, the default principal will be
+host/<I>hostname</I>.  If there is not a keytab specified with the
+<B>-t</B>
+
+option, then the default keytab will be used.
+<DT><B>-t</B> <I>keytab</I><DD>
+Use
+<I>keytab</I>
+
+to decrypt the KDC response.  This can only be used with the
+<B>-k</B>
+
+option.
+<B>-n</B>
+Requests anonymous processing.  Two types of anonymous principals are
+supported.  For fully anonymous Kerberos, configure pkinit on the KDC
+and configure
+<I>pkinit_anchors</I>
+
+in the client's krb5.conf.  Then use the
+<B>-n</B>
+
+option with a principal of the form
+<I>@REALM</I>
+
+(an empty principal name followed by the at-sign and a realm name).
+If permitted by the KDC, an anonymous ticket will be returned.
+A second form of anonymous tickets is supported; these realm-exposed
+tickets hide the identity of the client but not the client's realm.
+For this mode, use
+<B>kinit -n</B>
+
+with a normal principal name.  If supported by the KDC, the principal
+(but not realm) will be replaced by the anonymous principal.
+As of release 1.8, the MIT Kerberos KDC only supports fully anonymous
+operation.
+<DT><B>-c</B> <I>credentials_cache</I><DD>
+Use
+<I>credentials_cache</I>
+
+as the credentials cache.  The
+<I>credentials_cache</I>
+
+should contain a service ticket for the
+<I>kadmin/admin</I>
+
+service; it can be acquired with the
+<I><A HREF="/manpages/index.html?1+kinit">kinit</A></I>(1)
+
+program.  If this option is not specified,
+<B>kadmin</B>
+
+requests a new service ticket from the KDC, and stores it in its own
+temporary ccache.
+<DT><B>-w</B> <I>password</I><DD>
+Use
+<I>password</I>
+
+instead of prompting for one on the TTY.  Note:  placing the password
+for a Kerberos principal with administration access into a shell script
+can be dangerous if unauthorized users gain read access to the script.
+<DT><B>-q</B> <I>query</I><DD>
+pass
+<I>query</I>
+
+directly to
+<B>kadmin</B>,
+
+which will perform
+<I>query</I>
+
+and then exit.  This can be useful for writing scripts.
+<DT><B>-d</B> <I>dbname</I><DD>
+Specifies the name of the Kerberos database.
+This option does not apply to the LDAP database.
+<DT><B>-s</B> <I>admin_server[:port]</I><DD>
+Specifies the admin server which kadmin should contact.
+<DT><B>-m</B><DD>
+Do not authenticate using a keytab.  This option will cause kadmin
+to prompt for the master database password.
+<DT><B>-e</B> <I>enc:salt_list</I><DD>
+Sets the list of encryption types and salt types to be used for any new
+keys created.
+<DT><B>-O</B>
+
+<DD>
+Force use of old AUTH_GSSAPI authentication flavor.
+<DT><B>-N</B>
+
+<DD>
+Prevent fallback to AUTH_GSSAPI authentication flavor.
+<DT><B>-x</B> <I>db_args</I><DD>
+Specifies the database specific arguments.
+<P>
+Options supported for LDAP database are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>-x host=&lt;hostname&gt;<DD>
+specifies the LDAP server to connect to by a LDAP URI.
+<DT>-x binddn=&lt;bind_dn&gt;<DD>
+
+specifies the DN of the object used by the administration server to bind to the LDAP server.
+This object should have the read and write rights on the realm container, principal container
+and the subtree that is referenced by the realm.
+<DT>-x bindpwd=&lt;bind_password&gt;<DD>
+
+specifies the password for the above mentioned binddn. It is recommended not to use this option.
+Instead, the password can be stashed using the stashsrvpw command of kdb5_ldap_util.
+</DL>
+</DL>
+
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>DATE FORMAT </H2>
+
+Various commands in kadmin can take a variety of date formats,
+specifying durations or absolute times.  Examples of valid formats are:
+<P>
+<PRE>
+<DL COMPACT><DT><DD>1 month ago
+2 hours ago
+400000 seconds ago
+last year
+this Monday
+next Monday
+yesterday
+tomorrow
+now
+second Monday
+a fortnight ago
+3/31/92 10:00:07 PST
+January 23, 1987 10:05pm
+22:00 GMT
+</DL>
+</PRE>
+
+<P>
+
+Dates which do not have the &quot;ago&quot; specifier default to being absolute
+dates, unless they appear in a field where a duration is expected.  In
+that case the time specifier will be interpreted as relative.
+Specifying &quot;ago&quot; in a duration may result in unexpected behavior.
+<P>
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>COMMANDS</H2>
+
+<DL COMPACT>
+<DT><B>add_principal</B> [<I>options</I>] <I>newprinc</I><DD>
+creates the principal
+<I>newprinc</I>,
+
+prompting twice for a password.  If no policy is specified with the
+-policy option, and the policy named &quot;default&quot; exists, then that
+policy is assigned to the principal; note that the assignment of the
+policy &quot;default&quot; only occurs automatically when a principal is first
+created, so the policy &quot;default&quot; must already exist for the assignment
+to occur.  This assignment of &quot;default&quot; can be suppressed with the
+-clearpolicy option.  This command requires the 
+<I>add</I>
+
+privilege.  This command has the aliases
+<B>addprinc</B>
+
+and
+<B>ank</B>.
+
+The options are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>-x</B> <I>db_princ_args</I><DD>
+Denotes the database specific options. The options for LDAP database are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>-x dn=&lt;dn&gt;<DD>
+Specifies the LDAP object that will contain the Kerberos principal being 
+created.
+<DT>-x linkdn=&lt;dn&gt;<DD>
+
+Specifies the LDAP object to which the newly created Kerberos principal object
+will point to.
+<DT>-x containerdn=&lt;container_dn&gt;<DD>
+Specifies the container object under which the Kerberos principal is to be created. 
+<DT>-x tktpolicy=&lt;policy&gt;<DD>
+Associates a ticket policy to the Kerberos principal.
+</DL>
+</DL>
+
+<DT><B>-expire</B> <I>expdate</I><DD>
+expiration date of the principal
+<DT><B>-pwexpire</B> <I>pwexpdate</I><DD>
+password expiration date
+<DT><B>-maxlife</B> <I>maxlife</I><DD>
+maximum ticket life for the principal
+<DT><B>-maxrenewlife</B> <I>maxrenewlife</I><DD>
+maximum renewable life of tickets for the principal
+<DT><B>-kvno</B> <I>kvno</I><DD>
+explicity set the key version number.
+<DT><B>-policy</B> <I>policy</I><DD>
+policy used by this principal.  If no policy is supplied, then if the
+policy &quot;default&quot; exists and the -clearpolicy is not also specified,
+then the policy &quot;default&quot; is used; otherwise, the principal 
+will have no policy, and a warning message will be printed.
+<DT><B>-clearpolicy</B> <DD>
+<B>-clearpolicy</B>
+
+prevents the policy &quot;default&quot; from being assigned when 
+<B>-policy</B>
+
+is not specified.  This option has no effect if the policy &quot;default&quot;
+does not exist.
+<DT>{<B>-</B>|<B>+</B>}<B>allow_postdated</B><DD>
+<B>-allow_postdated</B>
+
+prohibits this principal from obtaining postdated tickets.  (Sets the
+<FONT SIZE="-1">KRB5_KDB_DISALLOW_POSTDATED</FONT>
+flag.)
+<B>+allow_postdated</B>
+
+clears this flag.
+<DT>{<B>-</B>|<B>+</B>}<B>allow_forwardable</B><DD>
+<B>-allow_forwardable</B>
+
+prohibits this principal from obtaining forwardable tickets.  (Sets the
+<FONT SIZE="-1">KRB5_KDB_DISALLOW_FORWARDABLE</FONT>
+flag.)
+<B>+allow_forwardable</B>
+
+clears this flag.
+<DT>{<B>-</B>|<B>+</B>}<B>allow_renewable</B><DD>
+<B>-allow_renewable</B>
+
+prohibits this principal from obtaining renewable tickets.  (Sets the
+<FONT SIZE="-1">KRB5_KDB_DISALLOW_RENEWABLE</FONT>
+flag.)
+<B>+allow_renewable</B>
+
+clears this flag.
+<DT>{<B>-</B>|<B>+</B>}<B>allow_proxiable</B><DD>
+<B>-allow_proxiable</B>
+
+prohibits this principal from obtaining proxiable tickets.  (Sets the
+<FONT SIZE="-1">KRB5_KDB_DISALLOW_PROXIABLE</FONT>
+flag.)
+<B>+allow_proxiable</B>
+
+clears this flag.
+<DT>{<B>-</B>|<B>+</B>}<B>allow_dup_skey</B><DD>
+<B>-allow_dup_skey</B>
+
+Disables user-to-user authentication for this principal by prohibiting
+this principal from obtaining a session key for another user.  (Sets the
+<FONT SIZE="-1">KRB5_KDB_DISALLOW_DUP_SKEY</FONT>
+flag.)
+<B>+allow_dup_skey</B>
+
+clears this flag.
+<DT>{<B>-</B>|<B>+</B>}<B>requires_preauth</B><DD>
+<B>+requires_preauth</B>
+
+requires this principal to preauthenticate before being allowed to
+kinit.  (Sets the
+<FONT SIZE="-1">KRB5_KDB_REQUIRES_PRE_AUTH</FONT>
+flag.)
+<B>-requires_preauth</B>
+
+clears this flag.
+<DT>{<B>-</B>|<B>+</B>}<B>requires_hwauth</B><DD>
+<B>+requires_hwauth</B>
+
+requires this principal to preauthenticate using a hardware device
+before being allowed to kinit.  (Sets the
+<FONT SIZE="-1">KRB5_KDB_REQUIRES_HW_AUTH</FONT>
+flag.)
+<B>-requires_hwauth</B>
+
+clears this flag.
+<DT>{<B>-</B>|<B>+</B>}<B>ok_as_delegate</B><DD>
+<B>+ok_as_delegate</B>
+
+sets the OK-AS-DELEGATE flag on tickets issued for use with this principal
+as the service, which clients may use as a hint that credentials can and
+should be delegated when authenticating to the service.  (Sets the
+<FONT SIZE="-1">KRB5_KDB_OK_AS_DELEGATE</FONT>
+flag.)
+<B>-ok_as_delegate</B>
+
+clears this flag.
+<DT>{<B>-</B>|<B>+</B>}<B>allow_svr</B><DD>
+<B>-allow_svr</B>
+
+prohibits the issuance of service tickets for this principal.  (Sets the
+<FONT SIZE="-1">KRB5_KDB_DISALLOW_SVR</FONT>
+flag.)
+<B>+allow_svr</B>
+
+clears this flag.
+<DT>{<B>-</B>|<B>+</B>}<B>allow_tgs_req</B><DD>
+<B>-allow_tgs_req</B>
+
+specifies that a Ticket-Granting Service (TGS) request for a service
+ticket for this principal is not permitted.  This option is useless for
+most things.
+<B>+allow_tgs_req</B>
+
+clears this flag.  The default is
+<B>+allow_tgs_req</B>.
+
+In effect,
+<B>-allow_tgs_req</B>
+
+sets the
+<FONT SIZE="-1">KRB5_KDB_DISALLOW_TGT_BASED</FONT>
+flag on the principal in the database.
+<DT>{<B>-</B>|<B>+</B>}<B>allow_tix</B><DD>
+<B>-allow_tix</B>
+
+forbids the issuance of any tickets for this principal.
+<B>+allow_tix</B>
+
+clears this flag.  The default is
+<B>+allow_tix</B>.
+
+In effect,
+<B>-allow_tix</B>
+
+sets the
+<FONT SIZE="-1">KRB5_KDB_DISALLOW_ALL_TIX</FONT>
+flag on the principal in the database.
+<DT>{<B>-</B>|<B>+</B>}<B>needchange</B><DD>
+<B>+needchange</B>
+
+sets a flag in attributes field to force a password change;
+<B>-needchange</B>
+
+clears it.  The default is
+<B>-needchange</B>.
+
+In effect,
+<B>+needchange</B>
+
+sets the
+<FONT SIZE="-1">KRB5_KDB_REQUIRES_PWCHANGE</FONT>
+flag on the principal in the database.
+<DT>{<B>-</B>|<B>+</B>}<B>password_changing_service</B><DD>
+<B>+password_changing_service</B>
+
+sets a flag in the attributes field marking this as a password change
+service principal (useless for most things).
+<B>-password_changing_service</B>
+
+clears the flag.  This flag intentionally has a long name.  The default
+is
+<B>-password_changing_service</B>.
+
+In effect,
+<B>+password_changing_service</B>
+
+sets the
+<FONT SIZE="-1">KRB5_KDB_PWCHANGE_SERVICE</FONT>
+flag on the principal in the database.
+<DT><B>-randkey</B>
+
+<DD>
+sets the key of the principal to a random value
+<DT><B>-pw</B> <I>password</I><DD>
+sets the key of the principal to the specified string and does not
+prompt for a password.  Note:  using this option in a shell script can
+be dangerous if unauthorized users gain read access to the script.
+<DT><B>-e</B> <I>&quot;enc:salt ...&quot;</I><DD>
+uses the specified list of enctype-salttype pairs for setting the key
+of the principal.  The quotes are necessary if there are multiple
+enctype-salttype pairs.  This will not function against kadmin
+daemons earlier than krb5-1.2.
+<PRE>
+<DT>EXAMPLE:<DD>kadmin: addprinc tlyu/admin
+WARNING: no policy specified for &quot;tlyu/<A HREF="mailto:admin@BLEEP.COM">admin@BLEEP.COM</A>&quot;;
+defaulting to no policy.
+Enter password for principal tlyu/<A HREF="mailto:admin@BLEEP.COM">admin@BLEEP.COM</A>:
+Re-enter password for principal tlyu/<A HREF="mailto:admin@BLEEP.COM">admin@BLEEP.COM</A>:
+Principal &quot;tlyu/<A HREF="mailto:admin@BLEEP.COM">admin@BLEEP.COM</A>&quot; created.
+kadmin:
+
+kadmin: addprinc -x dn=cn=mwm_user,o=org mwm_user
+WARNING: no policy specified for &quot;<A HREF="mailto:mwm_user@BLEEP.COM">mwm_user@BLEEP.COM</A>&quot;;
+defaulting to no policy.
+Enter password for principal <A HREF="mailto:mwm_user@BLEEP.COM">mwm_user@BLEEP.COM</A>: 
+Re-enter password for principal <A HREF="mailto:mwm_user@BLEEP.COM">mwm_user@BLEEP.COM</A>: 
+Principal &quot;<A HREF="mailto:mwm_user@BLEEP.COM">mwm_user@BLEEP.COM</A>&quot; created.
+kadmin:
+
+<DT>ERRORS:<DD>KADM5_AUTH_ADD (requires &quot;add&quot; privilege)
+KADM5_BAD_MASK (shouldn't happen)
+KADM5_DUP (principal exists already)
+KADM5_UNK_POLICY (policy does not exist)
+KADM5_PASS_Q_* (password quality violations)
+</PRE>
+
+</DL>
+</DL>
+
+<DT><B>delete_principal</B> [<B>-force</B>] <I>principal</I><DD>
+deletes the specified principal from the database.  This command prompts
+for deletion, unless the
+<B>-force</B>
+
+option is given. This command requires the
+<I>delete</I>
+
+privilege.  Aliased
+to
+<B>delprinc.</B>
+
+<P>
+<PRE>
+<DL COMPACT><DT><DD><DL COMPACT>
+<DT>EXAMPLE:<DD>kadmin: delprinc mwm_user
+Are you sure you want to delete the principal
+&quot;<A HREF="mailto:mwm_user@BLEEP.COM">mwm_user@BLEEP.COM</A>&quot;? (yes/no): yes
+Principal &quot;<A HREF="mailto:mwm_user@BLEEP.COM">mwm_user@BLEEP.COM</A>&quot; deleted.
+Make sure that you have removed this principal from
+all ACLs before reusing.
+kadmin:
+<DT>ERRORS:<DD>KADM5_AUTH_DELETE (reequires &quot;delete&quot; privilege)
+KADM5_UNK_PRINC (principal does not exist)
+</DL>
+</DL>
+</PRE>
+
+<DT><B>modify_principal</B> [<I>options</I>] <I>principal</I><DD>
+modifies the specified principal, changing the fields as specified.  The
+options are as above for
+<B>add_principal</B>,
+
+except that password changing and flags related to password changing
+are forbidden by this command.  In addition, the option
+<B>-clearpolicy</B>
+
+will clear the current policy of a principal.  This command requires the
+<I>modify</I>
+
+privilege.  Aliased to
+<B>modprinc</B>.
+
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>-x</B> <I>db_princ_args</I><DD>
+Denotes the database specific options. The options for LDAP database are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>-x tktpolicy=&lt;policy&gt;<DD>
+Associates a ticket policy to the Kerberos principal.
+<DT>-x linkdn=&lt;dn&gt;<DD>
+
+Associates a Kerberos principal with a LDAP object. This option is honored only
+if the Kerberos principal is not already associated with a LDAP object. 
+</DL>
+</DL>
+
+<DT>ERRORS:<DD>
+KADM5_AUTH_MODIFY (requires &quot;modify&quot; privilege)
+KADM5_UNK_PRINC (principal does not exist)
+KADM5_UNK_POLICY (policy does not exist)
+KADM5_BAD_MASK (shouldn't happen)
+</DL>
+</DL>
+
+
+<DT><B>change_password</B> [<I>options</I>] <I>principal</I><DD>
+changes the password of
+<I>principal</I>.
+
+Prompts for a new password if neither
+<B>-randkey</B>
+
+or
+<B>-pw</B>
+
+is specified.  Requires the
+<I>changepw</I>
+
+privilege, or that the principal that is running the program to be the
+same as the one changed.  Aliased to
+<B>cpw</B>.
+
+The following options are available:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>-randkey</B>
+
+<DD>
+sets the key of the principal to a random value
+<DT><B>-pw</B> <I>password</I><DD>
+set the password to the specified string.  Not recommended.
+<DT><B>-e</B> <I>&quot;enc:salt ...&quot;</I><DD>
+uses the specified list of enctype-salttype pairs for setting the key
+of the principal.  The quotes are necessary if there are multiple
+enctype-salttype pairs.  This will not function against kadmin
+daemons earlier than krb5-1.2.
+<DT><B>-keepold </B> <DD>
+Keeps the previous kvno's keys around.  This flag is usually not
+necessary except perhaps for TGS keys.  Don't use this flag unless you
+know what you're doing. This option is not supported for the LDAP database.
+<PRE>
+<DT>EXAMPLE:<DD>kadmin: cpw systest
+Enter password for principal <A HREF="mailto:systest@BLEEP.COM">systest@BLEEP.COM</A>:
+Re-enter password for principal <A HREF="mailto:systest@BLEEP.COM">systest@BLEEP.COM</A>:
+Password for <A HREF="mailto:systest@BLEEP.COM">systest@BLEEP.COM</A> changed.
+kadmin:
+<DT>ERRORS:<DD>KADM5_AUTH_MODIFY (requires the modify privilege)
+KADM5_UNK_PRINC (principal does not exist)
+KADM5_PASS_Q_* (password policy violation errors)
+KADM5_PADD_REUSE (password is in principal's password
+history)
+KADM5_PASS_TOOSOON (current password minimum life not
+expired)
+</DL>
+</DL>
+</PRE>
+
+<DT><B>purgekeys</B> [<B>-keepkvno</B> <I>oldest_kvno_to_keep</I>] <I>principal</I><DD>
+purges previously retained old keys (e.g., from
+<B>change_password</B>
+
+<B>-keepold</B>)
+
+from
+<I>principal</I>.
+
+If
+<B>-keepkvno</B>
+
+is specified, then only purges keys with kvnos lower than
+<I>oldest_kvno_to_keep</I>.
+
+
+<DT><B>get_principal</B> [<B>-terse</B>] <I>principal</I><DD>
+gets the attributes of
+<I>principal</I>.
+
+Requires the
+<I>inquire</I>
+
+privilege, or that the principal that is running the the program to be
+the same as the one being listed.  With the
+<B>-terse</B>
+
+option, outputs fields as quoted tab-separated strings.  Alias
+<B>getprinc</B>.
+
+<P>
+<PRE>
+<DL COMPACT><DT><DD><DL COMPACT>
+<DT>EXAMPLES:<DD>kadmin: getprinc tlyu/admin
+Principal: tlyu/<A HREF="mailto:admin@BLEEP.COM">admin@BLEEP.COM</A>
+Expiration date: [never]
+Last password change: Mon Aug 12 14:16:47 EDT 1996
+Password expiration date: [none]
+Maximum ticket life: 0 days 10:00:00
+Maximum renewable life: 7 days 00:00:00
+Last modified: Mon Aug 12 14:16:47 EDT 1996 (bjaspan/<A HREF="mailto:admin@BLEEP.COM">admin@BLEEP.COM</A>)
+Last successful authentication: [never]
+Last failed authentication: [never]
+Failed password attempts: 0
+Number of keys: 2
+Key: vno 1, DES cbc mode with CRC-32, no salt
+Key: vno 1, DES cbc mode with CRC-32, Version 4
+Attributes:
+Policy: [none]
+kadmin: getprinc -terse systest
+<A HREF="mailto:systest@BLEEP.COM">systest@BLEEP.COM</A>       3       86400   604800  1
+785926535       753241234       785900000
+tlyu/<A HREF="mailto:admin@BLEEP.COM">admin@BLEEP.COM</A>    786100034       0       0
+kadmin:
+<DT>ERRORS:<DD>KADM5_AUTH_GET (requires the get (inquire) privilege)
+KADM5_UNK_PRINC (principal does not exist)
+</DL>
+</DL>
+</PRE>
+
+<DT><B>list_principals</B> [<I>expression</I>]<DD>
+Retrieves all or some principal names.  
+<I>Expression</I>
+
+is a shell-style glob expression that can contain the wild-card
+characters ?, *, and []'s.  All principal names matching the
+expression are printed.  If no expression is provided, all principal
+names are printed.  If the expression does not contain an &quot;@&quot; character,
+an &quot;@&quot; character followed by the local realm is appended to the
+expression.  Requires the
+<I>list</I>
+
+priviledge.  Alias
+<B>listprincs</B>,
+
+<B>get_principals</B>,
+
+<B>get_princs</B>.
+
+<PRE>
+<DL COMPACT><DT><DD><DL COMPACT>
+<DT>EXAMPLES:<DD>kadmin:  listprincs test*
+<A HREF="mailto:test3@SECURE-TEST.OV.COM">test3@SECURE-TEST.OV.COM</A>
+<A HREF="mailto:test2@SECURE-TEST.OV.COM">test2@SECURE-TEST.OV.COM</A>
+<A HREF="mailto:test1@SECURE-TEST.OV.COM">test1@SECURE-TEST.OV.COM</A>
+<A HREF="mailto:testuser@SECURE-TEST.OV.COM">testuser@SECURE-TEST.OV.COM</A>
+kadmin:
+</DL>
+</DL>
+</PRE>
+
+<DT><B>add_policy</B> [<I>options</I>] <I>policy</I><DD>
+adds the named policy to the policy database.  Requires the
+<I>add</I>
+
+privilege.  Aliased to
+<B>addpol</B>.
+
+The following options are available:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>-maxlife</B> <I>time</I><DD>
+sets the maximum lifetime of a password
+<DT><B>-minlife</B> <I>time</I><DD>
+sets the minimum lifetime of a password
+<DT><B>-minlength</B> <I>length</I><DD>
+sets the minimum length of a password
+<DT><B>-minclasses</B> <I>number</I><DD>
+sets the minimum number of character classes allowed in a password
+<DT><B>-history</B> <I>number</I><DD>
+sets the number of past keys kept for a principal. This option is not supported for LDAP database
+<P>
+<PRE>
+<DT>EXAMPLES:<DD>kadmin: add_policy -maxlife &quot;2 days&quot; -minlength 5 guests
+kadmin:
+<DT>ERRORS:<DD>KADM5_AUTH_ADD (requires the add privilege)
+KADM5_DUP (policy already exists)
+</PRE>
+
+</DL>
+</DL>
+
+<DT><B>delete_policy [-force]</B> <I>policy</I><B><DD>
+deletes the named policy.  Prompts for confirmation before deletion.
+The command will fail if the policy is in use by any principals.
+Requires the
+</B><I>delete</I>
+
+privilege.  Alias
+<B>delpol</B>.
+
+<P>
+<PRE>
+<DL COMPACT><DT><DD><DL COMPACT>
+<DT>EXAMPLE:<DD>kadmin: del_policy guests
+Are you sure you want to delete the policy &quot;guests&quot;?
+(yes/no): yes
+kadmin:
+<DT>ERRORS:<DD>KADM5_AUTH_DELETE (requires the delete privilege)
+KADM5_UNK_POLICY (policy does not exist)
+KADM5_POLICY_REF (reference count on policy is not zero)
+</DL>
+</DL>
+</PRE>
+
+<DT><B>modify_policy</B> [<I>options</I>] <I>policy</I><DD>
+modifies the named policy.  Options are as above for
+<B>add_policy</B>.
+
+Requires the
+<I>modify</I>
+
+privilege.  Alias
+<B>modpol</B>.
+
+<P>
+<PRE>
+<DL COMPACT><DT><DD><DL COMPACT>
+<DT>ERRORS:<DD>KADM5_AUTH_MODIFY (requires the modify privilege)
+KADM5_UNK_POLICY (policy does not exist)
+</DL>
+</DL>
+</PRE>
+
+<DT><B>get_policy</B> [<B>-terse</B>] <I>policy</I><DD>
+displays the values of the named policy.  Requires the
+<I>inquire</I>
+
+privilege.  With the
+<B>-terse</B>
+
+flag, outputs the fields as quoted strings separated by tabs.  Alias
+<B>getpol</B>.
+
+<PRE>
+<DL COMPACT><DT><DD><DL COMPACT>
+<DT>EXAMPLES:<DD>kadmin: get_policy admin
+Policy: admin
+Maximum password life: 180 days 00:00:00
+Minimum password life: 00:00:00
+Minimum password length: 6
+Minimum number of password character classes: 2
+Number of old keys kept: 5
+Reference count: 17
+kadmin: get_policy -terse admin
+admin   15552000        0       6       2       5       17
+kadmin:
+<DT>ERRORS:<DD>KADM5_AUTH_GET (requires the get privilege)
+KADM5_UNK_POLICY (policy does not exist)
+</DL>
+</DL>
+</PRE>
+
+<DT><B>list_policies</B> [<I>expression</I>]<DD>
+Retrieves all or some policy names.  
+<I>Expression</I>
+
+is a shell-style glob expression that can contain the wild-card
+characters ?, *, and []'s.  All policy names matching the expression
+are printed.  If no expression is provided, all existing policy names
+are printed.  Requires the
+<I>list</I>
+
+priviledge.  Alias
+<B>listpols</B>,
+
+<B>get_policies</B>,
+
+<B>getpols</B>.
+
+<P>
+<PRE>
+<DL COMPACT><DT><DD><DL COMPACT>
+<DT>EXAMPLES:<DD>kadmin:  listpols
+test-pol
+dict-only
+once-a-min
+test-pol-nopw
+kadmin:  listpols t*
+test-pol
+test-pol-nopw
+kadmin:
+</DL>
+</DL>
+</PRE>
+
+<DT><B>ktadd</B> [<B>-k</B> <I>keytab</I>] [<B>-q</B>] [<B>-e</B> <I>keysaltlist</I>]<DD>
+<BR>
+
+[<B>-norandkey</B>] [[<I>principal</I> | <B>-glob</B> <I>princ-exp</I>] [<I>...</I>]
+<BR>
+
+Adds a principal or all principals matching
+<I>princ-exp</I>
+
+to a keytab.
+It randomizes each principal's key in the process, to prevent a
+compromised admin account from reading out all of the keys from the
+database.  However,
+<B>kadmin.local</B>
+
+has the
+<B>-norandkey</B>
+
+option, which leaves the keys and their version numbers unchanged,
+similar to the Kerberos V4
+<B>ext_srvtab</B>
+
+command.
+That allows users to continue to use the passwords they know
+to login normally, while simultaneously allowing scripts
+to login to the same account using a keytab.
+There is no significant security risk added since
+<B>kadmin.local</B>
+
+must be run by root on the KDC anyway.
+<P>
+Requires the
+<I>inquire</I>
+
+and 
+<I>changepw</I>
+
+privileges.  An entry for each of the principal's unique encryption types
+is added, ignoring multiple keys with the same encryption type but
+different salt types.  If the
+<B>-k</B>
+
+argument is not specified, the default keytab
+<I>/etc/krb5.keytab</I>
+
+is used.  If the
+<B>-q</B>
+
+option is specified, less verbose status information is displayed.
+<P>
+The
+<B>-glob</B>
+
+option requires the
+<I>list</I>
+
+privilege.
+<I>princ-exp</I>
+
+follows the same rules described for the
+<B>list_principals</B>
+
+command.  
+<P>
+<PRE>
+<DL COMPACT><DT><DD><DL COMPACT>
+<DT>EXAMPLE:<DD>kadmin: ktadd -k /tmp/foo-new-keytab host/foo.mit.edu
+Entry for principal host/<A HREF="mailto:foo.mit.edu@ATHENA.MIT.EDU">foo.mit.edu@ATHENA.MIT.EDU</A> with
+        kvno 3, encryption type DES-CBC-CRC added to keytab
+        WRFILE:/tmp/foo-new-keytab
+kadmin:
+</DL>
+</DL>
+</PRE>
+
+<DT><B>ktremove</B> [<B>-k</B> <I>keytab</I>] [<B>-q</B>] <I>principal</I> [<I>kvno</I> | <B>all</B> | <B>old</B>]<DD>
+Removes entries for the specified principal from a keytab.  Requires no
+permissions, since this does not require database access.  If the string
+&quot;all&quot; is specified, all entries for that principal are removed; if the
+string &quot;old&quot; is specified, all entries for that principal except those
+with the highest kvno are removed.  Otherwise, the value specified is
+parsed as an integer, and all entries whose kvno match that integer are
+removed.  If the
+<B>-k</B>
+
+argument is not specifeid, the default keytab
+<I>/etc/krb5.keytab</I>
+
+is used.  If the
+<B>-q</B>
+
+option is specified, less verbose status information is displayed.
+<P>
+<PRE>
+<DL COMPACT><DT><DD><DL COMPACT>
+<DT>EXAMPLE:<DD>kadmin: ktremove -k /var/kerberos/krb5kdc/kadmind.keytab kadmin/admin
+Entry for principal kadmin/admin with kvno 3 removed
+        from keytab WRFILE:/var/kerberos/krb5kdc/kadmind.keytab.
+kadmin:
+</DL>
+</DL>
+</PRE>
+
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>FILES</H2>
+
+<DL COMPACT>
+<DT>principal.db<DD>
+default name for Kerberos principal database
+<DT>&lt;dbname&gt;.kadm5<DD>
+KADM5 administrative database.  (This would be &quot;principal.kadm5&quot;, if you
+use the default database name.)  Contains policy information.
+<DT>&lt;dbname&gt;.kadm5.lock<DD>
+lock file for the KADM5 administrative database.  This file works
+backwards from most other lock files.  I.e.,
+<B>kadmin</B>
+
+will exit with an error if this file does
+<I>not</I>
+
+exist.
+<DT><B>Note:</B>
+
+<DD>
+The above three files are specific to db2 database.
+<DT>kadm5.acl<DD>
+file containing list of principals and their
+<B>kadmin</B>
+
+administrative privileges.  See
+<I><A HREF="/manpages/index.html?8+kadmind">kadmind</A></I>(8)
+
+for a description.
+<DT>kadm5.keytab<DD>
+keytab file for
+<I>kadmin/admin</I>
+
+principal.
+<DT>kadm5.dict<DD>
+file containing dictionary of strings explicitly disallowed as
+passwords.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>HISTORY</H2>
+
+The
+<B>kadmin</B>
+
+program was originally written by Tom Yu at MIT, as an interface to the
+OpenVision Kerberos administration program.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<I><A HREF="/manpages/index.html?1+kerberos">kerberos</A></I>(1),
+
+<I><A HREF="/manpages/index.html?1+kpasswd">kpasswd</A></I>(1),
+
+<I><A HREF="/manpages/index.html?8+kadmind">kadmind</A></I>(8)
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>BUGS</H2>
+
+<P>
+
+Command output needs to be cleaned up.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSYS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">DATE FORMAT </A><DD>
+<DT><A HREF="#lbAG">COMMANDS</A><DD>
+<DT><A HREF="#lbAH">FILES</A><DD>
+<DT><A HREF="#lbAI">HISTORY</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">BUGS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:05 GMT, December 24, 2015
+</div></body>
+</HTML>

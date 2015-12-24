@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERLCE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERLCE</H1>
+Section: Perl Programmers Reference Guide (1)<BR>Updated: 2009-08-22<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perlce - Perl for WinCE
+<A NAME="lbAC">&nbsp;</A>
+<H2>Building Perl for WinCE</H2>
+
+<A NAME="ixAAC"></A>
+<A NAME="lbAD">&nbsp;</A>
+<H3><FONT SIZE="-1">DESCRIPTION</FONT></H3>
+
+<A NAME="ixAAD"></A>
+This file gives the instructions for building Perl5.8 and above for
+WinCE.  Please read and understand the terms under which this
+software is distributed.
+<A NAME="lbAE">&nbsp;</A>
+<H3>General explanations on cross-compiling WinCE</H3>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;miniperl&quot;</TT> is built. This is a single executable (without <FONT SIZE="-1">DLL</FONT>), intended
+to run on Win32, and it will facilitate remaining build process; all binaries
+built after it are foreign and should not run locally.
+
+
+<P>
+
+
+<TT>&quot;miniperl&quot;</TT> is built using <TT>&quot;./win32/Makefile&quot;</TT>; this is part of normal
+build process invoked as dependency from wince/Makefile.ce
+<DT>*<DD>
+After <TT>&quot;miniperl&quot;</TT> is built, <TT>&quot;configpm&quot;</TT> is invoked to create right <TT>&quot;Config.pm&quot;</TT>
+in right place and its corresponding Cross.pm.
+
+
+<P>
+
+
+Unlike Win32 build, miniperl will not have <TT>&quot;Config.pm&quot;</TT> of host within reach;
+it rather will use <TT>&quot;Config.pm&quot;</TT> from within cross-compilation directories.
+
+
+<P>
+
+
+File <TT>&quot;Cross.pm&quot;</TT> is dead simple: for given cross-architecture places in <TT>@INC</TT>
+a path where perl modules are, and right <TT>&quot;Config.pm&quot;</TT> in that place.
+
+
+<P>
+
+
+That said, <TT>&quot;miniperl -Ilib -MConfig -we 1&quot;</TT> should report an error, because
+it can not find <TT>&quot;Config.pm&quot;</TT>. If it does not give an error --- wrong <TT>&quot;Config.pm&quot;</TT>
+is substituted, and resulting binaries will be a mess.
+
+
+<P>
+
+
+<TT>&quot;miniperl -MCross -MConfig -we 1&quot;</TT> should run okay, and it will provide right
+<TT>&quot;Config.pm&quot;</TT> for further compilations.
+<DT>*<DD>
+During extensions build phase, a script <TT>&quot;./win32/buldext.pl&quot;</TT> is invoked,
+which in turn steps in <TT>&quot;./ext&quot;</TT> subdirectories and performs a build of
+each extension in turn.
+
+
+<P>
+
+
+All invokes of <TT>&quot;Makefile.PL&quot;</TT> are provided with <TT>&quot;-MCross&quot;</TT> so to enable cross-
+compile.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3><FONT SIZE="-1">BUILD</FONT></H3>
+
+<A NAME="ixAAF"></A>
+This section describes the steps to be performed to build PerlCE.
+You may find additional information about building perl for WinCE
+at &lt;<A HREF="http://perlce.sourceforge.net">http://perlce.sourceforge.net</A>&gt; and some pre-built binaries.
+<P>
+
+<I>Tools &amp; </I><FONT SIZE="-1"><I>SDK</I></FONT><I></I>
+<A NAME="ixAAG"></A>
+<P>
+
+For compiling, you need following:
+<DL COMPACT>
+<DT>*<DD>
+Microsoft Embedded Visual Tools
+<DT>*<DD>
+Microsoft Visual C<FONT SIZE="-2">++</FONT>
+<DT>*<DD>
+Rainer Keuchel's celib-sources
+<DT>*<DD>
+Rainer Keuchel's console-sources
+</DL>
+<P>
+
+Needed source files can be downloaded at
+&lt;<A HREF="http://www.rainer-keuchel.de/wince/dirlist.html">http://www.rainer-keuchel.de/wince/dirlist.html</A>&gt;
+<P>
+
+<I>Make</I>
+<A NAME="ixAAH"></A>
+<P>
+
+Normally you only need to edit <TT>&quot;./win32/ce-helpers/compile.bat&quot;</TT>
+to reflect your system and run it.
+<P>
+
+File <TT>&quot;./win32/ce-helpers/compile.bat&quot;</TT> is actually a wrapper to call
+<TT>&quot;nmake -f makefile.ce&quot;</TT> with appropriate parameters and it accepts extra
+parameters and forwards them to <TT>&quot;nmake&quot;</TT> command as additional
+arguments. You should pass target this way.
+<P>
+
+To prepare distribution you need to do following:
+<DL COMPACT>
+<DT>*<DD>
+go to <TT>&quot;./win32&quot;</TT> subdirectory
+<DT>*<DD>
+edit file <TT>&quot;./win32/ce-helpers/compile.bat&quot;</TT>
+<DT>*<DD>
+run 
+<BR>&nbsp;&nbsp;compile.bat
+<DT>*<DD>
+run 
+<BR>&nbsp;&nbsp;compile.bat&nbsp;dist
+</DL>
+<P>
+
+<TT>&quot;Makefile.ce&quot;</TT> has <TT>&quot;CROSS_NAME&quot;</TT> macro, and it is used further to refer to
+your cross-compilation scheme. You could assign a name to it, but this
+is not necessary, because by default it is assigned after your machine
+configuration name, such as ``wince-sh3-hpc-wce211'', and this is enough
+to distinguish different builds at the same time. This option could be
+handy for several different builds on same platform to perform, say,
+threaded build. In a following example we assume that all required
+environment variables are set properly for C cross-compiler (a special
+*.bat file could fit perfectly to this purpose) and your <TT>&quot;compile.bat&quot;</TT>
+has proper ``<FONT SIZE="-1">MACHINE</FONT>'' parameter set, to, say, <TT>&quot;wince-mips-pocket-wce300&quot;</TT>.
+<P>
+
+
+
+<PRE>
+  compile.bat
+  compile.bat dist
+  compile.bat CROSS_NAME=mips-wce300-thr &quot;USE_ITHREADS=define&quot; &quot;USE_IMP_SYS=define&quot; &quot;USE_MULTI=define&quot;
+  compile.bat CROSS_NAME=mips-wce300-thr &quot;USE_ITHREADS=define&quot; &quot;USE_IMP_SYS=define&quot; &quot;USE_MULTI=define&quot; dist
+
+</PRE>
+
+
+<P>
+
+If all goes okay and no errors during a build, you'll get two independent
+distributions: <TT>&quot;wince-mips-pocket-wce300&quot;</TT> and <TT>&quot;mips-wce300-thr&quot;</TT>.
+<P>
+
+Target <TT>&quot;dist&quot;</TT> prepares distribution file set. Target <TT>&quot;zipdist&quot;</TT> performs
+same as <TT>&quot;dist&quot;</TT> but additionally compresses distribution files into zip
+archive.
+<P>
+
+<FONT SIZE="-1">NOTE:</FONT> during a build there could be created a number (or one) of <TT>&quot;Config.pm&quot;</TT>
+for cross-compilation (``foreign'' <TT>&quot;Config.pm&quot;</TT>) and those are hidden inside
+<TT>&quot;../xlib/$(CROSS_NAME)&quot;</TT> with other auxilary files, but, and this is important to
+note, there should be <B>no</B> <TT>&quot;Config.pm&quot;</TT> for host miniperl.
+If you'll get an error that perl could not find Config.pm somewhere in building
+process this means something went wrong. Most probably you forgot to
+specify a cross-compilation when invoking miniperl.exe to Makefile.PL
+When building an extension for cross-compilation your command line should
+look like
+<P>
+
+
+
+<PRE>
+  ..\miniperl.exe -I..\lib -MCross=mips-wce300-thr Makefile.PL
+
+</PRE>
+
+
+<P>
+
+or just
+<P>
+
+
+
+<PRE>
+  ..\miniperl.exe -I..\lib -MCross Makefile.PL
+
+</PRE>
+
+
+<P>
+
+to refer a cross-compilation that was created last time.
+<P>
+
+All questions related to building for WinCE devices could be asked in
+<I><A HREF="mailto:perlce-user@lists.sourceforge.net">perlce-user@lists.sourceforge.net</A></I> mailing list.
+<A NAME="lbAG">&nbsp;</A>
+<H2>Using Perl on WinCE</H2>
+
+<A NAME="ixAAI"></A>
+<A NAME="lbAH">&nbsp;</A>
+<H3><FONT SIZE="-1">DESCRIPTION</FONT></H3>
+
+<A NAME="ixAAJ"></A>
+PerlCE is currently linked with a simple console window, so it also
+works on non-hpc devices.
+<P>
+
+The simple stdio implementation creates the files <TT>&quot;stdin.txt&quot;</TT>,
+<TT>&quot;stdout.txt&quot;</TT> and <TT>&quot;stderr.txt&quot;</TT>, so you might examine them if your
+console has only a liminted number of cols.
+<P>
+
+When exitcode is non-zero, a message box appears, otherwise the
+console closes, so you might have to catch an exit with
+status 0 in your program to see any output.
+<P>
+
+stdout/stderr now go into the files <TT>&quot;/perl-stdout.txt&quot;</TT> and
+<TT>&quot;/perl-stderr.txt.&quot;</TT>
+<P>
+
+PerlIDE is handy to deal with perlce.
+<A NAME="lbAI">&nbsp;</A>
+<H3><FONT SIZE="-1">LIMITATIONS</FONT></H3>
+
+<A NAME="ixAAK"></A>
+No <I>fork()</I>, <I>pipe()</I>, <I>popen()</I> etc.
+<A NAME="lbAJ">&nbsp;</A>
+<H3><FONT SIZE="-1">ENVIRONMENT</FONT></H3>
+
+<A NAME="ixAAL"></A>
+All environment vars must be stored in HKLM\Environment as
+strings. They are read at process startup.
+<DL COMPACT>
+<DT><FONT SIZE="-1">PERL5LIB</FONT><DD>
+<A NAME="ixAAM"></A>
+Usual perl lib path (semi-list).
+<DT><FONT SIZE="-1">PATH</FONT><DD>
+<A NAME="ixAAN"></A>
+Semi-list for executables.
+<DT><FONT SIZE="-1">TMP</FONT><DD>
+<A NAME="ixAAO"></A>
+- Tempdir.
+<DT><FONT SIZE="-1">UNIXROOTPATH</FONT><DD>
+<A NAME="ixAAP"></A>
+- Root for accessing some special files, i.e. <TT>&quot;/dev/null&quot;</TT>, <TT>&quot;/etc/services&quot;</TT>.
+<DT><FONT SIZE="-1">ROWS/COLS</FONT><DD>
+<A NAME="ixAAQ"></A>
+- Rows/cols for console.
+<DT><FONT SIZE="-1">HOME</FONT><DD>
+<A NAME="ixAAR"></A>
+- Home directory.
+<DT><FONT SIZE="-1">CONSOLEFONTSIZE</FONT><DD>
+<A NAME="ixAAS"></A>
+- Size for console font.
+</DL>
+<P>
+
+You can set these with cereg.exe, a (remote) registry editor
+or via the PerlIDE.
+<A NAME="lbAK">&nbsp;</A>
+<H3><FONT SIZE="-1">REGISTRY</FONT></H3>
+
+<A NAME="ixAAT"></A>
+To start perl by clicking on a perl source file, you have
+to make the according entries in <FONT SIZE="-1">HKCR</FONT> (see <TT>&quot;ce-helpers/wince-reg.bat&quot;</TT>).
+cereg.exe (which must be executed on a desktop pc with
+ActiveSync) is reported not to work on some devices.
+You have to create the registry entries by hand using a 
+registry editor.
+<A NAME="lbAL">&nbsp;</A>
+<H3><FONT SIZE="-1">XS</FONT></H3>
+
+<A NAME="ixAAU"></A>
+The following Win32-Methods are built-in:
+<P>
+
+
+
+<PRE>
+        newXS(&quot;Win32::GetCwd&quot;, w32_GetCwd, file);
+        newXS(&quot;Win32::SetCwd&quot;, w32_SetCwd, file);
+        newXS(&quot;Win32::GetTickCount&quot;, w32_GetTickCount, file);
+        newXS(&quot;Win32::GetOSVersion&quot;, w32_GetOSVersion, file);
+        newXS(&quot;Win32::IsWinNT&quot;, w32_IsWinNT, file);
+        newXS(&quot;Win32::IsWin95&quot;, w32_IsWin95, file);
+        newXS(&quot;Win32::IsWinCE&quot;, w32_IsWinCE, file);
+        newXS(&quot;Win32::CopyFile&quot;, w32_CopyFile, file);
+        newXS(&quot;Win32::Sleep&quot;, w32_Sleep, file);
+        newXS(&quot;Win32::MessageBox&quot;, w32_MessageBox, file);
+        newXS(&quot;Win32::GetPowerStatus&quot;, w32_GetPowerStatus, file);
+        newXS(&quot;Win32::GetOemInfo&quot;, w32_GetOemInfo, file);
+        newXS(&quot;Win32::ShellEx&quot;, w32_ShellEx, file);
+
+</PRE>
+
+
+<A NAME="lbAM">&nbsp;</A>
+<H3><FONT SIZE="-1">BUGS</FONT></H3>
+
+<A NAME="ixAAV"></A>
+Opening files for read-write is currently not supported if
+they use stdio (normal perl file handles).
+<P>
+
+If you find bugs or if it does not work at all on your
+device, send mail to the address below. Please report
+the details of your device (processor, ceversion, 
+devicetype (hpc/palm/pocket)) and the date of the downloaded
+files.
+<A NAME="lbAN">&nbsp;</A>
+<H3><FONT SIZE="-1">INSTALLATION</FONT></H3>
+
+<A NAME="ixAAW"></A>
+Currently installation instructions are at &lt;<A HREF="http://perlce.sourceforge.net/">http://perlce.sourceforge.net/</A>&gt;.
+<P>
+
+After installation &amp; testing processes will stabilize, information will
+be more precise.
+<A NAME="lbAO">&nbsp;</A>
+<H2>ACKNOWLEDGEMENTS</H2>
+
+<A NAME="ixAAX"></A>
+The port for Win32 was used as a reference.
+<A NAME="lbAP">&nbsp;</A>
+<H2>History of WinCE port</H2>
+
+<A NAME="ixAAY"></A>
+<DL COMPACT>
+<DT>5.6.0<DD>
+<A NAME="ixAAZ"></A>
+Initial port of perl to WinCE. It was performed in separate directory
+named <TT>&quot;wince&quot;</TT>. This port was based on contents of <TT>&quot;./win32&quot;</TT> directory.
+<TT>&quot;miniperl&quot;</TT> was not built, user must have <FONT SIZE="-1">HOST</FONT> perl and properly edit 
+<TT>&quot;makefile.ce&quot;</TT> to reflect this.
+<DT>5.8.0<DD>
+<A NAME="ixABA"></A>
+wince port was kept in the same <TT>&quot;./wince&quot;</TT> directory, and <TT>&quot;wince/Makefile.ce&quot;</TT>
+was used to invoke native compiler to create <FONT SIZE="-1">HOST</FONT> miniperl, which then
+facilitates cross-compiling process.
+Extension building support was added.
+<DT>5.9.4<DD>
+<A NAME="ixABB"></A>
+Two directories <TT>&quot;./win32&quot;</TT> and <TT>&quot;./wince&quot;</TT> were merged, so perlce build
+process comes in <TT>&quot;./win32&quot;</TT> directory.
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<A NAME="ixABC"></A>
+<DL COMPACT>
+<DT>Rainer Keuchel &lt;<A HREF="mailto:coyxc@rainer-keuchel.de">coyxc@rainer-keuchel.de</A>&gt;<DD>
+<A NAME="ixABD"></A>
+provided initial port of Perl, which appears to be most essential work, as
+it was a breakthrough on having Perl ported at all.
+Many thanks and obligations to Rainer!
+<DT>Vadim Konovalov<DD>
+<A NAME="ixABE"></A>
+made further support of WinCE port.
+<P>
+</DL>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">Building Perl for WinCE</A><DD>
+<DL>
+<DT><A HREF="#lbAD"><FONT SIZE="-1">DESCRIPTION</FONT></A><DD>
+<DT><A HREF="#lbAE">General explanations on cross-compiling WinCE</A><DD>
+<DT><A HREF="#lbAF"><FONT SIZE="-1">BUILD</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAG">Using Perl on WinCE</A><DD>
+<DL>
+<DT><A HREF="#lbAH"><FONT SIZE="-1">DESCRIPTION</FONT></A><DD>
+<DT><A HREF="#lbAI"><FONT SIZE="-1">LIMITATIONS</FONT></A><DD>
+<DT><A HREF="#lbAJ"><FONT SIZE="-1">ENVIRONMENT</FONT></A><DD>
+<DT><A HREF="#lbAK"><FONT SIZE="-1">REGISTRY</FONT></A><DD>
+<DT><A HREF="#lbAL"><FONT SIZE="-1">XS</FONT></A><DD>
+<DT><A HREF="#lbAM"><FONT SIZE="-1">BUGS</FONT></A><DD>
+<DT><A HREF="#lbAN"><FONT SIZE="-1">INSTALLATION</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAO">ACKNOWLEDGEMENTS</A><DD>
+<DT><A HREF="#lbAP">History of WinCE port</A><DD>
+<DT><A HREF="#lbAQ">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:07 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PAM_FILTER</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PAM_FILTER</H1>
+Section: Linux\-PAM Manual (8)<BR>Updated: 06/16/2009<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pam_filter - PAM filter module
+<A NAME="lbAB">&nbsp;</A>
+<H2>Synopsis</H2>
+
+
+<DL COMPACT>
+<DT>
+<B>pam_filter.so</B> [debug] [new_term] [non_term] run1|run2 <I>filter</I> [<I>...</I>]
+
+</DL>
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<DD>This module is intended to be a platform for providing access to all of the input/output that passes between the user and the application. It is only suitable for tty-based and (stdin/stdout) applications.
+<P>
+
+To function this module requires
+<I>filters</I>
+to be installed on the system. The single filter provided with the module simply transposes upper and lower case letters in the input and output streams. (This can be very annoying and is not kind to termcap based editors).
+<P>
+
+Each component of the module has the potential to invoke the desired filter. The filter is always
+<B><A HREF="/manpages/index.html?2+execv">execv</A></B>(2)
+with the privilege of the calling application and
+<I>not</I>
+that of the user. For this reason it cannot usually be killed by the user without closing their session.
+<A NAME="lbAD">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+
+<P>
+
+<B>debug</B>
+<DL COMPACT><DT><DD>
+Print debug information.
+</DL>
+
+<P>
+
+<B>new_term</B>
+<DL COMPACT><DT><DD>
+The default action of the filter is to set the
+<I>PAM_TTY</I>
+item to indicate the terminal that the user is using to connect to the application. This argument indicates that the filter should set
+<I>PAM_TTY</I>
+to the filtered pseudo-terminal.
+</DL>
+
+<P>
+
+<B>non_term</B>
+<DL COMPACT><DT><DD>
+don't try to set the
+<I>PAM_TTY</I>
+item.
+</DL>
+
+<P>
+
+<B>runX</B>
+<DL COMPACT><DT><DD>
+In order that the module can invoke a filter it should know when to invoke it. This argument is required to tell the filter when to do this.
+<P>
+Permitted values for
+<I>X</I>
+are
+<I>1</I>
+and
+<I>2</I>. These indicate the precise time that the filter is to be run. To understand this concept it will be useful to have read the
+<B><A HREF="/manpages/index.html?3+pam">pam</A></B>(3)
+manual page. Basically, for each management group there are up to two ways of calling the module's functions. In the case of the
+<I>authentication</I>
+and
+<I>session</I>
+components there are actually two separate functions. For the case of authentication, these functions are
+<B><A HREF="/manpages/index.html?3+pam_authenticate">pam_authenticate</A></B>(3)
+and
+<B><A HREF="/manpages/index.html?3+pam_setcred">pam_setcred</A></B>(3), here
+<B>run1</B>
+means run the filter from the
+<B>pam_authenticate</B>
+function and
+<B>run2</B>
+means run the filter from
+<B>pam_setcred</B>. In the case of the session modules,
+<I>run1</I>
+implies that the filter is invoked at the
+<B><A HREF="/manpages/index.html?3+pam_open_session">pam_open_session</A></B>(3)
+stage, and
+<I>run2</I>
+for
+<B><A HREF="/manpages/index.html?3+pam_close_session">pam_close_session</A></B>(3).
+<P>
+For the case of the account component. Either
+<I>run1</I>
+or
+<I>run2</I>
+may be used.
+<P>
+For the case of the password component,
+<I>run1</I>
+is used to indicate that the filter is run on the first occasion of
+<B><A HREF="/manpages/index.html?3+pam_chauthtok">pam_chauthtok</A></B>(3)
+(the
+<I>PAM_PRELIM_CHECK</I>
+phase) and
+<I>run2</I>
+is used to indicate that the filter is run on the second occasion (the
+<I>PAM_UPDATE_AUTHTOK</I>
+phase).
+</DL>
+
+<P>
+
+<B>filter</B>
+<DL COMPACT><DT><DD>
+The full pathname of the filter to be run and any command line arguments that the filter might expect.
+</DL>
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>MODULE TYPES PROVIDED</H2>
+
+<P>
+
+All module types (<B>auth</B>,
+<B>account</B>,
+<B>password</B>
+and
+<B>session</B>) are provided.
+<A NAME="lbAF">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<P>
+
+<P>
+
+PAM_SUCCESS
+<DL COMPACT><DT><DD>
+The new filter was set successfully.
+</DL>
+
+<P>
+
+PAM_ABORT
+<DL COMPACT><DT><DD>
+Critical error, immediate abort.
+</DL>
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+Add the following line to
+FC/etc/pam.d/loginF[]
+to see how to configure login to transpose upper and lower case letters once the user has logged in:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+
+<FONT SIZE="-1">
+</FONT><PRE>
+
+
+        session required pam_filter.so run1 /lib/security/pam_filter/upperLOWER
+      
+</PRE>
+
+
+<FONT SIZE="+1">
+</DL>
+
+
+
+
+<P>
+</FONT><A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<P>
+<B><A HREF="/manpages/index.html?5+pam.conf">pam.conf</A></B>(5),
+<B><A HREF="/manpages/index.html?5+pam.d">pam.d</A></B>(5),
+<B><A HREF="/manpages/index.html?8+pam">pam</A></B>(8)
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<P>
+
+pam_filter was written by Andrew G. Morgan &lt;<A HREF="mailto:morgan@kernel.org">morgan@kernel.org</A>&gt;.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">Synopsis</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">OPTIONS</A><DD>
+<DT><A HREF="#lbAE">MODULE TYPES PROVIDED</A><DD>
+<DT><A HREF="#lbAF">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:28 GMT, December 24, 2015
+</div></body>
+</HTML>

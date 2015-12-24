@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CREATE AGGREGATE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CREATE AGGREGATE</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+CREATE AGGREGATE - define a new aggregate function
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+CREATE AGGREGATE <I>name</I> ( <I>input_data_type</I> [ , ... ] ) (
+    SFUNC = <I>sfunc</I>,
+    STYPE = <I>state_data_type</I>
+    [ , FINALFUNC = <I>ffunc</I> ]
+    [ , INITCOND = <I>initial_condition</I> ]
+    [ , SORTOP = <I>sort_operator</I> ]
+)
+
+or the old syntax
+
+CREATE AGGREGATE <I>name</I> (
+    BASETYPE = <I>base_type</I>,
+    SFUNC = <I>sfunc</I>,
+    STYPE = <I>state_data_type</I>
+    [ , FINALFUNC = <I>ffunc</I> ]
+    [ , INITCOND = <I>initial_condition</I> ]
+    [ , SORTOP = <I>sort_operator</I> ]
+)
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>CREATE AGGREGATE</B> defines a new aggregate
+function. Some basic and commonly-used aggregate functions are
+included with the distribution; they are documented in in the documentation. If one defines new types or needs
+an aggregate function not already provided, then <B>CREATE
+AGGREGATE</B> can be used to provide the desired features.
+<P>
+
+If a schema name is given (for example, CREATE AGGREGATE
+myschema.myagg ...) then the aggregate function is created in the
+specified schema. Otherwise it is created in the current schema.
+<P>
+
+An aggregate function is identified by its name and input data type(s).
+Two aggregates in the same schema can have the same name if they operate on
+different input types. The
+name and input data type(s) of an aggregate must also be distinct from
+the name and input data type(s) of every ordinary function in the same
+schema.
+<P>
+
+An aggregate function is made from one or two ordinary
+functions:
+a state transition function
+<I>sfunc</I>,
+and an optional final calculation function
+<I>ffunc</I>.
+These are used as follows:
+<P>
+<PRE>
+<I>sfunc</I>( internal-state, next-data-values ) ---&gt; next-internal-state
+<I>ffunc</I>( internal-state ) ---&gt; aggregate-value
+
+</PRE>
+
+<P>
+
+PostgreSQL creates a temporary variable
+of data type <I>stype</I>
+to hold the current internal state of the aggregate. At each input row,
+the aggregate argument value(s) are calculated and
+the state transition function is invoked with the current state value
+and the new argument value(s) to calculate a new
+internal state value. After all the rows have been processed,
+the final function is invoked once to calculate the aggregate's return
+value. If there is no final function then the ending state value
+is returned as-is.
+<P>
+
+An aggregate function can provide an initial condition,
+that is, an initial value for the internal state value.
+This is specified and stored in the database as a value of type
+<B>text</B>, but it must be a valid external representation
+of a constant of the state value data type. If it is not supplied
+then the state value starts out null.
+<P>
+
+If the state transition function is declared ``strict'',
+then it cannot be called with null inputs. With such a transition
+function, aggregate execution behaves as follows. Rows with any null input
+values are ignored (the function is not called and the previous state value
+is retained). If the initial state value is null, then at the first row
+with all-nonnull input values, the first argument value replaces the state
+value, and the transition function is invoked at subsequent rows with
+all-nonnull input values.
+This is handy for implementing aggregates like <B>max</B>.
+Note that this behavior is only available when
+<I>state_data_type</I>
+is the same as the first
+<I>input_data_type</I>.
+When these types are different, you must supply a nonnull initial
+condition or use a nonstrict transition function.
+<P>
+
+If the state transition function is not strict, then it will be called
+unconditionally at each input row, and must deal with null inputs
+and null transition values for itself. This allows the aggregate
+author to have full control over the aggregate's handling of null values.
+<P>
+
+If the final function is declared ``strict'', then it will not
+be called when the ending state value is null; instead a null result
+will be returned automatically. (Of course this is just the normal
+behavior of strict functions.) In any case the final function has
+the option of returning a null value. For example, the final function for
+<B>avg</B> returns null when it sees there were zero
+input rows.
+<P>
+
+Aggregates that behave like <B>MIN</B> or <B>MAX</B> can
+sometimes be optimized by looking into an index instead of scanning every
+input row. If this aggregate can be so optimized, indicate it by
+specifying a <I>sort operator</I>. The basic requirement is that
+the aggregate must yield the first element in the sort ordering induced by
+the operator; in other words:
+<P>
+<PRE>
+SELECT agg(col) FROM tab;
+
+</PRE>
+
+must be equivalent to:
+<P>
+<PRE>
+SELECT col FROM tab ORDER BY col USING sortop LIMIT 1;
+
+</PRE>
+
+Further assumptions are that the aggregate ignores null inputs, and that
+it delivers a null result if and only if there were no non-null inputs.
+Ordinarily, a data type's &lt; operator is the proper sort
+operator for <B>MIN</B>, and &gt; is the proper sort
+operator for <B>MAX</B>. Note that the optimization will never
+actually take effect unless the specified operator is the ``less
+than'' or ``greater than'' strategy member of a B-tree
+index operator class.
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B></B><I>name</I><B></B><DD>
+The name (optionally schema-qualified) of the aggregate function
+to create.
+<DT><B></B><I>input_data_type</I><B></B><DD>
+An input data type on which this aggregate function operates.
+To create a zero-argument aggregate function, write *
+in place of the list of input data types. (An example of such an
+aggregate is <B>count(*)</B>.)
+<DT><B></B><I>base_type</I><B></B><DD>
+In the old syntax for <B>CREATE AGGREGATE</B>, the input data type
+is specified by a basetype parameter rather than being
+written next to the aggregate name. Note that this syntax allows
+only one input parameter. To define a zero-argument aggregate function,
+specify the basetype as
+&quot;ANY&quot; (not *).
+<DT><B></B><I>sfunc</I><B></B><DD>
+The name of the state transition function to be called for each
+input row. For an <I>N</I>-argument
+aggregate function, the <I>sfunc</I>
+must take <I>N</I>+1 arguments,
+the first being of type <I>state_data_type</I> and the rest
+matching the declared input data type(s) of the aggregate.
+The function must return a value of type <I>state_data_type</I>. This function
+takes the current state value and the current input data value(s),
+and returns the next state value.
+<DT><B></B><I>state_data_type</I><B></B><DD>
+The data type for the aggregate's state value.
+<DT><B></B><I>ffunc</I><B></B><DD>
+The name of the final function called to compute the aggregate's
+result after all input rows have been traversed. The function
+must take a single argument of type <I>state_data_type</I>. The return
+data type of the aggregate is defined as the return type of this
+function. If <I>ffunc</I>
+is not specified, then the ending state value is used as the
+aggregate's result, and the return type is <I>state_data_type</I>.
+<DT><B></B><I>initial_condition</I><B></B><DD>
+The initial setting for the state value. This must be a string
+constant in the form accepted for the data type <I>state_data_type</I>. If not
+specified, the state value starts out null.
+<DT><B></B><I>sort_operator</I><B></B><DD>
+The associated sort operator for a <B>MIN</B>- or
+<B>MAX</B>-like aggregate.
+This is just an operator name (possibly schema-qualified).
+The operator is assumed to have the same input data types as
+the aggregate (which must be a single-argument aggregate).
+</DL>
+<P>
+
+The parameters of <B>CREATE AGGREGATE</B> can be
+written in any order, not just the order illustrated above.
+<P>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+See in the documentation.
+<A NAME="lbAG">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+<B>CREATE AGGREGATE</B> is a
+PostgreSQL language extension. The SQL
+standard does not provide for user-defined aggregate functions.
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+ALTER AGGREGATE [<B><A HREF="/manpages/index.html?7+alter_aggregate">alter_aggregate</A></B>(7)], DROP AGGREGATE [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+drop_aggregate">drop_aggregate</A></B>(7)]
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">EXAMPLES</A><DD>
+<DT><A HREF="#lbAG">COMPATIBILITY</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:14 GMT, December 24, 2015
+</div></body>
+</HTML>

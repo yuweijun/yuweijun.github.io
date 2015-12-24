@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of INOTIFY</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>INOTIFY</H1>
+Section: Linux Programmer's Manual (7)<BR>Updated: 2008-11-18<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+inotify - monitoring file system events
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<I>inotify</I>
+
+API provides a mechanism for monitoring file system events.
+Inotify can be used to monitor individual files,
+or to monitor directories.
+When a directory is monitored, inotify will return events
+for the directory itself, and for files inside the directory.
+<P>
+The following system calls are used with this API:
+<B><A HREF="/manpages/index.html?2+inotify_init">inotify_init</A></B>(2)
+
+(or
+<B><A HREF="/manpages/index.html?2+inotify_init1">inotify_init1</A></B>(2)),
+
+<B><A HREF="/manpages/index.html?2+inotify_add_watch">inotify_add_watch</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+inotify_rm_watch">inotify_rm_watch</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2),
+
+and
+<B><A HREF="/manpages/index.html?2+close">close</A></B>(2).
+
+<P>
+<B><A HREF="/manpages/index.html?2+inotify_init">inotify_init</A></B>(2)
+
+creates an inotify instance and returns a file descriptor
+referring to the inotify instance.
+The more recent
+<B><A HREF="/manpages/index.html?2+inotify_init1">inotify_init1</A></B>(2)
+
+is like
+<B><A HREF="/manpages/index.html?2+inotify_init">inotify_init</A></B>(2),
+
+but provides some extra functionality.
+<P>
+<B><A HREF="/manpages/index.html?2+inotify_add_watch">inotify_add_watch</A></B>(2)
+
+manipulates the &quot;watch list&quot; associated with an inotify instance.
+Each item (&quot;watch&quot;) in the watch list specifies the pathname of
+a file or directory,
+along with some set of events that the kernel should monitor for the
+file referred to by that pathname.
+<B><A HREF="/manpages/index.html?2+inotify_add_watch">inotify_add_watch</A></B>(2)
+
+either creates a new watch item, or modifies an existing watch.
+Each watch has a unique &quot;watch descriptor&quot;, an integer
+returned by
+<B><A HREF="/manpages/index.html?2+inotify_add_watch">inotify_add_watch</A></B>(2)
+
+when the watch is created.
+<P>
+<B><A HREF="/manpages/index.html?2+inotify_rm_watch">inotify_rm_watch</A></B>(2)
+
+removes an item from an inotify watch list.
+<P>
+When all file descriptors referring to an inotify
+instance have been closed,
+the underlying object and its resources are
+freed for re-use by the kernel;
+all associated watches are automatically freed.
+<P>
+To determine what events have occurred, an application
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2)s
+
+from the inotify file descriptor.
+If no events have so far occurred, then,
+assuming a blocking file descriptor,
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2)
+
+will block until at least one event occurs
+(unless interrupted by a signal,
+in which case the call fails with the error
+<B>EINTR</B>;
+
+see
+<B><A HREF="/manpages/index.html?7+signal">signal</A></B>(7)).
+
+<P>
+Each successful
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2)
+
+returns a buffer containing one or more of the following structures:
+
+<PRE>
+
+struct inotify_event {
+    int      wd;       /* Watch descriptor */
+    uint32_t mask;     /* Mask of events */
+    uint32_t cookie;   /* Unique cookie associating related
+                          events (for <A HREF="/manpages/index.html?2+rename">rename</A>(2)) */
+    uint32_t len;      /* Size of <I>name</I> field */
+    char     name[];   /* Optional null-terminated name */
+};
+</PRE>
+
+
+<P>
+<I>wd</I>
+
+identifies the watch for which this event occurs.
+It is one of the watch descriptors returned by a previous call to
+<B><A HREF="/manpages/index.html?2+inotify_add_watch">inotify_add_watch</A></B>(2).
+
+<P>
+<I>mask</I>
+
+contains bits that describe the event that occurred (see below).
+<P>
+<I>cookie</I>
+
+is a unique integer that connects related events.
+Currently this is only used for rename events, and
+allows the resulting pair of
+<B>IN_MOVE_FROM</B>
+
+and
+<B>IN_MOVE_TO</B>
+
+events to be connected by the application.
+<P>
+The
+<I>name</I>
+
+field is only present when an event is returned
+for a file inside a watched directory;
+it identifies the file pathname relative to the watched directory.
+This pathname is null-terminated,
+and may include further null bytes to align subsequent reads to a
+suitable address boundary.
+<P>
+The
+<I>len</I>
+
+field counts all of the bytes in
+<I>name</I>,
+
+including the null bytes;
+the length of each
+<I>inotify_event</I>
+
+structure is thus
+<I>sizeof(inotify_event)+len</I>.
+
+<P>
+The behavior when the buffer given to
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2)
+
+is too small to return information about the next event depends
+on the kernel version: in kernels before 2.6.21,
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2)
+
+returns 0; since kernel 2.6.21,
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2)
+
+fails with the error
+<B>EINVAL</B>.
+
+<A NAME="lbAD">&nbsp;</A>
+<H3>inotify events</H3>
+
+The
+<B><A HREF="/manpages/index.html?2+inotify_add_watch">inotify_add_watch</A></B>(2)
+
+<I>mask</I>
+
+argument and the
+<I>mask</I>
+
+field of the
+<I>inotify_event</I>
+
+structure returned when
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2)ing
+
+an inotify file descriptor are both bit masks identifying
+inotify events.
+The following bits can be specified in
+<I>mask</I>
+
+when calling
+<B><A HREF="/manpages/index.html?2+inotify_add_watch">inotify_add_watch</A></B>(2)
+
+and may be returned in the
+<I>mask</I>
+
+field returned by
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2):
+
+<DL COMPACT><DT><DD>
+<P>
+
+<DL COMPACT>
+<DT><B>IN_ACCESS</B>
+
+<DD>
+File was accessed (read) (*).
+<DT><B>IN_ATTRIB</B>
+
+<DD>
+Metadata changed, e.g., permissions, timestamps, extended attributes,
+link count (since Linux 2.6.25), UID, GID, etc. (*).
+<DT><B>IN_CLOSE_WRITE</B>
+
+<DD>
+File opened for writing was closed (*).
+<DT><B>IN_CLOSE_NOWRITE</B>
+
+<DD>
+File not opened for writing was closed (*).
+<DT><B>IN_CREATE</B>
+
+<DD>
+File/directory created in watched directory (*).
+<DT><B>IN_DELETE</B>
+
+<DD>
+File/directory deleted from watched directory (*).
+<DT><B>IN_DELETE_SELF</B>
+
+<DD>
+Watched file/directory was itself deleted.
+<DT><B>IN_MODIFY</B>
+
+<DD>
+File was modified (*).
+<DT><B>IN_MOVE_SELF</B>
+
+<DD>
+Watched file/directory was itself moved.
+<DT><B>IN_MOVED_FROM</B>
+
+<DD>
+File moved out of watched directory (*).
+<DT><B>IN_MOVED_TO</B>
+
+<DD>
+File moved into watched directory (*).
+<DT><B>IN_OPEN</B>
+
+<DD>
+File was opened (*).
+
+</DL>
+</DL>
+
+<P>
+
+When monitoring a directory,
+the events marked with an asterisk (*) above can occur for
+files in the directory, in which case the
+<I>name</I>
+
+field in the returned
+<I>inotify_event</I>
+
+structure identifies the name of the file within the directory.
+<P>
+
+The
+<B>IN_ALL_EVENTS</B>
+
+macro is defined as a bit mask of all of the above events.
+This macro can be used as the
+<I>mask</I>
+
+argument when calling
+<B><A HREF="/manpages/index.html?2+inotify_add_watch">inotify_add_watch</A></B>(2).
+
+<P>
+Two additional convenience macros are
+<B>IN_MOVE</B>,
+
+which equates to
+IN_MOVED_FROM|IN_MOVED_TO,
+and
+<B>IN_CLOSE</B>
+
+which equates to
+IN_CLOSE_WRITE|IN_CLOSE_NOWRITE.
+<P>
+
+The following further bits can be specified in
+<I>mask</I>
+
+when calling
+<B><A HREF="/manpages/index.html?2+inotify_add_watch">inotify_add_watch</A></B>(2):
+
+<DL COMPACT><DT><DD>
+<P>
+
+<DL COMPACT>
+<DT><B>IN_DONT_FOLLOW</B> (since Linux 2.6.15)
+
+<DD>
+Don't dereference <I>pathname</I> if it is a symbolic link.
+<DT><B>IN_MASK_ADD</B>
+
+<DD>
+Add (OR) events to watch mask for this pathname if
+it already exists (instead of replacing mask).
+<DT><B>IN_ONESHOT</B>
+
+<DD>
+Monitor <I>pathname</I> for one event, then remove from
+watch list.
+<DT><B>IN_ONLYDIR</B> (since Linux 2.6.15)
+
+<DD>
+Only watch <I>pathname</I> if it is a directory.
+
+</DL>
+</DL>
+
+<P>
+
+The following bits may be set in the
+<I>mask</I>
+
+field returned by
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2):
+
+<DL COMPACT><DT><DD>
+<P>
+
+<DL COMPACT>
+<DT><B>IN_IGNORED</B>
+
+<DD>
+Watch was removed explicitly (<B><A HREF="/manpages/index.html?2+inotify_rm_watch">inotify_rm_watch</A></B>(2))
+or automatically (file was deleted, or file system was unmounted).
+<DT><B>IN_ISDIR</B>
+
+<DD>
+Subject of this event is a directory.
+<DT><B>IN_Q_OVERFLOW</B>
+
+<DD>
+Event queue overflowed (<I>wd</I> is -1 for this event).
+<DT><B>IN_UNMOUNT</B>
+
+<DD>
+File system containing watched object was unmounted.
+
+</DL>
+</DL>
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>/proc interfaces</H3>
+
+The following interfaces can be used to limit the amount of
+kernel memory consumed by inotify:
+<DL COMPACT>
+<DT><I>/proc/sys/fs/inotify/max_queued_events</I>
+
+<DD>
+The value in this file is used when an application calls
+<B><A HREF="/manpages/index.html?2+inotify_init">inotify_init</A></B>(2)
+
+to set an upper limit on the number of events that can be
+queued to the corresponding inotify instance.
+Events in excess of this limit are dropped, but an
+<B>IN_Q_OVERFLOW</B>
+
+event is always generated.
+<DT><I>/proc/sys/fs/inotify/max_user_instances</I>
+
+<DD>
+This specifies an upper limit on the number of inotify instances
+that can be created per real user ID.
+<DT><I>/proc/sys/fs/inotify/max_user_watches</I>
+
+<DD>
+This specifies an upper limit on the number of watches
+that can be created per real user ID.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+Inotify was merged into the 2.6.13 Linux kernel.
+The required library interfaces were added to glibc in version 2.4.
+(<B>IN_DONT_FOLLOW</B>,
+
+<B>IN_MASK_ADD</B>,
+
+and
+<B>IN_ONLYDIR</B>
+
+were only added in version 2.5.)
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+The inotify API is Linux-specific.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+Inotify file descriptors can be monitored using
+<B><A HREF="/manpages/index.html?2+select">select</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+poll">poll</A></B>(2),
+
+and
+<B><A HREF="/manpages/index.html?7+epoll">epoll</A></B>(7).
+
+When an event is available, the file descriptor indicates as readable.
+<P>
+Since Linux 2.6.25,
+signal-driven I/O notification is available for inotify file descriptors;
+see the discussion of
+<B>F_SETFL</B>
+
+(for setting the
+<B>O_ASYNC</B>
+
+flag),
+<B>F_SETOWN</B>,
+
+and
+<B>F_SETSIG</B>
+
+in
+<B><A HREF="/manpages/index.html?2+fcntl">fcntl</A></B>(2).
+
+The
+<I>siginfo_t</I>
+
+structure (described in
+<B><A HREF="/manpages/index.html?2+sigaction">sigaction</A></B>(2))
+
+that is passed to the signal handler has the following fields set:
+<I>si_fd</I>
+
+is set to the inotify file descriptor number;
+<I>si_signo</I>
+
+is set to the signal number;
+<I>si_code</I>
+
+is set to
+<B>POLL_IN</B>;
+
+and
+<B>POLLIN</B>
+
+is set in
+<I>si_band</I>.
+
+<P>
+If successive output inotify events produced on the
+inotify file descriptor are identical (same
+<I>wd</I>,
+
+<I>mask</I>,
+
+<I>cookie</I>,
+
+and
+<I>name</I>)
+
+then they are coalesced into a single event if the
+older event has not yet been read (but see BUGS).
+<P>
+The events returned by reading from an inotify file descriptor
+form an ordered queue.
+Thus, for example, it is guaranteed that when renaming from
+one directory to another, events will be produced in the
+correct order on the inotify file descriptor.
+<P>
+The
+<B>FIONREAD</B>
+
+<B><A HREF="/manpages/index.html?2+ioctl">ioctl</A></B>(2)
+
+returns the number of bytes available to read from an
+inotify file descriptor.
+<P>
+Inotify monitoring of directories is not recursive:
+to monitor subdirectories under a directory,
+additional watches must be created.
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+In kernels before 2.6.16, the
+<B>IN_ONESHOT</B>
+
+<I>mask</I>
+
+flag does not work.
+<P>
+Before kernel 2.6.25,
+the kernel code that was intended to coalesce successive identical events
+(i.e., the two most recent events could potentially be coalesced
+if the older had not yet been read)
+instead checked if the most recent event could be coalesced with the
+<I>oldest</I>
+
+unread event.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?2+inotify_add_watch">inotify_add_watch</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+inotify_init">inotify_init</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+inotify_init1">inotify_init1</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+inotify_rm_watch">inotify_rm_watch</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+read">read</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+stat">stat</A></B>(2),
+
+<I>Documentation/filesystems/inotify.txt</I>.
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAD">inotify events</A><DD>
+<DT><A HREF="#lbAE">/proc interfaces</A><DD>
+</DL>
+<DT><A HREF="#lbAF">VERSIONS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:15 GMT, December 24, 2015
+</div></body>
+</HTML>

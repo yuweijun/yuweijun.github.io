@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DBIx::Simple::Examples</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DBIx::Simple::Examples</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-07-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+DBIx::Simple::Examples - Examples of how to use DBIx::Simple
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+DBIx::Simple provides a simplified interface to <FONT SIZE="-1">DBI</FONT>, Perl's powerful database
+module.
+<A NAME="lbAD">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3>General</H3>
+
+<A NAME="ixAAE"></A>
+
+
+<PRE>
+    #!/usr/bin/perl -w
+    use strict;
+    use DBIx::Simple;
+
+    # Instant database with DBD::SQLite
+    my $db = DBIx::Simple-&gt;connect('dbi:SQLite:dbname=file.dat')
+        or die DBIx::Simple-&gt;error;
+
+    # Connecting to a MySQL database
+    my $db = DBIx::Simple-&gt;connect(
+        'DBI:mysql:database=test',     # DBI source specification
+        'test', 'test',                # Username and password
+        { RaiseError =&gt; 1 }            # Additional options
+    );
+
+    # Using an existing database handle
+    my $db = DBIx::Simple-&gt;connect($dbh);
+
+    # Abstracted example: $db-&gt;query($query, @variables)-&gt;what_you_want;
+
+    $db-&gt;commit or die $db-&gt;error;
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H3>Simple Queries</H3>
+
+<A NAME="ixAAF"></A>
+
+
+<PRE>
+    $db-&gt;query('DELETE FROM foo WHERE id = ?', $id) or die $db-&gt;error;
+
+    for (1..100) {
+        $db-&gt;query(
+            'INSERT INTO randomvalues VALUES (?, ?)',
+            int rand(10),
+            int rand(10)
+        ) or die $db-&gt;error;
+    }
+
+    $db-&gt;query(
+        'INSERT INTO sometable VALUES (??)',
+        $first, $second, $third, $fourth, $fifth, $sixth
+    );
+    # (??) is expanded to (?, ?, ?, ?, ?, ?) automatically
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>Single row queries</H3>
+
+<A NAME="ixAAG"></A>
+
+
+<PRE>
+    my ($two)          = $db-&gt;query('SELECT 1 + 1')-&gt;list;
+    my ($three, $four) = $db-&gt;query('SELECT 3, 2 + 2')-&gt;list;
+
+    my ($name, $email) = $db-&gt;query(
+        'SELECT name, email FROM people WHERE email = ? LIMIT 1',
+        $mail
+    )-&gt;list;
+
+</PRE>
+
+
+<P>
+
+Or, more efficiently:
+<P>
+
+
+
+<PRE>
+    $db-&gt;query('SELECT 1 + 1')-&gt;into(my $two);
+    $db-&gt;query('SELECT 3, 2 + 2')-&gt;into(my ($three, $four));
+
+    $db-&gt;query(
+        'SELECT name, email FROM people WHERE email = ? LIMIT 1',
+        $mail
+    )-&gt;into(my ($name, $email));
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>Fetching all rows in one go</H3>
+
+<A NAME="ixAAH"></A>
+<I>One big flattened list (primarily for single column queries)</I>
+<A NAME="ixAAI"></A>
+<P>
+
+
+
+<PRE>
+    my @names = $db-&gt;query('SELECT name FROM people WHERE id &gt; 5')-&gt;flat;
+
+</PRE>
+
+
+<P>
+
+<I>Rows as array references</I>
+<A NAME="ixAAJ"></A>
+<P>
+
+
+
+<PRE>
+    for my $row ($db-&gt;query('SELECT name, email FROM people')-&gt;arrays) {
+        print &quot;Name: $row-&gt;[0], Email: $row-&gt;[1]\n&quot;;
+    }
+
+</PRE>
+
+
+<P>
+
+<I>Rows as hash references</I>
+<A NAME="ixAAK"></A>
+<P>
+
+
+
+<PRE>
+    for my $row ($db-&gt;query('SELECT name, email FROM people')-&gt;hashes) {
+        print &quot;Name: $row-&gt;{name}, Email: $row-&gt;{email}\n&quot;;
+    }
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Fetching one row at a time</H3>
+
+<A NAME="ixAAL"></A>
+<I>Rows into separate variables</I>
+<A NAME="ixAAM"></A>
+<P>
+
+
+
+<PRE>
+    {
+        my $result = $db-&gt;query('SELECT name, email FROM people');
+        $result-&gt;bind(my ($name, $email));
+        while ($result-&gt;fetch) {
+            print &quot;Name: $name, Email: $email\n&quot;;
+        }
+    }
+
+</PRE>
+
+
+<P>
+
+or:
+<P>
+
+
+
+<PRE>
+    {
+        my $result = $db-&gt;query('SELECT name, email FROM people');
+        while ($result-&gt;into(my ($name, $email))) {
+            print &quot;Name: $name, Email: $email\n&quot;;
+        }
+    }
+
+</PRE>
+
+
+<P>
+
+<I>Rows as lists</I>
+<A NAME="ixAAN"></A>
+<P>
+
+
+
+<PRE>
+    {
+        my $result = $db-&gt;query('SELECT name, email FROM people');
+        while (my @row = $result-&gt;list) {
+            print &quot;Name: $row[0], Email: $row[1]\n&quot;;
+        }
+    }
+
+</PRE>
+
+
+<P>
+
+<I>Rows as array references</I>
+<A NAME="ixAAO"></A>
+<P>
+
+
+
+<PRE>
+    {
+        my $result = $db-&gt;query('SELECT name, email FROM people');
+        while (my $row = $result-&gt;array) {
+            print &quot;Name: $row-&gt;[0], Email: $row-&gt;[1]\n&quot;;
+        }
+    }
+
+</PRE>
+
+
+<P>
+
+<I>Rows as hash references</I>
+<A NAME="ixAAP"></A>
+<P>
+
+
+
+<PRE>
+    {
+        my $result = $db-&gt;query('SELECT name, email FROM people');
+        while (my $row = $result-&gt;hash) {
+            print &quot;Name: $row-&gt;{name}, Email: $row-&gt;{email}\n&quot;;
+        }
+    }
+
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Building maps (also fetching all rows in one go)</H3>
+
+<A NAME="ixAAQ"></A>
+<I>A hash of hashes</I>
+<A NAME="ixAAR"></A>
+<P>
+
+
+
+<PRE>
+    my $customers =
+        $db
+        -&gt; query('SELECT id, name, location FROM people')
+        -&gt; map_hashes('id');
+
+    # $customers = { $id =&gt; { name =&gt; $name, location =&gt; $location } }
+
+</PRE>
+
+
+<P>
+
+<I>A hash of arrays</I>
+<A NAME="ixAAS"></A>
+<P>
+
+
+
+<PRE>
+    my $customers =
+        $db
+        -&gt; query('SELECT id, name, location FROM people')
+        -&gt; map_arrays(0);
+
+    # $customers = { $id =&gt; [ $name, $location ] }
+
+</PRE>
+
+
+<P>
+
+<I>A hash of values (two-column queries)</I>
+<A NAME="ixAAT"></A>
+<P>
+
+
+
+<PRE>
+    my $names =
+        $db
+        -&gt; query('SELECT id, name FROM people')
+        -&gt; map;
+
+    # $names = { $id =&gt; $name }
+
+</PRE>
+
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>EXAMPLES WITH SQL::Interp</H2>
+
+<A NAME="ixAAU"></A>
+If you have SQL::Interp installed, you can use the semi-abstracting method
+<TT>&quot;iquery&quot;</TT>. This works just like <TT>&quot;query&quot;</TT>, but with parts of the query
+interleaved with the bind arguments, passed as references.
+<P>
+
+You should read SQL::Interp. These examples are not enough to fully
+understand all the possibilities.
+<P>
+
+The following examples are based on the documentation of SQL::Interp.
+<P>
+
+
+
+<PRE>
+    my $result = $db-&gt;iquery('INSERT INTO table', \%item);
+    my $result = $db-&gt;iquery('UPDATE table SET', \%item, 'WHERE y &lt;&gt; ', \2);
+    my $result = $db-&gt;iquery('DELETE FROM table WHERE y = ', \2);
+
+    # These two select syntax produce the same result
+    my $result = $db-&gt;iquery('SELECT * FROM table WHERE x = ', \$s, 'AND y IN', \@v);
+    my $result = $db-&gt;iquery('SELECT * FROM table WHERE', {x =&gt; $s, y =&gt; \@v});
+
+    for ($result-&gt;hashes) { ... }
+
+</PRE>
+
+
+<P>
+
+Use a syntax highlighting editor for good visual distinction.
+<P>
+
+If you need the helper functions <TT>&quot;sql&quot;</TT> and <TT>&quot;sql_type&quot;</TT>, you can import them
+with <TT>&quot;use SQL::Interp;&quot;</TT>
+<A NAME="lbAL">&nbsp;</A>
+<H2>EXAMPLES WITH SQL::Abstract</H2>
+
+<A NAME="ixAAV"></A>
+If you have SQL::Abstract installed, you can use the abstracting methods
+<TT>&quot;select&quot;</TT>, <TT>&quot;insert&quot;</TT>, <TT>&quot;update&quot;</TT>, <TT>&quot;delete&quot;</TT>. These work like <TT>&quot;query&quot;</TT>, but
+instead of a query and bind arguments, use abstracted arguments.
+<P>
+
+You should read SQL::Abstract. These examples are not enough to fully
+understand all the possibilities.
+<P>
+
+The SQL::Abstract object is available (writable) through the <TT>&quot;abstract&quot;</TT>
+property.
+<P>
+
+The following examples are based on the documentation of SQL::Abstract.
+<A NAME="lbAM">&nbsp;</A>
+<H3>Overview</H3>
+
+<A NAME="ixAAW"></A>
+If you don't like the defaults, just assign a new object:
+<P>
+
+
+
+<PRE>
+    $db-&gt;abstract = SQL::Abstract-&gt;new(
+        case    =&gt; 'lower',
+        cmp     =&gt; 'like', 
+        logic   =&gt; 'and', 
+        convert =&gt; 'upper'
+    );
+
+</PRE>
+
+
+<P>
+
+If you don't assign any object, one will be created automatically using the
+default options. The SQL::Abstract module is loaded on demand.
+<P>
+
+
+
+<PRE>
+    my $result = $db-&gt;select($table, \@fields, \%where, \@order);
+    my $result = $db-&gt;insert($table, \%fieldvals || \@values);
+    my $result = $db-&gt;update($table, \%fieldvals, \%where);
+    my $result = $db-&gt;delete($table, \%where);
+
+    for ($result-&gt;hashes) { ... }
+
+</PRE>
+
+
+<A NAME="lbAN">&nbsp;</A>
+<H3>Complete examples</H3>
+
+<A NAME="ixAAX"></A>
+<I>select</I>
+<A NAME="ixAAY"></A>
+<P>
+
+
+
+<PRE>
+    my @tickets = $db-&gt;select(
+        'tickets', '*', {
+            requestor =&gt; 'inna',
+            worker    =&gt; ['nwiger', 'rcwe', 'sfz'],
+            status    =&gt; { '!=', 'completed' }
+        }
+    )-&gt;hashes;
+
+</PRE>
+
+
+<P>
+
+<I>insert</I>
+<A NAME="ixAAZ"></A>
+<P>
+
+If you already have your data as a hash, inserting becomes much easier:
+<P>
+
+
+
+<PRE>
+    $db-&gt;insert('people', \%data);
+
+</PRE>
+
+
+<P>
+
+Instead of:
+<P>
+
+
+
+<PRE>
+    $db-&gt;query(
+        q[
+            INSERT 
+            INTO people (name, phone, address, ...)
+            VALUES (??)
+        ],
+        @data{'name', 'phone', 'address', ... }
+    );
+
+</PRE>
+
+
+<P>
+
+<I>update, delete</I>
+<A NAME="ixABA"></A>
+<P>
+
+
+
+<PRE>
+    $db-&gt;update(
+        'tickets', {
+            worker    =&gt; 'juerd',
+            status    =&gt; 'completed'
+        },
+        { id =&gt; $id }
+    )
+
+    $db-&gt;delete('tickets', { id =&gt; $id });
+
+</PRE>
+
+
+<P>
+
+<I>where</I>
+<A NAME="ixABB"></A>
+<P>
+
+The <TT>&quot;where&quot;</TT> method is not wrapped directly, because it doesn't generate a
+query and thus doesn't really have anything to do with the database module.
+<P>
+
+But using the <TT>&quot;abstract&quot;</TT> property, you can still easily access it:
+<P>
+
+
+
+<PRE>
+    my $where = $db-&gt;abstract-&gt;where({ foo =&gt; $foo });
+
+</PRE>
+
+
+<A NAME="lbAO">&nbsp;</A>
+<H2>EXAMPLES WITH DBIx::XHTML_Table</H2>
+
+<A NAME="ixABC"></A>
+If you have DBIx::XHTML_Table installed, you can use the result methods
+<TT>&quot;xto&quot;</TT> and <TT>&quot;html&quot;</TT>.
+<P>
+
+You should read DBIx::XHTML_Table. These examples are not enough to fully
+understand what is going on. When reading that documentation, note that you
+don't have to pass hash references to DBIx::Simple's methods. It is supported,
+though.
+<P>
+
+DBIx::XHTML_Table is loaded on demand.
+<A NAME="lbAP">&nbsp;</A>
+<H3>Overview</H3>
+
+<A NAME="ixABD"></A>
+To print a simple table, all you have to do is:
+<P>
+
+
+
+<PRE>
+    print $db-&gt;query('SELECT * FROM foo')-&gt;html;
+
+</PRE>
+
+
+<P>
+
+Of course, anything that produces a result object can be used. The same thing
+using the abstraction method <TT>&quot;select&quot;</TT> would be:
+<P>
+
+
+
+<PRE>
+    print $db-&gt;select('foo', '*')-&gt;html;
+
+</PRE>
+
+
+<P>
+
+A DBIx::XHTML_Table object can be generated with the <TT>&quot;xto&quot;</TT> (<B>X</B><FONT SIZE="-1">HTML_</FONT><B>T</B>able
+<B>O</B>bject) method:
+<P>
+
+
+
+<PRE>
+    my $table = $db-&gt;query($query)-&gt;xto;
+
+</PRE>
+
+
+<A NAME="lbAQ">&nbsp;</A>
+<H3>Passing attributes</H3>
+
+<A NAME="ixABE"></A>
+DBIx::Simple sends the attributes you pass to <TT>&quot;html&quot;</TT> both to the constructor
+and the output method. This allows you to specify both <FONT SIZE="-1">HTML</FONT> attributes (like 
+<TT>&quot;bgcolor&quot;</TT>) and options for XHTML_Table (like <TT>&quot;no_ucfirst&quot;</TT> and <TT>&quot;no_indent&quot;</TT>)
+all at once:
+<P>
+
+
+
+<PRE>
+    print $result-&gt;html(
+        tr         =&gt; { bgcolor =&gt; [ qw/silver white/ ] },
+        no_ucfirst =&gt; 1
+    );
+
+</PRE>
+
+
+<A NAME="lbAR">&nbsp;</A>
+<H3>Using an XHTML_Table object</H3>
+
+<A NAME="ixABF"></A>
+Not everything can be controlled by passing attributes. For full flexibility,
+the XHTML_Table object can be used directly:
+<P>
+
+
+
+<PRE>
+    my $table = $db-&gt;query($query)-&gt;xto(
+        tr =&gt; { bgcolor =&gt; [ qw/silver white/ ] }
+    );
+
+    $table-&gt;set_group('client', 1);
+    $table-&gt;calc_totals('credit', '%.2f');
+
+    print $table-&gt;output({ no_ucfirst =&gt; 1 });  # note the {}!
+
+</PRE>
+
+
+<A NAME="lbAS">&nbsp;</A>
+<H2>EXAMPLES WITH Text::Table</H2>
+
+<A NAME="ixABG"></A>
+<DL COMPACT>
+<DT>$result-&gt;text(neat)<DD>
+
+
+<A NAME="ixABH"></A>
+Neither neat nor pretty, but useful for debugging. Uses <FONT SIZE="-1">DBI</FONT>'s <TT>&quot;neat_list&quot;</TT>
+method. Doesn't display column names.
+
+
+<P>
+
+
+
+
+<PRE>
+    '1', 'Camel', 'mammal'
+    '2', 'Llama', 'mammal'
+    '3', 'Owl', 'bird'
+    '4', 'Juerd', undef
+
+</PRE>
+
+
+<DT>$result-&gt;text(table)<DD>
+
+
+<A NAME="ixABI"></A>
+Displays a simple table using <FONT SIZE="-1">ASCII</FONT> lines.
+
+
+<P>
+
+
+
+
+<PRE>
+    id | animal |  type
+    ---+--------+-------
+     1 |  Camel | mammal
+     2 |  Llama | mammal
+     3 |  Owl   | bird
+     4 |  Juerd |
+
+</PRE>
+
+
+<DT>$result-&gt;text(box)<DD>
+
+
+<A NAME="ixABJ"></A>
+Displays a simple table using <FONT SIZE="-1">ASCII</FONT> lines, with an outside border.
+
+
+<P>
+
+
+
+
+<PRE>
+    +----+--------+--------+
+    | id | animal |  type  |
+    +----+--------+--------+
+    |  1 |  Camel | mammal |
+    |  2 |  Llama | mammal |
+    |  3 |  Owl   | bird   |
+    |  4 |  Juerd |        |
+    +----+--------+--------+
+
+</PRE>
+
+
+</DL>
+<P>
+
+For <TT>&quot;table&quot;</TT> and <TT>&quot;box&quot;</TT>, you need Anno Siegel's Text::Table module installed.
+<A NAME="lbAT">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixABK"></A>
+There is no license. This software was released into the public domain. Do with
+it what you want, but on your own risk. The author disclaims any
+responsibility.
+<A NAME="lbAU">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABL"></A>
+Juerd Waalboer &lt;<A HREF="mailto:juerd@cpan.org">juerd@cpan.org</A>&gt; &lt;<A HREF="http://juerd.nl/">http://juerd.nl/</A>&gt;
+<A NAME="lbAV">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABM"></A>
+DBIx::Simple, SQL::Abstract
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">EXAMPLES</A><DD>
+<DL>
+<DT><A HREF="#lbAE">General</A><DD>
+<DT><A HREF="#lbAF">Simple Queries</A><DD>
+<DT><A HREF="#lbAG">Single row queries</A><DD>
+<DT><A HREF="#lbAH">Fetching all rows in one go</A><DD>
+<DT><A HREF="#lbAI">Fetching one row at a time</A><DD>
+<DT><A HREF="#lbAJ">Building maps (also fetching all rows in one go)</A><DD>
+</DL>
+<DT><A HREF="#lbAK">EXAMPLES WITH SQL::Interp</A><DD>
+<DT><A HREF="#lbAL">EXAMPLES WITH SQL::Abstract</A><DD>
+<DL>
+<DT><A HREF="#lbAM">Overview</A><DD>
+<DT><A HREF="#lbAN">Complete examples</A><DD>
+</DL>
+<DT><A HREF="#lbAO">EXAMPLES WITH DBIx::XHTML_Table</A><DD>
+<DL>
+<DT><A HREF="#lbAP">Overview</A><DD>
+<DT><A HREF="#lbAQ">Passing attributes</A><DD>
+<DT><A HREF="#lbAR">Using an XHTML_Table object</A><DD>
+</DL>
+<DT><A HREF="#lbAS">EXAMPLES WITH Text::Table</A><DD>
+<DT><A HREF="#lbAT">LICENSE</A><DD>
+<DT><A HREF="#lbAU">AUTHOR</A><DD>
+<DT><A HREF="#lbAV">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:22 GMT, December 24, 2015
+</div></body>
+</HTML>

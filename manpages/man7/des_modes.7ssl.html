@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DES_MODES</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DES_MODES</H1>
+Section: OpenSSL (7)<BR>Updated: 2007-02-27<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+des_modes - the variants of DES and other crypto algorithms of OpenSSL
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+Several crypto algorithms for OpenSSL can be used in a number of modes.  Those
+are used for using block ciphers in a way similar to stream ciphers, among
+other things.
+<A NAME="lbAD">&nbsp;</A>
+<H2>OVERVIEW</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Electronic Codebook Mode (<FONT SIZE="-1">ECB</FONT>)</H3>
+
+<A NAME="ixAAE"></A>
+Normally, this is found as the function <I>algorithm</I><I>_ecb_encrypt()</I>.
+<DL COMPACT>
+<DT>*<DD>
+64 bits are enciphered at a time.
+<DT>*<DD>
+The order of the blocks can be rearranged without detection.
+<DT>*<DD>
+The same plaintext block always produces the same ciphertext block
+(for the same key) making it vulnerable to a 'dictionary attack'.
+<DT>*<DD>
+An error will only affect one ciphertext block.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Cipher Block Chaining Mode (<FONT SIZE="-1">CBC</FONT>)</H3>
+
+<A NAME="ixAAF"></A>
+Normally, this is found as the function <I>algorithm</I><I>_cbc_encrypt()</I>.
+Be aware that <I>des_cbc_encrypt()</I> is not really <FONT SIZE="-1">DES</FONT> <FONT SIZE="-1">CBC</FONT> (it does
+not update the <FONT SIZE="-1">IV</FONT>); use <I>des_ncbc_encrypt()</I> instead.
+<DL COMPACT>
+<DT>*<DD>
+a multiple of 64 bits are enciphered at a time.
+<DT>*<DD>
+The <FONT SIZE="-1">CBC</FONT> mode produces the same ciphertext whenever the same
+plaintext is encrypted using the same key and starting variable.
+<DT>*<DD>
+The chaining operation makes the ciphertext blocks dependent on the
+current and all preceding plaintext blocks and therefore blocks can not
+be rearranged.
+<DT>*<DD>
+The use of different starting variables prevents the same plaintext
+enciphering to the same ciphertext.
+<DT>*<DD>
+An error will affect the current and the following ciphertext blocks.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Cipher Feedback Mode (<FONT SIZE="-1">CFB</FONT>)</H3>
+
+<A NAME="ixAAG"></A>
+Normally, this is found as the function <I>algorithm</I><I>_cfb_encrypt()</I>.
+<DL COMPACT>
+<DT>*<DD>
+a number of bits (j) &lt;= 64 are enciphered at a time.
+<DT>*<DD>
+The <FONT SIZE="-1">CFB</FONT> mode produces the same ciphertext whenever the same
+plaintext is encrypted using the same key and starting variable.
+<DT>*<DD>
+The chaining operation makes the ciphertext variables dependent on the
+current and all preceding variables and therefore j-bit variables are
+chained together and can not be rearranged.
+<DT>*<DD>
+The use of different starting variables prevents the same plaintext
+enciphering to the same ciphertext.
+<DT>*<DD>
+The strength of the <FONT SIZE="-1">CFB</FONT> mode depends on the size of k (maximal if
+j == k).  In my implementation this is always the case.
+<DT>*<DD>
+Selection of a small value for j will require more cycles through
+the encipherment algorithm per unit of plaintext and thus cause
+greater processing overheads.
+<DT>*<DD>
+Only multiples of j bits can be enciphered.
+<DT>*<DD>
+An error will affect the current and the following ciphertext variables.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Output Feedback Mode (<FONT SIZE="-1">OFB</FONT>)</H3>
+
+<A NAME="ixAAH"></A>
+Normally, this is found as the function <I>algorithm</I><I>_ofb_encrypt()</I>.
+<DL COMPACT>
+<DT>*<DD>
+a number of bits (j) &lt;= 64 are enciphered at a time.
+<DT>*<DD>
+The <FONT SIZE="-1">OFB</FONT> mode produces the same ciphertext whenever the same
+plaintext enciphered using the same key and starting variable.  More
+over, in the <FONT SIZE="-1">OFB</FONT> mode the same key stream is produced when the same
+key and start variable are used.  Consequently, for security reasons
+a specific start variable should be used only once for a given key.
+<DT>*<DD>
+The absence of chaining makes the <FONT SIZE="-1">OFB</FONT> more vulnerable to specific attacks.
+<DT>*<DD>
+The use of different start variables values prevents the same
+plaintext enciphering to the same ciphertext, by producing different
+key streams.
+<DT>*<DD>
+Selection of a small value for j will require more cycles through
+the encipherment algorithm per unit of plaintext and thus cause
+greater processing overheads.
+<DT>*<DD>
+Only multiples of j bits can be enciphered.
+<DT>*<DD>
+<FONT SIZE="-1">OFB</FONT> mode of operation does not extend ciphertext errors in the
+resultant plaintext output.  Every bit error in the ciphertext causes
+only one bit to be in error in the deciphered plaintext.
+<DT>*<DD>
+<FONT SIZE="-1">OFB</FONT> mode is not self-synchronizing.  If the two operation of
+encipherment and decipherment get out of synchronism, the system needs
+to be re-initialized.
+<DT>*<DD>
+Each re-initialization should use a value of the start variable
+different from the start variable values used before with the same
+key.  The reason for this is that an identical bit stream would be
+produced each time from the same parameters.  This would be
+susceptible to a 'known plaintext' attack.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Triple <FONT SIZE="-1">ECB</FONT> Mode</H3>
+
+<A NAME="ixAAI"></A>
+Normally, this is found as the function <I>algorithm</I><I>_ecb3_encrypt()</I>.
+<DL COMPACT>
+<DT>*<DD>
+Encrypt with key1, decrypt with key2 and encrypt with key3 again.
+<DT>*<DD>
+As for <FONT SIZE="-1">ECB</FONT> encryption but increases the key length to 168 bits.
+There are theoretic attacks that can be used that make the effective
+key length 112 bits, but this attack also requires 2^56 blocks of
+memory, not very likely, even for the <FONT SIZE="-1">NSA</FONT>.
+<DT>*<DD>
+If both keys are the same it is equivalent to encrypting once with
+just one key.
+<DT>*<DD>
+If the first and last key are the same, the key length is 112 bits.
+There are attacks that could reduce the effective key strength
+to only slightly more than 56 bits, but these require a lot of memory.
+<DT>*<DD>
+If all 3 keys are the same, this is effectively the same as normal
+ecb mode.
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Triple <FONT SIZE="-1">CBC</FONT> Mode</H3>
+
+<A NAME="ixAAJ"></A>
+Normally, this is found as the function <I>algorithm</I><I>_ede3_cbc_encrypt()</I>.
+<DL COMPACT>
+<DT>*<DD>
+Encrypt with key1, decrypt with key2 and then encrypt with key3.
+<DT>*<DD>
+As for <FONT SIZE="-1">CBC</FONT> encryption but increases the key length to 168 bits with
+the same restrictions as for triple ecb mode.
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAK"></A>
+This text was been written in large parts by Eric Young in his original
+documentation for SSLeay, the predecessor of OpenSSL.  In turn, he attributed
+it to:
+<P>
+
+
+
+<PRE>
+        AS 2805.5.2
+        Australian Standard
+        Electronic funds transfer - Requirements for interfaces,
+        Part 5.2: Modes of operation for an n-bit block cipher algorithm
+        Appendix A
+
+</PRE>
+
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAL"></A>
+<I><A HREF="/manpages/index.html?3+blowfish">blowfish</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+des">des</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+idea">idea</A></I>(3),
+<I><A HREF="/manpages/index.html?3+rc2">rc2</A></I>(3)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">OVERVIEW</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Electronic Codebook Mode (<FONT SIZE="-1">ECB</FONT>)</A><DD>
+<DT><A HREF="#lbAF">Cipher Block Chaining Mode (<FONT SIZE="-1">CBC</FONT>)</A><DD>
+<DT><A HREF="#lbAG">Cipher Feedback Mode (<FONT SIZE="-1">CFB</FONT>)</A><DD>
+<DT><A HREF="#lbAH">Output Feedback Mode (<FONT SIZE="-1">OFB</FONT>)</A><DD>
+<DT><A HREF="#lbAI">Triple <FONT SIZE="-1">ECB</FONT> Mode</A><DD>
+<DT><A HREF="#lbAJ">Triple <FONT SIZE="-1">CBC</FONT> Mode</A><DD>
+</DL>
+<DT><A HREF="#lbAK">NOTES</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:14 GMT, December 24, 2015
+</div></body>
+</HTML>

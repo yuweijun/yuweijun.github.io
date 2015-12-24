@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of TRANSPORT</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>TRANSPORT</H1>
+Section: File Formats (5)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+transport
+-
+Postfix transport table format
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+
+<PRE>
+<B>postmap /etc/postfix/transport</B>
+
+<B>postmap -q &quot;</B><I>string</I><B>&quot; /etc/postfix/transport</B>
+
+<B>postmap -q - /etc/postfix/transport &lt;</B><I>inputfile</I>
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+The optional <B><A HREF="/manpages/index.html?5+transport">transport</A></B>(5) table specifies a mapping from email
+addresses to message delivery transports and next-hop destinations.
+Message delivery transports such as <B>local</B> or <B>smtp</B>
+are defined in the <B>master.cf</B> file, and next-hop
+destinations are typically hosts or domain names. The
+table is searched by the <B><A HREF="/manpages/index.html?8+trivial-rewrite">trivial-rewrite</A></B>(8) daemon.
+<P>
+This mapping overrides the default <I>transport</I>:<I>nexthop</I>
+selection that is built into Postfix:
+<DL COMPACT>
+<DT><B>local_transport (default: local:$myhostname)</B><DD>
+This is the default for final delivery to domains listed
+with <B>mydestination</B>, and for [<I>ipaddress</I>]
+destinations that match <B>$inet_interfaces</B> or
+<B>$proxy_interfaces</B>. The default <I>nexthop</I> destination
+is the MTA hostname.
+<DT><B>virtual_transport (default: virtual:)</B><DD>
+This is the default for final delivery to domains listed
+with <B>virtual_mailbox_domains</B>. The default <I>nexthop</I>
+destination is the recipient domain.
+<DT><B>relay_transport (default: relay:)</B><DD>
+This is the default for remote delivery to domains listed
+with <B>relay_domains</B>. In order of decreasing precedence,
+the <I>nexthop</I> destination is taken from <B>relay_transport</B>,
+<B>sender_dependent_relayhost_maps</B>, <B>relayhost</B>, or from the
+recipient domain.
+<DT><B>default_transport (default: smtp:)</B><DD>
+This is the default for remote delivery to other destinations.
+In order of decreasing precedence, the <I>nexthop</I>
+destination is taken from <B>default_transport</B>,
+<B>sender_dependent_relayhost_maps</B>, <B>relayhost</B>, or from the
+recipient domain.
+</DL>
+<P>
+
+Normally, the <B><A HREF="/manpages/index.html?5+transport">transport</A></B>(5) table is specified as a text file
+that serves as input to the <B><A HREF="/manpages/index.html?1+postmap">postmap</A></B>(1) command.
+The result, an indexed file in <B>dbm</B> or <B>db</B> format, is used
+for fast searching by the mail system. Execute the command
+&quot;<B>postmap /etc/postfix/transport</B>&quot; to rebuild an indexed
+file after changing the corresponding transport table.
+<P>
+When the table is provided via other means such as NIS, LDAP
+or SQL, the same lookups are done as for ordinary indexed files.
+<P>
+Alternatively, the table can be provided as a regular-expression
+map where patterns are given as regular expressions, or lookups
+can be directed to TCP-based server. In those case, the lookups
+are done in a slightly different way as described below under
+&quot;REGULAR EXPRESSION TABLES&quot; or &quot;TCP-BASED TABLES&quot;.
+<A NAME="lbAE">&nbsp;</A>
+<H2>CASE FOLDING</H2>
+
+
+<PRE>
+</PRE>
+
+The search string is folded to lowercase before database
+lookup. As of Postfix 2.3, the search string is not case
+folded with database types such as regexp: or pcre: whose
+lookup fields can match both upper and lower case.
+<A NAME="lbAF">&nbsp;</A>
+<H2>TABLE FORMAT</H2>
+
+
+<PRE>
+</PRE>
+
+The input format for the <B><A HREF="/manpages/index.html?1+postmap">postmap</A></B>(1) command is as follows:
+<DL COMPACT>
+<DT><I>pattern result</I><DD>
+When <I>pattern</I> matches the recipient address or domain, use the
+corresponding <I>result</I>.
+<DT>blank lines and comments<DD>
+Empty lines and whitespace-only lines are ignored, as
+are lines whose first non-whitespace character is a `#'.
+<DT>multi-line text<DD>
+A logical line starts with non-whitespace text. A line that
+starts with whitespace continues a logical line.
+</DL>
+<P>
+
+The <I>pattern</I> specifies an email address, a domain name, or
+a domain name hierarchy, as described in section &quot;TABLE LOOKUP&quot;.
+<P>
+The <I>result</I> is of the form <I>transport:nexthop</I> and
+specifies how or where to deliver mail. This is described in
+section &quot;RESULT FORMAT&quot;.
+<A NAME="lbAG">&nbsp;</A>
+<H2>TABLE SEARCH ORDER</H2>
+
+
+<PRE>
+</PRE>
+
+With lookups from indexed files such as DB or DBM, or from networked
+tables such as NIS, LDAP or SQL, patterns are tried in the order as
+listed below:
+<DL COMPACT>
+<DT><I><A HREF="mailto:user+extension@domain">user+extension@domain</A> transport</I>:<I>nexthop</I><DD>
+Deliver mail for <I><A HREF="mailto:user+extension@domain">user+extension@domain</A></I> through
+<I>transport</I> to
+<I>nexthop</I>.
+<DT><I><A HREF="mailto:user@domain">user@domain</A> transport</I>:<I>nexthop</I><DD>
+Deliver mail for <I><A HREF="mailto:user@domain">user@domain</A></I> through <I>transport</I> to
+<I>nexthop</I>.
+<DT><I>domain transport</I>:<I>nexthop</I><DD>
+Deliver mail for <I>domain</I> through <I>transport</I> to
+<I>nexthop</I>.
+<DT><I>.domain transport</I>:<I>nexthop</I><DD>
+Deliver mail for any subdomain of <I>domain</I> through
+<I>transport</I> to <I>nexthop</I>. This applies only when the
+string <B>transport_maps</B> is not listed in the
+<B>parent_domain_matches_subdomains</B> configuration setting.
+Otherwise, a domain name matches itself and its subdomains.
+<DT><B>*</B><I> transport</I>:<I>nexthop</I><DD>
+The special pattern <B>*</B> represents any address (i.e. it
+functions as the wild-card pattern, and is unique to Postfix
+transport tables).
+</DL>
+<P>
+
+Note 1: the null recipient address is looked up as
+<B>$empty_address_recipient</B>@<B>$myhostname</B> (default:
+<A HREF="mailto:mailer-daemon@hostname">mailer-daemon@hostname</A>).
+<P>
+Note 2: <I><A HREF="mailto:user@domain">user@domain</A></I> or <I><A HREF="mailto:user+extension@domain">user+extension@domain</A></I>
+lookup is available in Postfix 2.0 and later.
+<A NAME="lbAH">&nbsp;</A>
+<H2>RESULT FORMAT</H2>
+
+
+<PRE>
+</PRE>
+
+The lookup result is of the form <I>transport</I><B>:</B><I>nexthop</I>.
+The <I>transport</I> field specifies a mail delivery transport
+such as <B>smtp</B> or <B>local</B>. The <I>nexthop</I> field
+specifies where and how to deliver mail.
+<P>
+The transport field specifies the name of a mail delivery transport
+(the first name of a mail delivery service entry in the Postfix
+<B>master.cf</B> file).
+<P>
+The interpretation of the nexthop field is transport
+dependent. In the case of SMTP, specify a service on a non-default
+port as <I>host</I>:<I>service</I>, and disable MX (mail exchanger)
+DNS lookups with [<I>host</I>] or [<I>host</I>]:<I>port</I>. The [] form
+is required when you specify an IP address instead of a hostname.
+<P>
+A null <I>transport</I> and null <I>nexthop</I> result means &quot;do
+not change&quot;: use the delivery transport and nexthop information
+that would be used when the entire transport table did not exist.
+<P>
+A non-null <I>transport</I> field with a null <I>nexthop</I> field
+resets the nexthop information to the recipient domain.
+<P>
+A null <I>transport</I> field with non-null <I>nexthop</I> field
+does not modify the transport information.
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+
+<PRE>
+</PRE>
+
+In order to deliver internal mail directly, while using a
+mail relay for all other mail, specify a null entry for
+internal destinations (do not change the delivery transport or
+the nexthop information) and specify a wildcard for all other
+destinations.
+<P>
+<PRE>
+     <B>my.domain    :</B>
+     <B>.my.domain   :</B>
+     <B>*            smtp:outbound-relay.my.domain</B>
+</PRE>
+
+<P>
+In order to send mail for <B>example.com</B> and its subdomains
+via the <B>uucp</B> transport to the UUCP host named <B>example</B>:
+<P>
+<PRE>
+     <B>example.com      uucp:example</B>
+     <B>.example.com     uucp:example</B>
+</PRE>
+
+<P>
+When no nexthop host name is specified, the destination domain
+name is used instead. For example, the following directs mail for
+<I>user</I>@<B>example.com</B> via the <B>slow</B> transport to a mail
+exchanger for <B>example.com</B>.  The <B>slow</B> transport could be
+configured to run at most one delivery process at a time:
+<P>
+<PRE>
+     <B>example.com      slow:</B>
+</PRE>
+
+<P>
+When no transport is specified, Postfix uses the transport that
+matches the address domain class (see DESCRIPTION
+above).  The following sends all mail for <B>example.com</B> and its
+subdomains to host <B>gateway.example.com</B>:
+<P>
+<PRE>
+     <B>example.com      :[gateway.example.com]</B>
+     <B>.example.com     :[gateway.example.com]</B>
+</PRE>
+
+<P>
+In the above example, the [] suppress MX lookups.
+This prevents mail routing loops when your machine is primary MX
+host for <B>example.com</B>.
+<P>
+In the case of delivery via SMTP, one may specify
+<I>hostname</I>:<I>service</I> instead of just a host:
+<P>
+<PRE>
+     <B>example.com      smtp:bar.example:2025</B>
+</PRE>
+
+<P>
+This directs mail for <I>user</I>@<B>example.com</B> to host <B>bar.example</B>
+port <B>2025</B>. Instead of a numerical port a symbolic name may be
+used. Specify [] around the hostname if MX lookups must be disabled.
+<P>
+The error mailer can be used to bounce mail:
+<P>
+<PRE>
+     <B>.example.com     error:mail for *.example.com is not deliverable</B>
+</PRE>
+
+<P>
+This causes all mail for <I>user</I>@<I>anything</I><B>.example.com</B>
+to be bounced.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>REGULAR EXPRESSION TABLES</H2>
+
+
+<PRE>
+</PRE>
+
+This section describes how the table lookups change when the table
+is given in the form of regular expressions. For a description of
+regular expression lookup table syntax, see <B><A HREF="/manpages/index.html?5+regexp_table">regexp_table</A></B>(5)
+or <B><A HREF="/manpages/index.html?5+pcre_table">pcre_table</A></B>(5).
+<P>
+Each pattern is a regular expression that is applied to the entire
+address being looked up. Thus, <I>some.domain.hierarchy</I> is not
+looked up via its parent domains,
+nor is <I><A HREF="mailto:user+foo@domain">user+foo@domain</A></I> looked up as <I><A HREF="mailto:user@domain">user@domain</A></I>.
+<P>
+Patterns are applied in the order as specified in the table, until a
+pattern is found that matches the search string.
+<P>
+The <B><A HREF="/manpages/index.html?8+trivial-rewrite">trivial-rewrite</A></B>(8) server disallows regular
+expression substitution of $1 etc. in regular expression
+lookup tables, because that could open a security hole
+(Postfix version 2.3 and later).
+<A NAME="lbAK">&nbsp;</A>
+<H2>TCP-BASED TABLES</H2>
+
+
+<PRE>
+</PRE>
+
+This section describes how the table lookups change when lookups
+are directed to a TCP-based server. For a description of the TCP
+client/server lookup protocol, see <B><A HREF="/manpages/index.html?5+tcp_table">tcp_table</A></B>(5).
+This feature is not available up to and including Postfix version 2.4.
+<P>
+Each lookup operation uses the entire recipient address once.  Thus,
+<I>some.domain.hierarchy</I> is not looked up via its parent domains,
+nor is <I><A HREF="mailto:user+foo@domain">user+foo@domain</A></I> looked up as <I><A HREF="mailto:user@domain">user@domain</A></I>.
+<P>
+Results are the same as with indexed file lookups.
+<A NAME="lbAL">&nbsp;</A>
+<H2>CONFIGURATION PARAMETERS</H2>
+
+
+<PRE>
+</PRE>
+
+The following <B>main.cf</B> parameters are especially relevant.
+The text below provides only a parameter summary. See
+<B><A HREF="/manpages/index.html?5+postconf">postconf</A></B>(5) for more details including examples.
+<DL COMPACT>
+<DT><B>empty_address_recipient</B><DD>
+The address that is looked up instead of the null sender address.
+<DT><B>parent_domain_matches_subdomains</B><DD>
+List of Postfix features that use <I>domain.tld</I> patterns
+to match <I>sub.domain.tld</I> (as opposed to
+requiring <I>.domain.tld</I> patterns).
+<DT><B>transport_maps</B><DD>
+List of transport lookup tables.
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/manpages/index.html?8+trivial-rewrite">trivial-rewrite</A>(8), rewrite and resolve addresses
+<A HREF="/manpages/index.html?5+master">master</A>(5), master.cf file format
+<A HREF="/manpages/index.html?5+postconf">postconf</A>(5), configuration parameters
+<A HREF="/manpages/index.html?1+postmap">postmap</A>(1), Postfix lookup table manager
+</PRE><A NAME="lbAN">&nbsp;</A>
+<H2>README FILES</H2>
+
+
+<PRE>
+</PRE>
+
+Use &quot;<B>postconf readme_directory</B>&quot; or
+&quot;<B>postconf html_directory</B>&quot; to locate this information.
+
+<PRE>
+ADDRESS_REWRITING_README, address rewriting guide
+DATABASE_README, Postfix lookup table overview
+FILTER_README, external content filter
+</PRE><A NAME="lbAO">&nbsp;</A>
+<H2>LICENSE</H2>
+
+
+<PRE>
+</PRE>
+
+The Secure Mailer license must be distributed with this software.
+<A NAME="lbAP">&nbsp;</A>
+<H2>AUTHOR(S)</H2>
+
+
+<PRE>
+Wietse Venema
+IBM T.J. Watson Research
+P.O. Box 704
+Yorktown Heights, NY 10598, USA
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">CASE FOLDING</A><DD>
+<DT><A HREF="#lbAF">TABLE FORMAT</A><DD>
+<DT><A HREF="#lbAG">TABLE SEARCH ORDER</A><DD>
+<DT><A HREF="#lbAH">RESULT FORMAT</A><DD>
+<DT><A HREF="#lbAI">EXAMPLES</A><DD>
+<DT><A HREF="#lbAJ">REGULAR EXPRESSION TABLES</A><DD>
+<DT><A HREF="#lbAK">TCP-BASED TABLES</A><DD>
+<DT><A HREF="#lbAL">CONFIGURATION PARAMETERS</A><DD>
+<DT><A HREF="#lbAM">SEE ALSO</A><DD>
+<DT><A HREF="#lbAN">README FILES</A><DD>
+<DT><A HREF="#lbAO">LICENSE</A><DD>
+<DT><A HREF="#lbAP">AUTHOR(S)</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

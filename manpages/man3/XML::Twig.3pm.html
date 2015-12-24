@@ -1,0 +1,5900 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Twig</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Twig</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2010-08-22<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+XML::Twig - A perl module for processing huge XML documents in tree mode.
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+Note that this documentation is intended as a reference to the module.
+<P>
+
+Complete docs, including a tutorial, examples, an easier to use <FONT SIZE="-1">HTML</FONT> version,
+a quick reference card and a <FONT SIZE="-1">FAQ</FONT> are available at &lt;<A HREF="http://www.xmltwig.com/xmltwig">http://www.xmltwig.com/xmltwig</A>&gt;
+<P>
+
+Small documents (loaded in memory as a tree):
+<P>
+
+
+
+<PRE>
+  my $twig=XML::Twig-&gt;new();    # create the twig
+  $twig-&gt;parsefile( 'doc.xml'); # build it
+  my_process( $twig);           # use twig methods to process it 
+  $twig-&gt;print;                 # output the twig
+
+</PRE>
+
+
+<P>
+
+Huge documents (processed in combined stream/tree mode):
+<P>
+
+
+
+<PRE>
+  # at most one div will be loaded in memory
+  my $twig=XML::Twig-&gt;new(   
+    twig_handlers =&gt; 
+      { title   =&gt; sub { $_-&gt;set_tag( 'h2') }, # change title tags to h2
+        para    =&gt; sub { $_-&gt;set_tag( 'p')  }, # change para to p
+        hidden  =&gt; sub { $_-&gt;delete;       },  # remove hidden elements
+        list    =&gt; \&amp;my_list_process,          # process list elements
+        div     =&gt; sub { $_[0]-&gt;flush;     },  # output and free memory
+      },
+    pretty_print =&gt; 'indented',                # output will be nicely formatted
+    empty_tags   =&gt; 'html',                    # outputs &lt;empty_tag /&gt;
+                         );
+    $twig-&gt;flush;                              # flush the end of the document
+
+</PRE>
+
+
+<P>
+
+See XML::Twig 101 for other ways to use the module, as a 
+filter for example.
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This module provides a way to process <FONT SIZE="-1">XML</FONT> documents. It is build on top
+of <TT>&quot;XML::Parser&quot;</TT>.
+<P>
+
+The module offers a tree interface to the document, while allowing you
+to output the parts of it that have been completely processed.
+<P>
+
+It allows minimal resource (<FONT SIZE="-1">CPU</FONT> and memory) usage by building the tree
+only for the parts of the documents that need actual processing, through the 
+use of the <TT>&quot;twig_roots &quot;</TT> and 
+<TT>&quot;twig_print_outside_roots &quot;</TT> options. The 
+<TT>&quot;finish &quot;</TT> and <TT>&quot;finish_print &quot;</TT> methods also help 
+to increase performances.
+<P>
+
+XML::Twig tries to make simple things easy so it tries its best to takes care 
+of a lot of the (usually) annoying (but sometimes necessary) features that 
+come with <FONT SIZE="-1">XML</FONT> and XML::Parser.
+<A NAME="lbAE">&nbsp;</A>
+<H2>XML::Twig 101</H2>
+
+<A NAME="ixAAE"></A>
+XML::Twig can be used either on ``small'' <FONT SIZE="-1">XML</FONT> documents (that fit in memory)
+or on huge ones, by processing parts of the document and outputting or
+discarding them once they are processed.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Loading an <FONT SIZE="-1">XML</FONT> document and processing it</H3>
+
+<A NAME="ixAAF"></A>
+
+
+<PRE>
+  my $t= XML::Twig-&gt;new();
+  $t-&gt;parse( '&lt;d&gt;&lt;title&gt;title&lt;/title&gt;&lt;para&gt;p 1&lt;/para&gt;&lt;para&gt;p 2&lt;/para&gt;&lt;/d&gt;');
+  my $root= $t-&gt;root;
+  $root-&gt;set_tag( 'html');              # change doc to html
+  $title= $root-&gt;first_child( 'title'); # get the title
+  $title-&gt;set_tag( 'h1');               # turn it into h1
+  my @para= $root-&gt;children( 'para');   # get the para children
+  foreach my $para (@para)
+    { $para-&gt;set_tag( 'p'); }           # turn them into p
+  $t-&gt;print;                            # output the document
+
+</PRE>
+
+
+<P>
+
+Other useful methods include:
+<P>
+
+att: <TT>&quot;$elt-&gt;{'att'}-&gt;{'foo'}&quot;</TT> return the <TT>&quot;foo&quot;</TT> attribute for an 
+element,
+<P>
+
+set_att : <TT>&quot;$elt-&gt;set_att( foo =&gt; &quot;bar&quot;)&quot;</TT> sets the <TT>&quot;foo&quot;</TT> 
+attribute to the <TT>&quot;bar&quot;</TT> value,
+<P>
+
+next_sibling: <TT>&quot;$elt-&gt;{next_sibling}&quot;</TT> return the next sibling
+in the document (in the example <TT>&quot;$title-&gt;{next_sibling}&quot;</TT> is the first
+<TT>&quot;para&quot;</TT>, you can also (and actually should) use 
+<TT>&quot;$elt-&gt;next_sibling( 'para')&quot;</TT> to get it
+<P>
+
+The document can also be transformed through the use of the cut, 
+copy, paste and move methods: 
+<TT>&quot;$title-&gt;cut; $title-&gt;paste( after =&gt; $p);&quot;</TT> for example
+<P>
+
+And much, much more, see XML::Twig::Elt.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Processing an <FONT SIZE="-1">XML</FONT> document chunk by chunk</H3>
+
+<A NAME="ixAAG"></A>
+One of the strengths of XML::Twig is that it let you work with files that do 
+not fit in memory (<FONT SIZE="-1">BTW</FONT> storing an <FONT SIZE="-1">XML</FONT> document in memory as a tree is quite
+memory-expensive, the expansion factor being often around 10).
+<P>
+
+To do this you can define handlers, that will be called once a specific 
+element has been completely parsed. In these handlers you can access the
+element and process it as you see fit, using the navigation and the
+cut-n-paste methods, plus lots of convenient ones like <TT>&quot;prefix &quot;</TT>.
+Once the element is completely processed you can then <TT>&quot;flush &quot;</TT> it, 
+which will output it and free the memory. You can also <TT>&quot;purge &quot;</TT> it 
+if you don't need to output it (if you are just extracting some data from 
+the document for example). The handler will be called again once the next 
+relevant element has been parsed.
+<P>
+
+
+
+<PRE>
+  my $t= XML::Twig-&gt;new( twig_handlers =&gt; 
+                          { section =&gt; \&amp;section,
+                            para   =&gt; sub { $_-&gt;set_tag( 'p'); }
+                          },
+                       );
+  $t-&gt;parsefile( 'doc.xml');
+  $t-&gt;flush; # don't forget to flush one last time in the end or anything
+             # after the last &lt;/section&gt; tag will not be output 
+
+  # the handler is called once a section is completely parsed, ie when 
+  # the end tag for section is found, it receives the twig itself and
+  # the element (including all its sub-elements) as arguments
+  sub section 
+    { my( $t, $section)= @_;      # arguments for all twig_handlers
+      $section-&gt;set_tag( 'div');  # change the tag name.4, my favourite method...
+      # let's use the attribute nb as a prefix to the title
+      my $title= $section-&gt;first_child( 'title'); # find the title
+      my $nb= $title-&gt;{'att'}-&gt;{'nb'}; # get the attribute
+      $title-&gt;prefix( &quot;$nb - &quot;);  # easy isn't it?
+      $section-&gt;flush;            # outputs the section and frees memory
+    }
+
+</PRE>
+
+
+<P>
+
+There is of course more to it: you can trigger handlers on more elaborate 
+conditions than just the name of the element, <TT>&quot;section/title&quot;</TT> for example.
+<P>
+
+
+
+<PRE>
+  my $t= XML::Twig-&gt;new( twig_handlers =&gt; 
+                           { 'section/title' =&gt; sub { $_-&gt;print } }
+                       )
+                  -&gt;parsefile( 'doc.xml');
+
+</PRE>
+
+
+<P>
+
+Here <TT>&quot;sub { $_-&gt;print }&quot;</TT> simply prints the current element (<TT>$_</TT> is aliased
+to the element in the handler).
+<P>
+
+You can also trigger a handler on a test on an attribute:
+<P>
+
+
+
+<PRE>
+  my $t= XML::Twig-&gt;new( twig_handlers =&gt; 
+                      { 'section[@level=&quot;1&quot;]' =&gt; sub { $_-&gt;print } }
+                       );
+                  -&gt;parsefile( 'doc.xml');
+
+</PRE>
+
+
+<P>
+
+You can also use <TT>&quot;start_tag_handlers &quot;</TT> to process an 
+element as soon as the start tag is found. Besides <TT>&quot;prefix &quot;</TT> you
+can also use <TT>&quot;suffix &quot;</TT>,
+<A NAME="lbAH">&nbsp;</A>
+<H3>Processing just parts of an <FONT SIZE="-1">XML</FONT> document</H3>
+
+<A NAME="ixAAH"></A>
+The twig_roots mode builds only the required sub-trees from the document
+Anything outside of the twig roots will just be ignored:
+<P>
+
+
+
+<PRE>
+  my $t= XML::Twig-&gt;new( 
+       # the twig will include just the root and selected titles 
+           twig_roots   =&gt; { 'section/title' =&gt; \&amp;print_n_purge,
+                             'annex/title'   =&gt; \&amp;print_n_purge
+           }
+                      );
+  $t-&gt;parsefile( 'doc.xml');
+
+  sub print_n_purge 
+    { my( $t, $elt)= @_;
+      print $elt-&gt;text;    # print the text (including sub-element texts)
+      $t-&gt;purge;           # frees the memory
+    }
+
+</PRE>
+
+
+<P>
+
+You can use that mode when you want to process parts of a documents but are
+not interested in the rest and you don't want to pay the price, either in
+time or memory, to build the tree for the it.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Building an <FONT SIZE="-1">XML</FONT> filter</H3>
+
+<A NAME="ixAAI"></A>
+You can combine the <TT>&quot;twig_roots&quot;</TT> and the <TT>&quot;twig_print_outside_roots&quot;</TT> options to 
+build filters, which let you modify selected elements and will output the rest 
+of the document as is.
+<P>
+
+This would convert prices in $ to prices in Euro in a document:
+<P>
+
+
+
+<PRE>
+  my $t= XML::Twig-&gt;new( 
+           twig_roots   =&gt; { 'price' =&gt; \&amp;convert, },   # process prices 
+           twig_print_outside_roots =&gt; 1,               # print the rest
+                      );
+  $t-&gt;parsefile( 'doc.xml');
+
+  sub convert 
+    { my( $t, $price)= @_;
+      my $currency=  $price-&gt;{'att'}-&gt;{'currency'};          # get the currency
+      if( $currency eq 'USD')
+        { $usd_price= $price-&gt;text;                     # get the price
+          # %rate is just a conversion table 
+          my $euro_price= $usd_price * $rate{usd2euro};
+          $price-&gt;set_text( $euro_price);               # set the new price
+          $price-&gt;set_att( currency =&gt; 'EUR');          # don't forget this!
+        }
+      $price-&gt;print;                                    # output the price
+    }
+
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>XML::Twig and various versions of Perl, XML::Parser and expat:</H3>
+
+<A NAME="ixAAJ"></A>
+Before being uploaded to <FONT SIZE="-1">CPAN</FONT>, XML::Twig 3.22 has been tested under the 
+following environments:
+<DL COMPACT>
+<DT>linux-x86<DD>
+<A NAME="ixAAK"></A>
+perl 5.6.2, expat 1.95.8, XML::Parser 2.34
+perl 5.8.0, expat 1.95.8, XML::Parser 2.34
+perl 5.8.7, expat 1.95.8, XML::Parser2.34
+<DT>Solaris<DD>
+<A NAME="ixAAL"></A>
+perl 5.6.1, expat 1.95.2, XML::Parser 2.31
+</DL>
+<P>
+
+XML::Twig is a lot more sensitive to variations in versions of perl, 
+XML::Parser and expat than to the <FONT SIZE="-1">OS</FONT>, so this should cover some
+reasonable configurations.
+<P>
+
+The ``recommended configuration'' is perl 5.8.3+ (for good Unicode
+support), XML::Parser 2.31+ and expat 1.95.5+
+<P>
+
+See &lt;<A HREF="http://testers.cpan.org/search?request=dist">http://testers.cpan.org/search?request=dist</A>&amp;dist=XML-Twig&gt; for the
+<FONT SIZE="-1">CPAN</FONT> testers reports on XML::Twig, which list all tested configurations.
+<P>
+
+An Atom feed of the <FONT SIZE="-1">CPAN</FONT> Testers results is available at
+&lt;<A HREF="http://xmltwig.com/rss/twig_testers.rss">http://xmltwig.com/rss/twig_testers.rss</A>&gt;
+<P>
+
+Finally:
+<DL COMPACT>
+<DT>XML::Twig does <B></B><FONT SIZE="-1"><B>NOT</B></FONT><B></B> work with expat 1.95.4<DD>
+<A NAME="ixAAM"></A>
+
+<DT>XML::Twig only works with XML::Parser 2.27 in perl 5.6.*<DD>
+<A NAME="ixAAN"></A>
+
+Note that I can't compile XML::Parser 2.27 anymore, so I can't guarantee 
+that it still works
+<DT>XML::Parser 2.28 does not really work<DD>
+<A NAME="ixAAO"></A>
+</DL>
+<P>
+
+When in doubt, upgrade expat, XML::Parser and Scalar::Util
+<P>
+
+Finally, for some optional features, XML::Twig depends on some additional
+modules. The complete list, which depends somewhat on the version of Perl
+that you are running, is given by running <TT>&quot;t/zz_dump_config.t&quot;</TT>
+<A NAME="lbAK">&nbsp;</A>
+<H2>Simplifying XML processing</H2>
+
+<A NAME="ixAAP"></A>
+<DL COMPACT>
+<DT>Whitespaces<DD>
+<A NAME="ixAAQ"></A>
+Whitespaces that look non-significant are discarded, this behaviour can be 
+controlled using the <TT>&quot;keep_spaces &quot;</TT>, 
+<TT>&quot;keep_spaces_in &quot;</TT> and 
+<TT>&quot;discard_spaces_in &quot;</TT> options.
+<DT>Encoding<DD>
+<A NAME="ixAAR"></A>
+You can specify that you want the output in the same encoding as the input
+(provided you have valid <FONT SIZE="-1">XML</FONT>, which means you have to specify the encoding
+either in the document or when you create the Twig object) using the 
+<TT>&quot;keep_encoding &quot;</TT> option
+
+
+<P>
+
+
+You can also use <TT>&quot;output_encoding&quot;</TT> to convert the internal <FONT SIZE="-1">UTF-8</FONT> format
+to the required encoding.
+<DT>Comments and Processing Instructions (<FONT SIZE="-1">PI</FONT>)<DD>
+<A NAME="ixAAS"></A>
+Comments and <FONT SIZE="-1">PI</FONT>'s can be hidden from the processing, but still appear in the
+output (they are carried by the ``real'' element closer to them)
+<DT>Pretty Printing<DD>
+<A NAME="ixAAT"></A>
+XML::Twig can output the document pretty printed so it is easier to read for
+us humans.
+<DT>Surviving an untimely death<DD>
+<A NAME="ixAAU"></A>
+<FONT SIZE="-1">XML</FONT> parsers are supposed to react violently when fed improper <FONT SIZE="-1">XML</FONT>. 
+XML::Parser just dies.
+
+
+<P>
+
+
+XML::Twig provides the <TT>&quot;safe_parse &quot;</TT> and the 
+<TT>&quot;safe_parsefile &quot;</TT> methods which wrap the parse in an eval
+and return either the parsed twig or 0 in case of failure.
+<DT>Private attributes<DD>
+<A NAME="ixAAV"></A>
+Attributes with a name starting with # (illegal in <FONT SIZE="-1">XML</FONT>) will not be
+output, so you can safely use them to store temporary values during
+processing. Note that you can store anything in a private attribute, 
+not just text, it's just a regular Perl variable, so a reference to
+an object or a huge data structure is perfectly fine.
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H2>CLASSES</H2>
+
+<A NAME="ixAAW"></A>
+XML::Twig uses a very limited number of classes. The ones you are most likely to use
+are <TT>&quot;XML::Twig&quot;</TT> of course, which represents a complete <FONT SIZE="-1">XML</FONT> document, including the 
+document itself (the root of the document itself is <TT>&quot;root&quot;</TT>), its handlers, its
+input or output filters... The other main class is <TT>&quot;XML::Twig::Elt&quot;</TT>, which models 
+an <FONT SIZE="-1">XML</FONT> element. Element here has a very wide definition: it can be a regular element, or
+but also text, with an element <TT>&quot;tag&quot;</TT> of <TT>&quot;#PCDATA&quot;</TT> (or <TT>&quot;#CDATA&quot;</TT>), an entity (tag is
+<TT>&quot;#ENT&quot;</TT>), a Processing Instruction (<TT>&quot;#PI&quot;</TT>), a comment (<TT>&quot;#COMMENT&quot;</TT>).
+<P>
+
+Those are the 2 commonly used classes.
+<P>
+
+You might want to look the <TT>&quot;elt_class&quot;</TT> option if you want to subclass <TT>&quot;XML::Twig::Elt&quot;</TT>.
+<P>
+
+Attributes are just attached to their parent element, they are not objects per se. (Please
+use the provided methods <TT>&quot;att&quot;</TT> and <TT>&quot;set_att&quot;</TT> to access them, if you access them
+as a hash, then your code becomes implementaion dependent and might break in the future).
+<P>
+
+Other classes that are seldom used are <TT>&quot;XML::Twig::Entity_list&quot;</TT> and <TT>&quot;XML::Twig::Entity&quot;</TT>.
+<P>
+
+If you use <TT>&quot;XML::Twig::XPath&quot;</TT> instead of <TT>&quot;XML::Twig&quot;</TT>, elements are then created as
+<TT>&quot;XML::Twig::XPath::Elt&quot;</TT>
+<A NAME="lbAM">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAX"></A>
+<A NAME="lbAN">&nbsp;</A>
+<H3>XML::Twig</H3>
+
+<A NAME="ixAAY"></A>
+A twig is a subclass of XML::Parser, so all XML::Parser methods can be
+called on a twig object, including parse and parsefile.
+<TT>&quot;setHandlers&quot;</TT> on the other hand cannot be used, see <TT>&quot;BUGS &quot;</TT>
+<DL COMPACT>
+<DT>new<DD>
+<A NAME="ixAAZ"></A>
+This is a class method, the constructor for XML::Twig. Options are passed
+as keyword value pairs. Recognized options are the same as XML::Parser,
+plus some XML::Twig specifics.
+
+
+<P>
+
+
+New Options:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>twig_handlers<DD>
+<A NAME="ixABA"></A>
+This argument consists of a hash <TT>&quot;{ expression =&quot;</TT> \&amp;handler}&gt; where 
+expression is a an <I>XPath-like expression</I> (+ some others).
+
+
+<P>
+
+
+XPath expressions are limited to using the child and descendant axis
+(indeed you can't specify an axis), and predicates cannot be nested.
+You can use the <TT>&quot;string&quot;</TT>, or <TT>&quot;string(&lt;tag&gt;)&quot;</TT> function (except 
+in <TT>&quot;twig_roots&quot;</TT> triggers).
+
+
+<P>
+
+
+Additionally you can use regexps (/ delimited) to match attribute
+and string values.
+
+
+<P>
+
+
+Examples:
+
+
+<P>
+
+
+
+
+<PRE>
+  foo
+  foo/bar
+  foo//bar
+  /foo/bar
+  /foo//bar
+  /foo/bar[@att1 = &quot;val1&quot; and @att2 = &quot;val2&quot;]/baz[@a &gt;= 1]
+  foo[string()=~ /^duh!+/]
+  /foo[string(bar)=~ /\d+/]/baz[@att != 3]
+
+</PRE>
+
+
+
+
+<P>
+
+
+#CDATA can be used to call a handler for a <FONT SIZE="-1">CDATA</FONT>.
+#COMMENT can be used to call a handler for comments
+
+
+<P>
+
+
+Some additional (non-XPath) expressions are also provided for convenience:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>processing instructions<DD>
+<A NAME="ixABB"></A>
+<TT>'?'</TT> or <TT>'#PI'</TT> triggers the handler for any processing instruction,
+and <TT>'?&lt;target&gt;'</TT> or <TT>'#PI &lt;target&gt;'</TT> triggers a handler for processing
+instruction with the given target( ex: <TT>'#PI xml-stylesheet'</TT>).
+<DT>level(&lt;level&gt;)<DD>
+<A NAME="ixABC"></A>
+Triggers the handler on any element at that level in the tree (root is level 1)
+<DT>_all_<DD>
+<A NAME="ixABD"></A>
+Triggers the handler for <B>all</B> elements in the tree
+<DT>_default_<DD>
+<A NAME="ixABE"></A>
+Triggers the handler for each element that does <FONT SIZE="-1">NOT</FONT> have any other handler.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+Expressions are evaluated against the input document. 
+Which means that even if you have changed the tag of an element (changing the
+tag of a parent element from a handler for example) the change will not impact
+the expression evaluation. There is an exception to this: ``private'' attributes
+(which name start with a '#', and can only be created during the parsing, as
+they are not valid <FONT SIZE="-1">XML</FONT>) are checked against the current twig.
+
+
+<P>
+
+
+Handlers are triggered in fixed order, sorted by their type (xpath expressions
+first, then regexps, then level), then by whether they specify a full path 
+(starting at the root element) or
+not, then by by number of steps in the expression , then number of
+predicates, then number of tests in predicates. Handlers where the last
+step does not specify a step (<TT>&quot;foo/bar/*&quot;</TT>) are triggered after other XPath handlers.
+Finally <TT>&quot;_all_&quot;</TT> handlers are triggered last.
+
+
+<P>
+
+
+<B>Important</B>: once a handler has been triggered if it returns 0 then no other
+handler is called, except a <TT>&quot;_all_&quot;</TT> handler which will be called anyway.
+
+
+<P>
+
+
+If a handler returns a true value and other handlers apply, then the next
+applicable handler will be called. Repeat, rinse, lather..; The exception
+to that rule is when the <TT>&quot;do_not_chain_handlers&quot;</TT>
+option is set, in which case only the first handler will be called.
+
+
+<P>
+
+
+Note that it might be a good idea to explicitly return a short true value
+(like 1) from handlers: this ensures that other applicable handlers are 
+called even if the last statement for the handler happens to evaluate to
+false. This might also speedup the code by avoiding the result of the last 
+statement of the code to be copied and passed to the code managing handlers.
+It can really pay to have 1 instead of a long string returned.
+
+
+<P>
+
+
+When an element is <FONT SIZE="-1">CLOSED</FONT> the corresponding handler is called, with 2
+arguments: the twig and the <TT>&quot;Element &quot;</TT>. The twig includes the 
+document tree that has been built so far, the element is the complete sub-tree
+for the element. This means that handlers for inner elements are called before
+handlers for outer elements.
+
+
+<P>
+
+
+<TT>$_</TT> is also set to the element, so it is easy to write inline handlers like
+
+
+<P>
+
+
+
+
+<PRE>
+  para =&gt; sub { $_-&gt;set_tag( 'p'); }
+
+</PRE>
+
+
+
+
+<P>
+
+
+Text is stored in elements whose tag is #PCDATA (due to mixed content, text
+and sub-element in an element there is no way to store the text as just an
+attribute of the enclosing element).
+
+
+<P>
+
+
+<B>Warning</B>: if you have used purge or flush on the twig the element might not
+be complete, some of its children might have been entirely flushed or purged,
+and the start tag might even have been printed (by <TT>&quot;flush&quot;</TT>) already, so changing
+its tag might not give the expected result.
+</DL>
+
+<DT>twig_roots<DD>
+<A NAME="ixABF"></A>
+This argument let's you build the tree only for those elements you are
+interested in.
+
+
+<P>
+
+
+
+
+<PRE>
+  Example: my $t= XML::Twig-&gt;new( twig_roots =&gt; { title =&gt; 1, subtitle =&gt; 1});
+           $t-&gt;parsefile( file);
+           my $t= XML::Twig-&gt;new( twig_roots =&gt; { 'section/title' =&gt; 1});
+           $t-&gt;parsefile( file);
+
+</PRE>
+
+
+
+
+<P>
+
+
+return a twig containing a document including only <TT>&quot;title&quot;</TT> and <TT>&quot;subtitle&quot;</TT> 
+elements, as children of the root element.
+
+
+<P>
+
+
+You can use <I>generic_attribute_condition</I>, <I>attribute_condition</I>,
+<I>full_path</I>, <I>partial_path</I>, <I>tag</I>, <I>tag_regexp</I>, <I>_default_</I> and 
+<I>_all_</I> to trigger the building of the twig. 
+<I>string_condition</I> and <I>regexp_condition</I> cannot be used as the content 
+of the element, and the string, have not yet been parsed when the condition
+is checked.
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>WARNING</B></FONT><B></B>: path are checked for the document. Even if the <TT>&quot;twig_roots&quot;</TT> option
+is used they will be checked against the full document tree, not the virtual
+tree created by XML::Twig
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>WARNING</B></FONT><B></B>: twig_roots elements should <FONT SIZE="-1">NOT</FONT> be nested, that would hopelessly
+confuse XML::Twig ;--(
+
+
+<P>
+
+
+Note: you can set handlers (twig_handlers) using twig_roots
+<BR>&nbsp;&nbsp;Example:&nbsp;my&nbsp;<TT>$t</TT>=&nbsp;XML::Twig-&gt;new(&nbsp;twig_roots&nbsp;=&gt;&nbsp;
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{&nbsp;title&nbsp;&nbsp;&nbsp;&nbsp;=&gt;&nbsp;sub&nbsp;{&nbsp;<TT>$_</TT>{1]-&gt;print;},&nbsp;
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;subtitle&nbsp;=&gt;&nbsp;\&amp;process_subtitle&nbsp;
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;}
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;);
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<TT>$t</TT>-&gt;parsefile(&nbsp;file);
+<DT>twig_print_outside_roots<DD>
+<A NAME="ixABG"></A>
+To be used in conjunction with the <TT>&quot;twig_roots&quot;</TT> argument. When set to a true 
+value this will print the document outside of the <TT>&quot;twig_roots&quot;</TT> elements.
+
+
+<P>
+
+
+
+
+<PRE>
+ Example: my $t= XML::Twig-&gt;new( twig_roots =&gt; { title =&gt; \&amp;number_title },
+                                twig_print_outside_roots =&gt; 1,
+                               );
+           $t-&gt;parsefile( file);
+           { my $nb;
+           sub number_title
+             { my( $twig, $title);
+               $nb++;
+               $title-&gt;prefix( &quot;$nb &quot;; }
+               $title-&gt;print;
+             }
+           }
+
+</PRE>
+
+
+
+
+<P>
+
+
+This example prints the document outside of the title element, calls 
+<TT>&quot;number_title&quot;</TT> for each <TT>&quot;title&quot;</TT> element, prints it, and then resumes printing
+the document. The twig is built only for the <TT>&quot;title&quot;</TT> elements.
+
+
+<P>
+
+
+If the value is a reference to a file handle then the document outside the
+<TT>&quot;twig_roots&quot;</TT> elements will be output to this file handle:
+
+
+<P>
+
+
+
+
+<PRE>
+  open( OUT, &quot;&gt;out_file&quot;) or die &quot;cannot open out file out_file:$!&quot;;
+  my $t= XML::Twig-&gt;new( twig_roots =&gt; { title =&gt; \&amp;number_title },
+                         # default output to OUT
+                         twig_print_outside_roots =&gt; \*OUT, 
+                       );
+
+         { my $nb;
+           sub number_title
+             { my( $twig, $title);
+               $nb++;
+               $title-&gt;prefix( &quot;$nb &quot;; }
+               $title-&gt;print( \*OUT);    # you have to print to \*OUT here
+             }
+           }
+
+</PRE>
+
+
+<DT>start_tag_handlers<DD>
+<A NAME="ixABH"></A>
+A hash <TT>&quot;{ expression =&quot;</TT> \&amp;handler}&gt;. Sets element handlers that are called when
+the element is open (at the end of the XML::Parser <TT>&quot;Start&quot;</TT> handler). The handlers
+are called with 2 params: the twig and the element. The element is empty at 
+that point, its attributes are created though.
+
+
+<P>
+
+
+You can use <I>generic_attribute_condition</I>, <I>attribute_condition</I>,
+<I>full_path</I>, <I>partial_path</I>, <I>tag</I>, <I>tag_regexp</I>, <I>_default_</I>  and <I>_all_</I> 
+to trigger the handler.
+
+
+<P>
+
+
+<I>string_condition</I> and <I>regexp_condition</I> cannot be used as the content of 
+the element, and the string, have not yet been parsed when the condition is 
+checked.
+
+
+<P>
+
+
+The main uses for those handlers are to change the tag name (you might have to 
+do it as soon as you find the open tag if you plan to <TT>&quot;flush&quot;</TT> the twig at some
+point in the element, and to create temporary attributes that will be used
+when processing sub-element with <TT>&quot;twig_hanlders&quot;</TT>.
+
+
+<P>
+
+
+You should also use it to change tags if you use <TT>&quot;flush&quot;</TT>. If you change the tag 
+in a regular <TT>&quot;twig_handler&quot;</TT> then the start tag might already have been flushed.
+
+
+<P>
+
+
+<B>Note</B>: <TT>&quot;start_tag&quot;</TT> handlers can be called outside of <TT>&quot;twig_roots&quot;</TT> if this 
+argument is used, in this case handlers are called with the following arguments:
+<TT>$t</TT> (the twig), <TT>$tag</TT> (the tag of the element) and <TT>%att</TT> (a hash of the 
+attributes of the element).
+
+
+<P>
+
+
+If the <TT>&quot;twig_print_outside_roots&quot;</TT> argument is also used, if the last handler
+called returns  a <TT>&quot;true&quot;</TT> value, then the the start tag will be output as it
+appeared in the original document, if the handler returns a a <TT>&quot;false&quot;</TT> value
+then the start tag will <B>not</B> be printed (so you can print a modified string 
+yourself for example).
+
+
+<P>
+
+
+Note that you can use the ignore method in <TT>&quot;start_tag_handlers&quot;</TT> 
+(and only there).
+<DT>end_tag_handlers<DD>
+<A NAME="ixABI"></A>
+A hash <TT>&quot;{ expression =&quot;</TT> \&amp;handler}&gt;. Sets element handlers that are called when
+the element is closed (at the end of the XML::Parser <TT>&quot;End&quot;</TT> handler). The handlers
+are called with 2 params: the twig and the tag of the element.
+
+
+<P>
+
+
+<I>twig_handlers</I> are called when an element is completely parsed, so why have 
+this redundant option? There is only one use for <TT>&quot;end_tag_handlers&quot;</TT>: when using
+the <TT>&quot;twig_roots&quot;</TT> option, to trigger a handler for an element <B>outside</B> the roots.
+It is for example very useful to number titles in a document using nested 
+sections:
+
+
+<P>
+
+
+
+
+<PRE>
+  my @no= (0);
+  my $no;
+  my $t= XML::Twig-&gt;new( 
+          start_tag_handlers =&gt; 
+           { section =&gt; sub { $no[$#no]++; $no= join '.', @no; push @no, 0; } },
+          twig_roots         =&gt; 
+           { title   =&gt; sub { $_[1]-&gt;prefix( $no); $_[1]-&gt;print; } },
+          end_tag_handlers   =&gt; { section =&gt; sub { pop @no;  } },
+          twig_print_outside_roots =&gt; 1
+                      );
+   $t-&gt;parsefile( $file);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Using the <TT>&quot;end_tag_handlers&quot;</TT> argument without <TT>&quot;twig_roots&quot;</TT> will result in an
+error.
+<DT>do_not_chain_handlers<DD>
+<A NAME="ixABJ"></A>
+If this option is set to a true value, then only one handler will be called for
+each element, even if several satisfy the condition
+
+
+<P>
+
+
+Note that the <TT>&quot;_all_&quot;</TT> handler will still be called regardless
+<DT>ignore_elts<DD>
+<A NAME="ixABK"></A>
+This option lets you ignore elements when building the twig. This is useful 
+in cases where you cannot use <TT>&quot;twig_roots&quot;</TT> to ignore elements, for example if
+the element to ignore is a sibling of elements you are interested in.
+
+
+<P>
+
+
+Example:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $twig= XML::Twig-&gt;new( ignore_elts =&gt; { elt =&gt; 1 });
+  $twig-&gt;parsefile( 'doc.xml');
+
+</PRE>
+
+
+
+
+<P>
+
+
+This will build the complete twig for the document, except that all <TT>&quot;elt&quot;</TT> 
+elements (and their children) will be left out.
+<DT>char_handler<DD>
+<A NAME="ixABL"></A>
+A reference to a subroutine that will be called every time <TT>&quot;PCDATA&quot;</TT> is found.
+
+
+<P>
+
+
+The subroutine receives the string as argument, and returns the modified string:
+
+
+<P>
+
+
+
+
+<PRE>
+  # we want all strings in upper case
+  sub my_char_handler
+    { my( $text)= @_;
+      $text= uc( $text);
+      return $text;
+    }
+
+</PRE>
+
+
+<DT>elt_class<DD>
+<A NAME="ixABM"></A>
+The name of a class used to store elements. this class should inherit from
+<TT>&quot;XML::Twig::Elt&quot;</TT> (and by default it is <TT>&quot;XML::Twig::Elt&quot;</TT>). This option is used
+to subclass the element class and extend it with new methods.
+
+
+<P>
+
+
+This option is needed because during the parsing of the <FONT SIZE="-1">XML</FONT>, elements are created
+by <TT>&quot;XML::Twig&quot;</TT>, without any control from the user code.
+<DT>keep_atts_order<DD>
+<A NAME="ixABN"></A>
+Setting this option to a true value causes the attribute hash to be tied to
+a <TT>&quot;Tie::IxHash&quot;</TT> object.
+This means that <TT>&quot;Tie::IxHash&quot;</TT> needs to be installed for this option to be 
+available. It also means that the hash keeps its order, so you will get 
+the attributes in order. This allows outputting the attributes in the same 
+order as they were in the original document.
+<DT>keep_encoding<DD>
+<A NAME="ixABO"></A>
+This is a (slightly?) evil option: if the <FONT SIZE="-1">XML</FONT> document is not <FONT SIZE="-1">UTF-8</FONT> encoded and
+you want to keep it that way, then setting keep_encoding will use the<TT>&quot;Expat&quot;</TT> 
+original_string method for character, thus keeping the original encoding, as 
+well as the original entities in the strings.
+
+
+<P>
+
+
+See the <TT>&quot;t/test6.t&quot;</TT> test file to see what results you can expect from the 
+various encoding options.
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>WARNING</B></FONT><B></B>: if the original encoding is multi-byte then attribute parsing will
+be <FONT SIZE="-1">EXTREMELY</FONT> unsafe under any Perl before 5.6, as it uses regular expressions
+which do not deal properly with multi-byte characters. You can specify an 
+alternate function to parse the start tags with the <TT>&quot;parse_start_tag&quot;</TT> option 
+(see below)
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>WARNING</B></FONT><B></B>: this option is <FONT SIZE="-1">NOT</FONT> used when parsing with the non-blocking parser 
+(<TT>&quot;parse_start&quot;</TT>, <TT>&quot;parse_more&quot;</TT>, parse_done methods) which you probably should 
+not use with XML::Twig anyway as they are totally untested!
+<DT>output_encoding<DD>
+<A NAME="ixABP"></A>
+This option generates an output_filter using <TT>&quot;Encode&quot;</TT>,  <TT>&quot;Text::Iconv&quot;</TT> or 
+<TT>&quot;Unicode::Map8&quot;</TT> and <TT>&quot;Unicode::Strings&quot;</TT>, and sets the encoding in the <FONT SIZE="-1">XML</FONT>
+declaration. This is the easiest way to deal with encodings, if you need 
+more sophisticated features, look at <TT>&quot;output_filter&quot;</TT> below
+<DT>output_filter<DD>
+<A NAME="ixABQ"></A>
+This option is used to convert the character encoding of the output document.
+It is passed either a string corresponding to a predefined filter or
+a subroutine reference. The filter will be called every time a document or 
+element is processed by the ``print'' functions (<TT>&quot;print&quot;</TT>, <TT>&quot;sprint&quot;</TT>, <TT>&quot;flush&quot;</TT>).
+
+
+<P>
+
+
+Pre-defined filters:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>latin1<DD>
+<A NAME="ixABR"></A>
+uses either <TT>&quot;Encode&quot;</TT>, <TT>&quot;Text::Iconv&quot;</TT> or <TT>&quot;Unicode::Map8&quot;</TT> and <TT>&quot;Unicode::String&quot;</TT>
+or a regexp (which works only with XML::Parser 2.27), in this order, to convert 
+all characters to <FONT SIZE="-1">ISO-8859-1</FONT> (aka latin1)
+<DT>html<DD>
+<A NAME="ixABS"></A>
+does the same conversion as <TT>&quot;latin1&quot;</TT>, plus encodes entities using
+<TT>&quot;HTML::Entities&quot;</TT> (oddly enough you will need to have HTML::Entities installed 
+for it to be available). This should only be used if the tags and attribute 
+names themselves are in US-ASCII, or they will be converted and the output will
+not be valid <FONT SIZE="-1">XML</FONT> any more
+<DT>safe<DD>
+<A NAME="ixABT"></A>
+converts the output to <FONT SIZE="-1">ASCII</FONT> (<FONT SIZE="-1">US</FONT>) only  plus <I>character entities</I> (<TT>&quot;&amp;#nnn;&quot;</TT>) 
+this should be used only if the tags and attribute names themselves are in 
+US-ASCII, or they will be converted and the output will not be valid <FONT SIZE="-1">XML</FONT> any 
+more
+<DT>safe_hex<DD>
+<A NAME="ixABU"></A>
+same as <TT>&quot;safe&quot;</TT> except that the character entities are in hexa (<TT>&quot;&amp;#xnnn;&quot;</TT>)
+<DT>encode_convert ($encoding)<DD>
+<A NAME="ixABV"></A>
+Return a subref that can be used to convert utf8 strings to <TT>$encoding</TT>).
+Uses <TT>&quot;Encode&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+   my $conv = XML::Twig::encode_convert( 'latin1');
+   my $t = XML::Twig-&gt;new(output_filter =&gt; $conv);
+
+</PRE>
+
+
+<DT>iconv_convert ($encoding)<DD>
+<A NAME="ixABW"></A>
+this function is used to create a filter subroutine that will be used to 
+convert the characters to the target encoding using <TT>&quot;Text::Iconv&quot;</TT> (which needs
+to be installed, look at the documentation for the module and for the
+<TT>&quot;iconv&quot;</TT> library to find out which encodings are available on your system)
+
+
+<P>
+
+
+
+
+<PRE>
+   my $conv = XML::Twig::iconv_convert( 'latin1');
+   my $t = XML::Twig-&gt;new(output_filter =&gt; $conv);
+
+</PRE>
+
+
+<DT>unicode_convert ($encoding)<DD>
+<A NAME="ixABX"></A>
+this function is used to create a filter subroutine that will be used to 
+convert the characters to the target encoding using  <TT>&quot;Unicode::Strings&quot;</TT> 
+and <TT>&quot;Unicode::Map8&quot;</TT> (which need to be installed, look at the documentation 
+for the modules to find out which encodings are available on your system)
+
+
+<P>
+
+
+
+
+<PRE>
+   my $conv = XML::Twig::unicode_convert( 'latin1');
+   my $t = XML::Twig-&gt;new(output_filter =&gt; $conv);
+
+</PRE>
+
+
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+The <TT>&quot;text&quot;</TT> and <TT>&quot;att&quot;</TT> methods do not use the filter, so their 
+result are always in unicode.
+
+
+<P>
+
+
+Those predeclared filters are based on subroutines that can be used
+by themselves (as <TT>&quot;XML::Twig::foo&quot;</TT>).
+<DL COMPACT>
+<DT>html_encode ($string)<DD>
+<A NAME="ixABY"></A>
+Use <TT>&quot;HTML::Entities&quot;</TT> to encode a utf8 string
+<DT>safe_encode ($string)<DD>
+<A NAME="ixABZ"></A>
+Use either a regexp (perl &lt; 5.8) or <TT>&quot;Encode&quot;</TT> to encode non-ascii characters
+in the string in <TT>&quot;&amp;#&lt;nnnn&gt;;&quot;</TT> format
+<DT>safe_encode_hex ($string)<DD>
+<A NAME="ixACA"></A>
+Use either a regexp (perl &lt; 5.8) or <TT>&quot;Encode&quot;</TT> to encode non-ascii characters
+in the string in <TT>&quot;&amp;#x&lt;nnnn&gt;;&quot;</TT> format
+<DT>regexp2latin1 ($string)<DD>
+<A NAME="ixACB"></A>
+Use a regexp to encode a utf8 string into latin 1 (<FONT SIZE="-1">ISO-8859-1</FONT>). Does not
+work with Perl 5.8.0!
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>output_text_filter<DD>
+<A NAME="ixACC"></A>
+same as output_filter, except it doesn't apply to the brackets and quotes 
+around attribute values. This is useful for all filters that could change
+the tagging, basically anything that does not just change the encoding of
+the output. <TT>&quot;html&quot;</TT>, <TT>&quot;safe&quot;</TT> and <TT>&quot;safe_hex&quot;</TT> are better used with this option.
+<DT>input_filter<DD>
+<A NAME="ixACD"></A>
+This option is similar to <TT>&quot;output_filter&quot;</TT> except the filter is applied to 
+the characters before they are stored in the twig, at parsing time.
+<DT>remove_cdata<DD>
+<A NAME="ixACE"></A>
+Setting this option to a true value will force the twig to output <FONT SIZE="-1">CDATA</FONT> 
+sections as regular (escaped) <FONT SIZE="-1">PCDATA</FONT>
+<DT>parse_start_tag<DD>
+<A NAME="ixACF"></A>
+If you use the <TT>&quot;keep_encoding&quot;</TT> option then this option can be used to replace
+the default parsing function. You should provide a coderef (a reference to a 
+subroutine) as the argument, this subroutine takes the original tag (given
+by XML::Parser::Expat <TT>&quot;original_string()&quot;</TT> method) and returns a tag and the
+attributes in a hash (or in a list attribute_name/attribute value).
+<DT>expand_external_ents<DD>
+<A NAME="ixACG"></A>
+When this option is used external entities (that are defined) are expanded
+when the document is output using ``print'' functions such as <TT>&quot;print &quot;</TT>,
+<TT>&quot;sprint &quot;</TT>, <TT>&quot;flush &quot;</TT> and <TT>&quot;xml_string &quot;</TT>. 
+Note that in the twig the entity will be stored as an element with a 
+tag '<TT>&quot;#ENT&quot;</TT>', the entity will not be expanded there, so you might want to 
+process the entities before outputting it.
+
+
+<P>
+
+
+If an external entity is not available, then the parse will fail.
+
+
+<P>
+
+
+A special case is when the value of this option is -1. In that case a missing
+entity will not cause the parser to die, but its <TT>&quot;name&quot;</TT>, <TT>&quot;sysid&quot;</TT> and <TT>&quot;pubid&quot;</TT>
+will be stored in the twig as <TT>&quot;$twig-&gt;{twig_missing_system_entities}&quot;</TT>
+(a reference to an array of hashes { name =&gt; &lt;name&gt;, sysid =&gt; &lt;sysid&gt;,
+pubid =&gt; &lt;pubid&gt; }). Yes, this is a bit of a hack, but it's useful in some
+cases.
+<DT>load_DTD<DD>
+<A NAME="ixACH"></A>
+If this argument is set to a true value, <TT>&quot;parse&quot;</TT> or <TT>&quot;parsefile&quot;</TT> on the twig
+will load  the <FONT SIZE="-1">DTD</FONT> information. This information can then be accessed through 
+the twig, in a <TT>&quot;DTD_handler&quot;</TT> for example. This will load even an external <FONT SIZE="-1">DTD</FONT>.
+
+
+<P>
+
+
+Default and fixed values for attributes will also be filled, based on the <FONT SIZE="-1">DTD</FONT>.
+
+
+<P>
+
+
+Note that to do this the module will generate a temporary file in the current
+directory. If this is a problem let me know and I will add an option to
+specify an alternate directory.
+
+
+<P>
+
+
+See ``<FONT SIZE="-1">DTD</FONT> Handling'' for more information
+<DT>DTD_handler<DD>
+<A NAME="ixACI"></A>
+Set a handler that will be called once the doctype (and the <FONT SIZE="-1">DTD</FONT>) have been 
+loaded, with 2 arguments, the twig and the <FONT SIZE="-1">DTD</FONT>.
+<DT>no_prolog<DD>
+<A NAME="ixACJ"></A>
+Does not output a prolog (<FONT SIZE="-1">XML</FONT> declaration and <FONT SIZE="-1">DTD</FONT>)
+<DT>id<DD>
+<A NAME="ixACK"></A>
+This optional argument gives the name of an attribute that can be used as
+an <FONT SIZE="-1">ID</FONT> in the document. Elements whose <FONT SIZE="-1">ID</FONT> is known can be accessed through
+the elt_id method. id defaults to 'id'.
+See <TT>&quot;BUGS &quot;</TT>
+<DT>discard_spaces<DD>
+<A NAME="ixACL"></A>
+If this optional argument is set to a true value then spaces are discarded
+when they look non-significant: strings containing only spaces are discarded.
+This argument is set to true by default.
+<DT>keep_spaces<DD>
+<A NAME="ixACM"></A>
+If this optional argument is set to a true value then all spaces in the
+document are kept, and stored as <TT>&quot;PCDATA&quot;</TT>.
+
+
+<P>
+
+
+<B>Warning</B>: adding this option can result in changes in the twig generated:
+space that was previously discarded might end up in a new text element. see
+the difference by calling the following code with 0 and 1 as arguments:
+
+
+<P>
+
+
+
+
+<PRE>
+  perl -MXML::Twig -e'print XML::Twig-&gt;new( keep_spaces =&gt; shift)-&gt;parse( &quot;&lt;d&gt; \n&lt;e/&gt;&lt;/d&gt;&quot;)-&gt;_dump'
+
+</PRE>
+
+
+
+
+<P>
+
+
+<TT>&quot;keep_spaces&quot;</TT> and <TT>&quot;discard_spaces&quot;</TT> cannot be both set.
+<DT>discard_spaces_in<DD>
+<A NAME="ixACN"></A>
+This argument sets <TT>&quot;keep_spaces&quot;</TT> to true but will cause the twig builder to
+discard spaces in the elements listed.
+
+
+<P>
+
+
+The syntax for using this argument is:
+
+
+<P>
+
+
+
+
+<PRE>
+  XML::Twig-&gt;new( discard_spaces_in =&gt; [ 'elt1', 'elt2']);
+
+</PRE>
+
+
+<DT>keep_spaces_in<DD>
+<A NAME="ixACO"></A>
+This argument sets <TT>&quot;discard_spaces&quot;</TT> to true but will cause the twig builder to
+keep spaces in the elements listed.
+
+
+<P>
+
+
+The syntax for using this argument is:
+
+
+<P>
+
+
+
+
+<PRE>
+  XML::Twig-&gt;new( keep_spaces_in =&gt; [ 'elt1', 'elt2']);
+
+</PRE>
+
+
+
+
+<P>
+
+
+<B>Warning</B>: adding this option can result in changes in the twig generated:
+space that was previously discarded might end up in a new text element.
+<DT>pretty_print<DD>
+<A NAME="ixACP"></A>
+Set the pretty print method, amongst '<TT>&quot;none&quot;</TT>' (default), '<TT>&quot;nsgmls&quot;</TT>', 
+'<TT>&quot;nice&quot;</TT>', '<TT>&quot;indented&quot;</TT>', '<TT>&quot;indented_c&quot;</TT>', '<TT>&quot;indented_a&quot;</TT>', 
+'<TT>&quot;indented_close_tag&quot;</TT>', '<TT>&quot;cvs&quot;</TT>', '<TT>&quot;wrapped&quot;</TT>', '<TT>&quot;record&quot;</TT>' and '<TT>&quot;record_c&quot;</TT>'
+
+
+<P>
+
+
+pretty_print formats:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>none<DD>
+<A NAME="ixACQ"></A>
+The document is output as one ling string, with no line breaks except those 
+found within text elements
+<DT>nsgmls<DD>
+<A NAME="ixACR"></A>
+Line breaks are inserted in safe places: that is within tags, between a tag 
+and an attribute, between attributes and before the &gt; at the end of a tag.
+
+
+<P>
+
+
+This is quite ugly but better than <TT>&quot;none&quot;</TT>, and it is very safe, the document 
+will still be valid (conforming to its <FONT SIZE="-1">DTD</FONT>).
+
+
+<P>
+
+
+This is how the <FONT SIZE="-1">SGML</FONT> parser <TT>&quot;sgmls&quot;</TT> splits documents, hence the name.
+<DT>nice<DD>
+<A NAME="ixACS"></A>
+This option inserts line breaks before any tag that does not contain text (so
+element with textual content are not broken as the \n is the significant).
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>WARNING</B></FONT><B></B>: this option leaves the document well-formed but might make it
+invalid (not conformant to its <FONT SIZE="-1">DTD</FONT>). If you have elements declared as
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;!ELEMENT foo (#PCDATA|bar)&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+then a <TT>&quot;foo&quot;</TT> element including a <TT>&quot;bar&quot;</TT> one will be printed as
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;foo&gt;
+  &lt;bar&gt;bar is just pcdata&lt;/bar&gt;
+  &lt;/foo&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+This is invalid, as the parser will take the line break after the <TT>&quot;foo&quot;</TT> tag 
+as a sign that the element contains <FONT SIZE="-1">PCDATA</FONT>, it will then die when it finds the 
+<TT>&quot;bar&quot;</TT> tag. This may or may not be important for you, but be aware of it!
+<DT>indented<DD>
+<A NAME="ixACT"></A>
+Same as <TT>&quot;nice&quot;</TT> (and with the same warning) but indents elements according to 
+their level
+<DT>indented_c<DD>
+<A NAME="ixACU"></A>
+Same as <TT>&quot;indented&quot;</TT> but a little more compact: the closing tags are on the 
+same line as the preceding text
+<DT>indented_close_tag<DD>
+<A NAME="ixACV"></A>
+Same as <TT>&quot;indented&quot;</TT> except that the closing tag is also indented, to line up 
+with the tags within the element
+<DT>idented_a<DD>
+<A NAME="ixACW"></A>
+This formats <FONT SIZE="-1">XML</FONT> files in a line-oriented version control friendly way. 
+The format is described in &lt;<A HREF="http://tinyurl.com/2kwscq">http://tinyurl.com/2kwscq</A>&gt; (that's an Oracle
+document with an insanely long <FONT SIZE="-1">URL</FONT>).
+
+
+<P>
+
+
+Note that to be totaly conformant to the ``spec'', the order of attributes
+should not be changed, so if they are not already in alphabetical order
+you will need to use the <TT>&quot;keep_atts_order&quot;</TT> option.
+<DT>cvs<DD>
+<A NAME="ixACX"></A>
+Same as <TT>&quot;idented_a&quot;</TT>.
+<DT>wrapped<DD>
+<A NAME="ixACY"></A>
+Same as <TT>&quot;indented_c&quot;</TT> but lines are wrapped using Text::Wrap::wrap. The 
+default length for lines is the default for <TT>$Text::Wrap::columns</TT>, and can
+be changed by changing that variable.
+<DT>record<DD>
+<A NAME="ixACZ"></A>
+This is a record-oriented pretty print, that display data in records, one field 
+per line (which looks a <FONT SIZE="-1">LOT</FONT> like <TT>&quot;indented&quot;</TT>)
+<DT>record_c<DD>
+<A NAME="ixADA"></A>
+Stands for record compact, one record per line
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>empty_tags<DD>
+<A NAME="ixADB"></A>
+Set the empty tag display style ('<TT>&quot;normal&quot;</TT>', '<TT>&quot;html&quot;</TT>' or '<TT>&quot;expand&quot;</TT>').
+
+
+<P>
+
+
+<TT>&quot;normal&quot;</TT> outputs an empty tag '<TT>&quot;&lt;tag/&gt;&quot;</TT>', <TT>&quot;html&quot;</TT> adds a space 
+'<TT>&quot;&lt;tag /&gt;&quot;</TT>' for elements that can be empty in <FONT SIZE="-1">XHTML</FONT> and <TT>&quot;expand&quot;</TT> outputs
+'<TT>&quot;&lt;tag&gt;&lt;/tag&gt;&quot;</TT>'
+<DT>quote<DD>
+<A NAME="ixADC"></A>
+Set the quote character for attributes ('<TT>&quot;single&quot;</TT>' or '<TT>&quot;double&quot;</TT>').
+<DT>escape_gt<DD>
+<A NAME="ixADD"></A>
+By default XML::Twig does not escape the character &gt; in its output, as it is not
+mandated by the <FONT SIZE="-1">XML</FONT> spec. With this option on, &gt; will be replaced by <TT>&quot;&amp;gt;&quot;</TT>
+<DT>comments<DD>
+<A NAME="ixADE"></A>
+Set the way comments are processed: '<TT>&quot;drop&quot;</TT>' (default), '<TT>&quot;keep&quot;</TT>' or 
+'<TT>&quot;process&quot;</TT>'
+
+
+<P>
+
+
+Comments processing options:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>drop<DD>
+<A NAME="ixADF"></A>
+drops the comments, they are not read, nor printed to the output
+<DT>keep<DD>
+<A NAME="ixADG"></A>
+comments are loaded and will appear on the output, they are not 
+accessible within the twig and will not interfere with processing
+though
+
+
+<P>
+
+
+<B>Note</B>: comments in the middle of a text element such as
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;p&gt;text &lt;!-- comment --&gt; more text --&gt;&lt;/p&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+are kept at their original position in the text. Using E.X``print''
+methods like <TT>&quot;print&quot;</TT> or <TT>&quot;sprint&quot;</TT> will return the comments in the
+text. Using <TT>&quot;text&quot;</TT> or <TT>&quot;field&quot;</TT> on the other hand will not.
+
+
+<P>
+
+
+Any use of <TT>&quot;set_pcdata&quot;</TT> on the <TT>&quot;#PCDATA&quot;</TT> element (directly or 
+through other methods like <TT>&quot;set_content&quot;</TT>) will delete the comment(s).
+<DT>process<DD>
+<A NAME="ixADH"></A>
+comments are loaded in the twig and will be treated as regular elements 
+(their <TT>&quot;tag&quot;</TT> is <TT>&quot;#COMMENT&quot;</TT>) this can interfere with processing if you
+expect <TT>&quot;$elt-&gt;{first_child}&quot;</TT> to be an element but find a comment there.
+Validation will not protect you from this as comments can happen anywhere.
+You can use <TT>&quot;$elt-&gt;first_child( 'tag')&quot;</TT> (which is a good habit anyway)
+to get where you want.
+
+
+<P>
+
+
+Consider using <TT>&quot;process&quot;</TT> if you are outputting <FONT SIZE="-1">SAX</FONT> events from XML::Twig.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>pi<DD>
+<A NAME="ixADI"></A>
+Set the way processing instructions are processed: '<TT>&quot;drop&quot;</TT>', '<TT>&quot;keep&quot;</TT>' 
+(default) or '<TT>&quot;process&quot;</TT>'
+
+
+<P>
+
+
+Note that you can also set <FONT SIZE="-1">PI</FONT> handlers in the <TT>&quot;twig_handlers&quot;</TT> option:
+
+
+<P>
+
+
+
+
+<PRE>
+  '?'       =&gt; \&amp;handler
+  '?target' =&gt; \&amp;handler 2
+
+</PRE>
+
+
+
+
+<P>
+
+
+The handlers will be called with 2 parameters, the twig and the <FONT SIZE="-1">PI</FONT> element if
+<TT>&quot;pi&quot;</TT> is set to <TT>&quot;process&quot;</TT>, and with 3, the twig, the target and the data if
+<TT>&quot;pi&quot;</TT> is set to <TT>&quot;keep&quot;</TT>. Of course they will not be called if <TT>&quot;pi&quot;</TT> is set to 
+<TT>&quot;drop&quot;</TT>.
+
+
+<P>
+
+
+If <TT>&quot;pi&quot;</TT> is set to <TT>&quot;keep&quot;</TT> the handler should return a string that will be used
+as-is as the <FONT SIZE="-1">PI</FONT> text (it should look like &quot;<TT>&quot; &lt;?target data?&quot;</TT> &gt;&quot; or '' if you
+want to remove the <FONT SIZE="-1">PI</FONT>),
+
+
+<P>
+
+
+Only one handler will be called, <TT>&quot;?target&quot;</TT> or <TT>&quot;?&quot;</TT> if no specific handler for
+that target is available.
+<DT>map_xmlns<DD>
+<A NAME="ixADJ"></A>
+This option is passed a hashref that maps uri's to prefixes. The prefixes in
+the document will be replaced by the ones in the map. The mapped prefixes can
+(actually have to) be used to trigger handlers, navigate or query the document.
+
+
+<P>
+
+
+Here is an example:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $t= XML::Twig-&gt;new( map_xmlns =&gt; {'<A HREF="http://www.w3.org/2000/svg'">http://www.w3.org/2000/svg'</A> =&gt; &quot;svg&quot;},
+                         twig_handlers =&gt; 
+                           { 'svg:circle' =&gt; sub { $_-&gt;set_att( r =&gt; 20) } },
+                         pretty_print =&gt; 'indented', 
+                       )
+                  -&gt;parse( '&lt;doc xmlns:gr=&quot;<A HREF="http://www.w3.org/2000/svg">http://www.w3.org/2000/svg</A>&quot;&gt;
+                              &lt;gr:circle cx=&quot;10&quot; cy=&quot;90&quot; r=&quot;10&quot;/&gt;
+                           &lt;/doc&gt;'
+                         )
+                  -&gt;print;
+
+</PRE>
+
+
+
+
+<P>
+
+
+This will output:
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;doc xmlns:svg=&quot;<A HREF="http://www.w3.org/2000/svg">http://www.w3.org/2000/svg</A>&quot;&gt;
+     &lt;svg:circle cx=&quot;10&quot; cy=&quot;90&quot; r=&quot;20&quot;/&gt;
+  &lt;/doc&gt;
+
+</PRE>
+
+
+<DT>keep_original_prefix<DD>
+<A NAME="ixADK"></A>
+When used with <TT>&quot;map_xmlns&quot;</TT> this option will make <TT>&quot;XML::Twig&quot;</TT> use the original
+namespace prefixes when outputting a document. The mapped prefix will still be used
+for triggering handlers and in navigation and query methods.
+
+
+<P>
+
+
+
+
+<PRE>
+  my $t= XML::Twig-&gt;new( map_xmlns =&gt; {'<A HREF="http://www.w3.org/2000/svg'">http://www.w3.org/2000/svg'</A> =&gt; &quot;svg&quot;},
+                         twig_handlers =&gt; 
+                           { 'svg:circle' =&gt; sub { $_-&gt;set_att( r =&gt; 20) } },
+                         keep_original_prefix =&gt; 1,
+                         pretty_print =&gt; 'indented', 
+                       )
+                  -&gt;parse( '&lt;doc xmlns:gr=&quot;<A HREF="http://www.w3.org/2000/svg">http://www.w3.org/2000/svg</A>&quot;&gt;
+                              &lt;gr:circle cx=&quot;10&quot; cy=&quot;90&quot; r=&quot;10&quot;/&gt;
+                           &lt;/doc&gt;'
+                         )
+                  -&gt;print;
+
+</PRE>
+
+
+
+
+<P>
+
+
+This will output:
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;doc xmlns:gr=&quot;<A HREF="http://www.w3.org/2000/svg">http://www.w3.org/2000/svg</A>&quot;&gt;
+     &lt;gr:circle cx=&quot;10&quot; cy=&quot;90&quot; r=&quot;20&quot;/&gt;
+  &lt;/doc&gt;
+
+</PRE>
+
+
+<DT>index ($arrayref or $hashref)<DD>
+
+
+<A NAME="ixADL"></A>
+This option creates lists of specific elements during the parsing of the <FONT SIZE="-1">XML</FONT>.
+It takes a reference to either a list of triggering expressions or to a hash 
+name =&gt; expression, and for each one generates the list of elements that 
+match the expression. The list can be accessed through the <TT>&quot;index&quot;</TT> method.
+
+
+<P>
+
+
+example:
+
+
+<P>
+
+
+
+
+<PRE>
+  # using an array ref
+  my $t= XML::Twig-&gt;new( index =&gt; [ 'div', 'table' ])
+                  -&gt;parsefile( &quot;foo.xml');
+  my $divs= $t-&gt;index( 'div');
+  my $first_div= $divs-&gt;[0];
+  my $last_table= $t-&gt;index( table =&gt; -1);
+
+  # using a hashref to name the indexes
+  my $t= XML::Twig-&gt;new( index =&gt; { email =&gt; 'a[@href=~/^\s*mailto:/]')
+                  -&gt;parsefile( &quot;foo.xml');
+  my $last_emails= $t-&gt;index( email =&gt; -1);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that the index is not maintained after the parsing. If elements are 
+deleted, renamed or otherwise hurt during processing, the index is <FONT SIZE="-1">NOT</FONT> updated.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+<B>Note</B>: I _HATE_ the Java-like name of arguments used by most <FONT SIZE="-1">XML</FONT> modules.
+So in pure <FONT SIZE="-1">TIMTOWTDI</FONT> fashion all arguments can be written either as
+<TT>&quot;UglyJavaLikeName&quot;</TT> or as <TT>&quot;readable_perl_name&quot;</TT>: <TT>&quot;twig_print_outside_roots&quot;</TT>
+or <TT>&quot;TwigPrintOutsideRoots&quot;</TT> (or even <TT>&quot;twigPrintOutsideRoots&quot;</TT> {shudder}). 
+XML::Twig normalizes them before processing them.
+</DL>
+
+<DT>parse ( $source)<DD>
+
+
+<A NAME="ixADM"></A>
+The <TT>$source</TT> parameter should either be a string containing the whole <FONT SIZE="-1">XML</FONT>
+document, or it should be an open <TT>&quot;IO::Handle&quot;</TT>. Constructor options to
+<TT>&quot;XML::Parser::Expat&quot;</TT> given as keyword-value pairs may follow the<TT>$source</TT> 
+parameter. These override, for this call, any options or attributes passed
+through from the XML::Parser instance.
+
+
+<P>
+
+
+A die call is thrown if a parse error occurs. Otherwise it will return 
+the twig built by the parse. Use <TT>&quot;safe_parse&quot;</TT> if you want the parsing
+to return even when an error occurs.
+
+
+<P>
+
+
+If this method is called as a class method
+(<TT>&quot;XML::Twig-&gt;parse( $some_xml_or_html)&quot;</TT>) then an XML::Twig object is 
+created, using the parameters except the last one (eg 
+<TT>&quot;XML::Twig-&gt;parse( pretty_print =&gt; 'indented', $some_xml_or_html)&quot;</TT>)
+and <TT>&quot;xparse&quot;</TT> is called on it.
+<DT>parsestring<DD>
+<A NAME="ixADN"></A>
+This is just an alias for <TT>&quot;parse&quot;</TT> for backwards compatibility.
+<DT>parsefile (<FONT SIZE="-1">FILE</FONT> [, <FONT SIZE="-1">OPT</FONT> =&gt; <FONT SIZE="-1">OPT_VALUE</FONT> [...]])<DD>
+<A NAME="ixADO"></A>
+Open <TT>&quot;FILE&quot;</TT> for reading, then call <TT>&quot;parse&quot;</TT> with the open handle. The file
+is closed no matter how <TT>&quot;parse&quot;</TT> returns.
+
+
+<P>
+
+
+A <TT>&quot;die&quot;</TT> call is thrown if a parse error occurs. Otherwise it will return 
+the twig built by the parse. Use <TT>&quot;safe_parsefile&quot;</TT> if you want the parsing
+to return even when an error occurs.
+<DT>parsefile_inplace ( $file, $optional_extension)<DD>
+
+
+<A NAME="ixADP"></A>
+Parse and update a file ``in place''. It does this by creating a temp file,
+selecting it as the default for <I>print()</I> statements (and methods), then parsing
+the input file. If the parsing is successful, then the temp file is 
+moved to replace the input file.
+
+
+<P>
+
+
+If an extension is given then the original file is backed-up (the rules for
+the extension are the same as the rule for the -i option in perl).
+<DT>parsefile_html_inplace ( $file, $optional_extension)<DD>
+
+
+<A NAME="ixADQ"></A>
+Same as parsefile_inplace, except that it parses <FONT SIZE="-1">HTML</FONT> instead of <FONT SIZE="-1">XML</FONT>
+<DT>parseurl ($url $optional_user_agent)<DD>
+
+
+<A NAME="ixADR"></A>
+Gets the data from <TT>$url</TT> and parse it. The data is piped to the parser in 
+chunks the size of the XML::Parser::Expat buffer, so memory consumption and
+hopefully speed are optimal.
+
+
+<P>
+
+
+For most (read ``small'') <FONT SIZE="-1">XML</FONT> it is probably as efficient (and easier to debug)
+to just <TT>&quot;get&quot;</TT> the <FONT SIZE="-1">XML</FONT> file and then parse it as a string.
+
+
+<P>
+
+
+
+
+<PRE>
+  use XML::Twig;
+  use LWP::Simple;
+  my $twig= XML::Twig-&gt;new();
+  $twig-&gt;parse( LWP::Simple::get( $URL ));
+
+</PRE>
+
+
+
+
+<P>
+
+
+or
+
+
+<P>
+
+
+
+
+<PRE>
+  use XML::Twig;
+  my $twig= XML::Twig-&gt;nparse( $URL);
+
+</PRE>
+
+
+
+
+<P>
+
+
+If the <TT>$optional_user_agent</TT> argument is used then it is used, otherwise a
+new one is created.
+<DT>safe_parse ( <FONT SIZE="-1">SOURCE</FONT> [, <FONT SIZE="-1">OPT</FONT> =&gt; <FONT SIZE="-1">OPT_VALUE</FONT> [...]])<DD>
+<A NAME="ixADS"></A>
+This method is similar to <TT>&quot;parse&quot;</TT> except that it wraps the parsing in an
+<TT>&quot;eval&quot;</TT> block. It returns the twig on success and 0 on failure (the twig object
+also contains the parsed twig). <TT>$@</TT> contains the error message on failure.
+
+
+<P>
+
+
+Note that the parsing still stops as soon as an error is detected, there is
+no way to keep going after an error.
+<DT>safe_parsefile (<FONT SIZE="-1">FILE</FONT> [, <FONT SIZE="-1">OPT</FONT> =&gt; <FONT SIZE="-1">OPT_VALUE</FONT> [...]])<DD>
+<A NAME="ixADT"></A>
+This method is similar to <TT>&quot;parsefile&quot;</TT> except that it wraps the parsing in an
+<TT>&quot;eval&quot;</TT> block. It returns the twig on success and 0 on failure (the twig object
+also contains the parsed twig) . <TT>$@</TT> contains the error message on failure
+
+
+<P>
+
+
+Note that the parsing still stops as soon as an error is detected, there is
+no way to keep going after an error.
+<DT>safe_parseurl ($url $optional_user_agent)<DD>
+
+
+<A NAME="ixADU"></A>
+Same as <TT>&quot;parseurl&quot;</TT> except that it wraps the parsing in an <TT>&quot;eval&quot;</TT> block. It 
+returns the twig on success and 0 on failure (the twig object also contains
+the parsed twig) . <TT>$@</TT> contains the error message on failure
+<DT>parse_html ($string_or_fh)<DD>
+<A NAME="ixADV"></A>
+parse an <FONT SIZE="-1">HTML</FONT> string or file handle (by converting it to <FONT SIZE="-1">XML</FONT> using
+HTML::TreeBuilder, which needs to be available).
+
+
+<P>
+
+
+This works nicely, but some information gets lost in the process:
+newlines are removed, and (at least on the version I use), comments
+get get an extra <FONT SIZE="-1">CDATA</FONT> section inside ( &lt;!-- foo --&gt; becomes
+&lt;!-- &lt;![CDATA[ foo ]]&gt; --&gt;
+<DT>parsefile_html<DD>
+<A NAME="ixADW"></A>
+parse an <FONT SIZE="-1">HTML</FONT> file (by converting it to <FONT SIZE="-1">XML</FONT> using HTML::TreeBuilder, which 
+needs to be available). The file is loaded completely in memory and converted
+to <FONT SIZE="-1">XML</FONT> before being parsed.
+
+
+<P>
+
+
+<B>Alpha</B>: implementation, and thus generated <FONT SIZE="-1">XML</FONT> could change.
+<DT>safe_parseurl_html ($url $optional_user_agent)<DD>
+
+
+<A NAME="ixADX"></A>
+Same as <TT>&quot;parseurl_html&quot;</TT>&gt; except that it wraps the parsing in an <TT>&quot;eval&quot;</TT>
+block.  It returns the twig on success and 0 on failure (the twig object also
+contains the parsed twig) . <TT>$@</TT> contains the error message on failure
+<DT>safe_parsefile_html ($file $optional_user_agent)<DD>
+
+
+<A NAME="ixADY"></A>
+Same as <TT>&quot;parsefile_html&quot;</TT>&gt; except that it wraps the parsing in an <TT>&quot;eval&quot;</TT> 
+block.  It returns the twig on success and 0 on failure (the twig object also 
+contains the parsed twig) . <TT>$@</TT> contains the error message on failure
+<DT>safe_parse_html ($string_or_fh)<DD>
+<A NAME="ixADZ"></A>
+Same as <TT>&quot;parse_html&quot;</TT> except that it wraps the parsing in an <TT>&quot;eval&quot;</TT> block. 
+It returns the twig on success and 0 on failure (the twig object also contains
+the parsed twig) . <TT>$@</TT> contains the error message on failure
+<DT>xparse ($thing_to_parse)<DD>
+<A NAME="ixAEA"></A>
+parse the <TT>$thing_to_parse</TT>, whether it is a filehandle, a string, an <FONT SIZE="-1">HTML</FONT> 
+file, an <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">URL</FONT>, an <FONT SIZE="-1">URL</FONT> or a file.
+
+
+<P>
+
+
+Note that this is mostly a convenience method for one-off scripts. For example
+files that end in '.htm' or '.html' are parsed first as <FONT SIZE="-1">XML</FONT>, and if this fails
+as <FONT SIZE="-1">HTML</FONT>. This is certainly not the most efficient way to do this in general.
+<DT>nparse ($optional_twig_options, $thing_to_parse)<DD>
+
+
+<A NAME="ixAEB"></A>
+create a twig with the <TT>$optional_options</TT>, and parse the <TT>$thing_to_parse</TT>, 
+whether it is a filehandle, a string, an <FONT SIZE="-1">HTML</FONT> file, an <FONT SIZE="-1">HTML</FONT> <FONT SIZE="-1">URL</FONT>, an <FONT SIZE="-1">URL</FONT> or a 
+file.
+
+
+<P>
+
+
+Examples:
+
+
+<P>
+
+
+
+
+<PRE>
+   XML::Twig-&gt;nparse( &quot;file.xml&quot;);
+   XML::Twig-&gt;nparse( error_context =&gt; 1, &quot;<A HREF="file://file.xml">file://file.xml</A>&quot;);
+
+</PRE>
+
+
+<DT>nparse_pp ($optional_twig_options, $thing_to_parse)<DD>
+
+
+<A NAME="ixAEC"></A>
+same as <TT>&quot;nparse&quot;</TT> but also sets the <TT>&quot;pretty_print&quot;</TT> option to <TT>&quot;indented&quot;</TT>.
+<DT>nparse_e ($optional_twig_options, $thing_to_parse)<DD>
+
+
+<A NAME="ixAED"></A>
+same as <TT>&quot;nparse&quot;</TT> but also sets the <TT>&quot;error_context&quot;</TT> option to 1.
+<DT>nparse_ppe ($optional_twig_options, $thing_to_parse)<DD>
+
+
+<A NAME="ixAEE"></A>
+same as <TT>&quot;nparse&quot;</TT> but also sets the <TT>&quot;pretty_print&quot;</TT> option to <TT>&quot;indented&quot;</TT>
+and the <TT>&quot;error_context&quot;</TT> option to 1.
+<DT>parser<DD>
+<A NAME="ixAEF"></A>
+This method returns the <TT>&quot;expat&quot;</TT> object (actually the XML::Parser::Expat object) 
+used during parsing. It is useful for example to call XML::Parser::Expat methods
+on it. To get the line of a tag for example use <TT>&quot;$t-&gt;parser-&gt;current_line&quot;</TT>.
+<DT>setTwigHandlers ($handlers)<DD>
+<A NAME="ixAEG"></A>
+Set the twig_handlers. <TT>$handlers</TT> is a reference to a hash similar to the
+one in the <TT>&quot;twig_handlers&quot;</TT> option of new. All previous handlers are unset.
+The method returns the reference to the previous handlers.
+<DT>setTwigHandler ($exp $handler)<DD>
+
+
+<A NAME="ixAEH"></A>
+Set a single twig_handler for elements matching <TT>$exp</TT>. <TT>$handler</TT> is a 
+reference to a subroutine. If the handler was previously set then the reference 
+to the previous handler is returned.
+<DT>setStartTagHandlers ($handlers)<DD>
+<A NAME="ixAEI"></A>
+Set the start_tag handlers. <TT>$handlers</TT> is a reference to a hash similar to the
+one in the <TT>&quot;start_tag_handlers&quot;</TT> option of new. All previous handlers are unset.
+The method returns the reference to the previous handlers.
+<DT>setStartTagHandler ($exp $handler)<DD>
+
+
+<A NAME="ixAEJ"></A>
+Set a single start_tag handlers for elements matching <TT>$exp</TT>. <TT>$handler</TT> is a 
+reference to a subroutine. If the handler was previously set then the reference
+to the previous handler is returned.
+<DT>setEndTagHandlers ($handlers)<DD>
+<A NAME="ixAEK"></A>
+Set the end_tag handlers. <TT>$handlers</TT> is a reference to a hash similar to the
+one in the <TT>&quot;end_tag_handlers&quot;</TT> option of new. All previous handlers are unset.
+The method returns the reference to the previous handlers.
+<DT>setEndTagHandler ($exp $handler)<DD>
+
+
+<A NAME="ixAEL"></A>
+Set a single end_tag handlers for elements matching <TT>$exp</TT>. <TT>$handler</TT> is a 
+reference to a subroutine. If the handler was previously set then the 
+reference to the previous handler is returned.
+<DT>setTwigRoots ($handlers)<DD>
+<A NAME="ixAEM"></A>
+Same as using the <TT>&quot;twig_roots&quot;</TT> option when creating the twig
+<DT>setCharHandler ($exp $handler)<DD>
+
+
+<A NAME="ixAEN"></A>
+Set a <TT>&quot;char_handler&quot;</TT>
+<DT>setIgnoreEltsHandler ($exp)<DD>
+<A NAME="ixAEO"></A>
+Set a <TT>&quot;ignore_elt&quot;</TT> handler (elements that match <TT>$exp</TT> will be ignored
+<DT>setIgnoreEltsHandlers ($exp)<DD>
+<A NAME="ixAEP"></A>
+Set all <TT>&quot;ignore_elt&quot;</TT> handlers (previous handlers are replaced)
+<DT>dtd<DD>
+<A NAME="ixAEQ"></A>
+Return the dtd (an XML::Twig::DTD object) of a twig
+<DT>xmldecl<DD>
+<A NAME="ixAER"></A>
+Return the <FONT SIZE="-1">XML</FONT> declaration for the document, or a default one if it doesn't
+have one
+<DT>doctype<DD>
+<A NAME="ixAES"></A>
+Return the doctype for the document
+<DT>doctype_name<DD>
+<A NAME="ixAET"></A>
+returns the doctype of the document from the doctype declaration
+<DT>system_id<DD>
+<A NAME="ixAEU"></A>
+returns the system value of the <FONT SIZE="-1">DTD</FONT> of the document from the doctype declaration
+<DT>public_id<DD>
+<A NAME="ixAEV"></A>
+returns the public doctype of the document from the doctype declaration
+<DT>internal_subset<DD>
+<A NAME="ixAEW"></A>
+returns the internal subset of the <FONT SIZE="-1">DTD</FONT>
+<DT>dtd_text<DD>
+<A NAME="ixAEX"></A>
+Return the <FONT SIZE="-1">DTD</FONT> text
+<DT>dtd_print<DD>
+<A NAME="ixAEY"></A>
+Print the <FONT SIZE="-1">DTD</FONT>
+<DT>model ($tag)<DD>
+<A NAME="ixAEZ"></A>
+Return the model (in the <FONT SIZE="-1">DTD</FONT>) for the element <TT>$tag</TT>
+<DT>root<DD>
+<A NAME="ixAFA"></A>
+Return the root element of a twig
+<DT>set_root ($elt)<DD>
+<A NAME="ixAFB"></A>
+Set the root of a twig
+<DT>first_elt ($optional_condition)<DD>
+<A NAME="ixAFC"></A>
+Return the first element matching <TT>$optional_condition</TT> of a twig, if
+no condition is given then the root is returned
+<DT>last_elt ($optional_condition)<DD>
+<A NAME="ixAFD"></A>
+Return the last element matching <TT>$optional_condition</TT> of a twig, if
+no condition is given then the last element of the twig is returned
+<DT>elt_id        ($id)<DD>
+<A NAME="ixAFE"></A>
+Return the element whose <TT>&quot;id&quot;</TT> attribute is <TT>$id</TT>
+<DT>getEltById<DD>
+<A NAME="ixAFF"></A>
+Same as <TT>&quot;elt_id&quot;</TT>
+<DT>index ($index_name, $optional_index)<DD>
+
+
+<A NAME="ixAFG"></A>
+If the <TT>$optional_index</TT> argument is present, return the corresponding element
+in the index (created using the <TT>&quot;index&quot;</TT> option for <TT>&quot;XML::Twig-&quot;</TT>new&gt;)
+
+
+<P>
+
+
+If the argument is not present, return an arrayref to the index
+<DT>normalize<DD>
+<A NAME="ixAFH"></A>
+merge together all consecutive pcdata elements in the document (if for example
+you have turned some elements into pcdata using <TT>&quot;erase&quot;</TT>, this will give you
+a ``clean'' document in which there all text elements are as long as possible).
+<DT>encoding<DD>
+<A NAME="ixAFI"></A>
+This method returns the encoding of the <FONT SIZE="-1">XML</FONT> document, as defined by the 
+<TT>&quot;encoding&quot;</TT> attribute in the <FONT SIZE="-1">XML</FONT> declaration (ie it is <TT>&quot;undef&quot;</TT> if the attribute
+is not defined)
+<DT>set_encoding<DD>
+<A NAME="ixAFJ"></A>
+This method sets the value of the <TT>&quot;encoding&quot;</TT> attribute in the <FONT SIZE="-1">XML</FONT> declaration. 
+Note that if the document did not have a declaration it is generated (with
+an <FONT SIZE="-1">XML</FONT> version of 1.0)
+<DT>xml_version<DD>
+<A NAME="ixAFK"></A>
+This method returns the <FONT SIZE="-1">XML</FONT> version, as defined by the <TT>&quot;version&quot;</TT> attribute in 
+the <FONT SIZE="-1">XML</FONT> declaration (ie it is <TT>&quot;undef&quot;</TT> if the attribute is not defined)
+<DT>set_xml_version<DD>
+<A NAME="ixAFL"></A>
+This method sets the value of the <TT>&quot;version&quot;</TT> attribute in the <FONT SIZE="-1">XML</FONT> declaration. 
+If the declaration did not exist it is created.
+<DT>standalone<DD>
+<A NAME="ixAFM"></A>
+This method returns the value of the <TT>&quot;standalone&quot;</TT> declaration for the document
+<DT>set_standalone<DD>
+<A NAME="ixAFN"></A>
+This method sets the value of the <TT>&quot;standalone&quot;</TT> attribute in the <FONT SIZE="-1">XML</FONT> 
+declaration.  Note that if the document did not have a declaration it is 
+generated (with an <FONT SIZE="-1">XML</FONT> version of 1.0)
+<DT>set_output_encoding<DD>
+<A NAME="ixAFO"></A>
+Set the <TT>&quot;encoding&quot;</TT> ``attribute'' in the <FONT SIZE="-1">XML</FONT> declaration
+<DT>set_doctype ($name, $system, $public, $internal)<DD>
+
+
+<A NAME="ixAFP"></A>
+Set the doctype of the element. If an argument is <TT>&quot;undef&quot;</TT> (or not present)
+then its former value is retained, if a false ('' or 0) value is passed then
+the former value is deleted;
+<DT>entity_list<DD>
+<A NAME="ixAFQ"></A>
+Return the entity list of a twig
+<DT>entity_names<DD>
+<A NAME="ixAFR"></A>
+Return the list of all defined entities
+<DT>entity ($entity_name)<DD>
+<A NAME="ixAFS"></A>
+Return the entity
+<DT>change_gi      ($old_gi, $new_gi)<DD>
+
+
+<A NAME="ixAFT"></A>
+Performs a (very fast) global change. All elements <TT>$old_gi</TT> are now 
+<TT>$new_gi</TT>. This is a bit dangerous though and should be avoided if
+&lt; possible, as the new tag might be ignored in subsequent processing.
+
+
+<P>
+
+
+See <TT>&quot;BUGS &quot;</TT>
+<DT>flush            ($optional_filehandle, %options)<DD>
+
+
+<A NAME="ixAFU"></A>
+Flushes a twig up to (and including) the current element, then deletes
+all unnecessary elements from the tree that's kept in memory.
+<TT>&quot;flush&quot;</TT> keeps track of which elements need to be open/closed, so if you
+flush from handlers you don't have to worry about anything. Just keep 
+flushing the twig every time you're done with a sub-tree and it will
+come out well-formed. After the whole parsing don't forget to<TT>&quot;flush&quot;</TT> 
+one more time to print the end of the document.
+The doctype and entity declarations are also printed.
+
+
+<P>
+
+
+flush take an optional filehandle as an argument.
+
+
+<P>
+
+
+options: use the <TT>&quot;update_DTD&quot;</TT> option if you have updated the (internal) <FONT SIZE="-1">DTD</FONT> 
+and/or the entity list and you want the updated <FONT SIZE="-1">DTD</FONT> to be output
+
+
+<P>
+
+
+The <TT>&quot;pretty_print&quot;</TT> option sets the pretty printing of the document.
+
+
+<P>
+
+
+
+
+<PRE>
+   Example: $t-&gt;flush( Update_DTD =&gt; 1);
+            $t-&gt;flush( $filehandle, pretty_print =&gt; 'indented');
+            $t-&gt;flush( \*FILE);
+
+</PRE>
+
+
+<DT>flush_up_to ($elt, $optional_filehandle, %options)<DD>
+
+
+<A NAME="ixAFV"></A>
+Flushes up to the <TT>$elt</TT> element. This allows you to keep part of the
+tree in memory when you <TT>&quot;flush&quot;</TT>.
+
+
+<P>
+
+
+options: see flush.
+<DT>purge<DD>
+<A NAME="ixAFW"></A>
+Does the same as a <TT>&quot;flush&quot;</TT> except it does not print the twig. It just deletes
+all elements that have been completely parsed so far.
+<DT>purge_up_to ($elt)<DD>
+<A NAME="ixAFX"></A>
+Purges up to the <TT>$elt</TT> element. This allows you to keep part of the tree in 
+memory when you <TT>&quot;purge&quot;</TT>.
+<DT>print            ($optional_filehandle, %options)<DD>
+
+
+<A NAME="ixAFY"></A>
+Prints the whole document associated with the twig. To be used only <FONT SIZE="-1">AFTER</FONT> the
+parse.
+
+
+<P>
+
+
+options: see <TT>&quot;flush&quot;</TT>.
+<DT>print_to_file    ($filename, %options)<DD>
+
+
+<A NAME="ixAFZ"></A>
+Prints the whole document associated with the twig to file <TT>$filename</TT>.
+To be used only <FONT SIZE="-1">AFTER</FONT> the parse.
+
+
+<P>
+
+
+options: see <TT>&quot;flush&quot;</TT>.
+<DT>sprint<DD>
+<A NAME="ixAGA"></A>
+Return the text of the whole document associated with the twig. To be used only
+<FONT SIZE="-1">AFTER</FONT> the parse.
+
+
+<P>
+
+
+options: see <TT>&quot;flush&quot;</TT>.
+<DT>trim<DD>
+<A NAME="ixAGB"></A>
+Trim the document: gets rid of initial and trailing spaces, and replaces multiple spaces
+by a single one.
+<DT>toSAX1 ($handler)<DD>
+<A NAME="ixAGC"></A>
+Send <FONT SIZE="-1">SAX</FONT> events for the twig to the <FONT SIZE="-1">SAX1</FONT> handler <TT>$handler</TT>
+<DT>toSAX2 ($handler)<DD>
+<A NAME="ixAGD"></A>
+Send <FONT SIZE="-1">SAX</FONT> events for the twig to the <FONT SIZE="-1">SAX2</FONT> handler <TT>$handler</TT>
+<DT>flush_toSAX1 ($handler)<DD>
+<A NAME="ixAGE"></A>
+Same as flush, except that <FONT SIZE="-1">SAX</FONT> events are sent to the <FONT SIZE="-1">SAX1</FONT> handler
+<TT>$handler</TT> instead of the twig being printed
+<DT>flush_toSAX2 ($handler)<DD>
+<A NAME="ixAGF"></A>
+Same as flush, except that <FONT SIZE="-1">SAX</FONT> events are sent to the <FONT SIZE="-1">SAX2</FONT> handler
+<TT>$handler</TT> instead of the twig being printed
+<DT>ignore<DD>
+<A NAME="ixAGG"></A>
+This method should be called during parsing, usually in <TT>&quot;start_tag_handlers&quot;</TT>.
+It causes the element to be skipped during the parsing: the twig is not built
+for this element, it will not be accessible during parsing or after it. The 
+element will not take up any memory and parsing will be faster.
+
+
+<P>
+
+
+Note that this method can also be called on an element. If the element is a 
+parent of the current element then this element will be ignored (the twig will
+not be built any more for it and what has already been built will be deleted).
+<DT>set_pretty_print  ($style)<DD>
+<A NAME="ixAGH"></A>
+Set the pretty print method, amongst '<TT>&quot;none&quot;</TT>' (default), '<TT>&quot;nsgmls&quot;</TT>', 
+'<TT>&quot;nice&quot;</TT>', '<TT>&quot;indented&quot;</TT>', <TT>&quot;indented_c&quot;</TT>, '<TT>&quot;wrapped&quot;</TT>', '<TT>&quot;record&quot;</TT>' and 
+'<TT>&quot;record_c&quot;</TT>'
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>WARNING:</B></FONT><B></B> the pretty print style is a <B></B><FONT SIZE="-1"><B>GLOBAL</B></FONT><B></B> variable, so once set it's
+applied to <B></B><FONT SIZE="-1"><B>ALL</B></FONT><B></B> <TT>&quot;print&quot;</TT>'s (and <TT>&quot;sprint&quot;</TT>'s). Same goes if you use XML::Twig
+with <TT>&quot;mod_perl&quot;</TT> . This should not be a problem as the <FONT SIZE="-1">XML</FONT> that's generated 
+is valid anyway, and <FONT SIZE="-1">XML</FONT> processors (as well as <FONT SIZE="-1">HTML</FONT> processors, including
+browsers) should not care. Let me know if this is a big problem, but at the
+moment the performance/cleanliness trade-off clearly favors the global 
+approach.
+<DT>set_empty_tag_style  ($style)<DD>
+<A NAME="ixAGI"></A>
+Set the empty tag display style ('<TT>&quot;normal&quot;</TT>', '<TT>&quot;html&quot;</TT>' or '<TT>&quot;expand&quot;</TT>'). As 
+with <TT>&quot;set_pretty_print&quot;</TT> this sets a global flag.
+
+
+<P>
+
+
+<TT>&quot;normal&quot;</TT> outputs an empty tag '<TT>&quot;&lt;tag/&gt;&quot;</TT>', <TT>&quot;html&quot;</TT> adds a space 
+'<TT>&quot;&lt;tag /&gt;&quot;</TT>' for elements that can be empty in <FONT SIZE="-1">XHTML</FONT> and <TT>&quot;expand&quot;</TT> outputs
+'<TT>&quot;&lt;tag&gt;&lt;/tag&gt;&quot;</TT>'
+<DT>set_remove_cdata  ($flag)<DD>
+<A NAME="ixAGJ"></A>
+set (or unset) the flag that forces the twig to output <FONT SIZE="-1">CDATA</FONT> sections as 
+regular (escaped) <FONT SIZE="-1">PCDATA</FONT>
+<DT>print_prolog     ($optional_filehandle, %options)<DD>
+
+
+<A NAME="ixAGK"></A>
+Prints the prolog (<FONT SIZE="-1">XML</FONT> declaration + <FONT SIZE="-1">DTD</FONT> + entity declarations) of a document.
+
+
+<P>
+
+
+options: see <TT>&quot;flush&quot;</TT>.
+<DT>prolog     ($optional_filehandle, %options)<DD>
+
+
+<A NAME="ixAGL"></A>
+Return the prolog (<FONT SIZE="-1">XML</FONT> declaration + <FONT SIZE="-1">DTD</FONT> + entity declarations) of a document.
+
+
+<P>
+
+
+options: see <TT>&quot;flush&quot;</TT>.
+<DT>finish<DD>
+<A NAME="ixAGM"></A>
+Call Expat <TT>&quot;finish&quot;</TT> method.
+Unsets all handlers (including internal ones that set context), but expat
+continues parsing to the end of the document or until it finds an error.
+It should finish up a lot faster than with the handlers set.
+<DT>finish_print<DD>
+<A NAME="ixAGN"></A>
+Stops twig processing, flush the twig and proceed to finish printing the 
+document as fast as possible. Use this method when modifying a document and 
+the modification is done.
+<DT>finish_now<DD>
+<A NAME="ixAGO"></A>
+Stops twig processing, does not finish parsing the document (which could
+actually be not well-formed after the point where <TT>&quot;finish_now&quot;</TT> is called).
+Execution resumes after the <TT>&quot;Lparse&quot;</TT>&gt; or <TT>&quot;parsefile&quot;</TT> call. The content
+of the twig is what has been parsed so far (all open elements at the time 
+<TT>&quot;finish_now&quot;</TT> is called are considered closed).
+<DT>set_expand_external_entities<DD>
+<A NAME="ixAGP"></A>
+Same as using the <TT>&quot;expand_external_ents&quot;</TT> option when creating the twig
+<DT>set_input_filter<DD>
+<A NAME="ixAGQ"></A>
+Same as using the <TT>&quot;input_filter&quot;</TT> option when creating the twig
+<DT>set_keep_atts_order<DD>
+<A NAME="ixAGR"></A>
+Same as using the <TT>&quot;keep_atts_order&quot;</TT> option when creating the twig
+<DT>set_keep_encoding<DD>
+<A NAME="ixAGS"></A>
+Same as using the <TT>&quot;keep_encoding&quot;</TT> option when creating the twig
+<DT>escape_gt<DD>
+<A NAME="ixAGT"></A>
+usually XML::Twig does not escape &gt; in its output. Using this option
+makes it replace &gt; by &amp;gt;
+<DT>do_not_escape_gt<DD>
+<A NAME="ixAGU"></A>
+reverts XML::Twig behavior to its default of not escaping &gt; in its output.
+<DT>set_output_filter<DD>
+<A NAME="ixAGV"></A>
+Same as using the <TT>&quot;output_filter&quot;</TT> option when creating the twig
+<DT>set_output_text_filter<DD>
+<A NAME="ixAGW"></A>
+Same as using the <TT>&quot;output_text_filter&quot;</TT> option when creating the twig
+<DT>add_stylesheet ($type, @options)<DD>
+
+
+<A NAME="ixAGX"></A>
+Adds an external stylesheet to an <FONT SIZE="-1">XML</FONT> document.
+
+
+<P>
+
+
+Supported types and options:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>xsl<DD>
+<A NAME="ixAGY"></A>
+option: the url of the stylesheet
+
+
+<P>
+
+
+Example:
+
+
+<P>
+
+
+
+
+<PRE>
+  $t-&gt;add_stylesheet( xsl =&gt; &quot;xsl_style.xsl&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+will generate the following <FONT SIZE="-1">PI</FONT> at the beginning of the document:
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;?xml-stylesheet type=&quot;text/xsl&quot; href=&quot;xsl_style.xsl&quot;?&gt;
+
+</PRE>
+
+
+<DT>css<DD>
+<A NAME="ixAGZ"></A>
+option: the url of the stylesheet
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>Methods inherited from XML::Parser::Expat<DD>
+<A NAME="ixAHA"></A>
+A twig inherits all the relevant methods from XML::Parser::Expat. These 
+methods can only be used during the parsing phase (they will generate
+a fatal error otherwise).
+
+
+<P>
+
+
+Inherited methods are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>depth<DD>
+<A NAME="ixAHB"></A>
+Returns the size of the context list.
+<DT>in_element<DD>
+<A NAME="ixAHC"></A>
+Returns true if <FONT SIZE="-1">NAME</FONT> is equal to the name of the innermost curaXX
+rently opened element. If namespace processing is being used and
+you want to check against a name that may be in a namespace, then
+use the generate_ns_name method to create the <FONT SIZE="-1">NAME</FONT> argument.
+<DT>within_element<DD>
+<A NAME="ixAHD"></A>
+Returns the number of times the given name appears in the context
+list.  If namespace processing is being used and you want to check
+against a name that may be in a namespace, then use the generaXX
+ate_ns_name method to create the <FONT SIZE="-1">NAME</FONT> argument.
+<DT>context<DD>
+<A NAME="ixAHE"></A>
+Returns a list of element names that represent open elements, with
+the last one being the innermost. Inside start and end tag hanaXX
+dlers, this will be the tag of the parent element.
+<DT>current_line<DD>
+<A NAME="ixAHF"></A>
+Returns the line number of the current position of the parse.
+<DT>current_column<DD>
+<A NAME="ixAHG"></A>
+Returns the column number of the current position of the parse.
+<DT>current_byte<DD>
+<A NAME="ixAHH"></A>
+Returns the current position of the parse.
+<DT>position_in_context<DD>
+<A NAME="ixAHI"></A>
+Returns a string that shows the current parse position. <FONT SIZE="-1">LINES</FONT>
+should be an integer &gt;= 0 that represents the number of lines on
+either side of the current parse line to place into the returned
+string.
+<DT>base ([<FONT SIZE="-1">NEWBASE</FONT>])<DD>
+<A NAME="ixAHJ"></A>
+Returns the current value of the base for resolving relative URIs.
+If <FONT SIZE="-1">NEWBASE</FONT> is supplied, changes the base to that value.
+<DT>current_element<DD>
+<A NAME="ixAHK"></A>
+Returns the name of the innermost currently opened element. Inside
+start or end handlers, returns the parent of the element associated
+with those tags.
+<DT>element_index<DD>
+<A NAME="ixAHL"></A>
+Returns an integer that is the depth-first visit order of the curaXX
+rent element. This will be zero outside of the root element. For
+example, this will return 1 when called from the start handler for
+the root element start tag.
+<DT>recognized_string<DD>
+<A NAME="ixAHM"></A>
+Returns the string from the document that was recognized in order
+to call the current handler. For instance, when called from a start
+handler, it will give us the the start-tag string. The string is
+encoded in <FONT SIZE="-1">UTF-8</FONT>.  This method doesn't return a meaningful string
+inside declaration handlers.
+<DT>original_string<DD>
+<A NAME="ixAHN"></A>
+Returns the verbatim string from the document that was recognized
+in order to call the current handler. The string is in the original
+document encoding. This method doesn't return a meaningful string
+inside declaration handlers.
+<DT>xpcroak<DD>
+<A NAME="ixAHO"></A>
+Concatenate onto the given message the current line number within
+the <FONT SIZE="-1">XML</FONT> document plus the message implied by ErrorContext. Then
+croak with the formed message.
+<DT>xpcarp<DD>
+<A NAME="ixAHP"></A>
+Concatenate onto the given message the current line number within
+the <FONT SIZE="-1">XML</FONT> document plus the message implied by ErrorContext. Then
+carp with the formed message.
+<DT>xml_escape(<FONT SIZE="-1">TEXT</FONT> [, <FONT SIZE="-1">CHAR</FONT> [, <FONT SIZE="-1">CHAR</FONT> ...]])<DD>
+<A NAME="ixAHQ"></A>
+Returns <FONT SIZE="-1">TEXT</FONT> with markup characters turned into character entities.
+Any additional characters provided as arguments are also turned
+into character references where found in <FONT SIZE="-1">TEXT</FONT>.
+
+
+<P>
+
+
+(this method is broken on some versions of expat/XML::Parser)
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>path ( $optional_tag)<DD>
+
+
+<A NAME="ixAHR"></A>
+Return the element context in a form similar to XPath's short
+form: '<TT>&quot;/root/tag1/../tag&quot;</TT>'
+<DT>get_xpath  ( $optional_array_ref, $xpath, $optional_offset)<DD>
+
+
+<A NAME="ixAHS"></A>
+Performs a <TT>&quot;get_xpath&quot;</TT> on the document root (see &lt;Elt|``Elt''&gt;)
+
+
+<P>
+
+
+If the <TT>$optional_array_ref</TT> argument is used the array must contain
+elements. The <TT>$xpath</TT> expression is applied to each element in turn 
+and the result is union of all results. This way a first query can be
+refined in further steps.
+<DT>find_nodes ( $optional_array_ref, $xpath, $optional_offset)<DD>
+
+
+<A NAME="ixAHT"></A>
+same as <TT>&quot;get_xpath&quot;</TT>
+<DT>findnodes ( $optional_array_ref, $xpath, $optional_offset)<DD>
+
+
+<A NAME="ixAHU"></A>
+same as <TT>&quot;get_xpath&quot;</TT> (similar to the XML::LibXML method)
+<DT>findvalue ( $optional_array_ref, $xpath, $optional_offset)<DD>
+
+
+<A NAME="ixAHV"></A>
+Return the <TT>&quot;join&quot;</TT> of all texts of the results of applying <TT>&quot;get_xpath&quot;</TT>
+to the node (similar to the XML::LibXML method)
+<DT>subs_text ($regexp, $replace)<DD>
+
+
+<A NAME="ixAHW"></A>
+subs_text does text substitution on the whole document, similar to perl's 
+<TT>&quot; s///&quot;</TT> operator.
+<DT>dispose<DD>
+<A NAME="ixAHX"></A>
+Useful only if you don't have <TT>&quot;Scalar::Util&quot;</TT> or <TT>&quot;WeakRef&quot;</TT> installed.
+
+
+<P>
+
+
+Reclaims properly the memory used by an XML::Twig object. As the object has
+circular references it never goes out of scope, so if you want to parse lots 
+of <FONT SIZE="-1">XML</FONT> documents then the memory leak becomes a problem. Use
+<TT>&quot;$twig-&gt;dispose&quot;</TT> to clear this problem.
+<DT>create_accessors (list_of_attribute_names)<DD>
+<A NAME="ixAHY"></A>
+A convenience method that creates l-valued accessors for attributes. 
+So <TT>&quot;$twig-&gt;create_accessors( 'foo')&quot;</TT> will create a <TT>&quot;foo&quot;</TT> method
+that can be called on elements:
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt-&gt;foo;         # equivalent to $elt-&gt;{'att'}-&gt;{'foo'};
+  $elt-&gt;foo( 'bar'); # equivalent to $elt-&gt;set_att( foo =&gt; 'bar');
+
+</PRE>
+
+
+<DT>set_do_not_escape_amp_in_atts<DD>
+<A NAME="ixAHZ"></A>
+An evil method, that I only document because Test::Pod::Coverage complaints otherwise,
+but really, you don't want to know about it.
+</DL>
+<A NAME="lbAO">&nbsp;</A>
+<H3>XML::Twig::Elt</H3>
+
+<A NAME="ixAIA"></A>
+<DL COMPACT>
+<DT>new          ($optional_tag, $optional_atts, @optional_content)<DD>
+
+
+<A NAME="ixAIB"></A>
+The <TT>&quot;tag&quot;</TT> is optional (but then you can't have a content ), the <TT>$optional_atts</TT> 
+argument is a reference to a hash of attributes, the content can be just a 
+string or a list of strings and element. A content of '<TT>&quot;#EMPTY&quot;</TT>' creates an empty 
+element;
+
+
+<P>
+
+
+
+
+<PRE>
+ Examples: my $elt= XML::Twig::Elt-&gt;new();
+           my $elt= XML::Twig::Elt-&gt;new( para =&gt; { align =&gt; 'center' });  
+           my $elt= XML::Twig::Elt-&gt;new( para =&gt; { align =&gt; 'center' }, 'foo');  
+           my $elt= XML::Twig::Elt-&gt;new( br   =&gt; '#EMPTY');
+           my $elt= XML::Twig::Elt-&gt;new( 'para');
+           my $elt= XML::Twig::Elt-&gt;new( para =&gt; 'this is a para');  
+           my $elt= XML::Twig::Elt-&gt;new( para =&gt; $elt3, 'another para');
+
+</PRE>
+
+
+
+
+<P>
+
+
+The strings are not parsed, the element is not attached to any twig.
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>WARNING</B></FONT><B></B>: if you rely on <FONT SIZE="-1">ID</FONT>'s then you will have to set the id yourself. At
+this point the element does not belong to a twig yet, so the <FONT SIZE="-1">ID</FONT> attribute
+is not known so it won't be stored in the <FONT SIZE="-1">ID</FONT> list.
+
+
+<P>
+
+
+Note that <TT>&quot;#COMMENT&quot;</TT>, <TT>&quot;#PCDATA&quot;</TT> or <TT>&quot;#CDATA&quot;</TT> are valid tag names, that will 
+create text elements.
+
+
+<P>
+
+
+To create an element <TT>&quot;foo&quot;</TT> containing a <FONT SIZE="-1">CDATA</FONT> section:
+
+
+<P>
+
+
+
+
+<PRE>
+           my $foo= XML::Twig::Elt-&gt;new( '#CDATA' =&gt; &quot;content of the CDATA section&quot;)
+                                  -&gt;wrap_in( 'foo');
+
+</PRE>
+
+
+
+
+<P>
+
+
+An attribute of '#CDATA', will create the content of the element as <FONT SIZE="-1">CDATA:</FONT>
+
+
+<P>
+
+
+
+
+<PRE>
+  my $elt= XML::Twig::Elt-&gt;new( 'p' =&gt; { '#CDATA' =&gt; 1}, 'foo &lt; bar');
+
+</PRE>
+
+
+
+
+<P>
+
+
+creates an element
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;p&gt;&lt;![CDATA[foo &lt; bar]]&gt;&lt;/&gt;
+
+</PRE>
+
+
+<DT>parse         ($string, %args)<DD>
+
+
+<A NAME="ixAIC"></A>
+Creates an element from an <FONT SIZE="-1">XML</FONT> string. The string is actually
+parsed as a new twig, then the root of that twig is returned.
+The arguments in <TT>%args</TT> are passed to the twig.
+As always if the parse fails the parser will die, so use an
+eval if you want to trap syntax errors.
+
+
+<P>
+
+
+As obviously the element does not exist beforehand this method has to be 
+called on the class:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $elt= parse XML::Twig::Elt( &quot;&lt;a&gt; string to parse, with &lt;sub/&gt;
+                                  &lt;elements&gt;, actually tons of &lt;/elements&gt;
+                  h&lt;/a&gt;&quot;);
+
+</PRE>
+
+
+<DT>set_inner_xml ($string)<DD>
+<A NAME="ixAID"></A>
+Sets the content of the element to be the tree created from the string
+<DT>set_inner_html ($string)<DD>
+<A NAME="ixAIE"></A>
+Sets the content of the element, after parsing the string with an <FONT SIZE="-1">HTML</FONT>
+parser (HTML::Parser)
+<DT>print         ($optional_filehandle, $optional_pretty_print_style)<DD>
+
+
+<A NAME="ixAIF"></A>
+Prints an entire element, including the tags, optionally to a 
+<TT>$optional_filehandle</TT>, optionally with a <TT>$pretty_print_style</TT>.
+
+
+<P>
+
+
+The print outputs <FONT SIZE="-1">XML</FONT> data so base entities are escaped.
+<DT>sprint       ($elt, $optional_no_enclosing_tag)<DD>
+
+
+<A NAME="ixAIG"></A>
+Return the xml string for an entire element, including the tags. 
+If the optional second argument is true then only the string inside the 
+element is returned (the start and end tag for <TT>$elt</TT> are not).
+The text is XML-escaped: base entities (&amp; and &lt; in text, &amp; &lt; and &quot; in
+attribute values) are turned into entities.
+<DT>gi<DD>
+<A NAME="ixAIH"></A>
+Return the gi of the element (the gi is the <TT>&quot;generic identifier&quot;</TT> the tag
+name in <FONT SIZE="-1">SGML</FONT> parlance).
+
+
+<P>
+
+
+<TT>&quot;tag&quot;</TT> and <TT>&quot;name&quot;</TT> are synonyms of <TT>&quot;gi&quot;</TT>.
+<DT>tag<DD>
+<A NAME="ixAII"></A>
+Same as <TT>&quot;gi&quot;</TT>
+<DT>name<DD>
+<A NAME="ixAIJ"></A>
+Same as <TT>&quot;tag&quot;</TT>
+<DT>set_gi         ($tag)<DD>
+<A NAME="ixAIK"></A>
+Set the gi (tag) of an element
+<DT>set_tag        ($tag)<DD>
+<A NAME="ixAIL"></A>
+Set the tag (=<TT>&quot;tag&quot;</TT>) of an element
+<DT>set_name       ($name)<DD>
+<A NAME="ixAIM"></A>
+Set the name (=<TT>&quot;tag&quot;</TT>) of an element
+<DT>root<DD>
+<A NAME="ixAIN"></A>
+Return the root of the twig in which the element is contained.
+<DT>twig<DD>
+<A NAME="ixAIO"></A>
+Return the twig containing the element.
+<DT>parent        ($optional_condition)<DD>
+<A NAME="ixAIP"></A>
+Return the parent of the element, or the first ancestor matching the 
+<TT>$optional_condition</TT>
+<DT>first_child   ($optional_condition)<DD>
+<A NAME="ixAIQ"></A>
+Return the first child of the element, or the first child matching the 
+<TT>$optional_condition</TT>
+<DT>has_child ($optional_condition)<DD>
+<A NAME="ixAIR"></A>
+Return the first child of the element, or the first child matching the 
+<TT>$optional_condition</TT> (same as first_child)
+<DT>has_children ($optional_condition)<DD>
+<A NAME="ixAIS"></A>
+Return the first child of the element, or the first child matching the 
+<TT>$optional_condition</TT> (same as first_child)
+<DT>first_child_text   ($optional_condition)<DD>
+<A NAME="ixAIT"></A>
+Return the text of the first child of the element, or the first child
+<BR>&nbsp;matching&nbsp;the&nbsp;<TT>$optional_condition</TT>
+If there is no first_child then returns ''. This avoids getting the
+child, checking for its existence then getting the text for trivial cases.
+
+
+<P>
+
+
+Similar methods are available for the other navigation methods:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>last_child_text<DD>
+<A NAME="ixAIU"></A>
+
+<DT>prev_sibling_text<DD>
+<A NAME="ixAIV"></A>
+<DT>next_sibling_text<DD>
+<A NAME="ixAIW"></A>
+<DT>prev_elt_text<DD>
+<A NAME="ixAIX"></A>
+<DT>next_elt_text<DD>
+<A NAME="ixAIY"></A>
+<DT>child_text<DD>
+<A NAME="ixAIZ"></A>
+<DT>parent_text<DD>
+<A NAME="ixAJA"></A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+
+<P>
+
+
+All this methods also exist in ``trimmed'' variant:
+<DL COMPACT>
+<DT>first_child_trimmed_text<DD>
+<A NAME="ixAJB"></A>
+
+<DT>last_child_trimmed_text<DD>
+<A NAME="ixAJC"></A>
+<DT>prev_sibling_trimmed_text<DD>
+<A NAME="ixAJD"></A>
+<DT>next_sibling_trimmed_text<DD>
+<A NAME="ixAJE"></A>
+<DT>prev_elt_trimmed_text<DD>
+<A NAME="ixAJF"></A>
+<DT>next_elt_trimmed_text<DD>
+<A NAME="ixAJG"></A>
+<DT>child_trimmed_text<DD>
+<A NAME="ixAJH"></A>
+<DT>parent_trimmed_text<DD>
+<A NAME="ixAJI"></A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>field         ($condition)<DD>
+<A NAME="ixAJJ"></A>
+
+Same method as <TT>&quot;first_child_text&quot;</TT> with a different name
+<DT>fields         ($condition_list)<DD>
+<A NAME="ixAJK"></A>
+Return the list of field (text of first child matching the conditions),
+missing fields are returned as the empty string.
+
+
+<P>
+
+
+Same method as <TT>&quot;first_child_text&quot;</TT> with a different name
+<DT>trimmed_field         ($optional_condition)<DD>
+<A NAME="ixAJL"></A>
+Same method as <TT>&quot;first_child_trimmed_text&quot;</TT> with a different name
+<DT>set_field ($condition, $optional_atts, @list_of_elt_and_strings)<DD>
+
+
+<A NAME="ixAJM"></A>
+Set the content of the first child of the element that matches
+<TT>$condition</TT>, the rest of the arguments is the same as for <TT>&quot;set_content&quot;</TT>
+
+
+<P>
+
+
+If no child matches <TT>$condition</TT> _and_ if <TT>$condition</TT> is a valid
+<FONT SIZE="-1">XML</FONT> element name, then a new element by that name is created and 
+inserted as the last child.
+<DT>first_child_matches   ($optional_condition)<DD>
+<A NAME="ixAJN"></A>
+Return the element if the first child of the element (if it exists) passes
+the <TT>$optional_condition</TT> <TT>&quot;undef&quot;</TT> otherwise
+
+
+<P>
+
+
+
+
+<PRE>
+  if( $elt-&gt;first_child_matches( 'title')) ...
+
+</PRE>
+
+
+
+
+<P>
+
+
+is equivalent to
+
+
+<P>
+
+
+
+
+<PRE>
+  if( $elt-&gt;{first_child} &amp;&amp; $elt-&gt;{first_child}-&gt;passes( 'title'))
+
+</PRE>
+
+
+
+
+<P>
+
+
+<TT>&quot;first_child_is&quot;</TT> is an other name for this method
+
+
+<P>
+
+
+Similar methods are available for the other navigation methods:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>last_child_matches<DD>
+<A NAME="ixAJO"></A>
+
+<DT>prev_sibling_matches<DD>
+<A NAME="ixAJP"></A>
+<DT>next_sibling_matches<DD>
+<A NAME="ixAJQ"></A>
+<DT>prev_elt_matches<DD>
+<A NAME="ixAJR"></A>
+<DT>next_elt_matches<DD>
+<A NAME="ixAJS"></A>
+<DT>child_matches<DD>
+<A NAME="ixAJT"></A>
+<DT>parent_matches<DD>
+<A NAME="ixAJU"></A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>is_first_child ($optional_condition)<DD>
+<A NAME="ixAJV"></A>
+
+returns true (the element) if the element is the first child of its parent
+(optionally that satisfies the <TT>$optional_condition</TT>)
+<DT>is_last_child ($optional_condition)<DD>
+<A NAME="ixAJW"></A>
+returns true (the element) if the element is the first child of its parent
+(optionally that satisfies the <TT>$optional_condition</TT>)
+<DT>prev_sibling  ($optional_condition)<DD>
+<A NAME="ixAJX"></A>
+Return the previous sibling of the element, or the previous sibling matching
+<TT>$optional_condition</TT>
+<DT>next_sibling  ($optional_condition)<DD>
+<A NAME="ixAJY"></A>
+Return the next sibling of the element, or the first one matching 
+<TT>$optional_condition</TT>.
+<DT>next_elt     ($optional_elt, $optional_condition)<DD>
+
+
+<A NAME="ixAJZ"></A>
+Return the next elt (optionally matching <TT>$optional_condition</TT>) of the element. This 
+is defined as the next element which opens after the current element opens.
+Which usually means the first child of the element.
+Counter-intuitive as it might look this allows you to loop through the
+whole document by starting from the root.
+
+
+<P>
+
+
+The <TT>$optional_elt</TT> is the root of a subtree. When the <TT>&quot;next_elt&quot;</TT> is out of the
+subtree then the method returns undef. You can then walk a sub tree with:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $elt= $subtree_root;
+  while( $elt= $elt-&gt;next_elt( $subtree_root)
+    { # insert processing code here
+    }
+
+</PRE>
+
+
+<DT>prev_elt     ($optional_condition)<DD>
+<A NAME="ixAKA"></A>
+Return the previous elt (optionally matching <TT>$optional_condition</TT>) of the
+element. This is the first element which opens before the current one.
+It is usually either the last descendant of the previous sibling or
+simply the parent
+<DT>next_n_elt   ($offset, $optional_condition)<DD>
+
+
+<A NAME="ixAKB"></A>
+Return the <TT>$offset</TT>-th element that matches the <TT>$optional_condition</TT>
+<DT>following_elt<DD>
+<A NAME="ixAKC"></A>
+Return the following element (as per the XPath following axis)
+<DT>preceding_elt<DD>
+<A NAME="ixAKD"></A>
+Return the preceding element (as per the XPath preceding axis)
+<DT>following_elts<DD>
+<A NAME="ixAKE"></A>
+Return the list of following elements (as per the XPath following axis)
+<DT>preceding_elts<DD>
+<A NAME="ixAKF"></A>
+Return the pst of preceding elements (as per the XPath preceding axis)
+<DT>children     ($optional_condition)<DD>
+<A NAME="ixAKG"></A>
+Return the list of children (optionally which matches <TT>$optional_condition</TT>) of 
+the element. The list is in document order.
+<DT>children_count ($optional_condition)<DD>
+<A NAME="ixAKH"></A>
+Return the number of children of the element (optionally which matches 
+<TT>$optional_condition</TT>)
+<DT>children_text ($optional_condition)<DD>
+<A NAME="ixAKI"></A>
+In array context, reeturns an array containing the text of children of the
+element (optionally which matches <TT>$optional_condition</TT>)
+
+
+<P>
+
+
+In scalar context, returns the concatenation of the text of children of
+the element
+<DT>children_trimmed_text ($optional_condition)<DD>
+<A NAME="ixAKJ"></A>
+In array context, returns an array containing the trimmed text of children 
+of the element (optionally which matches <TT>$optional_condition</TT>)
+
+
+<P>
+
+
+In scalar context, returns the concatenation of the trimmed text of children of
+the element
+<DT>children_copy ($optional_condition)<DD>
+<A NAME="ixAKK"></A>
+Return a list of elements that are copies of the children of the element, 
+optionally which matches <TT>$optional_condition</TT>
+<DT>descendants     ($optional_condition)<DD>
+<A NAME="ixAKL"></A>
+Return the list of all descendants (optionally which matches 
+<TT>$optional_condition</TT>) of the element. This is the equivalent of the 
+<TT>&quot;getElementsByTagName&quot;</TT> of the <FONT SIZE="-1">DOM</FONT> (by the way, if you are really a <FONT SIZE="-1">DOM</FONT> 
+addict, you can use <TT>&quot;getElementsByTagName&quot;</TT> instead)
+<DT>getElementsByTagName ($optional_condition)<DD>
+<A NAME="ixAKM"></A>
+Same as <TT>&quot;descendants&quot;</TT>
+<DT>find_by_tag_name ($optional_condition)<DD>
+<A NAME="ixAKN"></A>
+Same as <TT>&quot;descendants&quot;</TT>
+<DT>descendants_or_self ($optional_condition)<DD>
+<A NAME="ixAKO"></A>
+Same as <TT>&quot;descendants&quot;</TT> except that the element itself is included in the list
+if it matches the <TT>$optional_condition</TT>
+<DT>first_descendant  ($optional_condition)<DD>
+<A NAME="ixAKP"></A>
+Return the first descendant of the element that matches the condition
+<DT>last_descendant  ($optional_condition)<DD>
+<A NAME="ixAKQ"></A>
+Return the last descendant of the element that matches the condition
+<DT>ancestors    ($optional_condition)<DD>
+<A NAME="ixAKR"></A>
+Return the list of ancestors (optionally matching <TT>$optional_condition</TT>) of the 
+element.  The list is ordered from the innermost ancestor to the outermost one
+
+
+<P>
+
+
+<FONT SIZE="-1">NOTE:</FONT> the element itself is not part of the list, in order to include it 
+you will have to use ancestors_or_self
+<DT>ancestors_or_self     ($optional_condition)<DD>
+<A NAME="ixAKS"></A>
+Return the list of ancestors (optionally matching <TT>$optional_condition</TT>) of the 
+element, including the element (if it matches the condition&gt;).  
+The list is ordered from the innermost ancestor to the outermost one
+<DT>passes ($condition)<DD>
+<A NAME="ixAKT"></A>
+Return the element if it passes the <TT>$condition</TT>
+<DT>att          ($att)<DD>
+<A NAME="ixAKU"></A>
+Return the value of attribute <TT>$att</TT> or <TT>&quot;undef&quot;</TT>
+<DT>set_att      ($att, $att_value)<DD>
+
+
+<A NAME="ixAKV"></A>
+Set the attribute of the element to the given value
+
+
+<P>
+
+
+You can actually set several attributes this way:
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt-&gt;set_att( att1 =&gt; &quot;val1&quot;, att2 =&gt; &quot;val2&quot;);
+
+</PRE>
+
+
+<DT>del_att      ($att)<DD>
+<A NAME="ixAKW"></A>
+Delete the attribute for the element
+
+
+<P>
+
+
+You can actually delete several attributes at once:
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt-&gt;del_att( 'att1', 'att2', 'att3');
+
+</PRE>
+
+
+<DT>att_exists ($att)<DD>
+<A NAME="ixAKX"></A>
+Returns true if the attribute <TT>$att</TT> exists for the element, false 
+otherwise
+<DT>cut<DD>
+<A NAME="ixAKY"></A>
+Cut the element from the tree. The element still exists, it can be copied
+or pasted somewhere else, it is just not attached to the tree anymore.
+
+
+<P>
+
+
+Note that the ``old'' links to the parent, previous and next siblings can
+still be accessed using the former_* methods
+<DT>former_next_sibling<DD>
+<A NAME="ixAKZ"></A>
+Returns the former next sibling of a cut node (or undef if the node has not been cut)
+
+
+<P>
+
+
+This makes it easier to write loops where you cut elements:
+
+
+<P>
+
+
+
+
+<PRE>
+    my $child= $parent-&gt;first_child( 'achild');
+    while( $child-&gt;{'att'}-&gt;{'cut'}) 
+      { $child-&gt;cut; $child= $child-&gt;former_next_sibling; }
+
+</PRE>
+
+
+<DT>former_prev_sibling<DD>
+<A NAME="ixALA"></A>
+Returns the former previous sibling of a cut node (or undef if the node has not been cut)
+<DT>former_parent<DD>
+<A NAME="ixALB"></A>
+Returns the former parent of a cut node (or undef if the node has not been cut)
+<DT>cut_children ($optional_condition)<DD>
+<A NAME="ixALC"></A>
+Cut all the children of the element (or all of those which satisfy the
+<TT>$optional_condition</TT>).
+
+
+<P>
+
+
+Return the list of children
+<DT>copy        ($elt)<DD>
+<A NAME="ixALD"></A>
+Return a copy of the element. The copy is a ``deep'' copy: all sub elements of 
+the element are duplicated.
+<DT>paste       ($optional_position, $ref)<DD>
+
+
+<A NAME="ixALE"></A>
+Paste a (previously <TT>&quot;cut&quot;</TT> or newly generated) element. Die if the element
+already belongs to a tree.
+
+
+<P>
+
+
+Note that the calling element is pasted:
+
+
+<P>
+
+
+
+
+<PRE>
+  $child-&gt;paste( first_child =&gt; $existing_parent);
+  $new_sibling-&gt;paste( after =&gt; $this_sibling_is_already_in_the_tree);
+
+</PRE>
+
+
+
+
+<P>
+
+
+or
+
+
+<P>
+
+
+
+
+<PRE>
+  my $new_elt= XML::Twig::Elt-&gt;new( tag =&gt; $content);
+  $new_elt-&gt;paste( $position =&gt; $existing_elt);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Example:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $t= XML::Twig-&gt;new-&gt;parse( 'doc.xml')
+  my $toc= $t-&gt;root-&gt;new( 'toc');
+  $toc-&gt;paste( $t-&gt;root); # $toc is pasted as first child of the root 
+  foreach my $title ($t-&gt;findnodes( '/doc/section/title'))
+    { my $title_toc= $title-&gt;copy;
+      # paste $title_toc as the last child of toc
+      $title_toc-&gt;paste( last_child =&gt; $toc) 
+    }
+
+</PRE>
+
+
+
+
+<P>
+
+
+Position options:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>first_child (default)<DD>
+<A NAME="ixALF"></A>
+The element is pasted as the first child of <TT>$ref</TT>
+<DT>last_child<DD>
+<A NAME="ixALG"></A>
+The element is pasted as the last child of <TT>$ref</TT>
+<DT>before<DD>
+<A NAME="ixALH"></A>
+The element is pasted before <TT>$ref</TT>, as its previous sibling.
+<DT>after<DD>
+<A NAME="ixALI"></A>
+The element is pasted after <TT>$ref</TT>, as its next sibling.
+<DT>within<DD>
+<A NAME="ixALJ"></A>
+In this case an extra argument, <TT>$offset</TT>, should be supplied. The element
+will be pasted in the reference element (or in its first text child) at the
+given offset. To achieve this the reference element will be split at the 
+offset.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+Note that you can call directly the underlying method:
+<DL COMPACT>
+<DT>paste_before<DD>
+<A NAME="ixALK"></A>
+
+<DT>paste_after<DD>
+<A NAME="ixALL"></A>
+<DT>paste_first_child<DD>
+<A NAME="ixALM"></A>
+<DT>paste_last_child<DD>
+<A NAME="ixALN"></A>
+<DT>paste_within<DD>
+<A NAME="ixALO"></A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>move       ($optional_position, $ref)<DD>
+
+
+<A NAME="ixALP"></A>
+
+Move an element in the tree.
+This is just a <TT>&quot;cut&quot;</TT> then a <TT>&quot;paste&quot;</TT>.  The syntax is the same as <TT>&quot;paste&quot;</TT>.
+<DT>replace       ($ref)<DD>
+<A NAME="ixALQ"></A>
+Replaces an element in the tree. Sometimes it is just not possible to<TT>&quot;cut&quot;</TT> 
+an element then <TT>&quot;paste&quot;</TT> another in its place, so <TT>&quot;replace&quot;</TT> comes in handy.
+The calling element replaces <TT>$ref</TT>.
+<DT>replace_with   (@elts)<DD>
+<A NAME="ixALR"></A>
+Replaces the calling element with one or more elements
+<DT>delete<DD>
+<A NAME="ixALS"></A>
+Cut the element and frees the memory.
+<DT>prefix       ($text, $optional_option)<DD>
+
+
+<A NAME="ixALT"></A>
+Add a prefix to an element. If the element is a <TT>&quot;PCDATA&quot;</TT> element the text
+is added to the pcdata, if the elements first child is a <TT>&quot;PCDATA&quot;</TT> then the
+text is added to it's pcdata, otherwise a new <TT>&quot;PCDATA&quot;</TT> element is created 
+and pasted as the first child of the element.
+
+
+<P>
+
+
+If the option is <TT>&quot;asis&quot;</TT> then the prefix is added asis: it is created in
+a separate <TT>&quot;PCDATA&quot;</TT> element with an <TT>&quot;asis&quot;</TT> property. You can then write:
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt1-&gt;prefix( '&lt;b&gt;', 'asis');
+
+</PRE>
+
+
+
+
+<P>
+
+
+to create a <TT>&quot;&lt;b&gt;&quot;</TT> in the output of <TT>&quot;print&quot;</TT>.
+<DT>suffix       ($text, $optional_option)<DD>
+
+
+<A NAME="ixALU"></A>
+Add a suffix to an element. If the element is a <TT>&quot;PCDATA&quot;</TT> element the text
+is added to the pcdata, if the elements last child is a <TT>&quot;PCDATA&quot;</TT> then the
+text is added to it's pcdata, otherwise a new <FONT SIZE="-1">PCDATA</FONT> element is created 
+and pasted as the last child of the element.
+
+
+<P>
+
+
+If the option is <TT>&quot;asis&quot;</TT> then the suffix is added asis: it is created in
+a separate <TT>&quot;PCDATA&quot;</TT> element with an <TT>&quot;asis&quot;</TT> property. You can then write:
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt2-&gt;suffix( '&lt;/b&gt;', 'asis');
+
+</PRE>
+
+
+<DT>trim<DD>
+<A NAME="ixALV"></A>
+Trim the element in-place: spaces at the beginning and at the end of the element
+are discarded and multiple spaces within the element (or its descendants) are 
+replaced by a single space.
+
+
+<P>
+
+
+Note that in some cases you can still end up with multiple spaces, if they are
+split between several elements:
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;doc&gt;  text &lt;b&gt;  hah! &lt;/b&gt;  yep&lt;/doc&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+gets trimmed to
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;doc&gt;text &lt;b&gt; hah! &lt;/b&gt; yep&lt;/doc&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+This is somewhere in between a bug and a feature.
+<DT>normalize<DD>
+<A NAME="ixALW"></A>
+merge together all consecutive pcdata elements in the element (if for example
+you have turned some elements into pcdata using <TT>&quot;erase&quot;</TT>, this will give you
+a ``clean'' element in which there all text fragments are as long as possible).
+<DT>simplify (%options)<DD>
+<A NAME="ixALX"></A>
+Return a data structure suspiciously similar to XML::Simple's. Options are
+identical to XMLin options, see XML::Simple doc for more details (or use
+DATA::dumper or <FONT SIZE="-1">YAML</FONT> to dump the data structure)
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>content_key<DD>
+<A NAME="ixALY"></A>
+
+<DT>forcearray<DD>
+<A NAME="ixALZ"></A>
+<DT>keyattr<DD>
+<A NAME="ixAMA"></A>
+<DT>noattr<DD>
+<A NAME="ixAMB"></A>
+<DT>normalize_space<DD>
+<A NAME="ixAMC"></A>
+
+aka normalise_space
+<DT>variables (%var_hash)<DD>
+<A NAME="ixAMD"></A>
+<TT>%var_hash</TT> is a hash { name =&gt; value }
+
+
+<P>
+
+
+This option allows variables in the <FONT SIZE="-1">XML</FONT> to be expanded when the file is read. (there is no facility for putting the variable names back if you regenerate <FONT SIZE="-1">XML</FONT> using XMLout).
+
+
+<P>
+
+
+A 'variable' is any text of the form ${name} (or <TT>$name</TT>) which occurs in an attribute value or in the text content of an element. If 'name' matches a key in the supplied hashref, ${name} will be replaced with the corresponding value from the hashref. If no matching key is found, the variable will not be replaced.
+<DT>var_att ($attribute_name)<DD>
+<A NAME="ixAME"></A>
+This option gives the name of an attribute that will be used to create 
+variables in the <FONT SIZE="-1">XML:</FONT>
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;dirs&gt;
+    &lt;dir name=&quot;prefix&quot;&gt;/usr/local&lt;/dir&gt;
+    &lt;dir name=&quot;exec_prefix&quot;&gt;$prefix/bin&lt;/dir&gt;
+  &lt;/dirs&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+use <TT>&quot;var =&gt; 'name'&quot;</TT> to get <TT>$prefix</TT> replaced by /usr/local in the
+generated data structure
+
+
+<P>
+
+
+By default variables are captured by the following regexp: /$(\w+)/
+<DT>var_regexp (regexp)<DD>
+<A NAME="ixAMF"></A>
+This option changes the regexp used to capture variables. The variable
+name should be in <TT>$1</TT>
+<DT>group_tags { grouping tag =&gt; grouped tag, grouping tag 2 =&gt; grouped tag 2...}<DD>
+<A NAME="ixAMG"></A>
+Option used to simplify the structure: elements listed will not be used.
+Their children will be, they will be considered children of the element
+parent.
+
+
+<P>
+
+
+If the element is:
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;config host=&quot;laptop.xmltwig.com&quot;&gt;
+    &lt;server&gt;localhost&lt;/server&gt;
+    &lt;dirs&gt;
+      &lt;dir name=&quot;base&quot;&gt;/home/mrodrigu/standards&lt;/dir&gt;
+      &lt;dir name=&quot;tools&quot;&gt;$base/tools&lt;/dir&gt;
+    &lt;/dirs&gt;
+    &lt;templates&gt;
+      &lt;template name=&quot;std_def&quot;&gt;std_def.templ&lt;/template&gt;
+      &lt;template name=&quot;dummy&quot;&gt;dummy&lt;/template&gt;
+    &lt;/templates&gt;
+  &lt;/config&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Then calling simplify with <TT>&quot;group_tags =&gt; { dirs =&gt; 'dir',
+templates =&gt; 'template'}&quot;</TT>
+makes the data structure be exactly as if the start and end tags for <TT>&quot;dirs&quot;</TT> and
+<TT>&quot;templates&quot;</TT> were not there.
+
+
+<P>
+
+
+A <FONT SIZE="-1">YAML</FONT> dump of the structure
+
+
+<P>
+
+
+
+
+<PRE>
+  base: '/home/mrodrigu/standards'
+  host: laptop.xmltwig.com
+  server: localhost
+  template:
+    - std_def.templ
+    - dummy.templ
+  tools: '$base/tools'
+
+</PRE>
+
+
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>split_at        ($offset)<DD>
+<A NAME="ixAMH"></A>
+Split a text (<TT>&quot;PCDATA&quot;</TT> or <TT>&quot;CDATA&quot;</TT>) element in 2 at <TT>$offset</TT>, the original
+element now holds the first part of the string and a new element holds the
+right part. The new element is returned
+
+
+<P>
+
+
+If the element is not a text element then the first text child of the element
+is split
+<DT>split        ( $optional_regexp, $tag1, $atts1, $tag2, $atts2...)<DD>
+
+
+<A NAME="ixAMI"></A>
+Split the text descendants of an element in place, the text is split using 
+the <TT>$regexp</TT>, if the regexp includes () then the matched separators will be 
+wrapped in elements.  <TT>$1</TT> is wrapped in <TT>$tag1</TT>, with attributes <TT>$atts1</TT> if
+<TT>$atts1</TT> is given (as a hashref), <TT>$2</TT> is wrapped in <TT>$tag2</TT>...
+
+
+<P>
+
+
+if <TT>$elt</TT> is <TT>&quot;&lt;p&gt;tati tata &lt;b&gt;tutu tati titi&lt;/b&gt; tata tati tata&lt;/p&gt;&quot;</TT>
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt-&gt;split( qr/(ta)ti/, 'foo', {type =&gt; 'toto'} )
+
+</PRE>
+
+
+
+
+<P>
+
+
+will change <TT>$elt</TT> to
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;p&gt;&lt;foo type=&quot;toto&quot;&gt;ta&lt;/foo&gt; tata &lt;b&gt;tutu &lt;foo type=&quot;toto&quot;&gt;ta&lt;/foo&gt;
+      titi&lt;/b&gt; tata &lt;foo type=&quot;toto&quot;&gt;ta&lt;/foo&gt; tata&lt;/p&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+The regexp can be passed either as a string or as <TT>&quot;qr//&quot;</TT> (perl 5.005 and 
+later), it defaults to \s+ just as the <TT>&quot;split&quot;</TT> built-in (but this would be 
+quite a useless behaviour without the <TT>$optional_tag</TT> parameter)
+
+
+<P>
+
+
+<TT>$optional_tag</TT> defaults to <FONT SIZE="-1">PCDATA</FONT> or <FONT SIZE="-1">CDATA</FONT>, depending on the initial element
+type
+
+
+<P>
+
+
+The list of descendants is returned (including un-touched original elements 
+and newly created ones)
+<DT>mark        ( $regexp, $optional_tag, $optional_attribute_ref)<DD>
+
+
+<A NAME="ixAMJ"></A>
+This method behaves exactly as split, except only the newly created 
+elements are returned
+<DT>wrap_children ( $regexp_string, $tag, $optional_attribute_hashref)<DD>
+
+
+<A NAME="ixAMK"></A>
+Wrap the children of the element that match the regexp in an element <TT>$tag</TT>.
+If <TT>$optional_attribute_hashref</TT> is passed then the new element will
+have these attributes.
+
+
+<P>
+
+
+The <TT>$regexp_string</TT> includes tags, within pointy brackets, as in 
+<TT>&quot;&lt;title&gt;&lt;para&gt;+&quot;</TT> and the usual Perl modifiers (+*?...). 
+Tags can be further qualified with attributes:
+<TT>&quot;&lt;para type=&quot;warning&quot; classif=&quot;cosmic_secret&quot;&gt;+&quot;</TT>. The values
+for attributes should be xml-escaped: <TT>&quot;&lt;candy type=&quot;M&amp;amp;Ms&quot;&gt;*&quot;</TT>
+(<TT>&quot;&lt;&quot;</TT>, <TT>&quot;&amp;&quot;</TT> <B></B>&quot;&gt;&quot;<B></B> and <TT>&quot;&quot;&quot;</TT> should be escaped).
+
+
+<P>
+
+
+Note that elements might get extra <TT>&quot;id&quot;</TT> attributes in the process. See add_id.
+Use strip_att to remove unwanted id's.
+
+
+<P>
+
+
+Here is an example:
+
+
+<P>
+
+
+If the element <TT>$elt</TT> has the following content:
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;elt&gt;
+   &lt;p&gt;para 1&lt;/p&gt;
+   &lt;l_l1_1&gt;list 1 item 1 para 1&lt;/l_l1_1&gt;
+     &lt;l_l1&gt;list 1 item 1 para 2&lt;/l_l1&gt;
+   &lt;l_l1_n&gt;list 1 item 2 para 1 (only para)&lt;/l_l1_n&gt;
+   &lt;l_l1_n&gt;list 1 item 3 para 1&lt;/l_l1_n&gt;
+     &lt;l_l1&gt;list 1 item 3 para 2&lt;/l_l1&gt;
+     &lt;l_l1&gt;list 1 item 3 para 3&lt;/l_l1&gt;
+   &lt;l_l1_1&gt;list 2 item 1 para 1&lt;/l_l1_1&gt;
+     &lt;l_l1&gt;list 2 item 1 para 2&lt;/l_l1&gt;
+   &lt;l_l1_n&gt;list 2 item 2 para 1 (only para)&lt;/l_l1_n&gt;
+   &lt;l_l1_n&gt;list 2 item 3 para 1&lt;/l_l1_n&gt;
+     &lt;l_l1&gt;list 2 item 3 para 2&lt;/l_l1&gt;
+     &lt;l_l1&gt;list 2 item 3 para 3&lt;/l_l1&gt;
+  &lt;/elt&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Then the code
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt-&gt;wrap_children( q{&lt;l_l1_1&gt;&lt;l_l1&gt;*} , li =&gt; { type =&gt; &quot;ul1&quot; });
+  $elt-&gt;wrap_children( q{&lt;l_l1_n&gt;&lt;l_l1&gt;*} , li =&gt; { type =&gt; &quot;ul&quot; });
+
+  $elt-&gt;wrap_children( q{&lt;li type=&quot;ul1&quot;&gt;&lt;li type=&quot;ul&quot;&gt;+}, &quot;ul&quot;);
+  $elt-&gt;strip_att( 'id');
+  $elt-&gt;strip_att( 'type');
+  $elt-&gt;print;
+
+</PRE>
+
+
+
+
+<P>
+
+
+will output:
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;elt&gt;
+     &lt;p&gt;para 1&lt;/p&gt;
+     &lt;ul&gt;
+       &lt;li&gt;
+         &lt;l_l1_1&gt;list 1 item 1 para 1&lt;/l_l1_1&gt;
+         &lt;l_l1&gt;list 1 item 1 para 2&lt;/l_l1&gt;
+       &lt;/li&gt;
+       &lt;li&gt;
+         &lt;l_l1_n&gt;list 1 item 2 para 1 (only para)&lt;/l_l1_n&gt;
+       &lt;/li&gt;
+       &lt;li&gt;
+         &lt;l_l1_n&gt;list 1 item 3 para 1&lt;/l_l1_n&gt;
+         &lt;l_l1&gt;list 1 item 3 para 2&lt;/l_l1&gt;
+         &lt;l_l1&gt;list 1 item 3 para 3&lt;/l_l1&gt;
+       &lt;/li&gt;
+     &lt;/ul&gt;
+     &lt;ul&gt;
+       &lt;li&gt;
+         &lt;l_l1_1&gt;list 2 item 1 para 1&lt;/l_l1_1&gt;
+         &lt;l_l1&gt;list 2 item 1 para 2&lt;/l_l1&gt;
+       &lt;/li&gt;
+       &lt;li&gt;
+         &lt;l_l1_n&gt;list 2 item 2 para 1 (only para)&lt;/l_l1_n&gt;
+       &lt;/li&gt;
+       &lt;li&gt;
+         &lt;l_l1_n&gt;list 2 item 3 para 1&lt;/l_l1_n&gt;
+         &lt;l_l1&gt;list 2 item 3 para 2&lt;/l_l1&gt;
+         &lt;l_l1&gt;list 2 item 3 para 3&lt;/l_l1&gt;
+       &lt;/li&gt;
+     &lt;/ul&gt;
+  &lt;/elt&gt;
+
+</PRE>
+
+
+<DT>subs_text ($regexp, $replace)<DD>
+
+
+<A NAME="ixAML"></A>
+subs_text does text substitution, similar to perl's <TT>&quot; s///&quot;</TT> operator.
+
+
+<P>
+
+
+<TT>$regexp</TT> must be a perl regexp, created with the <TT>&quot;qr&quot;</TT> operator.
+
+
+<P>
+
+
+<TT>$replace</TT> can include <TT>&quot;$1, $2&quot;</TT>... from the <TT>$regexp</TT>. It can also be
+used to create element and entities, by using 
+<TT>&quot;&amp;elt( tag =&gt; { att =&gt; val }, text)&quot;</TT> (similar syntax as <TT>&quot;new&quot;</TT>) and
+<TT>&quot;&amp;ent( name)&quot;</TT>.
+
+
+<P>
+
+
+Here is a rather complex example:
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt-&gt;subs_text( qr{(?&lt;!do not )link to (<A HREF="http://([^\s,]*))},">http://([^\s,]*))},</A>
+                   'see &amp;elt( a =&gt;{ href =&gt; $1 }, $2)'
+                 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+This will replace text like <I>link to <A HREF="http://www.xmltwig.com">http://www.xmltwig.com</A></I> by 
+<I>see &lt;a href=``<A HREF="http://www.xmltwig.com">www.xmltwig.com</A>''&gt;<A HREF="http://www.xmltwig.com">www.xmltwig.com</A>&lt;/a&gt;</I>, but not
+<I>do not link to...</I>
+
+
+<P>
+
+
+Generating entities (here replacing spaces with &amp;nbsp;):
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt-&gt;subs_text( qr{ }, '&amp;ent( &quot;&amp;nbsp;&quot;)');
+
+</PRE>
+
+
+
+
+<P>
+
+
+or, using a variable:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $ent=&quot;&amp;nbsp;&quot;;
+  $elt-&gt;subs_text( qr{ }, &quot;&amp;ent( '$ent')&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that the substitution is always global, as in using the <TT>&quot;g&quot;</TT> modifier
+in a perl substitution, and that it is performed on all text descendants
+of the element.
+
+
+<P>
+
+
+<B>Bug</B>: in the <TT>$regexp</TT>, you can only use <TT>&quot;\1&quot;</TT>, <TT>&quot;\2&quot;</TT>... if the replacement
+expression does not include elements or attributes. eg
+
+
+<P>
+
+
+
+
+<PRE>
+  t-&gt;subs_text( qr/((t[aiou])\2)/, '$2');             # ok, replaces toto, tata, titi, tutu by to, ta, ti, tu
+  t-&gt;subs_text( qr/((t[aiou])\2)/, '&amp;elt(p =&gt; $1)' ); # NOK, does not find toto...
+
+</PRE>
+
+
+<DT>add_id ($optional_coderef)<DD>
+<A NAME="ixAMM"></A>
+Add an id to the element.
+
+
+<P>
+
+
+The id is an attribute, <TT>&quot;id&quot;</TT> by default, see the <TT>&quot;id&quot;</TT> option for XML::Twig
+<TT>&quot;new&quot;</TT> to change it. Use an id starting with <TT>&quot;#&quot;</TT> to get an id that's not 
+output by print, flush or sprint, yet that allows you to use the
+elt_id method to get the element easily.
+
+
+<P>
+
+
+If the element already has an id, no new id is generated.
+
+
+<P>
+
+
+By default the method create an id of the form <TT>&quot;twig_id_&lt;nnnn&gt;&quot;</TT>,
+where <TT>&quot;&lt;nnnn&gt;&quot;</TT> is a number, incremented each time the method is called
+successfully.
+<DT>set_id_seed ($prefix)<DD>
+<A NAME="ixAMN"></A>
+by default the id generated by <TT>&quot;add_id&quot;</TT> is <TT>&quot;twig_id_&lt;nnnn&gt;&quot;</TT>, 
+<TT>&quot;set_id_seed&quot;</TT> changes the prefix to <TT>$prefix</TT> and resets the number
+to 1
+<DT>strip_att ($att)<DD>
+<A NAME="ixAMO"></A>
+Remove the attribute <TT>$att</TT> from all descendants of the element (including 
+the element)
+
+
+<P>
+
+
+Return the element
+<DT>change_att_name ($old_name, $new_name)<DD>
+
+
+<A NAME="ixAMP"></A>
+Change the name of the attribute from <TT>$old_name</TT> to <TT>$new_name</TT>. If there is no
+attribute <TT>$old_name</TT> nothing happens.
+<DT>lc_attnames<DD>
+<A NAME="ixAMQ"></A>
+Lower cases the name all the attributes of the element.
+<DT>sort_children_on_value( %options)<DD>
+
+
+<A NAME="ixAMR"></A>
+Sort the children of the element in place according to their text.
+All children are sorted.
+
+
+<P>
+
+
+Return the element, with its children sorted.
+
+
+<P>
+
+
+<TT>%options</TT> are
+
+
+<P>
+
+
+
+
+<PRE>
+  type  : numeric |  alpha     (default: alpha)
+  order : normal  |  reverse   (default: normal)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Return the element, with its children sorted
+<DT>sort_children_on_att ($att, %options)<DD>
+
+
+<A NAME="ixAMS"></A>
+Sort the children of the  element in place according to attribute <TT>$att</TT>. 
+<TT>%options</TT> are the same as for <TT>&quot;sort_children_on_value&quot;</TT>
+
+
+<P>
+
+
+Return the element.
+<DT>sort_children_on_field ($tag, %options)<DD>
+
+
+<A NAME="ixAMT"></A>
+Sort the children of the element in place, according to the field <TT>$tag</TT> (the 
+text of the first child of the child with this tag). <TT>%options</TT> are the same
+as for <TT>&quot;sort_children_on_value&quot;</TT>.
+
+
+<P>
+
+
+Return the element, with its children sorted
+<DT>sort_children( $get_key, %options)<DD>
+
+
+<A NAME="ixAMU"></A>
+Sort the children of the element in place. The <TT>$get_key</TT> argument is
+a reference to a function that returns the sort key when passed an element.
+
+
+<P>
+
+
+For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt-&gt;sort_children( sub { $_[0]-&gt;{'att'}-&gt;{&quot;nb&quot;} + $_[0]-&gt;text }, 
+                       type =&gt; 'numeric', order =&gt; 'reverse'
+                     );
+
+</PRE>
+
+
+<DT>field_to_att ($cond, $att)<DD>
+
+
+<A NAME="ixAMV"></A>
+Turn the text of the first sub-element matched by <TT>$cond</TT> into the value of 
+attribute <TT>$att</TT> of the element. If <TT>$att</TT> is omitted then <TT>$cond</TT> is used 
+as the name of the attribute, which makes sense only if <TT>$cond</TT> is a valid
+element (and attribute) name.
+
+
+<P>
+
+
+The sub-element is then cut.
+<DT>att_to_field ($att, $tag)<DD>
+
+
+<A NAME="ixAMW"></A>
+Take the value of attribute <TT>$att</TT> and create a sub-element <TT>$tag</TT> as first
+child of the element. If <TT>$tag</TT> is omitted then <TT>$att</TT> is used as the name of
+the sub-element.
+<DT>get_xpath  ($xpath, $optional_offset)<DD>
+
+
+<A NAME="ixAMX"></A>
+Return a list of elements satisfying the <TT>$xpath</TT>. <TT>$xpath</TT> is an XPATH-like 
+expression.
+
+
+<P>
+
+
+A subset of the <FONT SIZE="-1">XPATH</FONT> abbreviated syntax is covered:
+
+
+<P>
+
+
+
+
+<PRE>
+  tag
+  tag[1] (or any other positive number)
+  tag[last()]
+  tag[@att] (the attribute exists for the element)
+  tag[@att=&quot;val&quot;]
+  tag[@att=~ /regexp/]
+  tag[att1=&quot;val1&quot; and att2=&quot;val2&quot;]
+  tag[att1=&quot;val1&quot; or att2=&quot;val2&quot;]
+  tag[string()=&quot;toto&quot;] (returns tag elements which text (as per the text method) 
+                       is toto)
+  tag[string()=~/regexp/] (returns tag elements which text (as per the text 
+                          method) matches regexp)
+  expressions can start with / (search starts at the document root)
+  expressions can start with . (search starts at the current element)
+  // can be used to get all descendants instead of just direct children
+  * matches any tag
+
+</PRE>
+
+
+
+
+<P>
+
+
+So the following examples from the 
+<I>XPath recommendation&lt;<A HREF="http://www.w3.org/TR/xpath.html#path-abbrev">http://www.w3.org/TR/xpath.html#path-abbrev</A>&gt;</I> work:
+
+
+<P>
+
+
+
+
+<PRE>
+  para selects the para element children of the context node
+  * selects all element children of the context node
+  para[1] selects the first para child of the context node
+  para[last()] selects the last para child of the context node
+  */para selects all para grandchildren of the context node
+  /doc/chapter[5]/section[2] selects the second section of the fifth chapter 
+     of the doc 
+  chapter//para selects the para element descendants of the chapter element 
+     children of the context node
+  //para selects all the para descendants of the document root and thus selects
+     all para elements in the same document as the context node
+  //olist/item selects all the item elements in the same document as the 
+     context node that have an olist parent
+  .//para selects the para element descendants of the context node
+  .. selects the parent of the context node
+  para[@type=&quot;warning&quot;] selects all para children of the context node that have
+     a type attribute with value warning 
+  employee[@secretary and @assistant] selects all the employee children of the
+     context node that have both a secretary attribute and an assistant 
+     attribute
+
+</PRE>
+
+
+
+
+<P>
+
+
+The elements will be returned in the document order.
+
+
+<P>
+
+
+If <TT>$optional_offset</TT> is used then only one element will be returned, the one 
+with the appropriate offset in the list, starting at 0
+
+
+<P>
+
+
+Quoting and interpolating variables can be a pain when the Perl syntax and the 
+<FONT SIZE="-1">XPATH</FONT> syntax collide, so use alternate quoting mechanisms like q or qq 
+(I like q{} and qq{} myself).
+
+
+<P>
+
+
+Here are some more examples to get you started:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $p1= &quot;p1&quot;;
+  my $p2= &quot;p2&quot;;
+  my @res= $t-&gt;get_xpath( qq{p[string( &quot;$p1&quot;) or string( &quot;$p2&quot;)]});
+
+  my $a= &quot;a1&quot;;
+  my @res= $t-&gt;get_xpath( qq{//*[@att=&quot;$a&quot;]});
+
+  my $val= &quot;a1&quot;;
+  my $exp= qq{//p[ \@att='$val']}; # you need to use \@ or you will get a warning
+  my @res= $t-&gt;get_xpath( $exp);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that the only supported regexps delimiters are / and that you must 
+backslash all / in regexps <FONT SIZE="-1">AND</FONT> in regular strings.
+
+
+<P>
+
+
+XML::Twig does not provide natively full <FONT SIZE="-1">XPATH</FONT> support, but you can use 
+<TT>&quot;XML::Twig::XPath&quot;</TT> to get <TT>&quot;findnodes&quot;</TT> to use <TT>&quot;XML::XPath&quot;</TT> as the
+XPath engine, with full coverage of the spec.
+
+
+<P>
+
+
+<TT>&quot;XML::Twig::XPath&quot;</TT> to get <TT>&quot;findnodes&quot;</TT> to use <TT>&quot;XML::XPath&quot;</TT> as the
+XPath engine, with full coverage of the spec.
+<DT>find_nodes<DD>
+<A NAME="ixAMY"></A>
+same as<TT>&quot;get_xpath&quot;</TT>
+<DT>findnodes<DD>
+<A NAME="ixAMZ"></A>
+same as <TT>&quot;get_xpath&quot;</TT>
+<DT>text @optional_options<DD>
+
+
+<A NAME="ixANA"></A>
+Return a string consisting of all the <TT>&quot;PCDATA&quot;</TT> and <TT>&quot;CDATA&quot;</TT> in an element, 
+without any tags. The text is not XML-escaped: base entities such as <TT>&quot;&amp;&quot;</TT> 
+and <TT>&quot;&lt;&quot;</TT> are not escaped.
+
+
+<P>
+
+
+The '<TT>&quot;no_recurse&quot;</TT>' option will only return the text of the element, not
+of any included sub-elements (same as <TT>&quot;text_only&quot;</TT>).
+<DT>text_only<DD>
+<A NAME="ixANB"></A>
+Same as <TT>&quot;text&quot;</TT> except that the text returned doesn't include 
+the text of sub-elements.
+<DT>trimmed_text<DD>
+<A NAME="ixANC"></A>
+Same as <TT>&quot;text&quot;</TT> except that the text is trimmed: leading and trailing spaces
+are discarded, consecutive spaces are collapsed
+<DT>set_text        ($string)<DD>
+<A NAME="ixAND"></A>
+Set the text for the element: if the element is a <TT>&quot;PCDATA&quot;</TT>, just set its
+text, otherwise cut all the children of the element and create a single
+<TT>&quot;PCDATA&quot;</TT> child for it, which holds the text.
+<DT>merge ($elt2)<DD>
+<A NAME="ixANE"></A>
+Move the content of <TT>$elt2</TT> within the element
+<DT>insert         ($tag1, [$optional_atts1], $tag2, [$optional_atts2],...)<DD>
+
+
+<A NAME="ixANF"></A>
+For each tag in the list inserts an element <TT>$tag</TT> as the only child of the 
+element.  The element gets the optional attributes in<TT>&quot;$optional_atts&lt;n&gt;.&quot;</TT> 
+All children of the element are set as children of the new element.
+The upper level element is returned.
+
+
+<P>
+
+
+
+
+<PRE>
+  $p-&gt;insert( table =&gt; { border=&gt; 1}, 'tr', 'td')
+
+</PRE>
+
+
+
+
+<P>
+
+
+put <TT>$p</TT> in a table with a visible border, a single <TT>&quot;tr&quot;</TT> and a single <TT>&quot;td&quot;</TT> 
+and return the <TT>&quot;table&quot;</TT> element:
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;p&gt;&lt;table border=&quot;1&quot;&gt;&lt;tr&gt;&lt;td&gt;original content of p&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/p&gt;
+
+</PRE>
+
+
+<DT>wrap_in        (@tag)<DD>
+<A NAME="ixANG"></A>
+Wrap elements in <TT>@tag</TT> as the successive ancestors of the element, returns the 
+new element.
+<TT>&quot;$elt-&gt;wrap_in( 'td', 'tr', 'table')&quot;</TT> wraps the element as a single cell in a 
+table for example.
+
+
+<P>
+
+
+Optionally each tag can be followed by a hashref of attributes, that will be 
+set on the wrapping element:
+
+
+<P>
+
+
+
+
+<PRE>
+  $elt-&gt;wrap_in( p =&gt; { class =&gt; &quot;advisory&quot; }, div =&gt; { class =&gt; &quot;intro&quot;, id =&gt; &quot;div_intro });
+
+</PRE>
+
+
+<DT>insert_new_elt ($opt_position, $tag, $opt_atts_hashref, @opt_content)<DD>
+
+
+<A NAME="ixANH"></A>
+Combines a <TT>&quot;new &quot;</TT> and a <TT>&quot;paste &quot;</TT>: creates a new element using 
+<TT>$tag</TT>, <TT>$opt_atts_hashref </TT>and <TT>@opt_content</TT> which are arguments similar 
+to those for <TT>&quot;new&quot;</TT>, then paste it, using <TT>$opt_position</TT> or <TT>'first_child'</TT>,
+relative to <TT>$elt</TT>.
+
+
+<P>
+
+
+Return the newly created element
+<DT>erase<DD>
+<A NAME="ixANI"></A>
+Erase the element: the element is deleted and all of its children are
+pasted in its place.
+<DT>set_content    ( $optional_atts, @list_of_elt_and_strings) ( $optional_atts, '#EMPTY')<DD>
+
+
+<A NAME="ixANJ"></A>
+Set the content for the element, from a list of strings and
+elements.  Cuts all the element children, then pastes the list
+elements as the children.  This method will create a <TT>&quot;PCDATA&quot;</TT> element
+for any strings in the list.
+
+
+<P>
+
+
+The <TT>$optional_atts</TT> argument is the ref of a hash of attributes. If this
+argument is used then the previous attributes are deleted, otherwise they
+are left untouched.
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>WARNING</B></FONT><B></B>: if you rely on <FONT SIZE="-1">ID</FONT>'s then you will have to set the id yourself. At
+this point the element does not belong to a twig yet, so the <FONT SIZE="-1">ID</FONT> attribute
+is not known so it won't be stored in the <FONT SIZE="-1">ID</FONT> list.
+
+
+<P>
+
+
+A content of '<TT>&quot;#EMPTY&quot;</TT>' creates an empty element;
+<DT>namespace ($optional_prefix)<DD>
+<A NAME="ixANK"></A>
+Return the <FONT SIZE="-1">URI</FONT> of the namespace that <TT>$optional_prefix</TT> or the element name
+belongs to. If the name doesn't belong to any namespace, <TT>&quot;undef&quot;</TT> is returned.
+<DT>local_name<DD>
+<A NAME="ixANL"></A>
+Return the local name (without the prefix) for the element
+<DT>ns_prefix<DD>
+<A NAME="ixANM"></A>
+Return the namespace prefix for the element
+<DT>current_ns_prefixes<DD>
+<A NAME="ixANN"></A>
+Return a list of namespace prefixes valid for the element. The order of the
+prefixes in the list has no meaning. If the default namespace is currently 
+bound, '' appears in the list.
+<DT>inherit_att  ($att, @optional_tag_list)<DD>
+
+
+<A NAME="ixANO"></A>
+Return the value of an attribute inherited from parent tags. The value
+returned is found by looking for the attribute in the element then in turn
+in each of its ancestors. If the <TT>@optional_tag_list</TT> is supplied only those
+ancestors whose tag is in the list will be checked.
+<DT>all_children_are ($optional_condition)<DD>
+<A NAME="ixANP"></A>
+return 1 if all children of the element pass the <TT>$optional_condition</TT>, 
+0 otherwise
+<DT>level       ($optional_condition)<DD>
+<A NAME="ixANQ"></A>
+Return the depth of the element in the twig (root is 0).
+If <TT>$optional_condition</TT> is given then only ancestors that match the condition are 
+counted.
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>WARNING</B></FONT><B></B>: in a tree created using the <TT>&quot;twig_roots&quot;</TT> option this will not return
+the level in the document tree, level 0 will be the document root, level 1 
+will be the <TT>&quot;twig_roots&quot;</TT> elements. During the parsing (in a <TT>&quot;twig_handler&quot;</TT>)
+you can use the <TT>&quot;depth&quot;</TT> method on the twig object to get the real parsing depth.
+<DT>in           ($potential_parent)<DD>
+<A NAME="ixANR"></A>
+Return true if the element is in the potential_parent (<TT>$potential_parent</TT> is 
+an element)
+<DT>in_context   ($cond, $optional_level)<DD>
+
+
+<A NAME="ixANS"></A>
+Return true if the element is included in an element which passes <TT>$cond</TT>
+optionally within <TT>$optional_level</TT> levels. The returned value is the 
+including element.
+<DT>pcdata<DD>
+<A NAME="ixANT"></A>
+Return the text of a <TT>&quot;PCDATA&quot;</TT> element or <TT>&quot;undef&quot;</TT> if the element is not 
+<TT>&quot;PCDATA&quot;</TT>.
+<DT>pcdata_xml_string<DD>
+<A NAME="ixANU"></A>
+Return the text of a <TT>&quot;PCDATA&quot;</TT> element or undef if the element is not <TT>&quot;PCDATA&quot;</TT>. 
+The text is ``XML-escaped'' ('&amp;' and '&lt;' are replaced by '&amp;amp;' and '&amp;lt;')
+<DT>set_pcdata     ($text)<DD>
+<A NAME="ixANV"></A>
+Set the text of a <TT>&quot;PCDATA&quot;</TT> element. This method does not check that the element is
+indeed a <TT>&quot;PCDATA&quot;</TT> so usually you should use <TT>&quot;set_text&quot;</TT> instead.
+<DT>append_pcdata  ($text)<DD>
+<A NAME="ixANW"></A>
+Add the text at the end of a <TT>&quot;PCDATA&quot;</TT> element.
+<DT>is_cdata<DD>
+<A NAME="ixANX"></A>
+Return 1 if the element is a <TT>&quot;CDATA&quot;</TT> element, returns 0 otherwise.
+<DT>is_text<DD>
+<A NAME="ixANY"></A>
+Return 1 if the element is a <TT>&quot;CDATA&quot;</TT> or <TT>&quot;PCDATA&quot;</TT> element, returns 0 otherwise.
+<DT>cdata<DD>
+<A NAME="ixANZ"></A>
+Return the text of a <TT>&quot;CDATA&quot;</TT> element or <TT>&quot;undef&quot;</TT> if the element is not 
+<TT>&quot;CDATA&quot;</TT>.
+<DT>cdata_string<DD>
+<A NAME="ixAOA"></A>
+Return the <FONT SIZE="-1">XML</FONT> string of a <TT>&quot;CDATA&quot;</TT> element, including the opening and
+closing markers.
+<DT>set_cdata     ($text)<DD>
+<A NAME="ixAOB"></A>
+Set the text of a <TT>&quot;CDATA&quot;</TT> element.
+<DT>append_cdata  ($text)<DD>
+<A NAME="ixAOC"></A>
+Add the text at the end of a <TT>&quot;CDATA&quot;</TT> element.
+<DT>remove_cdata<DD>
+<A NAME="ixAOD"></A>
+Turns all <TT>&quot;CDATA&quot;</TT> sections in the element into regular <TT>&quot;PCDATA&quot;</TT> elements. This is useful
+when converting <FONT SIZE="-1">XML</FONT> to <FONT SIZE="-1">HTML</FONT>, as browsers do not support <FONT SIZE="-1">CDATA</FONT> sections.
+<DT>extra_data<DD>
+<A NAME="ixAOE"></A>
+Return the extra_data (comments and <FONT SIZE="-1">PI</FONT>'s) attached to an element
+<DT>set_extra_data     ($extra_data)<DD>
+<A NAME="ixAOF"></A>
+Set the extra_data (comments and <FONT SIZE="-1">PI</FONT>'s) attached to an element
+<DT>append_extra_data  ($extra_data)<DD>
+<A NAME="ixAOG"></A>
+Append extra_data to the existing extra_data before the element (if no
+previous extra_data exists then it is created)
+<DT>set_asis<DD>
+<A NAME="ixAOH"></A>
+Set a property of the element that causes it to be output without being <FONT SIZE="-1">XML</FONT>
+escaped by the print functions: if it contains <TT>&quot;a &lt; b&quot;</TT> it will be output
+as such and not as <TT>&quot;a &amp;lt; b&quot;</TT>. This can be useful to create text elements
+that will be output as markup. Note that all <TT>&quot;PCDATA&quot;</TT> descendants of the 
+element are also marked as having the property (they are the ones that are
+actually impacted by the change).
+
+
+<P>
+
+
+If the element is a <TT>&quot;CDATA&quot;</TT> element it will also be output asis, without the
+<TT>&quot;CDATA&quot;</TT> markers. The same goes for any <TT>&quot;CDATA&quot;</TT> descendant of the element
+<DT>set_not_asis<DD>
+<A NAME="ixAOI"></A>
+Unsets the <TT>&quot;asis&quot;</TT> property for the element and its text descendants.
+<DT>is_asis<DD>
+<A NAME="ixAOJ"></A>
+Return the <TT>&quot;asis&quot;</TT> property status of the element ( 1 or <TT>&quot;undef&quot;</TT>)
+<DT>closed<DD>
+<A NAME="ixAOK"></A>
+Return true if the element has been closed. Might be useful if you are
+somewhere in the tree, during the parse, and have no idea whether a parent
+element is completely loaded or not.
+<DT>get_type<DD>
+<A NAME="ixAOL"></A>
+Return the type of the element: '<TT>&quot;#ELT&quot;</TT>' for ``real'' elements, or '<TT>&quot;#PCDATA&quot;</TT>',
+'<TT>&quot;#CDATA&quot;</TT>', '<TT>&quot;#COMMENT&quot;</TT>', '<TT>&quot;#ENT&quot;</TT>', '<TT>&quot;#PI&quot;</TT>'
+<DT>is_elt<DD>
+<A NAME="ixAOM"></A>
+Return the tag if the element is a ``real'' element, or 0 if it is <TT>&quot;PCDATA&quot;</TT>, 
+<TT>&quot;CDATA&quot;</TT>...
+<DT>contains_only_text<DD>
+<A NAME="ixAON"></A>
+Return 1 if the element does not contain any other ``real'' element
+<DT>contains_only ($exp)<DD>
+<A NAME="ixAOO"></A>
+Return the list of children if all children of the element match
+the expression <TT>$exp</TT>
+
+
+<P>
+
+
+
+
+<PRE>
+  if( $para-&gt;contains_only( 'tt')) { ... }
+
+</PRE>
+
+
+<DT>contains_a_single ($exp)<DD>
+<A NAME="ixAOP"></A>
+If the element contains a single child that matches the expression <TT>$exp</TT>
+returns that element. Otherwise returns 0.
+<DT>is_field<DD>
+<A NAME="ixAOQ"></A>
+same as <TT>&quot;contains_only_text&quot;</TT>
+<DT>is_pcdata<DD>
+<A NAME="ixAOR"></A>
+Return 1 if the element is a <TT>&quot;PCDATA&quot;</TT> element, returns 0 otherwise.
+<DT>is_ent<DD>
+<A NAME="ixAOS"></A>
+Return 1 if the element is an entity (an unexpanded entity) element, 
+return 0 otherwise.
+<DT>is_empty<DD>
+<A NAME="ixAOT"></A>
+Return 1 if the element is empty, 0 otherwise
+<DT>set_empty<DD>
+<A NAME="ixAOU"></A>
+Flags the element as empty. No further check is made, so if the element
+is actually not empty the output will be messed. The only effect of this 
+method is that the output will be <TT>&quot;&lt;tag att=&quot;value&quot;&quot;/&gt;&quot;</TT>.
+<DT>set_not_empty<DD>
+<A NAME="ixAOV"></A>
+Flags the element as not empty. if it is actually empty then the element will
+be output as <TT>&quot;&lt;tag att=&quot;value&quot;&quot;&gt;&lt;/tag&gt;&quot;</TT>
+<DT>is_pi<DD>
+<A NAME="ixAOW"></A>
+Return 1 if the element is a processing instruction (<TT>&quot;#PI&quot;</TT>) element,
+return 0 otherwise.
+<DT>target<DD>
+<A NAME="ixAOX"></A>
+Return the target of a processing instruction
+<DT>set_target ($target)<DD>
+<A NAME="ixAOY"></A>
+Set the target of a processing instruction
+<DT>data<DD>
+<A NAME="ixAOZ"></A>
+Return the data part of a processing instruction
+<DT>set_data ($data)<DD>
+<A NAME="ixAPA"></A>
+Set the data of a processing instruction
+<DT>set_pi ($target, $data)<DD>
+
+
+<A NAME="ixAPB"></A>
+Set the target and data of a processing instruction
+<DT>pi_string<DD>
+<A NAME="ixAPC"></A>
+Return the string form of a processing instruction
+(<TT>&quot;&lt;?target data?&gt;&quot;</TT>)
+<DT>is_comment<DD>
+<A NAME="ixAPD"></A>
+Return 1 if the element is a comment (<TT>&quot;#COMMENT&quot;</TT>) element,
+return 0 otherwise.
+<DT>set_comment ($comment_text)<DD>
+<A NAME="ixAPE"></A>
+Set the text for a comment
+<DT>comment<DD>
+<A NAME="ixAPF"></A>
+Return the content of a comment (just the text, not the <TT>&quot;&lt;!--&quot;</TT>
+and <TT>&quot;--&gt;&quot;</TT>)
+<DT>comment_string<DD>
+<A NAME="ixAPG"></A>
+Return the <FONT SIZE="-1">XML</FONT> string for a comment (<TT>&quot;&lt;!-- comment --&gt;&quot;</TT>)
+<DT>set_ent ($entity)<DD>
+<A NAME="ixAPH"></A>
+Set an (non-expanded) entity (<TT>&quot;#ENT&quot;</TT>). <TT>$entity</TT>) is the entity
+text (<TT>&quot;&amp;ent;&quot;</TT>)
+<DT>ent<DD>
+<A NAME="ixAPI"></A>
+Return the entity for an entity (<TT>&quot;#ENT&quot;</TT>) element (<TT>&quot;&amp;ent;&quot;</TT>)
+<DT>ent_name<DD>
+<A NAME="ixAPJ"></A>
+Return the entity name for an entity (<TT>&quot;#ENT&quot;</TT>) element (<TT>&quot;ent&quot;</TT>)
+<DT>ent_string<DD>
+<A NAME="ixAPK"></A>
+Return the entity, either expanded if the expanded version is available,
+or non-expanded (<TT>&quot;&amp;ent;&quot;</TT>) otherwise
+<DT>child ($offset, $optional_condition)<DD>
+
+
+<A NAME="ixAPL"></A>
+Return the <TT>$offset</TT>-th child of the element, optionally the <TT>$offset</TT>-th 
+child that matches <TT>$optional_condition</TT>. The children are treated as a list, so 
+<TT>&quot;$elt-&gt;child( 0)&quot;</TT> is the first child, while <TT>&quot;$elt-&gt;child( -1)&quot;</TT> is 
+the last child.
+<DT>child_text ($offset, $optional_condition)<DD>
+
+
+<A NAME="ixAPM"></A>
+Return the text of a child or <TT>&quot;undef&quot;</TT> if the sibling does not exist. Arguments
+are the same as child.
+<DT>last_child    ($optional_condition)<DD>
+<A NAME="ixAPN"></A>
+Return the last child of the element, or the last child matching 
+<TT>$optional_condition</TT> (ie the last of the element children matching
+the condition).
+<DT>last_child_text   ($optional_condition)<DD>
+<A NAME="ixAPO"></A>
+Same as <TT>&quot;first_child_text&quot;</TT> but for the last child.
+<DT>sibling  ($offset, $optional_condition)<DD>
+
+
+<A NAME="ixAPP"></A>
+Return the next or previous <TT>$offset</TT>-th sibling of the element, or the 
+<TT>$offset</TT>-th one matching <TT>$optional_condition</TT>. If <TT>$offset</TT> is negative then a 
+previous sibling is returned, if <TT>$offset</TT> is positive then  a next sibling is 
+returned. <TT>&quot;$offset=0&quot;</TT> returns the element if there is no condition or
+if the element matches the condition&gt;, <TT>&quot;undef&quot;</TT> otherwise.
+<DT>sibling_text ($offset, $optional_condition)<DD>
+
+
+<A NAME="ixAPQ"></A>
+Return the text of a sibling or <TT>&quot;undef&quot;</TT> if the sibling does not exist. 
+Arguments are the same as <TT>&quot;sibling&quot;</TT>.
+<DT>prev_siblings ($optional_condition)<DD>
+<A NAME="ixAPR"></A>
+Return the list of previous siblings (optionally matching <TT>$optional_condition</TT>)
+for the element. The elements are ordered in document order.
+<DT>next_siblings ($optional_condition)<DD>
+<A NAME="ixAPS"></A>
+Return the list of siblings (optionally matching <TT>$optional_condition</TT>)
+following the element. The elements are ordered in document order.
+<DT>pos ($optional_condition)<DD>
+<A NAME="ixAPT"></A>
+Return the position of the element in the children list. The first child has a
+position of 1 (as in XPath).
+
+
+<P>
+
+
+If the <TT>$optional_condition</TT> is given then only siblings that match the condition 
+are counted. If the element itself does not match the  condition then
+0 is returned.
+<DT>atts<DD>
+<A NAME="ixAPU"></A>
+Return a hash ref containing the element attributes
+<DT>set_atts      ({ att1=&gt;$att1_val, att2=&gt; $att2_val... })<DD>
+
+
+<A NAME="ixAPV"></A>
+Set the element attributes with the hash ref supplied as the argument. The previous 
+attributes are lost (ie the attributes set by <TT>&quot;set_atts&quot;</TT> replace all of the
+attributes of the element).
+
+
+<P>
+
+
+You can also pass a list instead of a hashref: <TT>&quot;$elt-&gt;set_atts( att1 =&gt; 'val1',...)&quot;</TT>
+<DT>del_atts<DD>
+<A NAME="ixAPW"></A>
+Deletes all the element attributes.
+<DT>att_nb<DD>
+<A NAME="ixAPX"></A>
+Return the number of attributes for the element
+<DT>has_atts<DD>
+<A NAME="ixAPY"></A>
+Return true if the element has attributes (in fact return the number of
+attributes, thus being an alias to <TT>&quot;att_nb&quot;</TT>
+<DT>has_no_atts<DD>
+<A NAME="ixAPZ"></A>
+Return true if the element has no attributes, false (0) otherwise
+<DT>att_names<DD>
+<A NAME="ixAQA"></A>
+return a list of the attribute names for the element
+<DT>att_xml_string ($att, $options)<DD>
+
+
+<A NAME="ixAQB"></A>
+Return the attribute value, where '&amp;', '&lt;' and quote (&quot; or the value of the quote option
+at twig creation) are XML-escaped.
+
+
+<P>
+
+
+The options are passed as a hashref, setting <TT>&quot;escape_gt&quot;</TT> to a true value will also escape 
+'&gt;' ($elt( 'myatt', { escape_gt =&gt; 1 });
+<DT>set_id       ($id)<DD>
+<A NAME="ixAQC"></A>
+Set the <TT>&quot;id&quot;</TT> attribute of the element to the value.
+See <TT>&quot;elt_id &quot;</TT> to change the id attribute name
+<DT>id<DD>
+<A NAME="ixAQD"></A>
+Gets the id attribute value
+<DT>del_id       ($id)<DD>
+<A NAME="ixAQE"></A>
+Deletes the <TT>&quot;id&quot;</TT> attribute of the element and remove it from the id list
+for the document
+<DT>class<DD>
+<A NAME="ixAQF"></A>
+Return the <TT>&quot;class&quot;</TT> attribute for the element (methods on the <TT>&quot;class&quot;</TT>
+attribute are quite convenient when dealing with <FONT SIZE="-1">XHTML</FONT>, or plain <FONT SIZE="-1">XML</FONT> that
+will eventually be displayed using <FONT SIZE="-1">CSS</FONT>)
+<DT>set_class ($class)<DD>
+<A NAME="ixAQG"></A>
+Set the <TT>&quot;class&quot;</TT> attribute for the element to <TT>$class</TT>
+<DT>add_to_class ($class)<DD>
+<A NAME="ixAQH"></A>
+Add <TT>$class</TT> to the element <TT>&quot;class&quot;</TT> attribute: the new class is added
+only if it is not already present. Note that classes are sorted alphabetically,
+so the <TT>&quot;class&quot;</TT> attribute can be changed even if the class is already there
+<DT>att_to_class ($att)<DD>
+<A NAME="ixAQI"></A>
+Set the <TT>&quot;class&quot;</TT> attribute to the value of attribute <TT>$att</TT>
+<DT>add_att_to_class ($att)<DD>
+<A NAME="ixAQJ"></A>
+Add the value of attribute <TT>$att</TT> to the <TT>&quot;class&quot;</TT> attribute of the element
+<DT>move_att_to_class ($att)<DD>
+<A NAME="ixAQK"></A>
+Add the value of attribute <TT>$att</TT> to the <TT>&quot;class&quot;</TT> attribute of the element
+and delete the attribute
+<DT>tag_to_class<DD>
+<A NAME="ixAQL"></A>
+Set the <TT>&quot;class&quot;</TT> attribute of the element to the element tag
+<DT>add_tag_to_class<DD>
+<A NAME="ixAQM"></A>
+Add the element tag to its <TT>&quot;class&quot;</TT> attribute
+<DT>set_tag_class ($new_tag)<DD>
+<A NAME="ixAQN"></A>
+Add the element tag to its <TT>&quot;class&quot;</TT> attribute and sets the tag to <TT>$new_tag</TT>
+<DT>in_class ($class)<DD>
+<A NAME="ixAQO"></A>
+Return true (<TT>1</TT>) if the element is in the class <TT>$class</TT> (if <TT>$class</TT> is
+one of the tokens in the element <TT>&quot;class&quot;</TT> attribute)
+<DT>tag_to_span<DD>
+<A NAME="ixAQP"></A>
+Change the element tag tp <TT>&quot;span&quot;</TT> and set its class to the old tag
+<DT>tag_to_div<DD>
+<A NAME="ixAQQ"></A>
+Change the element tag tp <TT>&quot;div&quot;</TT> and set its class to the old tag
+<DT><FONT SIZE="-1">DESTROY</FONT><DD>
+<A NAME="ixAQR"></A>
+Frees the element from memory.
+<DT>start_tag<DD>
+<A NAME="ixAQS"></A>
+Return the string for the start tag for the element, including 
+the <TT>&quot;/&gt;&quot;</TT> at the end of an empty element tag
+<DT>end_tag<DD>
+<A NAME="ixAQT"></A>
+Return the string for the end tag of an element.  For an empty
+element, this returns the empty string ('').
+<DT>xml_string @optional_options<DD>
+
+
+<A NAME="ixAQU"></A>
+Equivalent to <TT>&quot;$elt-&gt;sprint( 1)&quot;</TT>, returns the string for the entire 
+element, excluding the element's tags (but nested element tags are present)
+
+
+<P>
+
+
+The '<TT>&quot;no_recurse&quot;</TT>' option will only return the text of the element, not
+of any included sub-elements (same as <TT>&quot;xml_text_only&quot;</TT>).
+<DT>inner_xml<DD>
+<A NAME="ixAQV"></A>
+Another synonym for xml_string
+<DT>outer_xml<DD>
+<A NAME="ixAQW"></A>
+An other synonym for sprint
+<DT>xml_text<DD>
+<A NAME="ixAQX"></A>
+Return the text of the element, encoded (and processed by the current 
+<TT>&quot;output_filter&quot;</TT> or <TT>&quot;output_encoding&quot;</TT> options, without any tag.
+<DT>xml_text_only<DD>
+<A NAME="ixAQY"></A>
+Same as <TT>&quot;xml_text&quot;</TT> except that the text returned doesn't include 
+the text of sub-elements.
+<DT>set_pretty_print ($style)<DD>
+<A NAME="ixAQZ"></A>
+Set the pretty print method, amongst '<TT>&quot;none&quot;</TT>' (default), '<TT>&quot;nsgmls&quot;</TT>', 
+'<TT>&quot;nice&quot;</TT>', '<TT>&quot;indented&quot;</TT>', '<TT>&quot;record&quot;</TT>' and '<TT>&quot;record_c&quot;</TT>'
+
+
+<P>
+
+
+pretty_print styles:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>none<DD>
+<A NAME="ixARA"></A>
+the default, no <TT>&quot;\n&quot;</TT> is used
+<DT>nsgmls<DD>
+<A NAME="ixARB"></A>
+nsgmls style, with <TT>&quot;\n&quot;</TT> added within tags
+<DT>nice<DD>
+<A NAME="ixARC"></A>
+adds <TT>&quot;\n&quot;</TT> wherever possible (<FONT SIZE="-1">NOT</FONT> <FONT SIZE="-1">SAFE</FONT>, can lead to invalid <FONT SIZE="-1">XML</FONT>)
+<DT>indented<DD>
+<A NAME="ixARD"></A>
+same as <TT>&quot;nice&quot;</TT> plus indents elements (<FONT SIZE="-1">NOT</FONT> <FONT SIZE="-1">SAFE</FONT>, can lead to invalid <FONT SIZE="-1">XML</FONT>)
+<DT>record<DD>
+<A NAME="ixARE"></A>
+table-oriented pretty print, one field per line
+<DT>record_c<DD>
+<A NAME="ixARF"></A>
+table-oriented pretty print, more compact than <TT>&quot;record&quot;</TT>, one record per line
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>set_empty_tag_style ($style)<DD>
+<A NAME="ixARG"></A>
+Set the method to output empty tags, amongst '<TT>&quot;normal&quot;</TT>' (default), '<TT>&quot;html&quot;</TT>',
+and '<TT>&quot;expand&quot;</TT>',
+
+
+<P>
+
+
+<TT>&quot;normal&quot;</TT> outputs an empty tag '<TT>&quot;&lt;tag/&gt;&quot;</TT>', <TT>&quot;html&quot;</TT> adds a space 
+'<TT>&quot;&lt;tag /&gt;&quot;</TT>' for elements that can be empty in <FONT SIZE="-1">XHTML</FONT> and <TT>&quot;expand&quot;</TT> outputs
+'<TT>&quot;&lt;tag&gt;&lt;/tag&gt;&quot;</TT>'
+<DT>set_remove_cdata  ($flag)<DD>
+<A NAME="ixARH"></A>
+set (or unset) the flag that forces the twig to output <FONT SIZE="-1">CDATA</FONT> sections as 
+regular (escaped) <FONT SIZE="-1">PCDATA</FONT>
+<DT>set_indent ($string)<DD>
+<A NAME="ixARI"></A>
+Set the indentation for the indented pretty print style (default is 2 spaces)
+<DT>set_quote ($quote)<DD>
+<A NAME="ixARJ"></A>
+Set the quotes used for attributes. can be '<TT>&quot;double&quot;</TT>' (default) or '<TT>&quot;single&quot;</TT>'
+<DT>cmp       ($elt)<DD>
+<A NAME="ixARK"></A>
+
+
+<PRE>
+  Compare the order of the 2 elements in a twig.
+
+  C&lt;$a&gt; is the &lt;A&gt;..&lt;/A&gt; element, C&lt;$b&gt; is the &lt;B&gt;...&lt;/B&gt; element
+
+  document                        $a-&gt;cmp( $b)
+  &lt;A&gt; ... &lt;/A&gt; ... &lt;B&gt;  ... &lt;/B&gt;     -1
+  &lt;A&gt; ... &lt;B&gt;  ... &lt;/B&gt; ... &lt;/A&gt;     -1
+  &lt;B&gt; ... &lt;/B&gt; ... &lt;A&gt;  ... &lt;/A&gt;      1
+  &lt;B&gt; ... &lt;A&gt;  ... &lt;/A&gt; ... &lt;/B&gt;      1
+   $a == $b                           0
+   $a and $b not in the same tree   undef
+
+</PRE>
+
+
+<DT>before       ($elt)<DD>
+<A NAME="ixARL"></A>
+Return 1 if <TT>$elt</TT> starts before the element, 0 otherwise. If the 2 elements 
+are not in the same twig then return <TT>&quot;undef&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+    if( $a-&gt;cmp( $b) == -1) { return 1; } else { return 0; }
+
+</PRE>
+
+
+<DT>after       ($elt)<DD>
+<A NAME="ixARM"></A>
+Return 1 if <TT>$elt</TT> starts after the element, 0 otherwise. If the 2 elements 
+are not in the same twig then return <TT>&quot;undef&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+    if( $a-&gt;cmp( $b) == -1) { return 1; } else { return 0; }
+
+</PRE>
+
+
+<DT>other comparison methods<DD>
+<A NAME="ixARN"></A>
+<DL COMPACT><DT><DD>
+
+<DL COMPACT>
+<DT>lt<DD>
+<A NAME="ixARO"></A>
+<DT>le<DD>
+<A NAME="ixARP"></A>
+<DT>gt<DD>
+<A NAME="ixARQ"></A>
+<DT>ge<DD>
+<A NAME="ixARR"></A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>path<DD>
+<A NAME="ixARS"></A>
+
+Return the element context in a form similar to XPath's short
+form: '<TT>&quot;/root/tag1/../tag&quot;</TT>'
+<DT>xpath<DD>
+<A NAME="ixART"></A>
+Return a unique XPath expression that can be used to find the element
+again.
+
+
+<P>
+
+
+It looks like <TT>&quot;/doc/sect[3]/title&quot;</TT>: unique elements do not have an index,
+the others do.
+<DT>private methods<DD>
+<A NAME="ixARU"></A>
+Low-level methods on the twig:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>set_parent        ($parent)<DD>
+<A NAME="ixARV"></A>
+
+<DT>set_first_child   ($first_child)<DD>
+<A NAME="ixARW"></A>
+<DT>set_last_child    ($last_child)<DD>
+<A NAME="ixARX"></A>
+<DT>set_prev_sibling  ($prev_sibling)<DD>
+<A NAME="ixARY"></A>
+<DT>set_next_sibling  ($next_sibling)<DD>
+<A NAME="ixARZ"></A>
+<DT>set_twig_current<DD>
+<A NAME="ixASA"></A>
+<DT>del_twig_current<DD>
+<A NAME="ixASB"></A>
+<DT>twig_current<DD>
+<A NAME="ixASC"></A>
+<DT>flush<DD>
+<A NAME="ixASD"></A>
+
+This method should <FONT SIZE="-1">NOT</FONT> be used, always flush the twig, not an element.
+<DT>contains_text<DD>
+<A NAME="ixASE"></A>
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+Those methods should not be used, unless of course you find some creative 
+and interesting, not to mention useful, ways to do it.
+</DL>
+
+</DL>
+<A NAME="lbAP">&nbsp;</A>
+<H3>cond</H3>
+
+<A NAME="ixASF"></A>
+Most of the navigation functions accept a condition as an optional argument
+The first element (or all elements for <TT>&quot;children &quot;</TT> or 
+<TT>&quot;ancestors &quot;</TT>) that passes the condition is returned.
+<P>
+
+The condition is a single step of an XPath expression using the XPath subset
+defined by <TT>&quot;get_xpath&quot;</TT>. Additional conditions are:
+<P>
+
+The condition can be
+<DL COMPACT>
+<DT>#ELT<DD>
+<A NAME="ixASG"></A>
+return a ``real'' element (not a <FONT SIZE="-1">PCDATA</FONT>, <FONT SIZE="-1">CDATA</FONT>, comment or pi element)
+<DT>#TEXT<DD>
+<A NAME="ixASH"></A>
+return a <FONT SIZE="-1">PCDATA</FONT> or <FONT SIZE="-1">CDATA</FONT> element
+<DT>regular expression<DD>
+<A NAME="ixASI"></A>
+return an element whose tag matches the regexp. The regexp has to be created 
+with <TT>&quot;qr//&quot;</TT> (hence this is available only on perl 5.005 and above)
+<DT>code reference<DD>
+<A NAME="ixASJ"></A>
+applies the code, passing the current element as argument, if the code returns
+true then the element is returned, if it returns false then the code is applied
+to the next candidate.
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H3>XML::Twig::XPath</H3>
+
+<A NAME="ixASK"></A>
+XML::Twig implements a subset of XPath through the <TT>&quot;get_xpath&quot;</TT> method.
+<P>
+
+If you want to use the whole XPath power, then you can use <TT>&quot;XML::Twig::XPath&quot;</TT>
+instead. In this case <TT>&quot;XML::Twig&quot;</TT> uses <TT>&quot;XML::XPath&quot;</TT> to execute XPath queries.
+You will of course need <TT>&quot;XML::XPath&quot;</TT> installed to be able to use <TT>&quot;XML::Twig::XPath&quot;</TT>.
+<P>
+
+See XML::XPath for more information.
+<P>
+
+The methods you can use are:
+<DL COMPACT>
+<DT>findnodes              ($path)<DD>
+<A NAME="ixASL"></A>
+return a list of nodes found by <TT>$path</TT>.
+<DT>findnodes_as_string    ($path)<DD>
+<A NAME="ixASM"></A>
+return the nodes found reproduced as <FONT SIZE="-1">XML</FONT>. The result is not guaranteed
+to be valid <FONT SIZE="-1">XML</FONT> though.
+<DT>findvalue              ($path)<DD>
+<A NAME="ixASN"></A>
+return the concatenation of the text content of the result nodes
+</DL>
+<P>
+
+In order for <TT>&quot;XML::XPath&quot;</TT> to be used as the XPath engine the following methods
+are included in <TT>&quot;XML::Twig&quot;</TT>:
+<P>
+
+in XML::Twig
+<DL COMPACT>
+<DT>getRootNode<DD>
+<A NAME="ixASO"></A>
+
+<DT>getParentNode<DD>
+<A NAME="ixASP"></A>
+<DT>getChildNodes<DD>
+<A NAME="ixASQ"></A>
+
+</DL>
+<P>
+
+in XML::Twig::Elt
+<DL COMPACT>
+<DT>string_value<DD>
+<A NAME="ixASR"></A>
+
+<DT>toString<DD>
+<A NAME="ixASS"></A>
+<DT>getName<DD>
+<A NAME="ixAST"></A>
+<DT>getRootNode<DD>
+<A NAME="ixASU"></A>
+<DT>getNextSibling<DD>
+<A NAME="ixASV"></A>
+<DT>getPreviousSibling<DD>
+<A NAME="ixASW"></A>
+<DT>isElementNode<DD>
+<A NAME="ixASX"></A>
+<DT>isTextNode<DD>
+<A NAME="ixASY"></A>
+<DT>isPI<DD>
+<A NAME="ixASZ"></A>
+<DT>isPINode<DD>
+<A NAME="ixATA"></A>
+<DT>isProcessingInstructionNode<DD>
+<A NAME="ixATB"></A>
+<DT>isComment<DD>
+<A NAME="ixATC"></A>
+<DT>isCommentNode<DD>
+<A NAME="ixATD"></A>
+<DT>getTarget<DD>
+<A NAME="ixATE"></A>
+<DT>getChildNodes<DD>
+<A NAME="ixATF"></A>
+<DT>getElementById<DD>
+<A NAME="ixATG"></A>
+
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H3>XML::Twig::XPath::Elt</H3>
+
+<A NAME="ixATH"></A>
+The methods you can use are the same as on <TT>&quot;XML::Twig::XPath&quot;</TT> elements:
+<DL COMPACT>
+<DT>findnodes              ($path)<DD>
+<A NAME="ixATI"></A>
+return a list of nodes found by <TT>$path</TT>.
+<DT>findnodes_as_string    ($path)<DD>
+<A NAME="ixATJ"></A>
+return the nodes found reproduced as <FONT SIZE="-1">XML</FONT>. The result is not guaranteed
+to be valid <FONT SIZE="-1">XML</FONT> though.
+<DT>findvalue              ($path)<DD>
+<A NAME="ixATK"></A>
+return the concatenation of the text content of the result nodes
+</DL>
+<A NAME="lbAS">&nbsp;</A>
+<H3>XML::Twig::Entity_list</H3>
+
+<A NAME="ixATL"></A>
+<DL COMPACT>
+<DT>new<DD>
+<A NAME="ixATM"></A>
+Create an entity list.
+<DT>add         ($ent)<DD>
+<A NAME="ixATN"></A>
+Add an entity to an entity list.
+<DT>add_new_ent ($name, $val, $sysid, $pubid, $ndata, $param)<DD>
+
+
+<A NAME="ixATO"></A>
+Create a new entity and add it to the entity list
+<DT>delete     ($ent or $tag).<DD>
+
+
+<A NAME="ixATP"></A>
+Delete an entity (defined by its name or by the Entity object)
+from the list.
+<DT>print      ($optional_filehandle)<DD>
+<A NAME="ixATQ"></A>
+Print the entity list.
+<DT>list<DD>
+<A NAME="ixATR"></A>
+Return the list as an array
+</DL>
+<A NAME="lbAT">&nbsp;</A>
+<H3>XML::Twig::Entity</H3>
+
+<A NAME="ixATS"></A>
+<DL COMPACT>
+<DT>new        ($name, $val, $sysid, $pubid, $ndata, $param)<DD>
+
+
+<A NAME="ixATT"></A>
+Same arguments as the Entity handler for XML::Parser.
+<DT>print       ($optional_filehandle)<DD>
+<A NAME="ixATU"></A>
+Print an entity declaration.
+<DT>name<DD>
+<A NAME="ixATV"></A>
+Return the name of the entity
+<DT>val<DD>
+<A NAME="ixATW"></A>
+Return the value of the entity
+<DT>sysid<DD>
+<A NAME="ixATX"></A>
+Return the system id for the entity (for <FONT SIZE="-1">NDATA</FONT> entities)
+<DT>pubid<DD>
+<A NAME="ixATY"></A>
+Return the public id for the entity (for <FONT SIZE="-1">NDATA</FONT> entities)
+<DT>ndata<DD>
+<A NAME="ixATZ"></A>
+Return true if the entity is an <FONT SIZE="-1">NDATA</FONT> entity
+<DT>param<DD>
+<A NAME="ixAUA"></A>
+Return true if the entity is a parameter entity
+<DT>text<DD>
+<A NAME="ixAUB"></A>
+Return the entity declaration text.
+</DL>
+<A NAME="lbAU">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAUC"></A>
+Additional examples (and a complete tutorial) can be found  on the
+<I>XML::Twig Page&lt;<A HREF="http://www.xmltwig.com/xmltwig/">http://www.xmltwig.com/xmltwig/</A>&gt;</I>
+<P>
+
+To figure out what flush does call the following script with an
+<FONT SIZE="-1">XML</FONT> file and an element name as arguments
+<P>
+
+
+
+<PRE>
+  use XML::Twig;
+
+  my ($file, $elt)= @ARGV;
+  my $t= XML::Twig-&gt;new( twig_handlers =&gt; 
+      { $elt =&gt; sub {$_[0]-&gt;flush; print &quot;\n[flushed here]\n&quot;;} });
+  $t-&gt;parsefile( $file, ErrorContext =&gt; 2);
+  $t-&gt;flush;
+  print &quot;\n&quot;;
+
+</PRE>
+
+
+<A NAME="lbAV">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAUD"></A>
+<A NAME="lbAW">&nbsp;</A>
+<H3>Subclassing XML::Twig</H3>
+
+<A NAME="ixAUE"></A>
+Useful methods:
+<DL COMPACT>
+<DT>elt_class<DD>
+<A NAME="ixAUF"></A>
+In order to subclass <TT>&quot;XML::Twig&quot;</TT> you will probably need to subclass also
+<TT>&quot;XML::Twig::Elt&quot;</TT>. Use the <TT>&quot;elt_class&quot;</TT> option when you create the
+<TT>&quot;XML::Twig&quot;</TT> object to get the elements created in a different class
+(which should be a subclass of <TT>&quot;XML::Twig::Elt&quot;</TT>.
+<DT>add_options<DD>
+<A NAME="ixAUG"></A>
+If you inherit <TT>&quot;XML::Twig&quot;</TT> new method but want to add more options to it
+you can use this method to prevent XML::Twig to issue warnings for those
+additional options.
+</DL>
+<A NAME="lbAX">&nbsp;</A>
+<H3><FONT SIZE="-1">DTD</FONT> Handling</H3>
+
+<A NAME="ixAUH"></A>
+There are 3 possibilities here.  They are:
+<DL COMPACT>
+<DT>No <FONT SIZE="-1">DTD</FONT><DD>
+<A NAME="ixAUI"></A>
+No doctype, no <FONT SIZE="-1">DTD</FONT> information, no entity information, the world is simple...
+<DT>Internal <FONT SIZE="-1">DTD</FONT><DD>
+<A NAME="ixAUJ"></A>
+The <FONT SIZE="-1">XML</FONT> document includes an internal <FONT SIZE="-1">DTD</FONT>, and maybe entity declarations.
+
+
+<P>
+
+
+If you use the load_DTD option when creating the twig the <FONT SIZE="-1">DTD</FONT> information and
+the entity declarations can be accessed.
+
+
+<P>
+
+
+The <FONT SIZE="-1">DTD</FONT> and the entity declarations will be <TT>&quot;flush&quot;</TT>'ed (or <TT>&quot;print&quot;</TT>'ed) either
+as is (if they have not been modified) or as reconstructed (poorly, comments 
+are lost, order is not kept, due to it's content this <FONT SIZE="-1">DTD</FONT> should not be viewed 
+by anyone) if they have been modified. You can also modify them directly by 
+changing the <TT>&quot;$twig-&gt;{twig_doctype}-&gt;{internal}&quot;</TT> field (straight from 
+XML::Parser, see the <TT>&quot;Doctype&quot;</TT> handler doc)
+<DT>External <FONT SIZE="-1">DTD</FONT><DD>
+<A NAME="ixAUK"></A>
+The <FONT SIZE="-1">XML</FONT> document includes a reference to an external <FONT SIZE="-1">DTD</FONT>, and maybe entity 
+declarations.
+
+
+<P>
+
+
+If you use the <TT>&quot;load_DTD&quot;</TT> when creating the twig the <FONT SIZE="-1">DTD</FONT> information and the 
+entity declarations can be accessed. The entity declarations will be
+<TT>&quot;flush&quot;</TT>'ed (or <TT>&quot;print&quot;</TT>'ed) either as is (if they have not been modified) or
+as reconstructed (badly, comments are lost, order is not kept).
+
+
+<P>
+
+
+You can change the doctype through the <TT>&quot;$twig-&gt;set_doctype&quot;</TT> method and 
+print the dtd through the <TT>&quot;$twig-&gt;dtd_text&quot;</TT> or <TT>&quot;$twig-&gt;dtd_print&quot;</TT>
+<BR>&nbsp;methods.
+
+
+<P>
+
+
+If you need to modify the entity list this is probably the easiest way to do it.
+</DL>
+<A NAME="lbAY">&nbsp;</A>
+<H3>Flush</H3>
+
+<A NAME="ixAUL"></A>
+If you set handlers and use <TT>&quot;flush&quot;</TT>, do not forget to flush the twig one
+last time <FONT SIZE="-1">AFTER</FONT> the parsing, or you might be missing the end of the document.
+<P>
+
+Remember that element handlers are called when the element is <FONT SIZE="-1">CLOSED</FONT>, so
+if you have handlers for nested elements the inner handlers will be called
+first. It makes it for example trickier than it would seem to number nested
+clauses.
+<A NAME="lbAZ">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAUM"></A>
+<DL COMPACT>
+<DT>entity handling<DD>
+<A NAME="ixAUN"></A>
+Due to XML::Parser behaviour, non-base entities in attribute values disappear:
+<TT>&quot;att=&quot;val&amp;ent;&quot;&quot;</TT> will be turned into <TT>&quot;att =&gt; val&quot;</TT>, unless you use the 
+<TT>&quot;keep_encoding&quot;</TT> argument to <TT>&quot;XML::Twig-&gt;new&quot;</TT>
+<DT><FONT SIZE="-1">DTD</FONT> handling<DD>
+<A NAME="ixAUO"></A>
+The <FONT SIZE="-1">DTD</FONT> handling methods are quite bugged. No one uses them and
+it seems very difficult to get them to work in all cases, including with 
+several slightly incompatible versions of XML::Parser and of libexpat.
+
+
+<P>
+
+
+Basically you can read the <FONT SIZE="-1">DTD</FONT>, output it back properly, and update entities,
+but not much more.
+
+
+<P>
+
+
+So use XML::Twig with standalone documents, or with documents refering to an
+external <FONT SIZE="-1">DTD</FONT>, but don't expect it to properly parse and even output back the
+<FONT SIZE="-1">DTD</FONT>.
+<DT>memory leak<DD>
+<A NAME="ixAUP"></A>
+If you use a lot of twigs you might find that you leak quite a lot of memory
+(about 2Ks per twig). You can use the <TT>&quot;dispose &quot;</TT> method to free 
+that memory after you are done.
+
+
+<P>
+
+
+If you create elements the same thing might happen, use the <TT>&quot;delete&quot;</TT>
+method to get rid of them.
+
+
+<P>
+
+
+Alternatively installing the <TT>&quot;Scalar::Util&quot;</TT> (or <TT>&quot;WeakRef&quot;</TT>) module on a version 
+of Perl that supports it (&gt;5.6.0) will get rid of the memory leaks automagically.
+<DT><FONT SIZE="-1">ID</FONT> list<DD>
+<A NAME="ixAUQ"></A>
+The <FONT SIZE="-1">ID</FONT> list is <FONT SIZE="-1">NOT</FONT> updated when elements are cut or deleted.
+<DT>change_gi<DD>
+<A NAME="ixAUR"></A>
+This method will not function properly if you do:
+
+
+<P>
+
+
+
+
+<PRE>
+     $twig-&gt;change_gi( $old1, $new);
+     $twig-&gt;change_gi( $old2, $new);
+     $twig-&gt;change_gi( $new, $even_newer);
+
+</PRE>
+
+
+<DT>sanity check on XML::Parser method calls<DD>
+<A NAME="ixAUS"></A>
+XML::Twig should really prevent calls to some XML::Parser methods, especially 
+the <TT>&quot;setHandlers&quot;</TT> method.
+<DT>pretty printing<DD>
+<A NAME="ixAUT"></A>
+Pretty printing (at least using the '<TT>&quot;indented&quot;</TT>' style) is hard to get right! 
+Only elements that belong to the document will be properly indented. Printing 
+elements that do not belong to the twig makes it impossible for XML::Twig to 
+figure out their depth, and thus their indentation level.
+
+
+<P>
+
+
+Also there is an unavoidable bug when using <TT>&quot;flush&quot;</TT> and pretty printing for
+elements with mixed content that start with an embedded element:
+
+
+<P>
+
+
+
+
+<PRE>
+  &lt;elt&gt;&lt;b&gt;b&lt;/b&gt;toto&lt;b&gt;bold&lt;/b&gt;&lt;/elt&gt;
+
+  will be output as 
+
+  &lt;elt&gt;
+    &lt;b&gt;b&lt;/b&gt;toto&lt;b&gt;bold&lt;/b&gt;&lt;/elt&gt;
+
+</PRE>
+
+
+
+
+<P>
+
+
+if you flush the twig when you find the <TT>&quot;&lt;b&gt;&quot;</TT> element
+</DL>
+<A NAME="lbBA">&nbsp;</A>
+<H2>Globals</H2>
+
+<A NAME="ixAUU"></A>
+These are the things that can mess up calling code, especially if threaded.
+They might also cause problem under mod_perl.
+<DL COMPACT>
+<DT>Exported constants<DD>
+<A NAME="ixAUV"></A>
+Whether you want them or not you get them! These are subroutines to use
+as constant when creating or testing elements
+
+
+<P>
+
+
+
+
+<PRE>
+  PCDATA  return '#PCDATA'
+  CDATA   return '#CDATA'
+  PI      return '#PI', I had the choice between PROC and PI :--(
+
+</PRE>
+
+
+<DT>Module scoped values: constants<DD>
+<A NAME="ixAUW"></A>
+these should cause no trouble:
+
+
+<P>
+
+
+
+
+<PRE>
+  %base_ent= ( '&gt;' =&gt; '&amp;gt;',
+               '&lt;' =&gt; '&amp;lt;',
+               '&amp;' =&gt; '&amp;amp;',
+               &quot;'&quot; =&gt; '&amp;apos;',
+               '&quot;' =&gt; '&amp;quot;',
+             );
+  CDATA_START   = &quot;&lt;![CDATA[&quot;;
+  CDATA_END     = &quot;]]&gt;&quot;;
+  PI_START      = &quot;&lt;?&quot;;
+  PI_END        = &quot;?&gt;&quot;;
+  COMMENT_START = &quot;&lt;!--&quot;;
+  COMMENT_END   = &quot;--&gt;&quot;;
+
+</PRE>
+
+
+
+
+<P>
+
+
+pretty print styles
+
+
+<P>
+
+
+
+
+<PRE>
+  ( $NSGMLS, $NICE, $INDENTED, $INDENTED_C, $WRAPPED, $RECORD1, $RECORD2)= (1..7);
+
+</PRE>
+
+
+
+
+<P>
+
+
+empty tag output style
+
+
+<P>
+
+
+
+
+<PRE>
+  ( $HTML, $EXPAND)= (1..2);
+
+</PRE>
+
+
+<DT>Module scoped values: might be changed<DD>
+<A NAME="ixAUX"></A>
+Most of these deal with pretty printing, so the worst that can
+happen is probably that <FONT SIZE="-1">XML</FONT> output does not look right, but is
+still valid and processed identically by <FONT SIZE="-1">XML</FONT> processors.
+
+
+<P>
+
+
+<TT>$empty_tag_style</TT> can mess up <FONT SIZE="-1">HTML</FONT> bowsers though and changing <TT>$ID</TT> 
+would most likely create problems.
+
+
+<P>
+
+
+
+
+<PRE>
+  $pretty=0;           # pretty print style
+  $quote='&quot;';          # quote for attributes
+  $INDENT= '  ';       # indent for indented pretty print
+  $empty_tag_style= 0; # how to display empty tags
+  $ID                  # attribute used as an id ('id' by default)
+
+</PRE>
+
+
+<DT>Module scoped values: definitely changed<DD>
+<A NAME="ixAUY"></A>
+These 2 variables are used to replace tags by an index, thus 
+saving some space when creating a twig. If they really cause
+you too much trouble, let me know, it is probably possible to
+create either a switch or at least a version of XML::Twig that 
+does not perform this optimization.
+
+
+<P>
+
+
+
+
+<PRE>
+  %gi2index;     # tag =&gt; index
+  @index2gi;     # list of tags
+
+</PRE>
+
+
+</DL>
+<P>
+
+If you need to manipulate all those values, you can use the following methods on the
+XML::Twig object:
+<DL COMPACT>
+<DT>global_state<DD>
+<A NAME="ixAUZ"></A>
+Return a hashref with all the global variables used by XML::Twig
+
+
+<P>
+
+
+The hash has the following fields:  <TT>&quot;pretty&quot;</TT>, <TT>&quot;quote&quot;</TT>, <TT>&quot;indent&quot;</TT>, 
+<TT>&quot;empty_tag_style&quot;</TT>, <TT>&quot;keep_encoding&quot;</TT>, <TT>&quot;expand_external_entities&quot;</TT>, 
+<TT>&quot;output_filter&quot;</TT>, <TT>&quot;output_text_filter&quot;</TT>, <TT>&quot;keep_atts_order&quot;</TT>
+<DT>set_global_state ($state)<DD>
+<A NAME="ixAVA"></A>
+Set the global state, <TT>$state</TT> is a hashref
+<DT>save_global_state<DD>
+<A NAME="ixAVB"></A>
+Save the current global state
+<DT>restore_global_state<DD>
+<A NAME="ixAVC"></A>
+Restore the previously saved (using <TT>&quot;Lsave_global_state&quot;</TT>&gt; state
+</DL>
+<A NAME="lbBB">&nbsp;</A>
+<H2>TODO</H2>
+
+<A NAME="ixAVD"></A>
+<DL COMPACT>
+<DT><FONT SIZE="-1">SAX</FONT> handlers<DD>
+<A NAME="ixAVE"></A>
+Allowing XML::Twig to work on top of any <FONT SIZE="-1">SAX</FONT> parser
+<DT>multiple twigs are not well supported<DD>
+<A NAME="ixAVF"></A>
+A number of twig features are just global at the moment. These include
+the <FONT SIZE="-1">ID</FONT> list and the ``tag pool'' (if you use <TT>&quot;change_gi&quot;</TT> then you change the tag 
+for <FONT SIZE="-1">ALL</FONT> twigs).
+
+
+<P>
+
+
+A future version will try to support this while trying not to be to
+hard on performance (at least when a single twig is used!).
+</DL>
+<A NAME="lbBC">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAVG"></A>
+Michel Rodriguez &lt;<A HREF="mailto:mirod@xmltwig.com">mirod@xmltwig.com</A>&gt;
+<A NAME="lbBD">&nbsp;</A>
+<H2>LICENSE</H2>
+
+<A NAME="ixAVH"></A>
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+<P>
+
+Bug reports should be sent using:
+<I></I><FONT SIZE="-1"><I>RT</I></FONT><I> &lt;<A HREF="http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-Twig">http://rt.cpan.org/NoAuth/Bugs.html?Dist=XML-Twig</A>&gt;</I>
+<P>
+
+Comments can be sent to <A HREF="mailto:mirod@xmltwig.com">mirod@xmltwig.com</A>
+<P>
+
+The XML::Twig page is at &lt;<A HREF="http://www.xmltwig.com/xmltwig/">http://www.xmltwig.com/xmltwig/</A>&gt;
+It includes the development version of the module, a slightly better version 
+of the documentation, examples, a tutorial and a: 
+<I>Processing </I><FONT SIZE="-1"><I>XML</I></FONT><I> efficiently with Perl and XML::Twig: 
+&lt;<A HREF="http://www.xmltwig.com/xmltwig/tutorial/index.html">http://www.xmltwig.com/xmltwig/tutorial/index.html</A>&gt;</I>
+<A NAME="lbBE">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAVI"></A>
+Complete docs, including a tutorial, examples, an easier to use <FONT SIZE="-1">HTML</FONT> version of
+the docs, a quick reference card and a <FONT SIZE="-1">FAQ</FONT> are available at 
+&lt;<A HREF="http://www.xmltwig.com/xmltwig/">http://www.xmltwig.com/xmltwig/</A>&gt;
+<P>
+
+git repository at &lt;<A HREF="http://github.com/mirod/xmltwig">http://github.com/mirod/xmltwig</A>&gt;
+<P>
+
+XML::Parser, XML::Parser::Expat, XML::XPath, Encode, 
+Text::Iconv, Scalar::Utils
+<A NAME="lbBF">&nbsp;</A>
+<H3>Alternative Modules</H3>
+
+<A NAME="ixAVJ"></A>
+XML::Twig is not the only XML::Processing module available on <FONT SIZE="-1">CPAN</FONT> (far from 
+it!).
+<P>
+
+The main alternative I would recommend is XML::LibXML.
+<P>
+
+Here is a quick comparison of the 2 modules:
+<P>
+
+XML::LibXML, actually <TT>&quot;libxml2&quot;</TT> on which it is based, sticks to the standards,
+and implements a good number of them in a rather strict way: <FONT SIZE="-1">XML</FONT>, XPath, <FONT SIZE="-1">DOM</FONT>, 
+RelaxNG, I must be forgetting a couple (XInclude?). It is fast and rather 
+frugal memory-wise.
+<P>
+
+XML::Twig is older: when I started writing it XML::Parser/expat was the only 
+game in town. It implements <FONT SIZE="-1">XML</FONT> and that's about it (plus a subset of XPath, 
+and you can use XML::Twig::XPath if you have XML::XPathEngine installed for full 
+support). It is slower and requires more memory for a full tree than 
+XML::LibXML. On the plus side (yes, there is a plus side!) it lets you process
+a big document in chunks, and thus let you tackle documents that couldn't be 
+loaded in memory by XML::LibXML, and it offers a lot (and I mean a <FONT SIZE="-1">LOT</FONT>!) of 
+higher-level methods, for everything, from adding structure to ``low-level'' <FONT SIZE="-1">XML</FONT>,
+to shortcuts for <FONT SIZE="-1">XHTML</FONT> conversions and more. It also DWIMs quite a bit, getting
+comments and non-significant whitespaces out of the way but preserving them in 
+the output for example. As it does not stick to the <FONT SIZE="-1">DOM</FONT>, is also usually leads 
+to shorter code than in XML::LibXML.
+<P>
+
+Beyond the pure features of the 2 modules, XML::LibXML seems to be prefered by
+``XML-purists'', while XML::Twig seems to be more used by Perl Hackers who have 
+to deal with <FONT SIZE="-1">XML</FONT>. As you have noted, XML::Twig also comes with quite a lot of 
+docs, but I am sure if you ask for help about XML::LibXML here or on Perlmonks
+you will get answers.
+<P>
+
+Note that it is actually quite hard for me to compare the 2 modules: on one hand
+I know XML::Twig inside-out and I can get it to do pretty much anything I need 
+to (or I improve it ;--), while I have a very basic knowledge of XML::LibXML. 
+So feature-wise, I'd rather use XML::Twig ;--). On the other hand, I am 
+painfully aware of some of the deficiencies, potential bugs and plain ugly code
+that lurk in XML::Twig, even though you are unlikely to be affected by them 
+(unless for example you need to change the <FONT SIZE="-1">DTD</FONT> of a document programatically),
+while I haven't looked much into XML::LibXML so it still looks shinny and clean
+to me.
+<P>
+
+That said, if you need to process a document that is too big to fit memory
+and XML::Twig is too slow for you, my reluctant advice would be to use ``bare''
+XML::Parser.  It won't be as easy to use as XML::Twig: basically with XML::Twig
+you trade some speed (depending on what you do from a factor 3 to... none) 
+for ease-of-use, but it will be easier <FONT SIZE="-1">IMHO</FONT> than using <FONT SIZE="-1">SAX</FONT> (albeit not 
+standard), and at this point a <FONT SIZE="-1">LOT</FONT> faster (see the last test in
+&lt;<A HREF="http://www.xmltwig.com/article/simple_benchmark/">http://www.xmltwig.com/article/simple_benchmark/</A>&gt;).
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">XML::Twig 101</A><DD>
+<DL>
+<DT><A HREF="#lbAF">Loading an <FONT SIZE="-1">XML</FONT> document and processing it</A><DD>
+<DT><A HREF="#lbAG">Processing an <FONT SIZE="-1">XML</FONT> document chunk by chunk</A><DD>
+<DT><A HREF="#lbAH">Processing just parts of an <FONT SIZE="-1">XML</FONT> document</A><DD>
+<DT><A HREF="#lbAI">Building an <FONT SIZE="-1">XML</FONT> filter</A><DD>
+<DT><A HREF="#lbAJ">XML::Twig and various versions of Perl, XML::Parser and expat:</A><DD>
+</DL>
+<DT><A HREF="#lbAK">Simplifying XML processing</A><DD>
+<DT><A HREF="#lbAL">CLASSES</A><DD>
+<DT><A HREF="#lbAM">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAN">XML::Twig</A><DD>
+<DT><A HREF="#lbAO">XML::Twig::Elt</A><DD>
+<DT><A HREF="#lbAP">cond</A><DD>
+<DT><A HREF="#lbAQ">XML::Twig::XPath</A><DD>
+<DT><A HREF="#lbAR">XML::Twig::XPath::Elt</A><DD>
+<DT><A HREF="#lbAS">XML::Twig::Entity_list</A><DD>
+<DT><A HREF="#lbAT">XML::Twig::Entity</A><DD>
+</DL>
+<DT><A HREF="#lbAU">EXAMPLES</A><DD>
+<DT><A HREF="#lbAV">NOTES</A><DD>
+<DL>
+<DT><A HREF="#lbAW">Subclassing XML::Twig</A><DD>
+<DT><A HREF="#lbAX"><FONT SIZE="-1">DTD</FONT> Handling</A><DD>
+<DT><A HREF="#lbAY">Flush</A><DD>
+</DL>
+<DT><A HREF="#lbAZ">BUGS</A><DD>
+<DT><A HREF="#lbBA">Globals</A><DD>
+<DT><A HREF="#lbBB">TODO</A><DD>
+<DT><A HREF="#lbBC">AUTHOR</A><DD>
+<DT><A HREF="#lbBD">LICENSE</A><DD>
+<DT><A HREF="#lbBE">SEE ALSO</A><DD>
+<DL>
+<DT><A HREF="#lbBF">Alternative Modules</A><DD>
+</DL>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:46 GMT, December 24, 2015
+</div></body>
+</HTML>

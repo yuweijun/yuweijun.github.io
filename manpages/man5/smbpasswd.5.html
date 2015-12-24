@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SMBPASSWD</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SMBPASSWD</H1>
+Section: File Formats and Conventions (5)<BR>Updated: 06/14/2011<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+smbpasswd - The Samba encrypted password file
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+
+smbpasswd
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+This tool is part of the
+<B><A HREF="/manpages/index.html?7+samba">samba</A></B>(7)
+suite.
+<P>
+
+smbpasswd is the Samba encrypted password file. It contains the username, Unix user id and the SMB hashed passwords of the user, as well as account flag information and the time the password was last changed. This file format has been evolving with Samba and has had several different formats in the past.
+<A NAME="lbAE">&nbsp;</A>
+<H2>FILE FORMAT</H2>
+
+<P>
+
+The format of the smbpasswd file used by Samba 2.2 is very similar to the familiar Unix
+<A HREF="/manpages/index.html?5+passwd">passwd</A>(5)
+file. It is an ASCII file containing one line for each user. Each field ithin each line is separated from the next by a colon. Any entry beginning with '#' is ignored. The smbpasswd file contains the following information for each user:
+<P>
+
+name
+<DL COMPACT><DT><DD>
+This is the user name. It must be a name that already exists in the standard UNIX passwd file.
+</DL>
+
+<P>
+
+uid
+<DL COMPACT><DT><DD>
+This is the UNIX uid. It must match the uid field for the same user entry in the standard UNIX passwd file. If this does not match then Samba will refuse to recognize this smbpasswd file entry as being valid for a user.
+</DL>
+
+<P>
+
+Lanman Password Hash
+<DL COMPACT><DT><DD>
+This is the LANMAN hash of the user's password, encoded as 32 hex digits. The LANMAN hash is created by DES encrypting a well known string with the user's password as the DES key. This is the same password used by Windows 95/98 machines. Note that this password hash is regarded as weak as it is vulnerable to dictionary attacks and if two users choose the same password this entry will be identical (i.e. the password is not &quot;salted&quot; as the UNIX password is). If the user has a null password this field will contain the characters &quot;NO PASSWORD&quot; as the start of the hex string. If the hex string is equal to 32 'X' characters then the user's account is marked as
+<B>disabled</B>
+and the user will not be able to log onto the Samba server.
+<P>
+<I>WARNING !!</I>
+Note that, due to the challenge-response nature of the SMB/CIFS authentication protocol, anyone with a knowledge of this password hash will be able to impersonate the user on the network. For this reason these hashes are known as
+<I>plain text equivalents</I>
+and must
+<I>NOT</I>
+be made available to anyone but the root user. To protect these passwords the smbpasswd file is placed in a directory with read and traverse access only to the root user and the smbpasswd file itself must be set to be read/write only by root, with no other access.
+</DL>
+
+<P>
+
+NT Password Hash
+<DL COMPACT><DT><DD>
+This is the Windows NT hash of the user's password, encoded as 32 hex digits. The Windows NT hash is created by taking the user's password as represented in 16-bit, little-endian UNICODE and then applying the MD4 (internet rfc1321) hashing algorithm to it.
+<P>
+This password hash is considered more secure than the LANMAN Password Hash as it preserves the case of the password and uses a much higher quality hashing algorithm. However, it is still the case that if two users choose the same password this entry will be identical (i.e. the password is not &quot;salted&quot; as the UNIX password is).
+<P>
+<I>WARNING !!</I>. Note that, due to the challenge-response nature of the SMB/CIFS authentication protocol, anyone with a knowledge of this password hash will be able to impersonate the user on the network. For this reason these hashes are known as
+<I>plain text equivalents</I>
+and must
+<I>NOT</I>
+be made available to anyone but the root user. To protect these passwords the smbpasswd file is placed in a directory with read and traverse access only to the root user and the smbpasswd file itself must be set to be read/write only by root, with no other access.
+</DL>
+
+<P>
+
+Account Flags
+<DL COMPACT><DT><DD>
+This section contains flags that describe the attributes of the users account. This field is bracketed by '[' and ']' characters and is always 13 characters in length (including the '[' and ']' characters). The contents of this field may be any of the following characters:
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+<I>U</I>
+- This means this is a &quot;User&quot; account, i.e. an ordinary user.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+<I>N</I>
+- This means the account has no password (the passwords in the fields LANMAN Password Hash and NT Password Hash are ignored). Note that this will only allow users to log on with no password if the
+<I> null passwords</I>
+parameter is set in the
+<B><A HREF="/manpages/index.html?5+smb.conf">smb.conf</A></B>(5)
+config file.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+<I>D</I>
+- This means the account is disabled and no SMB/CIFS logins will be allowed for this user.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+<I>X</I>
+- This means the password does not expire.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+<I>W</I>
+- This means this account is a &quot;Workstation Trust&quot; account. This kind of account is used in the Samba PDC code stream to allow Windows NT Workstations and Servers to join a Domain hosted by a Samba PDC.
+<P>
+</DL>
+
+Other flags may be added as the code is extended in future. The rest of this field space is filled in with spaces. For further information regarding the flags that are supported please refer to the man page for the
+pdbedit
+command.
+</DL>
+
+<P>
+
+Last Change Time
+<DL COMPACT><DT><DD>
+This field consists of the time the account was last modified. It consists of the characters 'LCT-' (standing for &quot;Last Change Time&quot;) followed by a numeric encoding of the UNIX time in seconds since the epoch (1970) that the last change was made.
+</DL>
+
+<P>
+
+All other colon separated fields are ignored at this time.
+<A NAME="lbAF">&nbsp;</A>
+<H2>VERSION</H2>
+
+<P>
+
+This man page is correct for version 3 of the Samba suite.
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<B><A HREF="/manpages/index.html?8+smbpasswd">smbpasswd</A></B>(8),
+<B><A HREF="/manpages/index.html?7+Samba">Samba</A></B>(7), and the Internet RFC1321 for details on the MD4 algorithm.
+<A NAME="lbAH">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<P>
+
+The original Samba software and related utilities were created by Andrew Tridgell. Samba is now developed by the Samba Team as an Open Source project similar to the way the Linux kernel is developed.
+<P>
+
+The original Samba man pages were written by Karl Auer. The man page sources were converted to YODL format (another excellent piece of Open Source software, available at
+<A HREF="ftp://ftp.icce.rug.nl/pub/unix/)">ftp://ftp.icce.rug.nl/pub/unix/)</A> and updated for the Samba 2.0 release by Jeremy Allison. The conversion to DocBook for Samba 2.2 was done by Gerald Carter. The conversion to DocBook XML 4.2 for Samba 3.0 was done by Alexander Bokovoy.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">FILE FORMAT</A><DD>
+<DT><A HREF="#lbAF">VERSION</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

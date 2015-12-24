@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SEMGET</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SEMGET</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2004-05-27<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+semget - get a semaphore set identifier
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/ipc.h">sys/ipc.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/sem.h">sys/sem.h</A>&gt;</B>
+</PRE>
+
+<P>
+<B>int semget(key_t </B><I>key</I><B>,</B>
+
+<B>int </B><I>nsems</I><B>,</B>
+
+<B>int </B><I>semflg</I><B>);</B>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>semget</B>()
+
+system call returns the semaphore set identifier
+associated with the argument
+<I>key</I>.
+
+A new set of
+<I>nsems</I>
+
+semaphores is created if
+<I>key</I>
+
+has the value
+<B>IPC_PRIVATE</B>
+
+or if no existing semaphore set is associated with
+<I>key</I>
+
+and
+<B>IPC_CREAT</B>
+
+is specified in
+<I>semflg</I>.
+
+<P>
+
+If
+<I>semflg</I>
+
+specifies both
+<B>IPC_CREAT</B>
+
+and
+<B>IPC_EXCL</B>
+
+and a semaphore set already exists for
+<I>key</I>,
+
+then
+<B>semget</B>()
+
+fails with
+<I>errno</I>
+
+set to
+<B>EEXIST</B>.
+
+(This is analogous to the effect of the combination
+<B>O_CREAT | O_EXCL</B>
+
+for
+<B><A HREF="/manpages/index.html?2+open">open</A></B>(2).)
+
+<P>
+
+Upon creation, the least significant 9 bits of the argument
+<I>semflg</I>
+
+define the permissions (for owner, group and others)
+for the semaphore set.
+These bits have the same format, and the same
+meaning, as the
+<I>mode</I>
+
+argument of
+<B><A HREF="/manpages/index.html?2+open">open</A></B>(2)
+
+(though the execute permissions are
+not meaningful for semaphores, and write permissions mean permission
+to alter semaphore values).
+<P>
+
+The values of the semaphores in a newly created set are indeterminate.
+(POSIX.1-2001 is explicit on this point.)
+Although Linux, like many other implementations,
+initializes the semaphore values to 0,
+a portable application cannot rely on this:
+it should explicitly initialize the semaphores to the desired values.
+
+
+
+<P>
+
+When creating a new semaphore set,
+<B>semget</B>()
+
+initializes the set's associated data structure,
+<I>semid_ds</I>
+
+(see
+<B><A HREF="/manpages/index.html?2+semctl">semctl</A></B>(2)),
+
+as follows:
+<DL COMPACT>
+<DT><DD>
+<I>sem_perm.cuid</I>
+
+and
+<I>sem_perm.uid</I>
+
+are set to the effective user ID of the calling process.
+<DT><DD>
+<I>sem_perm.cgid</I>
+
+and
+<I>sem_perm.gid</I>
+
+are set to the effective group ID of the calling process.
+<DT><DD>
+The least significant 9 bits of
+<I>sem_perm.mode</I>
+
+are set to the least significant 9 bits of
+<I>semflg</I>.
+
+<DT><DD>
+<I>sem_nsems</I>
+
+is set to the value of
+<I>nsems</I>.
+
+<DT><DD>
+<I>sem_otime</I>
+
+is set to 0.
+<DT><DD>
+<I>sem_ctime</I>
+
+is set to the current time.
+</DL>
+<P>
+
+The argument
+<I>nsems</I>
+
+can be 0
+(a don't care)
+when a semaphore set is not being created.
+Otherwise
+<I>nsems</I>
+
+must be greater than 0
+and less than or equal to the maximum number of semaphores per semaphore set
+(<B>SEMMSL</B>).
+
+<P>
+
+If the semaphore set already exists, the permissions are
+verified.
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+If successful, the return value will be the semaphore set identifier
+(a non-negative integer), otherwise -1
+is returned, with
+<I>errno</I>
+
+indicating the error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+On failure
+<I>errno</I>
+
+will be set to one of the following:
+<DL COMPACT>
+<DT><B>EACCES</B>
+
+<DD>
+A semaphore set exists for
+<I>key</I>,
+
+but the calling process does not have permission to access the set,
+and does not have the
+<B>CAP_IPC_OWNER</B>
+
+capability.
+<DT><B>EEXIST</B>
+
+<DD>
+A semaphore set exists for
+<I>key</I>
+
+and
+<I>semflg</I>
+
+specified both
+<B>IPC_CREAT</B>
+
+and
+<B>IPC_EXCL</B>.
+
+
+
+
+<DT><B>EINVAL</B>
+
+<DD>
+<I>nsems</I>
+
+is less than 0 or greater than the limit on the number
+of semaphores per semaphore set
+(<B>SEMMSL</B>),
+
+or a semaphore set corresponding to
+<I>key</I>
+
+already exists, and
+<I>nsems</I>
+
+is larger than the number of semaphores in that set.
+<DT><B>ENOENT</B>
+
+<DD>
+No semaphore set exists for
+<I>key</I>
+
+and
+<I>semflg</I>
+
+did not specify
+<B>IPC_CREAT</B>.
+
+<DT><B>ENOMEM</B>
+
+<DD>
+A semaphore set has to be created but the system does not have
+enough memory for the new data structure.
+<DT><B>ENOSPC</B>
+
+<DD>
+A semaphore set has to be created but the system limit for the maximum
+number of semaphore sets
+(<B>SEMMNI</B>),
+
+or the system wide maximum number of semaphores
+(<B>SEMMNS</B>),
+
+would be exceeded.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+SVr4, POSIX.1-2001.
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+<B>IPC_PRIVATE</B>
+
+isn't a flag field but a
+<I>key_t</I>
+
+type.
+If this special value is used for
+<I>key</I>,
+
+the system call ignores everything but the least significant 9 bits of
+<I>semflg</I>
+
+and creates a new semaphore set (on success).
+<P>
+
+The following limits on semaphore set resources affect the
+<B>semget</B>()
+
+call:
+<DL COMPACT>
+<DT><B>SEMMNI</B>
+
+<DD>
+System wide maximum number of semaphore sets: policy dependent
+(on Linux, this limit can be read and modified via the fourth field of
+<I>/proc/sys/kernel/sem</I>).
+
+
+<DT><B>SEMMSL</B>
+
+<DD>
+Maximum number of semaphores per semid: implementation dependent
+(on Linux, this limit can be read and modified via the first field of
+<I>/proc/sys/kernel/sem</I>).
+
+<DT><B>SEMMNS</B>
+
+<DD>
+System wide maximum number of semaphores: policy dependent
+(on Linux, this limit can be read and modified via the second field of
+<I>/proc/sys/kernel/sem</I>).
+
+Values greater than
+<B>SEMMSL * SEMMNI</B>
+
+makes it irrelevant.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+The name choice
+<B>IPC_PRIVATE</B>
+
+was perhaps unfortunate,
+<B>IPC_NEW</B>
+
+would more clearly show its function.
+<P>
+
+The semaphores in a set are not initialized by
+<B>semget</B>().
+
+
+
+In order to initialize the semaphores,
+<B><A HREF="/manpages/index.html?2+semctl">semctl</A></B>(2)
+
+must be used to perform a
+<B>SETVAL</B>
+
+or a
+<B>SETALL</B>
+
+operation on the semaphore set.
+(Where multiple peers do not know who will be the first to
+initialize the set, checking for a non-zero
+<I>sem_otime</I>
+
+in the associated data structure retrieved by a
+<B><A HREF="/manpages/index.html?2+semctl">semctl</A></B>(2)
+
+<B>IPC_STAT</B>
+
+operation can be used to avoid races.)
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?2+semctl">semctl</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+semop">semop</A></B>(2),
+
+<B><A HREF="/manpages/index.html?3+ftok">ftok</A></B>(3),
+
+<B><A HREF="/manpages/index.html?7+capabilities">capabilities</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+sem_overview">sem_overview</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+svipc">svipc</A></B>(7)
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:05 GMT, December 24, 2015
+</div></body>
+</HTML>

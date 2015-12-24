@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of TCPD</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>TCPD</H1>
+Section: Maintenance Commands (8)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+tcpd - access control facility for internet services
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+The <I>tcpd</I> program can be set up to monitor incoming requests for
+<I>telnet</I>, <I>finger</I>, <I>ftp</I>, <I>exec</I>, <I>rsh</I>,
+<I>rlogin</I>, <I>tftp</I>, <I>talk</I>, <I>comsat</I> and other services
+that have a one-to-one mapping onto executable files.
+<P>
+
+The program supports both 4.3BSD-style sockets and System V.4-style
+TLI.  Functionality may be limited when the protocol underneath TLI is
+not an internet protocol.
+<P>
+
+Operation is as follows: whenever a request for service arrives, the
+<I>inetd</I> daemon is tricked into running the <I>tcpd</I> program
+instead of the desired server. <I>tcpd</I> logs the request and does
+some additional checks. When all is well, <I>tcpd</I> runs the
+appropriate server program and goes away.
+<P>
+
+Optional features are: pattern-based access control, client username
+lookups with the RFC 931 etc. protocol, protection against hosts that
+pretend to have someone elses host name, and protection against hosts
+that pretend to have someone elses network address.
+<A NAME="lbAD">&nbsp;</A>
+<H2>LOGGING</H2>
+
+Connections that are monitored by
+<I>tcpd</I>
+
+are reported through the <I><A HREF="/manpages/index.html?3+syslog">syslog</A></I>(3) facility. Each record contains
+a time stamp, the client host name and the name of the requested
+service.  The information can be useful to detect unwanted activities,
+especially when logfile information from several hosts is merged.
+<P>
+
+In order to find out where your logs are going, examine the syslog
+configuration file, usually /etc/syslog.conf.
+<A NAME="lbAE">&nbsp;</A>
+<H2>ACCESS CONTROL</H2>
+
+Optionally,
+<I>tcpd</I>
+
+supports a simple form of access control that is based on pattern
+matching.  The access-control software provides hooks for the execution
+of shell commands when a pattern fires.  For details, see the
+<I><A HREF="/manpages/index.html?5+hosts_access">hosts_access</A></I>(5) manual page.
+<A NAME="lbAF">&nbsp;</A>
+<H2>HOST NAME VERIFICATION</H2>
+
+The authentication scheme of some protocols (<I>rlogin, rsh</I>) relies
+on host names. Some implementations believe the host name that they get
+from any random name server; other implementations are more careful but
+use a flawed algorithm.
+<P>
+
+<I>tcpd</I>
+
+verifies the client host name that is returned by the address-&gt;name DNS
+server by looking at the host name and address that are returned by the
+name-&gt;address DNS server.  If any discrepancy is detected,
+<I>tcpd</I>
+
+concludes that it is dealing with a host that pretends to have someone
+elses host name.
+<P>
+
+If the sources are compiled with -DPARANOID,
+<I>tcpd</I>
+
+will drop the connection in case of a host name/address mismatch.
+Otherwise, the hostname can be matched with the <I>PARANOID</I> wildcard,
+after which suitable action can be taken.
+<A NAME="lbAG">&nbsp;</A>
+<H2>HOST ADDRESS SPOOFING</H2>
+
+Optionally,
+<I>tcpd</I>
+
+disables source-routing socket options on every connection that it
+deals with. This will take care of most attacks from hosts that pretend
+to have an address that belongs to someone elses network. UDP services
+do not benefit from this protection. This feature must be turned on
+at compile time.
+<A NAME="lbAH">&nbsp;</A>
+<H2>RFC 931</H2>
+
+When RFC 931 etc. lookups are enabled (compile-time option) <I>tcpd</I>
+will attempt to establish the name of the client user. This will
+succeed only if the client host runs an RFC 931-compliant daemon.
+Client user name lookups will not work for datagram-oriented
+connections, and may cause noticeable delays in the case of connections
+from PCs.
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+The details of using <I>tcpd</I> depend on pathname information that was
+compiled into the program.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>EXAMPLE 1</H2>
+
+This example applies when <I>tcpd</I> expects that the original network
+daemons will be moved to an &quot;other&quot; place.
+<P>
+
+In order to monitor access to the <I>finger</I> service, move the
+original finger daemon to the &quot;other&quot; place and install tcpd in the
+place of the original finger daemon. No changes are required to
+configuration files.
+<PRE>
+
+# mkdir /other/place
+# mv /usr/etc/in.fingerd /other/place
+# cp tcpd /usr/etc/in.fingerd
+</PRE>
+
+<P>
+
+The example assumes that the network daemons live in /usr/etc. On some
+systems, network daemons live in /usr/sbin or in /usr/libexec, or have
+no `in.' prefix to their name.
+<A NAME="lbAK">&nbsp;</A>
+<H2>EXAMPLE 2</H2>
+
+This example applies when <I>tcpd</I> expects that the network daemons
+are left in their original place.
+<P>
+
+In order to monitor access to the <I>finger</I> service, perform the
+following edits on the <I>inetd</I> configuration file (usually 
+<I>/etc/inetd.conf</I> or <I>/etc/inet/inetd.conf</I>):
+<PRE>
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;finger  stream  tcp  nowait  nobody  /usr/etc/in.fingerd  in.fingerd
+
+becomes:
+
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;finger  stream  tcp  nowait  nobody  /some/where/tcpd     in.fingerd
+
+</PRE>
+
+<P>
+
+The example assumes that the network daemons live in /usr/etc. On some
+systems, network daemons live in /usr/sbin or in /usr/libexec, the
+daemons have no `in.' prefix to their name, or there is no userid
+field in the inetd configuration file.
+<P>
+
+Similar changes will be needed for the other services that are to be
+covered by <I>tcpd</I>.  Send a `kill -HUP' to the <I><A HREF="/manpages/index.html?8+inetd">inetd</A></I>(8)
+process to make the changes effective. AIX users may also have to
+execute the `inetimp' command.
+<A NAME="lbAL">&nbsp;</A>
+<H2>EXAMPLE 3</H2>
+
+In the case of daemons that do not live in a common directory (&quot;secret&quot;
+or otherwise), edit the <I>inetd</I> configuration file so that it
+specifies an absolute path name for the process name field. For example:
+<PRE>
+
+    ntalk  dgram  udp  wait  root  /some/where/tcpd  /usr/local/lib/ntalkd
+
+</PRE>
+
+<P>
+
+Only the last component (ntalkd) of the pathname will be used for
+access control and logging.
+<A NAME="lbAM">&nbsp;</A>
+<H2>BUGS</H2>
+
+Some UDP (and RPC) daemons linger around for a while after they have
+finished their work, in case another request comes in.  In the inetd
+configuration file these services are registered with the <I>wait</I>
+option. Only the request that started such a daemon will be logged.
+<P>
+
+The program does not work with RPC services over TCP. These services
+are registered as <I>rpc/tcp</I> in the inetd configuration file. The
+only non-trivial service that is affected by this limitation is
+<I>rexd</I>, which is used by the <I><A HREF="/manpages/index.html?1+on">on</A>(1)</I> command. This is no great
+loss.  On most systems, <I>rexd</I> is less secure than a wildcard in
+/etc/hosts.equiv.
+<P>
+
+RPC broadcast requests (for example: <I>rwall, rup, rusers</I>) always
+appear to come from the responding host. What happens is that the
+client broadcasts the request to all <I>portmap</I> daemons on its
+network; each <I>portmap</I> daemon forwards the request to a local
+daemon. As far as the <I>rwall</I> etc.  daemons know, the request comes
+from the local host.
+<A NAME="lbAN">&nbsp;</A>
+<H2>FILES</H2>
+
+<P>
+
+The default locations of the host access control tables are:
+<P>
+
+/etc/hosts.allow
+<BR>
+
+/etc/hosts.deny
+<A NAME="lbAO">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/manpages/index.html?5+hosts_access">hosts_access</A>(5), format of the tcpd access control tables.
+<A HREF="/manpages/index.html?5+syslog.conf">syslog.conf</A>(5), format of the syslogd control file.
+<A HREF="/manpages/index.html?5+inetd.conf">inetd.conf</A>(5), format of the inetd control file.
+</PRE><A NAME="lbAP">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+
+<PRE>
+Wietse Venema (<A HREF="mailto:wietse@wzv.win.tue.nl">wietse@wzv.win.tue.nl</A>),
+Department of Mathematics and Computing Science,
+Eindhoven University of Technology
+Den Dolech 2, P.O. Box 513, 
+5600 MB Eindhoven, The Netherlands
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">LOGGING</A><DD>
+<DT><A HREF="#lbAE">ACCESS CONTROL</A><DD>
+<DT><A HREF="#lbAF">HOST NAME VERIFICATION</A><DD>
+<DT><A HREF="#lbAG">HOST ADDRESS SPOOFING</A><DD>
+<DT><A HREF="#lbAH">RFC 931</A><DD>
+<DT><A HREF="#lbAI">EXAMPLES</A><DD>
+<DT><A HREF="#lbAJ">EXAMPLE 1</A><DD>
+<DT><A HREF="#lbAK">EXAMPLE 2</A><DD>
+<DT><A HREF="#lbAL">EXAMPLE 3</A><DD>
+<DT><A HREF="#lbAM">BUGS</A><DD>
+<DT><A HREF="#lbAN">FILES</A><DD>
+<DT><A HREF="#lbAO">SEE ALSO</A><DD>
+<DT><A HREF="#lbAP">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:30 GMT, December 24, 2015
+</div></body>
+</HTML>

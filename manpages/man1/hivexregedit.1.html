@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of hivexregedit</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>hivexregedit</H1>
+Section: Windows Registry (1)<BR>Updated: 2011-05-17<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+hivexregedit - Merge and export Registry changes from regedit-format files.
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ hivexregedit --merge [--prefix prefix] [--encoding enc] \
+         hivefile [regfile]
+
+ hivexregedit --export [--prefix prefix] hivefile key &gt; regfile
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Please note hivexregedit is a low-level tool for manipulating hive
+files directly.  To merge or export registry changes to Windows
+virtual machines it's better to use <I><A HREF="/manpages/index.html?1+virt-win-reg">virt-win-reg</A></I>(1).
+<P>
+
+Given a local binary (``hive'') file, there are two modes.  <TT>&quot;--merge&quot;</TT>
+imports (merges) changes from a regedit-format file into the hive.  It
+is similar to using the <TT>&quot;/s&quot;</TT> switch in Windows regedit.exe.
+<P>
+
+<TT>&quot;--export&quot;</TT> exports a Registry key (recursively) into the regedit format.
+<A NAME="lbAE">&nbsp;</A>
+<H3><FONT SIZE="-1">ENCODING</FONT></H3>
+
+<A NAME="ixAAE"></A>
+<TT>&quot;hivexregedit&quot;</TT> expects that regedit files have already been re-encoded
+in the local encoding.  Usually on Linux hosts, this means <FONT SIZE="-1">UTF-8</FONT> with
+Unix-style line endings.  Since Windows regedit files are often in
+<FONT SIZE="-1">UTF-16LE</FONT> with Windows-style line endings, you may need to re-encode the
+whole file before or after processing.
+<P>
+
+To re-encode a file from Windows format to Linux (before processing it
+with the <TT>&quot;--merge&quot;</TT> option), you would do something like this:
+<P>
+
+
+
+<PRE>
+ iconv -f utf-16le -t utf-8 &lt; win.reg | dos2unix &gt; linux.reg
+
+</PRE>
+
+
+<P>
+
+To go in the opposite direction, after using <TT>&quot;--export&quot;</TT> and before
+sending the file to a Windows user, do something like this:
+<P>
+
+
+
+<PRE>
+ unix2dos linux.reg | iconv -f utf-8 -t utf-16le &gt; win.reg
+
+</PRE>
+
+
+<P>
+
+For more information about encoding, see <I><A HREF="/manpages/index.html?3+Win::Hivex::Regedit">Win::Hivex::Regedit</A></I>(3).
+<P>
+
+If you are unsure about the current encoding, use the <I><A HREF="/manpages/index.html?1+file">file</A></I>(1)
+command.  Recent versions of Windows regedit.exe produce a <FONT SIZE="-1">UTF-16LE</FONT>
+file with Windows-style (<FONT SIZE="-1">CRLF</FONT>) line endings, like this:
+<P>
+
+
+
+<PRE>
+ $ file software.reg
+ software.reg: Little-endian UTF-16 Unicode text, with very long lines,
+ with CRLF line terminators
+
+</PRE>
+
+
+<P>
+
+This file would need conversion before you could <TT>&quot;--merge&quot;</TT> it.
+<A NAME="lbAF">&nbsp;</A>
+<H3><FONT SIZE="-1">SHELL</FONT> <FONT SIZE="-1">QUOTING</FONT></H3>
+
+<A NAME="ixAAF"></A>
+Be careful when passing parameters containing <TT>&quot;\&quot;</TT> (backslash) in the
+shell.  Usually you will have to use 'single quotes' or double
+backslashes (but not both) to protect them from the shell.
+<A NAME="lbAG">&nbsp;</A>
+<H3>CurrentControlSet etc.</H3>
+
+<A NAME="ixAAG"></A>
+Registry keys like <TT>&quot;CurrentControlSet&quot;</TT> don't really exist in the
+Windows Registry at the level of the hive file, and therefore you
+cannot modify these.
+<P>
+
+<TT>&quot;CurrentControlSet&quot;</TT> is usually an alias for <TT>&quot;ControlSet001&quot;</TT>.  In
+some circumstances it might refer to another control set.  The way
+to find out is to look at the <TT>&quot;HKLM\SYSTEM\Select&quot;</TT> key:
+<P>
+
+
+
+<PRE>
+ $ hivexregedit --export SYSTEM '\Select'
+ [\Select]
+ &quot;Current&quot;=dword:00000001
+ &quot;Default&quot;=dword:00000001
+ &quot;Failed&quot;=dword:00000000
+ &quot;LastKnownGood&quot;=dword:00000002
+
+</PRE>
+
+
+<P>
+
+``Current'' is the one which Windows will choose when it boots.
+<P>
+
+Similarly, other <TT>&quot;Current...&quot;</TT> keys in the path may need to
+be replaced.
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<A NAME="ixAAH"></A>
+
+
+<PRE>
+ $ virt-cat WindowsGuest /Windows/System32/config/software &gt; software.hive
+ $ hivexregedit --export \
+     --prefix 'HKEY_LOCAL_MACHINE\SOFTWARE' \
+     software.hive '\Microsoft' &gt; ms-keys.reg
+
+ $ hivexregedit --merge system.hive \
+     --prefix 'HKEY_LOCAL_MACHINE\SYSTEM' additions.reg
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<A NAME="ixAAI"></A>
+<DL COMPACT>
+<DT><B>--help</B><DD>
+<A NAME="ixAAJ"></A>
+Display help.
+<DT><B>--debug</B><DD>
+<A NAME="ixAAK"></A>
+Enable debugging in the hivex library.  This is useful for diagnosing
+bugs and also malformed hive files.
+<DT><B>--merge</B><DD>
+<A NAME="ixAAL"></A>
+
+
+<PRE>
+ hivexregedit --merge [--prefix prefix] [--encoding enc] \
+         hivefile [regfile]
+
+</PRE>
+
+
+
+
+<P>
+
+
+Merge <TT>&quot;regfile&quot;</TT> (a regedit-format text file) into the hive
+<TT>&quot;hivefile&quot;</TT>.  If <TT>&quot;regfile&quot;</TT> is omitted, then the program reads from
+standard input.  (Also you can give multiple input files).
+
+
+<P>
+
+
+<TT>&quot;--prefix&quot;</TT> specifies the Windows Registry prefix.  It is almost
+always necessary to use this when dealing with real hive files.
+
+
+<P>
+
+
+<TT>&quot;--encoding&quot;</TT> specifies the encoding for unmarked strings in the
+input.  It defaults to <TT>&quot;UTF-16LE&quot;</TT> which should work for recent
+versions of Windows.  Another possibility is to use <TT>&quot;ASCII&quot;</TT>.
+<DT><B>--export</B><DD>
+<A NAME="ixAAM"></A>
+
+
+<PRE>
+ hivexregedit --export [--prefix prefix] hivefile key &gt; regfile
+
+</PRE>
+
+
+
+
+<P>
+
+
+<TT>&quot;key&quot;</TT> is a path within the hive <TT>&quot;hivefile&quot;</TT>.  (The key should not
+contain any prefix and should be quoted to defend backslashes from the
+shell).  The key is exported, recursively, to standard output in the
+textual regedit format.
+
+
+<P>
+
+
+<TT>&quot;--prefix&quot;</TT> specifies the Windows Registry prefix.  It is almost
+always necessary to use this when dealing with real hive files.
+<DT><B>--prefix</B> prefix<DD>
+<A NAME="ixAAN"></A>
+Hive files and Windows Registry key names are indirectly related.  For
+example, inside the software hive, all keys are stored relative to
+<TT>&quot;HKEY_LOCAL_MACHINE\SOFTWARE&quot;</TT>.  Thus
+<TT>&quot;HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft&quot;</TT> appears in the hive file as
+<TT>&quot;\Microsoft&quot;</TT>.
+
+
+<P>
+
+
+The hive format itself does not store this prefix, so you have to
+supply it based on outside knowledge.  (<I><A HREF="/manpages/index.html?1+virt-win-reg">virt-win-reg</A></I>(1), amongst
+other things, already knows about this).
+
+
+<P>
+
+
+Usually it is sufficient to pass the parameter
+<TT>&quot;--prefix 'HKEY_LOCAL_MACHINE\SOFTWARE'&quot;</TT> or similar when doing
+merges and exports.
+<DT><B>--encoding</B> UTF-16LE|ASCII<DD>
+<A NAME="ixAAO"></A>
+When merging (only), you may need to specify the encoding for strings
+to be used in the hive file.  This is explained in detail in
+``<FONT SIZE="-1">ENCODING</FONT> <FONT SIZE="-1">STRINGS</FONT>'' in <I><A HREF="/manpages/index.html?3+Win::Hivex::Regedit">Win::Hivex::Regedit</A></I>(3).
+
+
+<P>
+
+
+The default is to use <FONT SIZE="-1">UTF-16LE</FONT>, which should work with recent versions
+of Windows.
+<DT><B>--unsafe-printable-strings</B><DD>
+<A NAME="ixAAP"></A>
+When exporting (only), assume strings are <FONT SIZE="-1">UTF-16LE</FONT> and print them as
+strings instead of hex sequences.  Remove the final zero codepoint
+from strings if present.
+
+
+<P>
+
+
+This is unsafe and does not preserve the fidelity of strings in the
+original hive for various reasons:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>*<DD>
+Assumes the original encoding is <FONT SIZE="-1">UTF-16LE</FONT>.  <FONT SIZE="-1">ASCII</FONT> strings and strings
+in other encodings will be corrupted by this transformation.
+<DT>*<DD>
+Assumes that everything which has type 1 or 2 is really a string
+and that everything else is not a string, but the type field in
+real hives is not reliable.
+<DT>*<DD>
+Loses information about whether a zero codepoint followed the string
+in the hive or not.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+
+
+<P>
+
+
+This all happens because the hive itself contains no information about
+how strings are encoded (see
+``<FONT SIZE="-1">ENCODING</FONT> <FONT SIZE="-1">STRINGS</FONT>'' in <I><A HREF="/manpages/index.html?3+Win::Hivex::Regedit">Win::Hivex::Regedit</A></I>(3)).
+
+
+<P>
+
+
+You should only use this option for quick hacking and debugging of the
+hive contents, and <I>never</I> use it if the output is going to be passed
+into another program or stored in another hive.
+</DL>
+
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAQ"></A>
+<I><A HREF="/manpages/index.html?1+virt-win-reg">virt-win-reg</A></I>(1),
+<I><A HREF="/manpages/index.html?3+Win::Hivex::Regedit">Win::Hivex::Regedit</A></I>(3),
+<I><A HREF="/manpages/index.html?3+Win::Hivex">Win::Hivex</A></I>(3),
+<I><A HREF="/manpages/index.html?1+hivexsh">hivexsh</A></I>(1),
+<I><A HREF="/manpages/index.html?1+dos2unix">dos2unix</A></I>(1),
+<I><A HREF="/manpages/index.html?1+unix2dos">unix2dos</A></I>(1),
+<I><A HREF="/manpages/index.html?1+iconv">iconv</A></I>(1),
+&lt;<A HREF="http://libguestfs.org/">http://libguestfs.org/</A>&gt;.
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAR"></A>
+Richard W.M. Jones &lt;<A HREF="http://people.redhat.com/~rjones/">http://people.redhat.com/~rjones/</A>&gt;
+<A NAME="lbAL">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAS"></A>
+Copyright (C) 2010 Red Hat Inc.
+<P>
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the <FONT SIZE="-1">GNU</FONT> General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+<P>
+
+This program is distributed in the hope that it will be useful,
+but <FONT SIZE="-1">WITHOUT</FONT> <FONT SIZE="-1">ANY</FONT> <FONT SIZE="-1">WARRANTY</FONT>; without even the implied warranty of
+<FONT SIZE="-1">MERCHANTABILITY</FONT> or <FONT SIZE="-1">FITNESS</FONT> <FONT SIZE="-1">FOR</FONT> A <FONT SIZE="-1">PARTICULAR</FONT> <FONT SIZE="-1">PURPOSE</FONT>.  See the
+<FONT SIZE="-1">GNU</FONT> General Public License for more details.
+<P>
+
+You should have received a copy of the <FONT SIZE="-1">GNU</FONT> General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 675 Mass Ave, Cambridge, <FONT SIZE="-1">MA</FONT> 02139, <FONT SIZE="-1">USA</FONT>.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE"><FONT SIZE="-1">ENCODING</FONT></A><DD>
+<DT><A HREF="#lbAF"><FONT SIZE="-1">SHELL</FONT> <FONT SIZE="-1">QUOTING</FONT></A><DD>
+<DT><A HREF="#lbAG">CurrentControlSet etc.</A><DD>
+</DL>
+<DT><A HREF="#lbAH">EXAMPLE</A><DD>
+<DT><A HREF="#lbAI">OPTIONS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">AUTHOR</A><DD>
+<DT><A HREF="#lbAL">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:04 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SETBUF</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SETBUF</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2008-06-26<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+setbuf, setbuffer, setlinebuf, setvbuf - stream buffering operations
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;</B>
+
+<B>void setbuf(FILE *</B><I>stream</I><B>, char *</B><I>buf</I><B>);</B>
+
+<B>void setbuffer(FILE *</B><I>stream</I><B>, char *</B><I>buf</I><B>, size_t </B><I>size</I><B>);</B>
+
+<B>void setlinebuf(FILE *</B><I>stream</I><B>);</B>
+
+<B>int setvbuf(FILE *</B><I>stream</I><B>, char *</B><I>buf</I><B>, int </B><I>mode</I><B>, size_t </B><I>size</I><B>);</B>
+</PRE>
+
+<P>
+
+Feature Test Macro Requirements for glibc (see
+<B><A HREF="/manpages/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)):
+
+
+<P>
+<B>setbuffer</B>(),
+
+<B>setlinebuf</B>():
+
+_BSD_SOURCE
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The three types of buffering available are unbuffered, block buffered, and
+line buffered.
+When an output stream is unbuffered, information appears on
+the destination file or terminal as soon as written; when it is block
+buffered many characters are saved up and written as a block; when it is
+line buffered characters are saved up until a newline is output or input is
+read from any stream attached to a terminal device (typically <I>stdin</I>).
+The function
+<B><A HREF="/manpages/index.html?3+fflush">fflush</A></B>(3)
+
+may be used to force the block out early.
+(See
+<B><A HREF="/manpages/index.html?3+fclose">fclose</A></B>(3).)
+
+Normally all files are block buffered.
+When the first I/O operation occurs on a file,
+<B><A HREF="/manpages/index.html?3+malloc">malloc</A></B>(3)
+
+is called, and a buffer is obtained.
+If a stream refers to a terminal (as
+<I>stdout</I>
+
+normally does) it is line buffered.
+The standard error stream
+<I>stderr</I>
+
+is always unbuffered by default.
+<P>
+
+The
+<B>setvbuf</B>()
+
+function may be used on any open stream to change its buffer.
+The
+<I>mode</I>
+
+argument must be one of the following three macros:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>_IONBF</B>
+
+<DD>
+unbuffered
+<DT><B>_IOLBF</B>
+
+<DD>
+line buffered
+<DT><B>_IOFBF</B>
+
+<DD>
+fully buffered
+</DL>
+</DL>
+
+<P>
+
+Except for unbuffered files, the
+<I>buf</I>
+
+argument should point to a buffer at least
+<I>size</I>
+
+bytes long; this buffer will be used instead of the current buffer.
+If the argument
+<I>buf</I>
+
+is NULL,
+only the mode is affected; a new buffer will be allocated on the next read
+or write operation.
+The
+<B>setvbuf</B>()
+
+function may only be used after opening a stream and before any other
+operations have been performed on it.
+<P>
+
+The other three calls are, in effect, simply aliases for calls to
+<B>setvbuf</B>().
+
+The
+<B>setbuf</B>()
+
+function is exactly equivalent to the call
+<P>
+
+
+setvbuf(stream, buf, buf ? _IOFBF : _IONBF, BUFSIZ);
+
+<P>
+
+The
+<B>setbuffer</B>()
+
+function is the same, except that the size of the buffer is up to the
+caller, rather than being determined by the default
+<B>BUFSIZ</B>.
+
+The
+<B>setlinebuf</B>()
+
+function is exactly equivalent to the call:
+<P>
+
+
+setvbuf(stream, (char *) NULL, _IOLBF, 0);
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+The function
+<B>setvbuf</B>()
+
+returns 0 on success.
+It returns non-zero on failure
+(<I>mode</I>
+
+is invalid or the request cannot be honored).
+It may set
+<I>errno</I>
+
+on failure.
+<P>
+The other functions do not return a value.
+<A NAME="lbAF">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+The
+<B>setbuf</B>()
+
+and
+<B>setvbuf</B>()
+
+functions conform to C89 and C99.
+<A NAME="lbAG">&nbsp;</A>
+<H2>BUGS</H2>
+
+The
+<B>setbuffer</B>()
+
+and
+<B>setlinebuf</B>()
+
+functions are not portable to versions of BSD before 4.2BSD, and
+are available under Linux since libc 4.5.21.
+On 4.2BSD and 4.3BSD systems,
+<B>setbuf</B>()
+
+always uses a suboptimal buffer size and should be avoided.
+
+You must make sure that the space that
+<I>buf</I>
+
+points to still exists by the time
+<I>stream</I>
+
+is closed, which also happens at program termination.
+For example, the following is invalid:
+<PRE>
+
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+
+int
+main(void)
+{
+    char buf[BUFSIZ];
+    setbuf(stdin, buf);
+    printf(&quot;Hello, world!\n&quot;);
+    return 0;
+}
+</PRE>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?3+fclose">fclose</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+fflush">fflush</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+fopen">fopen</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+fread">fread</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+malloc">malloc</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+printf">printf</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+puts">puts</A></B>(3)
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAG">BUGS</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:39 GMT, December 24, 2015
+</div></body>
+</HTML>

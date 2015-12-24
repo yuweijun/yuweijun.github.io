@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of DBD::DBM</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>DBD::DBM</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2008-01-31<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+DBD::DBM - a DBI driver for DBM &amp; MLDBM files
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ use DBI;
+ $dbh = DBI-&gt;connect('dbi:DBM:');                # defaults to SDBM_File
+ $dbh = DBI-&gt;connect('DBI:DBM(RaiseError=1):');  # defaults to SDBM_File
+ $dbh = DBI-&gt;connect('dbi:DBM:type=GDBM_File');  # defaults to GDBM_File
+ $dbh = DBI-&gt;connect('dbi:DBM:mldbm=Storable');  # MLDBM with SDBM_File
+                                                 # and Storable
+
+</PRE>
+
+
+<P>
+
+or
+<P>
+
+
+
+<PRE>
+ $dbh = DBI-&gt;connect('dbi:DBM:', undef, undef);
+ $dbh = DBI-&gt;connect('dbi:DBM:', undef, undef, { dbm_type =&gt; 'ODBM_File' });
+
+</PRE>
+
+
+<P>
+
+and other variations on <I>connect()</I> as shown in the <FONT SIZE="-1">DBI</FONT> docs and with
+the dbm_ attributes shown below
+<P>
+
+... and then use standard <FONT SIZE="-1">DBI</FONT> prepare, execute, fetch, placeholders, etc.,
+see ``<FONT SIZE="-1">QUICK</FONT> <FONT SIZE="-1">START</FONT>'' for an example
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<FONT SIZE="-1">DBD::DBM</FONT> is a database management sytem that can work right out of the box.  If you have a standard installation of Perl and a standard installation of <FONT SIZE="-1">DBI</FONT>, you can begin creating, accessing, and modifying database tables without any further installation.  You can also add some other modules to it for more robust capabilities if you wish.
+<P>
+
+The module uses a <FONT SIZE="-1">DBM</FONT> file storage layer.  <FONT SIZE="-1">DBM</FONT> file storage is common on many platforms and files can be created with it in many languges.  That means that, in addition to creating files with <FONT SIZE="-1">DBI/SQL</FONT>, you can also use <FONT SIZE="-1">DBI/SQL</FONT> to access and modify files created by other <FONT SIZE="-1">DBM</FONT> modules and programs.  You can also use those programs to access files created with <FONT SIZE="-1">DBD::DBM</FONT>.
+<P>
+
+<FONT SIZE="-1">DBM</FONT> files are stored in binary format optimized for quick retrieval when using a key field.  That optimization can be used advantageously to make <FONT SIZE="-1">DBD::DBM</FONT> <FONT SIZE="-1">SQL</FONT> operations that use key fields very fast.  There are several different ``flavors'' of <FONT SIZE="-1">DBM</FONT> - different storage formats supported by different sorts of perl modules such as SDBM_File and <FONT SIZE="-1">MLDBM</FONT>.  This module supports all of the flavors that perl supports and, when used with <FONT SIZE="-1">MLDBM</FONT>, supports tables with any number of columns and insertion of Perl objects into tables.
+<P>
+
+<FONT SIZE="-1">DBD::DBM</FONT> has been tested with the following <FONT SIZE="-1">DBM</FONT> types: SDBM_File, NDBM_File, ODBM_File, GDBM_File, DB_File, BerekeleyDB.  Each type was tested both with and without <FONT SIZE="-1">MLDBM</FONT>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>QUICK START</H2>
+
+<A NAME="ixAAE"></A>
+<FONT SIZE="-1">DBD::DBM</FONT> operates like all other <FONT SIZE="-1">DBD</FONT> drivers - it's basic syntax and operation is specified by <FONT SIZE="-1">DBI</FONT>.  If you're not familiar with <FONT SIZE="-1">DBI</FONT>, you should start by reading <FONT SIZE="-1">DBI</FONT> and the documents it points to and then come back and read this file.  If you are familiar with <FONT SIZE="-1">DBI</FONT>, you already know most of what you need to know to operate this module.  Just jump in and create a test script something like the one shown below.
+<P>
+
+You should be aware that there are several options for the <FONT SIZE="-1">SQL</FONT> engine underlying <FONT SIZE="-1">DBD::DBM</FONT>, see ``Supported <FONT SIZE="-1">SQL</FONT> syntax''.  There are also many options for <FONT SIZE="-1">DBM</FONT> support, see especially the section on ``Adding multi-column support with <FONT SIZE="-1">MLDBM</FONT>''.
+<P>
+
+But here's a sample to get you started.
+<P>
+
+
+
+<PRE>
+ use DBI;
+ my $dbh = DBI-&gt;connect('dbi:DBM:');
+ $dbh-&gt;{RaiseError} = 1;
+ for my $sql( split /;\n+/,&quot;
+     CREATE TABLE user ( user_name TEXT, phone TEXT );
+     INSERT INTO user VALUES ('Fred Bloggs','233-7777');
+     INSERT INTO user VALUES ('Sanjay Patel','777-3333');
+     INSERT INTO user VALUES ('Junk','xxx-xxxx');
+     DELETE FROM user WHERE user_name = 'Junk';
+     UPDATE user SET phone = '999-4444' WHERE user_name = 'Sanjay Patel';
+     SELECT * FROM user
+ &quot;){
+     my $sth = $dbh-&gt;prepare($sql);
+     $sth-&gt;execute;
+     $sth-&gt;dump_results if $sth-&gt;{NUM_OF_FIELDS};
+ }
+ $dbh-&gt;disconnect;
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>USAGE</H2>
+
+<A NAME="ixAAF"></A>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Specifiying Files and Directories</H3>
+
+<A NAME="ixAAG"></A>
+<FONT SIZE="-1">DBD::DBM</FONT> will automatically supply an appropriate file extension for the type of <FONT SIZE="-1">DBM</FONT> you are using.  For example, if you use SDBM_File, a table called ``fruit'' will be stored in two files called ``fruit.pag'' and ``fruit.dir''.  You should <I>never</I> specify the file extensions in your <FONT SIZE="-1">SQL</FONT> statements.
+<P>
+
+However, I am not aware (and therefore <FONT SIZE="-1">DBD::DBM</FONT> is not aware) of all possible extensions for various <FONT SIZE="-1">DBM</FONT> types.  If your <FONT SIZE="-1">DBM</FONT> type uses an extension other than .pag and .dir, you should set the <I>dbm_ext</I> attribute to the extension. <B>And</B> you should write me with the name of the implementation and extension so I can add it to <FONT SIZE="-1">DBD::DBM</FONT>!  Thanks in advance for that :-).
+<P>
+
+
+
+<PRE>
+    $dbh = DBI-&gt;connect('dbi:DBM:ext=.db');  # .db extension is used
+    $dbh = DBI-&gt;connect('dbi:DBM:ext=');     # no extension is used
+
+</PRE>
+
+
+<P>
+
+or
+<P>
+
+
+
+<PRE>
+    $dbh-&gt;{dbm_ext}='.db';                      # global setting
+    $dbh-&gt;{dbm_tables}-&gt;{'qux'}-&gt;{ext}='.db';   # setting for table 'qux'
+
+</PRE>
+
+
+<P>
+
+By default files are assumed to be in the current working directory.  To have the module look in a different directory, specify the <I>f_dir</I> attribute in either the connect string or by setting the database handle attribute.
+<P>
+
+For example, this will look for the file /foo/bar/fruit (or /foo/bar/fruit.pag for <FONT SIZE="-1">DBM</FONT> types that use that extension)
+<P>
+
+
+
+<PRE>
+   my $dbh = DBI-&gt;connect('dbi:DBM:f_dir=/foo/bar');
+   my $ary = $dbh-&gt;selectall_arrayref(q{ SELECT * FROM fruit });
+
+</PRE>
+
+
+<P>
+
+And this will too:
+<P>
+
+
+
+<PRE>
+   my $dbh = DBI-&gt;connect('dbi:DBM:');
+   $dbh-&gt;{f_dir} = '/foo/bar';
+   my $ary = $dbh-&gt;selectall_arrayref(q{ SELECT x FROM fruit });
+
+</PRE>
+
+
+<P>
+
+You can also use delimited identifiers to specify paths directly in <FONT SIZE="-1">SQL</FONT> statements.  This looks in the same place as the two examples above but without setting <I>f_dir</I>:
+<P>
+
+
+
+<PRE>
+   my $dbh = DBI-&gt;connect('dbi:DBM:');
+   my $ary = $dbh-&gt;selectall_arrayref(q{
+       SELECT x FROM &quot;/foo/bar/fruit&quot;
+   });
+
+</PRE>
+
+
+<P>
+
+If you have SQL::Statement installed, you can use table aliases:
+<P>
+
+
+
+<PRE>
+   my $dbh = DBI-&gt;connect('dbi:DBM:');
+   my $ary = $dbh-&gt;selectall_arrayref(q{
+       SELECT f.x FROM &quot;/foo/bar/fruit&quot; AS f
+   });
+
+</PRE>
+
+
+<P>
+
+See the ``<FONT SIZE="-1">GOTCHAS</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">WARNINGS</FONT>'' for using <FONT SIZE="-1">DROP</FONT> on tables.
+<A NAME="lbAH">&nbsp;</A>
+<H3>Table locking and <I>flock()</I></H3>
+
+<A NAME="ixAAH"></A>
+Table locking is accomplished using a lockfile which has the same name as the table's file but with the file extension '.lck' (or a lockfile extension that you suppy, see belwo).  This file is created along with the table during a <FONT SIZE="-1">CREATE</FONT> and removed during a <FONT SIZE="-1">DROP</FONT>.  Every time the table itself is opened, the lockfile is <I>flocked()</I>.  For <FONT SIZE="-1">SELECT</FONT>, this is an shared lock.  For all other operations, it is an exclusive lock.
+<P>
+
+Since the locking depends on <I>flock()</I>, it only works on operating systems that support <I>flock()</I>.  In cases where <I>flock()</I> is not implemented, <FONT SIZE="-1">DBD::DBM</FONT> will not complain, it will simply behave as if the <I>flock()</I> had occurred although no actual locking will happen.  Read the documentation for <I>flock()</I> if you need to understand this.
+<P>
+
+Even on those systems that do support <I>flock()</I>, the locking is only advisory - as is allways the case with <I>flock()</I>.  This means that if some other program tries to access the table while <FONT SIZE="-1">DBD::DBM</FONT> has the table locked, that other program will *succeed* at opening the table.  <FONT SIZE="-1">DBD::DBM</FONT>'s locking only applies to <FONT SIZE="-1">DBD::DBM</FONT>.  An exception to this would be the situation in which you use a lockfile with the other program that has the same name as the lockfile used in <FONT SIZE="-1">DBD::DBM</FONT> and that program also uses <I>flock()</I> on that lockfile.  In that case, <FONT SIZE="-1">DBD::DBM</FONT> and your other program will respect each other's locks.
+<P>
+
+If you wish to use a lockfile extension other than '.lck', simply specify the dbm_lockfile attribute:
+<P>
+
+
+
+<PRE>
+  $dbh = DBI-&gt;connect('dbi:DBM:lockfile=.foo');
+  $dbh-&gt;{dbm_lockfile} = '.foo';
+  $dbh-&gt;{dbm_tables}-&gt;{qux}-&gt;{lockfile} = '.foo';
+
+</PRE>
+
+
+<P>
+
+If you wish to disable locking, set the dbm_lockfile equal to 0.
+<P>
+
+
+
+<PRE>
+  $dbh = DBI-&gt;connect('dbi:DBM:lockfile=0');
+  $dbh-&gt;{dbm_lockfile} = 0;
+  $dbh-&gt;{dbm_tables}-&gt;{qux}-&gt;{lockfile} = 0;
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Specifying the <FONT SIZE="-1">DBM</FONT> type</H3>
+
+<A NAME="ixAAI"></A>
+Each ``flavor'' of <FONT SIZE="-1">DBM</FONT> stores its files in a different format and has different capabilities and different limitations.  See AnyDBM_File for a comparison of <FONT SIZE="-1">DBM</FONT> types.
+<P>
+
+By default, <FONT SIZE="-1">DBD::DBM</FONT> uses the SDBM_File type of storage since SDBM_File comes with Perl itself.  But if you have other types of <FONT SIZE="-1">DBM</FONT> storage available, you can use any of them with <FONT SIZE="-1">DBD::DBM</FONT> also.
+<P>
+
+You can specify the <FONT SIZE="-1">DBM</FONT> type using the ``dbm_type'' attribute which can be set in the connection string or with the <TT>$dbh</TT>-&gt;{dbm_type} attribute for global settings or with the <TT>$dbh</TT>-&gt;{dbm_tables}-&gt;{$table_name}-&gt;{type} attribute for per-table settings in cases where a single script is accessing more than one kind of <FONT SIZE="-1">DBM</FONT> file.
+<P>
+
+In the connection string, just set type=TYPENAME where <FONT SIZE="-1">TYPENAME</FONT> is any <FONT SIZE="-1">DBM</FONT> type such as GDBM_File, DB_File, etc.  Do <I>not</I> use <FONT SIZE="-1">MLDBM</FONT> as your dbm_type, that is set differently, see below.
+<P>
+
+
+
+<PRE>
+ my $dbh=DBI-&gt;connect('dbi:DBM:');               # uses the default SDBM_File
+ my $dbh=DBI-&gt;connect('dbi:DBM:type=GDBM_File'); # uses the GDBM_File
+
+</PRE>
+
+
+<P>
+
+You can also use <TT>$dbh</TT>-&gt;{dbm_type} to set global <FONT SIZE="-1">DBM</FONT> type:
+<P>
+
+
+
+<PRE>
+ $dbh-&gt;{dbm_type} = 'GDBM_File';  # set the global DBM type
+ print $dbh-&gt;{dbm_type};          # display the global DBM type
+
+</PRE>
+
+
+<P>
+
+If you are going to have several tables in your script that come from different <FONT SIZE="-1">DBM</FONT> types, you can use the <TT>$dbh</TT>-&gt;{dbm_tables} hash to store different settings for the various tables.  You can even use this to perform joins on files that have completely different storage mechanisms.
+<P>
+
+
+
+<PRE>
+ my $dbh-&gt;('dbi:DBM:type=GDBM_File');
+ #
+ # sets global default of GDBM_File
+
+ my $dbh-&gt;{dbm_tables}-&gt;{foo}-&gt;{type} = 'DB_File';
+ #
+ # over-rides the global setting, but only for the table called &quot;foo&quot;
+
+ print $dbh-&gt;{dbm_tables}-&gt;{foo}-&gt;{type};
+ #
+ # prints the dbm_type for the table &quot;foo&quot;
+
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Adding multi-column support with <FONT SIZE="-1">MLDBM</FONT></H3>
+
+<A NAME="ixAAJ"></A>
+Most of the <FONT SIZE="-1">DBM</FONT> types only support two columns.  However a <FONT SIZE="-1">CPAN</FONT> module called <FONT SIZE="-1">MLDBM</FONT> overcomes this limitation by allowing more than two columns.  It does this by serializing the data - basically it puts a reference to an array into the second column.  It can also put almost any kind of Perl object or even Perl coderefs into columns.
+<P>
+
+If you want more than two columns, you must install <FONT SIZE="-1">MLDBM</FONT>.  It's available for many platforms and is easy to install.
+<P>
+
+<FONT SIZE="-1">MLDBM</FONT> can use three different modules to serialize the column - Data::Dumper, Storable, and FreezeThaw.  Data::Dumper is the default, Storable is the fastest.  <FONT SIZE="-1">MLDBM</FONT> can also make use of user-defined serialization methods.  All of this is available to you through <FONT SIZE="-1">DBD::DBM</FONT> with just one attribute setting.
+<P>
+
+To use <FONT SIZE="-1">MLDBM</FONT> with <FONT SIZE="-1">DBD::DBM</FONT>, you need to set the dbm_mldbm attribute to the name of the serialization module.
+<P>
+
+Some examples:
+<P>
+
+
+
+<PRE>
+ $dbh=DBI-&gt;connect('dbi:DBM:mldbm=Storable');  # use MLDBM with Storable
+ $dbh=DBI-&gt;connect(
+    'dbi:DBM:mldbm=MySerializer'           # use MLDBM with a user defined module
+ );
+ $dbh-&gt;{dbm_mldbm} = 'MySerializer';       # same as above
+ print $dbh-&gt;{dbm_mldbm}                   # show the MLDBM serializer
+ $dbh-&gt;{dbm_tables}-&gt;{foo}-&gt;{mldbm}='Data::Dumper';   # set Data::Dumper for table &quot;foo&quot;
+ print $dbh-&gt;{dbm_tables}-&gt;{foo}-&gt;{mldbm}; # show serializer for table &quot;foo&quot;
+
+</PRE>
+
+
+<P>
+
+<FONT SIZE="-1">MLDBM</FONT> works on top of other <FONT SIZE="-1">DBM</FONT> modules so you can also set a <FONT SIZE="-1">DBM</FONT> type along with setting dbm_mldbm.  The examples above would default to using SDBM_File with <FONT SIZE="-1">MLDBM</FONT>.  If you wanted GDBM_File instead, here's how:
+<P>
+
+
+
+<PRE>
+ $dbh = DBI-&gt;connect('dbi:DBM:type=GDBM_File;mldbm=Storable');
+ #
+ # uses GDBM_File with MLDBM and Storable
+
+</PRE>
+
+
+<P>
+
+SDBM_File, the default file type is quite limited, so if you are going to use <FONT SIZE="-1">MLDBM</FONT>, you should probably use a different type, see AnyDBM_File.
+<P>
+
+See below for some ``<FONT SIZE="-1">GOTCHAS</FONT> <FONT SIZE="-1">AND</FONT> <FONT SIZE="-1">WARNINGS</FONT>'' about <FONT SIZE="-1">MLDBM</FONT>.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Support for Berkeley <FONT SIZE="-1">DB</FONT></H3>
+
+<A NAME="ixAAK"></A>
+The Berkeley <FONT SIZE="-1">DB</FONT> storage type is supported through two different Perl modules - DB_File (which supports only features in old versions of Berkeley <FONT SIZE="-1">DB</FONT>) and BerkeleyDB (which supports all versions).  <FONT SIZE="-1">DBD::DBM</FONT> supports specifying either ``DB_File'' or ``BerkeleyDB'' as a <I>dbm_type</I>, with or without <FONT SIZE="-1">MLDBM</FONT> support.
+<P>
+
+The ``BerkeleyDB'' dbm_type is experimental and its interface is likely to chagne.  It currently defaults to BerkeleyDB::Hash and does not currently support ::Btree or ::Recno.
+<P>
+
+With BerkeleyDB, you can specify initialization flags by setting them in your script like this:
+<P>
+
+
+
+<PRE>
+ my $dbh = DBI-&gt;connect('dbi:DBM:type=BerkeleyDB;mldbm=Storable');
+ use BerkeleyDB;
+ my $env = new BerkeleyDB::Env -Home =&gt; $dir;  # and/or other Env flags
+ $dbh-&gt;{dbm_berkeley_flags} = {
+      'DB_CREATE'  =&gt; DB_CREATE  # pass in constants
+    , 'DB_RDONLY'  =&gt; DB_RDONLY  # pass in constants
+    , '-Cachesize' =&gt; 1000       # set a ::Hash flag
+    , '-Env'       =&gt; $env       # pass in an environment
+ };
+
+</PRE>
+
+
+<P>
+
+Do <I>not</I> set the -Flags or -Filename flags, those are determined by the <FONT SIZE="-1">SQL</FONT> (e.g. -Flags =&gt; <FONT SIZE="-1">DB_RDONLY</FONT> is set automatically when you issue a <FONT SIZE="-1">SELECT</FONT> statement).
+<P>
+
+Time has not permitted me to provide support in this release of <FONT SIZE="-1">DBD::DBM</FONT> for further Berkeley <FONT SIZE="-1">DB</FONT> features such as transactions, concurrency, locking, etc.  I will be working on these in the future and would value suggestions, patches, etc.
+<P>
+
+See DB_File and BerkeleyDB for further details.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Supported <FONT SIZE="-1">SQL</FONT> syntax</H3>
+
+<A NAME="ixAAL"></A>
+<FONT SIZE="-1">DBD::DBM</FONT> uses a subset of <FONT SIZE="-1">SQL</FONT>.  The robustness of that subset depends on what other modules you have installed. Both options support basic <FONT SIZE="-1">SQL</FONT> operations including <FONT SIZE="-1">CREATE</FONT> <FONT SIZE="-1">TABLE</FONT>, <FONT SIZE="-1">DROP</FONT> <FONT SIZE="-1">TABLE</FONT>, <FONT SIZE="-1">INSERT</FONT>, <FONT SIZE="-1">DELETE</FONT>, <FONT SIZE="-1">UPDATE</FONT>, and <FONT SIZE="-1">SELECT</FONT>.
+<P>
+
+<B>Option #1:</B> By default, this module inherits its <FONT SIZE="-1">SQL</FONT> support from DBI::SQL::Nano that comes with <FONT SIZE="-1">DBI</FONT>.  Nano is, as its name implies, a *very* small <FONT SIZE="-1">SQL</FONT> engine.  Although limited in scope, it is faster than option #2 for some operations.  See DBI::SQL::Nano for a description of the <FONT SIZE="-1">SQL</FONT> it supports and comparisons of it with option #2.
+<P>
+
+<B>Option #2:</B> If you install the pure Perl <FONT SIZE="-1">CPAN</FONT> module SQL::Statement, <FONT SIZE="-1">DBD::DBM</FONT> will use it instead of Nano.  This adds support for table aliases, for functions, for joins, and much more.  If you're going to use <FONT SIZE="-1">DBD::DBM</FONT> for anything other than very simple tables and queries, you should install SQL::Statement.  You don't have to change <FONT SIZE="-1">DBD::DBM</FONT> or your scripts in any way, simply installing SQL::Statement will give you the more robust <FONT SIZE="-1">SQL</FONT> capabilities without breaking scripts written for DBI::SQL::Nano.  See SQL::Statement for a description of the <FONT SIZE="-1">SQL</FONT> it supports.
+<P>
+
+To find out which <FONT SIZE="-1">SQL</FONT> module is working in a given script, you can use the <I>dbm_versions()</I> method or, if you don't need the full output and version numbers, just do this:
+<P>
+
+
+
+<PRE>
+ print $dbh-&gt;{sql_handler};
+
+</PRE>
+
+
+<P>
+
+That will print out either ``SQL::Statement'' or ``DBI::SQL::Nano''.
+<A NAME="lbAM">&nbsp;</A>
+<H3>Optimizing use of key fields</H3>
+
+<A NAME="ixAAM"></A>
+Most ``flavors'' of <FONT SIZE="-1">DBM</FONT> have only two physical columns (but can contain multiple logical columns as explained below).  They work similarly to a Perl hash with the first column serving as the key.  Like a Perl hash, <FONT SIZE="-1">DBM</FONT> files permit you to do quick lookups by specifying the key and thus avoid looping through all records.  Also like a Perl hash, the keys must be unique.  It is impossible to create two records with the same key.  To put this all more simply and in <FONT SIZE="-1">SQL</FONT> terms, the key column functions as the <FONT SIZE="-1">PRIMARY</FONT> <FONT SIZE="-1">KEY</FONT>.
+<P>
+
+In <FONT SIZE="-1">DBD::DBM</FONT>, you can take advantage of the speed of keyed lookups by using a <FONT SIZE="-1">WHERE</FONT> clause with a single equal comparison on the key field.  For example, the following <FONT SIZE="-1">SQL</FONT> statements are optimized for keyed lookup:
+<P>
+
+
+
+<PRE>
+ CREATE TABLE user ( user_name TEXT, phone TEXT);
+ INSERT INTO user VALUES ('Fred Bloggs','233-7777');
+ # ... many more inserts
+ SELECT phone FROM user WHERE user_name='Fred Bloggs';
+
+</PRE>
+
+
+<P>
+
+The ``user_name'' column is the key column since it is the first column. The <FONT SIZE="-1">SELECT</FONT> statement uses the key column in a single equal comparision - &quot;user_name='Fred Bloggs' - so the search will find it very quickly without having to loop through however many names were inserted into the table.
+<P>
+
+In contrast, thes searches on the same table are not optimized:
+<P>
+
+
+
+<PRE>
+ 1. SELECT phone FROM user WHERE user_name &lt; 'Fred';
+ 2. SELECT user_name FROM user WHERE phone = '233-7777';
+
+</PRE>
+
+
+<P>
+
+In #1, the operation uses a less-than (&lt;) comparison rather than an equals comparison, so it will not be optimized for key searching.  In #2, the key field ``user_name'' is not specified in the <FONT SIZE="-1">WHERE</FONT> clause, and therefore the search will need to loop through all rows to find the desired result.
+<A NAME="lbAN">&nbsp;</A>
+<H3>Specifying Column Names</H3>
+
+<A NAME="ixAAN"></A>
+<FONT SIZE="-1">DBM</FONT> files don't have a standard way to store column names.   <FONT SIZE="-1">DBD::DBM</FONT> gets around this issue with a <FONT SIZE="-1">DBD::DBM</FONT> specific way of storing the column names.  <B>If you are working only with </B><FONT SIZE="-1"><B>DBD::DBM</B></FONT><B> and not using files created by or accessed with other </B><FONT SIZE="-1"><B>DBM</B></FONT><B> programs, you can ignore this section.</B>
+<P>
+
+<FONT SIZE="-1">DBD::DBM</FONT> stores column names as a row in the file with the key <I>_metadata \0</I>.  So this code
+<P>
+
+
+
+<PRE>
+ my $dbh = DBI-&gt;connect('dbi:DBM:');
+ $dbh-&gt;do(&quot;CREATE TABLE baz (foo CHAR(10), bar INTEGER)&quot;);
+ $dbh-&gt;do(&quot;INSERT INTO baz (foo,bar) VALUES ('zippy',1)&quot;);
+
+</PRE>
+
+
+<P>
+
+Will create a file that has a structure something like this:
+<P>
+
+
+
+<PRE>
+  _metadata \0 | foo,bar
+  zippy        | 1
+
+</PRE>
+
+
+<P>
+
+The next time you access this table with <FONT SIZE="-1">DBD::DBM</FONT>, it will treat the _metadata row as a header rather than as data and will pull the column names from there.  However, if you access the file with something other than <FONT SIZE="-1">DBD::DBM</FONT>, the row will be treated as a regular data row.
+<P>
+
+If you do not want the column names stored as a data row in the table you can set the <I>dbm_store_metadata</I> attribute to 0.
+<P>
+
+
+
+<PRE>
+ my $dbh = DBI-&gt;connect('dbi:DBM:store_metadata=0');
+
+</PRE>
+
+
+<P>
+
+or
+<P>
+
+
+
+<PRE>
+ $dbh-&gt;{dbm_store_metadata} = 0;
+
+</PRE>
+
+
+<P>
+
+or, for per-table setting
+<P>
+
+
+
+<PRE>
+ $dbh-&gt;{dbm_tables}-&gt;{qux}-&gt;{store_metadata} = 0;
+
+</PRE>
+
+
+<P>
+
+By default, <FONT SIZE="-1">DBD::DBM</FONT> assumes that you have two columns named ``k'' and ``v'' (short for ``key'' and ``value'').  So if you have <I>dbm_store_metadata</I> set to 1 and you want to use alternate column names, you need to specify the column names like this:
+<P>
+
+
+
+<PRE>
+ my $dbh = DBI-&gt;connect('dbi:DBM:store_metadata=0;cols=foo,bar');
+
+</PRE>
+
+
+<P>
+
+or
+<P>
+
+
+
+<PRE>
+ $dbh-&gt;{dbm_store_metadata} = 0;
+ $dbh-&gt;{dbm_cols}           = 'foo,bar';
+
+</PRE>
+
+
+<P>
+
+To set the column names on per-table basis, do this:
+<P>
+
+
+
+<PRE>
+ $dbh-&gt;{dbm_tables}-&gt;{qux}-&gt;{store_metadata} = 0;
+ $dbh-&gt;{dbm_tables}-&gt;{qux}-&gt;{cols}           = 'foo,bar';
+ #
+ # sets the column names only for table &quot;qux&quot;
+
+</PRE>
+
+
+<P>
+
+If you have a file that was created by another <FONT SIZE="-1">DBM</FONT> program or created with <I>dbm_store_metadata</I> set to zero and you want to convert it to using <FONT SIZE="-1">DBD::DBM</FONT>'s column name storage, just use one of the methods above to name the columns but *without* specifying <I>dbm_store_metadata</I> as zero.  You only have to do that once - thereafter you can get by without setting either <I>dbm_store_metadata</I> or setting <I>dbm_cols</I> because the names will be stored in the file.
+<A NAME="lbAO">&nbsp;</A>
+<H3>Statement handle ($sth) attributes and methods</H3>
+
+<A NAME="ixAAO"></A>
+Most statement handle attributes such as <FONT SIZE="-1">NAME</FONT>, <FONT SIZE="-1">NUM_OF_FIELDS</FONT>, etc. are available only after an execute.  The same is true of <TT>$sth</TT>-&gt;rows which is available after the execute but does <I>not</I> require a fetch.
+<A NAME="lbAP">&nbsp;</A>
+<H3>The $dbh-&gt;<I>dbm_versions()</I> method</H3>
+
+
+
+<A NAME="ixAAP"></A>
+The private method <I>dbm_versions()</I> presents a summary of what other modules are being used at any given time.  <FONT SIZE="-1">DBD::DBM</FONT> can work with or without many other modules - it can use either SQL::Statement or DBI::SQL::Nano as its <FONT SIZE="-1">SQL</FONT> engine, it can be run with <FONT SIZE="-1">DBI</FONT> or DBI::PurePerl, it can use many kinds of <FONT SIZE="-1">DBM</FONT> modules, and many kinds of serializers when run with <FONT SIZE="-1">MLDBM</FONT>.  The <I>dbm_versions()</I> method reports on all of that and more.
+<P>
+
+
+
+<PRE>
+  print $dbh-&gt;dbm_versions;               # displays global settings
+  print $dbh-&gt;dbm_versions($table_name);  # displays per table settings
+
+</PRE>
+
+
+<P>
+
+An important thing to note about this method is that when called with no arguments, it displays the *global* settings.  If you over-ride these by setting per-table attributes, these will <I>not</I> be shown unless you specifiy a table name as an argument to the method call.
+<A NAME="lbAQ">&nbsp;</A>
+<H3>Storing Objects</H3>
+
+<A NAME="ixAAQ"></A>
+If you are using <FONT SIZE="-1">MLDBM</FONT>, you can use <FONT SIZE="-1">DBD::DBM</FONT> to take advantage of its serializing abilities to serialize any Perl object that <FONT SIZE="-1">MLDBM</FONT> can handle.  To store objects in columns, you should (but don't absolutely need to) declare it as a column of type <FONT SIZE="-1">BLOB</FONT> (the type is *currently* ignored by the <FONT SIZE="-1">SQL</FONT> engine, but heh, it's good form).
+<P>
+
+You *must* use placeholders to insert or refer to the data.
+<A NAME="lbAR">&nbsp;</A>
+<H2>GOTCHAS AND WARNINGS</H2>
+
+<A NAME="ixAAR"></A>
+Using the <FONT SIZE="-1">SQL</FONT> <FONT SIZE="-1">DROP</FONT> command will remove any file that has the name specified in the command with either '.pag' or '.dir' or your {dbm_ext} appended to it.  So
+this be dangerous if you aren't sure what file it refers to:
+<P>
+
+
+
+<PRE>
+ $dbh-&gt;do(qq{DROP TABLE &quot;/path/to/any/file&quot;});
+
+</PRE>
+
+
+<P>
+
+Each <FONT SIZE="-1">DBM</FONT> type has limitations.  SDBM_File, for example, can only store values of less than 1,000 characters.  *You* as the script author must ensure that you don't exceed those bounds.  If you try to insert a value that is bigger than the <FONT SIZE="-1">DBM</FONT> can store, the results will be unpredictable.  See the documentation for whatever <FONT SIZE="-1">DBM</FONT> you are using for details.
+<P>
+
+Different <FONT SIZE="-1">DBM</FONT> implementations return records in different orders.  That means that you can <I>not</I> depend on the order of records unless you use an <FONT SIZE="-1">ORDER</FONT> <FONT SIZE="-1">BY</FONT> statement.  DBI::SQL::Nano does not currently support <FONT SIZE="-1">ORDER</FONT> <FONT SIZE="-1">BY</FONT> (though it may soon) so if you need ordering, you'll have to install SQL::Statement.
+<P>
+
+<FONT SIZE="-1">DBM</FONT> data files are platform-specific.  To move them from one platform to another, you'll need to do something along the lines of dumping your data to <FONT SIZE="-1">CSV</FONT> on platform #1 and then dumping from <FONT SIZE="-1">CSV</FONT> to <FONT SIZE="-1">DBM</FONT> on platform #2.  DBD::AnyData and <FONT SIZE="-1">DBD::CSV</FONT> can help with that.  There may also be <FONT SIZE="-1">DBM</FONT> conversion tools for your platforms which would probably be quickest.
+<P>
+
+When using <FONT SIZE="-1">MLDBM</FONT>, there is a very powerful serializer - it will allow you to store Perl code or objects in database columns.  When these get de-serialized, they may be evaled - in other words <FONT SIZE="-1">MLDBM</FONT> (or actually Data::Dumper when used by <FONT SIZE="-1">MLDBM</FONT>) may take the values and try to execute them in Perl.  Obviously, this can present dangers, so if you don't know what's in a file, be careful before you access it with <FONT SIZE="-1">MLDBM</FONT> turned on!
+<P>
+
+See the entire section on ``Table locking and <I>flock()</I>'' for gotchas and warnings about the use of <I>flock()</I>.
+<A NAME="lbAS">&nbsp;</A>
+<H2>GETTING HELP, MAKING SUGGESTIONS, AND REPORTING BUGS</H2>
+
+<A NAME="ixAAS"></A>
+If you need help installing or using <FONT SIZE="-1">DBD::DBM</FONT>, please write to the <FONT SIZE="-1">DBI</FONT> users mailing list at <A HREF="mailto:dbi-users@perl.org">dbi-users@perl.org</A> or to the comp.lang.perl.modules newsgroup on usenet.  I'm afraid I can't always answer these kinds of questions quickly and there are many on the mailing list or in the newsgroup who can.
+<P>
+
+If you have suggestions, ideas for improvements, or bugs to report, please write me directly at the email shown below.
+<P>
+
+When reporting bugs, please send the output of <TT>$dbh</TT>-&gt;dbm_versions($table) for a table that exhibits the bug and, if possible, as small a sample as you can make of the code that produces the bug.  And of course, patches are welcome too :-).
+<A NAME="lbAT">&nbsp;</A>
+<H2>ACKNOWLEDGEMENTS</H2>
+
+<A NAME="ixAAT"></A>
+Many, many thanks to Tim Bunce for prodding me to write this, and for copious, wise, and patient suggestions all along the way.
+<A NAME="lbAU">&nbsp;</A>
+<H2>AUTHOR AND COPYRIGHT</H2>
+
+<A NAME="ixAAU"></A>
+This module is written and maintained by
+<P>
+
+Jeff Zucker &lt; jzucker <FONT SIZE="-1">AT</FONT> cpan.org &gt;
+<P>
+
+Copyright (c) 2004 by Jeff Zucker, all rights reserved.
+<P>
+
+You may freely distribute and/or modify this module under the terms of either the <FONT SIZE="-1">GNU</FONT> General Public License (<FONT SIZE="-1">GPL</FONT>) or the Artistic License, as specified in the Perl <FONT SIZE="-1">README</FONT> file.
+<A NAME="lbAV">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAV"></A>
+<FONT SIZE="-1">DBI</FONT>, SQL::Statement, DBI::SQL::Nano, AnyDBM_File, <FONT SIZE="-1">MLDBM</FONT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">QUICK START</A><DD>
+<DT><A HREF="#lbAF">USAGE</A><DD>
+<DL>
+<DT><A HREF="#lbAG">Specifiying Files and Directories</A><DD>
+<DT><A HREF="#lbAH">Table locking and <I>flock()</I></A><DD>
+<DT><A HREF="#lbAI">Specifying the <FONT SIZE="-1">DBM</FONT> type</A><DD>
+<DT><A HREF="#lbAJ">Adding multi-column support with <FONT SIZE="-1">MLDBM</FONT></A><DD>
+<DT><A HREF="#lbAK">Support for Berkeley <FONT SIZE="-1">DB</FONT></A><DD>
+<DT><A HREF="#lbAL">Supported <FONT SIZE="-1">SQL</FONT> syntax</A><DD>
+<DT><A HREF="#lbAM">Optimizing use of key fields</A><DD>
+<DT><A HREF="#lbAN">Specifying Column Names</A><DD>
+<DT><A HREF="#lbAO">Statement handle ($sth) attributes and methods</A><DD>
+<DT><A HREF="#lbAP">The $dbh-&gt;<I>dbm_versions()</I> method</A><DD>
+<DT><A HREF="#lbAQ">Storing Objects</A><DD>
+</DL>
+<DT><A HREF="#lbAR">GOTCHAS AND WARNINGS</A><DD>
+<DT><A HREF="#lbAS">GETTING HELP, MAKING SUGGESTIONS, AND REPORTING BUGS</A><DD>
+<DT><A HREF="#lbAT">ACKNOWLEDGEMENTS</A><DD>
+<DT><A HREF="#lbAU">AUTHOR AND COPYRIGHT</A><DD>
+<DT><A HREF="#lbAV">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:22 GMT, December 24, 2015
+</div></body>
+</HTML>

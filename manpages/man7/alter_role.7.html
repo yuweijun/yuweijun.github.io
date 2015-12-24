@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of ALTER ROLE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>ALTER ROLE</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ALTER ROLE - change a database role
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+ALTER ROLE <I>name</I> [ [ WITH ] <I>option</I> [ ... ] ]
+
+where <I>option</I> can be:
+    
+      SUPERUSER | NOSUPERUSER
+    | CREATEDB | NOCREATEDB
+    | CREATEROLE | NOCREATEROLE
+    | CREATEUSER | NOCREATEUSER
+    | INHERIT | NOINHERIT
+    | LOGIN | NOLOGIN
+    | CONNECTION LIMIT <I>connlimit</I>
+    | [ ENCRYPTED | UNENCRYPTED ] PASSWORD '<I>password</I>'
+    | VALID UNTIL '<I>timestamp</I>' 
+
+ALTER ROLE <I>name</I> RENAME TO <I>newname</I>
+
+ALTER ROLE <I>name</I> SET <I>configuration_parameter</I> { TO | = } { <I>value</I> | DEFAULT }
+ALTER ROLE <I>name</I> SET <I>configuration_parameter</I> FROM CURRENT
+ALTER ROLE <I>name</I> RESET <I>configuration_parameter</I>
+ALTER ROLE <I>name</I> RESET ALL
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>ALTER ROLE</B> changes the attributes of a
+PostgreSQL role.
+<P>
+
+The first variant of this command listed in the synopsis can change
+many of the role attributes that can be specified in 
+CREATE ROLE [<B><A HREF="/manpages/index.html?7+create_role">create_role</A></B>(7)].
+(All the possible attributes are covered,
+except that there are no options for adding or removing memberships; use
+GRANT [<B><A HREF="/manpages/index.html?7+grant">grant</A></B>(7)] and
+REVOKE [<B><A HREF="/manpages/index.html?7+revoke">revoke</A></B>(7)] for that.)
+Attributes not mentioned in the command retain their previous settings.
+Database superusers can change any of these settings for any role.
+Roles having CREATEROLE privilege can change any of these
+settings, but only for non-superuser roles.
+Ordinary roles can only change their own password.
+<P>
+
+The second variant changes the name of the role.
+Database superusers can rename any role.
+Roles having CREATEROLE privilege can rename non-superuser
+roles.
+The current session user cannot be renamed.
+(Connect as a different user if you need to do that.)
+Because MD5-encrypted passwords use the role name as
+cryptographic salt, renaming a role clears its password if the
+password is MD5-encrypted.
+<P>
+
+The remaining variants change a role's session default for a
+specified configuration variable. Whenever the role subsequently
+starts a new session, the specified value becomes the session
+default, overriding whatever setting is present in
+<I>postgresql.conf</I> or has been received from the postgres
+command line. This only happens at login time, so configuration
+settings associated with a role to which you've SET ROLE [<B><A HREF="/manpages/index.html?7+set_role">set_role</A></B>(7)] will be ignored.
+Superusers can change anyone's session defaults. Roles having
+CREATEROLE privilege can change defaults for non-superuser
+roles. Certain variables cannot be set this way, or can only be
+set if a superuser issues the command.
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B></B><I>name</I><B></B><DD>
+The name of the role whose attributes are to be altered.
+<DT><B>SUPERUSER</B><DD>
+<DT><B>NOSUPERUSER</B><DD>
+<DT><B>CREATEDB</B><DD>
+<DT><B>NOCREATEDB</B><DD>
+<DT><B>CREATEROLE</B><DD>
+<DT><B>NOCREATEROLE</B><DD>
+<DT><B>CREATEUSER</B><DD>
+<DT><B>NOCREATEUSER</B><DD>
+<DT><B>INHERIT</B><DD>
+<DT><B>NOINHERIT</B><DD>
+<DT><B>LOGIN</B><DD>
+<DT><B>NOLOGIN</B><DD>
+<DT><B>CONNECTION LIMIT </B><I>connlimit</I><B></B><DD>
+<DT><B>PASSWORD </B><I>password</I><B></B><DD>
+<DT><B>ENCRYPTED</B><DD>
+<DT><B>UNENCRYPTED</B><DD>
+<DT><B>VALID UNTIL '</B><I>timestamp</I><B>'</B><DD>
+These clauses alter attributes originally set by
+CREATE ROLE [<B><A HREF="/manpages/index.html?7+create_role">create_role</A></B>(7)]. For more information, see the
+<B>CREATE ROLE</B> reference page.
+<DT><B></B><I>newname</I><B></B><DD>
+The new name of the role.
+<DT><B></B><I>configuration_parameter</I><B></B><DD>
+<DT><B></B><I>value</I><B></B><DD>
+Set this role's session default for the specified configuration
+parameter to the given value. If
+<I>value</I> is DEFAULT
+or, equivalently, RESET is used, the
+role-specific variable setting is removed, so the role will
+inherit the system-wide default setting in new sessions. Use
+RESET ALL to clear all role-specific settings.
+SET FROM CURRENT saves the session's current value of
+the parameter as the role-specific value.
+<P>
+Role-specific variable setting take effect only at login;
+SET ROLE [<B><A HREF="/manpages/index.html?7+set_role">set_role</A></B>(7)]
+does not process role-specific variable settings.
+<P>
+See SET [<B><A HREF="/manpages/index.html?7+set">set</A></B>(7)] and in the documentation for more information about allowed
+parameter names and values.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+Use CREATE ROLE [<B><A HREF="/manpages/index.html?7+create_role">create_role</A></B>(7)]
+to add new roles, and DROP ROLE [<B><A HREF="/manpages/index.html?7+drop_role">drop_role</A></B>(7)] to remove a role.
+<P>
+
+<B>ALTER ROLE</B> cannot change a role's memberships.
+Use GRANT [<B><A HREF="/manpages/index.html?7+grant">grant</A></B>(7)] and
+REVOKE [<B><A HREF="/manpages/index.html?7+revoke">revoke</A></B>(7)]
+to do that.
+<P>
+
+Caution must be exercised when specifying an unencrypted password
+with this command. The password will be transmitted to the server
+in cleartext, and it might also be logged in the client's command
+history or the server log. psql [<B><A HREF="/manpages/index.html?1+psql">psql</A></B>(1)] contains a command
+<B>\password</B> that can be used to safely change a
+role's password.
+<P>
+
+It is also possible to tie a
+session default to a specific database rather than to a role; see
+ALTER DATABASE [<B><A HREF="/manpages/index.html?7+alter_database">alter_database</A></B>(7)].
+Role-specific settings override database-specific
+ones if there is a conflict.
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+Change a role's password:
+<P>
+<PRE>
+ALTER ROLE davide WITH PASSWORD 'hu8jmn3';
+
+</PRE>
+
+<P>
+
+Remove a role's password:
+<P>
+<PRE>
+ALTER ROLE davide WITH PASSWORD NULL;
+
+</PRE>
+
+<P>
+
+Change a password expiration date, specifying that the password
+should expire at midday on 4th May 2015 using
+the time zone which is one hour ahead of UTC:
+<P>
+<PRE>
+ALTER ROLE chris VALID UNTIL 'May 4 12:00:00 2015 +1';
+
+</PRE>
+
+<P>
+
+Make a password valid forever:
+<P>
+<PRE>
+ALTER ROLE fred VALID UNTIL 'infinity';
+
+</PRE>
+
+<P>
+
+Give a role the ability to create other roles and new databases:
+<P>
+<PRE>
+ALTER ROLE miriam CREATEROLE CREATEDB;
+
+</PRE>
+
+<P>
+
+Give a role a non-default setting of the
+maintenance_work_mem parameter:
+<P>
+<PRE>
+ALTER ROLE worker_bee SET maintenance_work_mem = 100000;
+
+</PRE>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+The <B>ALTER ROLE</B> statement is a
+PostgreSQL extension.
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+CREATE ROLE [<B><A HREF="/manpages/index.html?7+create_role">create_role</A></B>(7)], DROP ROLE [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+drop_role">drop_role</A></B>(7)], SET [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+set">set</A></B>(7)]
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">NOTES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">COMPATIBILITY</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:14 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of MSGOP</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>MSGOP</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2008-04-23<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+msgrcv, msgsnd - message operations
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/ipc.h">sys/ipc.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/msg.h">sys/msg.h</A>&gt;</B>
+
+<B>int msgsnd(int </B><I>msqid</I><B>, const void *</B><I>msgp</I><B>, size_t </B><I>msgsz</I><B>, int </B><I>msgflg</I><B>);</B>
+
+<B>ssize_t msgrcv(int </B><I>msqid</I><B>, void *</B><I>msgp</I><B>, size_t </B><I>msgsz</I><B>, long </B><I>msgtyp</I><B>,</B>
+<B>               int </B><I>msgflg</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>msgsnd</B>()
+
+and
+<B>msgrcv</B>()
+
+system calls are used, respectively, to send messages to,
+and receive messages from, a message queue.
+The calling process must have write permission on the message queue
+in order to send a message, and read permission to receive a message.
+<P>
+
+The
+<I>msgp</I>
+
+argument is a pointer to caller-defined structure
+of the following general form:
+
+<PRE>
+
+struct msgbuf {
+    long mtype;       /* message type, must be &gt; 0 */
+    char mtext[1];    /* message data */
+};
+</PRE>
+
+
+<P>
+
+The
+<I>mtext</I>
+
+field is an array (or other structure) whose size is specified by
+<I>msgsz</I>,
+
+a non-negative integer value.
+Messages of zero length (i.e., no
+<I>mtext</I>
+
+field) are permitted.
+The
+<I>mtype</I>
+
+field must have a strictly positive integer value.
+This value can be
+used by the receiving process for message selection
+(see the description of
+<B>msgrcv</B>()
+
+below).
+<A NAME="lbAE">&nbsp;</A>
+<H3>msgsnd()</H3>
+
+The
+<B>msgsnd</B>()
+
+system call appends a copy of the message pointed to by
+<I>msgp</I>
+
+to the message queue whose identifier is specified
+by
+<I>msqid</I>.
+
+<P>
+
+If sufficient space is available in the queue,
+<B>msgsnd</B>()
+
+succeeds immediately.
+(The queue capacity is defined by the
+<I>msg_bytes</I>
+
+field in the associated data structure for the message queue.
+During queue creation this field is initialized to
+<B>MSGMNB</B>
+
+bytes, but this limit can be modified using
+<B><A HREF="/manpages/index.html?2+msgctl">msgctl</A></B>(2).)
+
+If insufficient space is available in the queue, then the default
+behavior of
+<B>msgsnd</B>()
+
+is to block until space becomes available.
+If
+<B>IPC_NOWAIT</B>
+
+is specified in
+<I>msgflg</I>,
+
+then the call instead fails with the error
+<B>EAGAIN</B>.
+
+<P>
+A blocked
+<B>msgsnd</B>()
+
+call may also fail if:
+<DL COMPACT>
+<DT>*<DD>
+the queue is removed,
+in which case the system call fails with
+<I>errno</I>
+
+set to
+<B>EIDRM</B>;
+
+or
+<DT>*<DD>
+a signal is caught, in which case the system call fails
+with
+<I>errno</I>
+
+set to
+<B>EINTR</B>;<B>see</B>
+
+<B><A HREF="/manpages/index.html?7+signal">signal</A></B>(7).
+
+(<B>msgsnd</B>()
+
+is never automatically restarted after being interrupted by a
+signal handler, regardless of the setting of the
+<B>SA_RESTART</B>
+
+flag when establishing a signal handler.)
+</DL>
+<P>
+
+Upon successful completion the message queue data structure is updated
+as follows:
+<DL COMPACT>
+<DT><DD>
+<I>msg_lspid</I>
+
+is set to the process ID of the calling process.
+<DT><DD>
+<I>msg_qnum</I>
+
+is incremented by 1.
+<DT><DD>
+<I>msg_stime</I>
+
+is set to the current time.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>msgrcv()</H3>
+
+The
+<B>msgrcv</B>()
+
+system call removes a message from the queue specified by
+<I>msqid</I>
+
+and places it in the buffer
+pointed to by
+<I>msgp</I>.
+
+<P>
+
+The argument
+<I>msgsz</I>
+
+specifies the maximum size in bytes for the member
+<I>mtext</I>
+
+of the structure pointed to by the
+<I>msgp</I>
+
+argument.
+If the message text has length greater than
+<I>msgsz</I>,
+
+then the behavior depends on whether
+<B>MSG_NOERROR</B>
+
+is specified in
+<I>msgflg</I>.
+
+If
+<B>MSG_NOERROR</B>
+
+is specified, then
+the message text will be truncated (and the truncated part will be
+lost); if
+<B>MSG_NOERROR</B>
+
+is not specified, then
+the message isn't removed from the queue and
+the system call fails returning -1 with
+<I>errno</I>
+
+set to
+<B>E2BIG</B>.
+
+<P>
+
+The argument
+<I>msgtyp</I>
+
+specifies the type of message requested as follows:
+<DL COMPACT>
+<DT>*<DD>
+If
+<I>msgtyp</I>
+
+is 0,
+then the first message in the queue is read.
+<DT>*<DD>
+If
+<I>msgtyp</I>
+
+is greater than 0,
+then the first message in the queue of type
+<I>msgtyp</I>
+
+is read, unless
+<B>MSG_EXCEPT</B>
+
+was specified in
+<I>msgflg</I>,
+
+in which case
+the first message in the queue of type not equal to
+<I>msgtyp</I>
+
+will be read.
+<DT>*<DD>
+If
+<I>msgtyp</I>
+
+is less than 0,
+then the first message in the queue with the lowest type less than or
+equal to the absolute value of
+<I>msgtyp</I>
+
+will be read.
+</DL>
+<P>
+
+The
+<I>msgflg</I>
+
+argument is a bit mask constructed by ORing together zero or more
+of the following flags:
+<DL COMPACT>
+<DT><B>IPC_NOWAIT</B>
+
+<DD>
+Return immediately if no message of the requested type is in the queue.
+The system call fails with
+<I>errno</I>
+
+set to
+<B>ENOMSG</B>.
+
+<DT><B>MSG_EXCEPT</B>
+
+<DD>
+Used with
+<I>msgtyp</I>
+
+greater than 0
+to read the first message in the queue with message type that differs
+from
+<I>msgtyp</I>.
+
+<DT><B>MSG_NOERROR</B>
+
+<DD>
+To truncate the message text if longer than
+<I>msgsz</I>
+
+bytes.
+</DL>
+<P>
+
+If no message of the requested type is available and
+<B>IPC_NOWAIT</B>
+
+isn't specified in
+<I>msgflg</I>,
+
+the calling process is blocked until one of the following conditions occurs:
+<DL COMPACT>
+<DT>*<DD>
+A message of the desired type is placed in the queue.
+<DT>*<DD>
+The message queue is removed from the system.
+In this case the system call fails with
+<I>errno</I>
+
+set to
+<B>EIDRM</B>.
+
+<DT>*<DD>
+The calling process catches a signal.
+In this case the system call fails with
+<I>errno</I>
+
+set to
+<B>EINTR</B>.
+
+(<B>msgrcv</B>()
+
+is never automatically restarted after being interrupted by a
+signal handler, regardless of the setting of the
+<B>SA_RESTART</B>
+
+flag when establishing a signal handler.)
+</DL>
+<P>
+
+Upon successful completion the message queue data structure is updated
+as follows:
+<DL COMPACT>
+<DT><DD>
+<I>msg_lrpid</I>
+
+is set to the process ID of the calling process.
+<DT><DD>
+<I>msg_qnum</I>
+
+is decremented by 1.
+<DT><DD>
+<I>msg_rtime</I>
+
+is set to the current time.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On failure both functions return -1
+with
+<I>errno</I>
+
+indicating the error,
+otherwise
+<B>msgsnd</B>()
+
+returns 0
+and
+<B>msgrcv</B>()
+
+returns the number of bytes actually copied into the
+<I>mtext</I>
+
+array.
+<A NAME="lbAH">&nbsp;</A>
+<H2>ERRORS</H2>
+
+When
+<B>msgsnd</B>()
+
+fails,
+<I>errno</I>
+
+will be set to one among the following values:
+<DL COMPACT>
+<DT><B>EACCES</B>
+
+<DD>
+The calling process does not have write permission on the message queue,
+and does not have the
+<B>CAP_IPC_OWNER</B>
+
+capability.
+<DT><B>EAGAIN</B>
+
+<DD>
+The message can't be sent due to the
+<I>msg_qbytes</I>
+
+limit for the queue and
+<B>IPC_NOWAIT</B>
+
+was specified in
+<I>msgflg</I>.
+
+<DT><B>EFAULT</B>
+
+<DD>
+The address pointed to by
+<I>msgp</I>
+
+isn't accessible.
+<DT><B>EIDRM</B>
+
+<DD>
+The message queue was removed.
+<DT><B>EINTR</B>
+
+<DD>
+Sleeping on a full message queue condition, the process caught a signal.
+<DT><B>EINVAL</B>
+
+<DD>
+Invalid
+<I>msqid</I>
+
+value, or non-positive
+<I>mtype</I>
+
+value, or
+invalid
+<I>msgsz</I>
+
+value (less than 0 or greater than the system value
+<B>MSGMAX</B>).
+
+<DT><B>ENOMEM</B>
+
+<DD>
+The system does not have enough memory to make a copy of the
+message pointed to by
+<I>msgp</I>.
+
+</DL>
+<P>
+
+When
+<B>msgrcv</B>()
+
+fails,
+<I>errno</I>
+
+will be set to one among the following values:
+<DL COMPACT>
+<DT><B>E2BIG</B>
+
+<DD>
+The message text length is greater than
+<I>msgsz</I>
+
+and
+<B>MSG_NOERROR</B>
+
+isn't specified in
+<I>msgflg</I>.
+
+<DT><B>EACCES</B>
+
+<DD>
+The calling process does not have read permission on the message queue,
+and does not have the
+<B>CAP_IPC_OWNER</B>
+
+capability.
+<DT><B>EAGAIN</B>
+
+<DD>
+No message was available in the queue and
+<B>IPC_NOWAIT</B>
+
+was specified in
+<I>msgflg</I>.
+
+<DT><B>EFAULT</B>
+
+<DD>
+The address pointed to by
+<I>msgp</I>
+
+isn't accessible.
+<DT><B>EIDRM</B>
+
+<DD>
+While the process was sleeping to receive a message,
+the message queue was removed.
+<DT><B>EINTR</B>
+
+<DD>
+While the process was sleeping to receive a message,
+the process caught a signal; see
+<B><A HREF="/manpages/index.html?7+signal">signal</A></B>(7).
+
+<DT><B>EINVAL</B>
+
+<DD>
+<I>msgqid</I>
+
+was invalid, or
+<I>msgsz</I>
+
+was less than 0.
+<DT><B>ENOMSG</B>
+
+<DD>
+<B>IPC_NOWAIT</B>
+
+was specified in
+<I>msgflg</I>
+
+and no message of the requested type existed on the message queue.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+SVr4, POSIX.1-2001.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>NOTES</H2>
+
+The
+<I>msgp</I>
+
+argument is declared as <I>struct msgbuf *</I> with
+libc4, libc5, glibc 2.0, glibc 2.1.
+It is declared as <I>void *</I>
+with glibc 2.2 and later, as required by SUSv2 and SUSv3.
+<P>
+The following limits on message queue resources affect the
+<B>msgsnd</B>()
+
+call:
+<DL COMPACT>
+<DT><B>MSGMAX</B>
+
+<DD>
+Maximum size for a message text: 8192 bytes
+(on Linux, this limit can be read and modified via
+<I>/proc/sys/kernel/msgmax</I>).
+
+<DT><B>MSGMNB</B>
+
+<DD>
+Default maximum size in bytes of a message queue: 16384 bytes
+(on Linux, this limit can be read and modified via
+<I>/proc/sys/kernel/msgmnb</I>).
+
+The superuser can increase the size of a message queue beyond
+<B>MSGMNB</B>
+
+by a
+<B><A HREF="/manpages/index.html?2+msgctl">msgctl</A></B>(2)
+
+system call.
+</DL>
+<P>
+
+The implementation has no intrinsic limits for the system wide maximum
+number of message headers
+(<B>MSGTQL</B>)
+
+and for the system wide maximum size in bytes of the message pool
+(<B>MSGPOOL</B>).
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?2+msgctl">msgctl</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+msgget">msgget</A></B>(2),
+
+<B><A HREF="/manpages/index.html?7+capabilities">capabilities</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+mq_overview">mq_overview</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+svipc">svipc</A></B>(7)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">msgsnd()</A><DD>
+<DT><A HREF="#lbAF">msgrcv()</A><DD>
+</DL>
+<DT><A HREF="#lbAG">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAH">ERRORS</A><DD>
+<DT><A HREF="#lbAI">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAJ">NOTES</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:04 GMT, December 24, 2015
+</div></body>
+</HTML>

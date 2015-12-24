@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of threads</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>threads</H1>
+Section: OpenSSL (3)<BR>Updated: 2009-09-30<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+CRYPTO_THREADID_set_callback, CRYPTO_THREADID_get_callback,
+CRYPTO_THREADID_current, CRYPTO_THREADID_cmp, CRYPTO_THREADID_cpy,
+CRYPTO_THREADID_hash, CRYPTO_set_locking_callback, CRYPTO_num_locks,
+CRYPTO_set_dynlock_create_callback, CRYPTO_set_dynlock_lock_callback,
+CRYPTO_set_dynlock_destroy_callback, CRYPTO_get_new_dynlockid,
+CRYPTO_destroy_dynlockid, CRYPTO_lock - OpenSSL thread support
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/crypto.h">openssl/crypto.h</A>&gt;
+
+ /* Don't use this structure directly. */
+ typedef struct crypto_threadid_st
+         {
+         void *ptr;
+         unsigned long val;
+         } CRYPTO_THREADID;
+ /* Only use CRYPTO_THREADID_set_[numeric|pointer]() within callbacks */
+ void CRYPTO_THREADID_set_numeric(CRYPTO_THREADID *id, unsigned long val);
+ void CRYPTO_THREADID_set_pointer(CRYPTO_THREADID *id, void *ptr);
+ int CRYPTO_THREADID_set_callback(void (*threadid_func)(CRYPTO_THREADID *));
+ void (*CRYPTO_THREADID_get_callback(void))(CRYPTO_THREADID *);
+ void CRYPTO_THREADID_current(CRYPTO_THREADID *id);
+ int CRYPTO_THREADID_cmp(const CRYPTO_THREADID *a,
+                         const CRYPTO_THREADID *b);
+ void CRYPTO_THREADID_cpy(CRYPTO_THREADID *dest,
+                          const CRYPTO_THREADID *src);
+ unsigned long CRYPTO_THREADID_hash(const CRYPTO_THREADID *id);
+
+ int CRYPTO_num_locks(void);
+
+ /* struct CRYPTO_dynlock_value needs to be defined by the user */
+ struct CRYPTO_dynlock_value;
+
+ void CRYPTO_set_dynlock_create_callback(struct CRYPTO_dynlock_value *
+        (*dyn_create_function)(char *file, int line));
+ void CRYPTO_set_dynlock_lock_callback(void (*dyn_lock_function)
+        (int mode, struct CRYPTO_dynlock_value *l,
+        const char *file, int line));
+ void CRYPTO_set_dynlock_destroy_callback(void (*dyn_destroy_function)
+        (struct CRYPTO_dynlock_value *l, const char *file, int line));
+
+ int CRYPTO_get_new_dynlockid(void);
+
+ void CRYPTO_destroy_dynlockid(int i);
+
+ void CRYPTO_lock(int mode, int n, const char *file, int line);
+
+ #define CRYPTO_w_lock(type)    \
+        CRYPTO_lock(CRYPTO_LOCK|CRYPTO_WRITE,type,__FILE__,__LINE__)
+ #define CRYPTO_w_unlock(type)  \
+        CRYPTO_lock(CRYPTO_UNLOCK|CRYPTO_WRITE,type,__FILE__,__LINE__)
+ #define CRYPTO_r_lock(type)    \
+        CRYPTO_lock(CRYPTO_LOCK|CRYPTO_READ,type,__FILE__,__LINE__)
+ #define CRYPTO_r_unlock(type)  \
+        CRYPTO_lock(CRYPTO_UNLOCK|CRYPTO_READ,type,__FILE__,__LINE__)
+ #define CRYPTO_add(addr,amount,type)   \
+        CRYPTO_add_lock(addr,amount,type,__FILE__,__LINE__)
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+OpenSSL can safely be used in multi-threaded applications provided
+that at least two callback functions are set, locking_function and
+threadid_func.
+<P>
+
+locking_function(int mode, int n, const char *file, int line) is
+needed to perform locking on shared data structures. 
+(Note that OpenSSL uses a number of global data structures that
+will be implicitly shared whenever multiple threads use OpenSSL.)
+Multi-threaded applications will crash at random if it is not set.
+<P>
+
+<I>locking_function()</I> must be able to handle up to <I>CRYPTO_num_locks()</I>
+different mutex locks. It sets the <B>n</B>-th lock if <B>mode</B> &amp;
+<B></B><FONT SIZE="-1"><B>CRYPTO_LOCK</B></FONT><B></B>, and releases it otherwise.
+<P>
+
+<B>file</B> and <B>line</B> are the file number of the function setting the
+lock. They can be useful for debugging.
+<P>
+
+threadid_func(<FONT SIZE="-1">CRYPTO_THREADID</FONT> *id) is needed to record the currently-executing
+thread's identifier into <B>id</B>. The implementation of this callback should not
+fill in <B>id</B> directly, but should use <I>CRYPTO_THREADID_set_numeric()</I> if thread
+IDs are numeric, or <I>CRYPTO_THREADID_set_pointer()</I> if they are pointer-based.
+If the application does not register such a callback using
+<I>CRYPTO_THREADID_set_callback()</I>, then a default implementation is used - on
+Windows and BeOS this uses the system's default thread identifying APIs, and on
+all other platforms it uses the address of <B>errno</B>. The latter is satisfactory
+for thread-safety if and only if the platform has a thread-local error number
+facility.
+<P>
+
+Once <I>threadid_func()</I> is registered, or if the built-in default implementation is
+to be used;
+<DL COMPACT>
+<DT>*<DD>
+<I>CRYPTO_THREADID_current()</I> records the currently-executing thread <FONT SIZE="-1">ID</FONT> into the
+given <B>id</B> object.
+<DT>*<DD>
+<I>CRYPTO_THREADID_cmp()</I> compares two thread IDs (returning zero for equality, ie.
+the same semantics as <I>memcmp()</I>).
+<DT>*<DD>
+<I>CRYPTO_THREADID_cpy()</I> duplicates a thread <FONT SIZE="-1">ID</FONT> value,
+<DT>*<DD>
+<I>CRYPTO_THREADID_hash()</I> returns a numeric value usable as a hash-table key. This
+is usually the exact numeric or pointer-based thread <FONT SIZE="-1">ID</FONT> used internally, however
+this also handles the unusual case where pointers are larger than 'long'
+variables and the platform's thread IDs are pointer-based - in this case, mixing
+is done to attempt to produce a unique numeric value even though it is not as
+wide as the platform's true thread IDs.
+</DL>
+<P>
+
+Additionally, OpenSSL supports dynamic locks, and sometimes, some parts
+of OpenSSL need it for better performance.  To enable this, the following
+is required:
+<DL COMPACT>
+<DT>*<DD>
+Three additional callback function, dyn_create_function, dyn_lock_function
+and dyn_destroy_function.
+<DT>*<DD>
+A structure defined with the data that each lock needs to handle.
+</DL>
+<P>
+
+struct CRYPTO_dynlock_value has to be defined to contain whatever structure
+is needed to handle locks.
+<P>
+
+dyn_create_function(const char *file, int line) is needed to create a
+lock.  Multi-threaded applications might crash at random if it is not set.
+<P>
+
+dyn_lock_function(int mode, CRYPTO_dynlock *l, const char *file, int line)
+is needed to perform locking off dynamic lock numbered n. Multi-threaded
+applications might crash at random if it is not set.
+<P>
+
+dyn_destroy_function(CRYPTO_dynlock *l, const char *file, int line) is
+needed to destroy the lock l. Multi-threaded applications might crash at
+random if it is not set.
+<P>
+
+<I>CRYPTO_get_new_dynlockid()</I> is used to create locks.  It will call
+dyn_create_function for the actual creation.
+<P>
+
+<I>CRYPTO_destroy_dynlockid()</I> is used to destroy locks.  It will call
+dyn_destroy_function for the actual destruction.
+<P>
+
+<I>CRYPTO_lock()</I> is used to lock and unlock the locks.  mode is a bitfield
+describing what should be done with the lock.  n is the number of the
+lock as returned from <I>CRYPTO_get_new_dynlockid()</I>.  mode can be combined
+from the following values.  These values are pairwise exclusive, with
+undefined behaviour if misused (for example, <FONT SIZE="-1">CRYPTO_READ</FONT> and <FONT SIZE="-1">CRYPTO_WRITE</FONT>
+should not be used together):
+<P>
+
+
+
+<PRE>
+        CRYPTO_LOCK     0x01
+        CRYPTO_UNLOCK   0x02
+        CRYPTO_READ     0x04
+        CRYPTO_WRITE    0x08
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<A NAME="ixAAE"></A>
+<I>CRYPTO_num_locks()</I> returns the required number of locks.
+<P>
+
+<I>CRYPTO_get_new_dynlockid()</I> returns the index to the newly created lock.
+<P>
+
+The other functions return no values.
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAF"></A>
+You can find out if OpenSSL was configured with thread support:
+<P>
+
+
+
+<PRE>
+ #define OPENSSL_THREAD_DEFINES
+ #include &lt;<A HREF="file:/usr/include/openssl/opensslconf.h">openssl/opensslconf.h</A>&gt;
+ #if defined(OPENSSL_THREADS)
+   // thread support enabled
+ #else
+   // no thread support
+ #endif
+
+</PRE>
+
+
+<P>
+
+Also, dynamic locks are currently not used internally by OpenSSL, but
+may do so in the future.
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAG"></A>
+<B>crypto/threads/mttest.c</B> shows examples of the callback functions on
+Solaris, Irix and Win32.
+<A NAME="lbAH">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<A NAME="ixAAH"></A>
+<I>CRYPTO_set_locking_callback()</I> is
+available in all versions of SSLeay and OpenSSL.
+<I>CRYPTO_num_locks()</I> was added in OpenSSL 0.9.4.
+All functions dealing with dynamic locks were added in OpenSSL 0.9.5b-dev.
+<B></B><FONT SIZE="-1"><B>CRYPTO_THREADID</B></FONT><B></B> and associated functions were introduced in OpenSSL 1.0.0
+to replace (actually, deprecate) the previous <I>CRYPTO_set_id_callback()</I>,
+<I>CRYPTO_get_id_callback()</I>, and <I>CRYPTO_thread_id()</I> functions which assumed
+thread IDs to always be represented by 'unsigned long'.
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAI"></A>
+<I><A HREF="/manpages/index.html?3+crypto">crypto</A></I>(3)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAF">NOTES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">HISTORY</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:17 GMT, December 24, 2015
+</div></body>
+</HTML>

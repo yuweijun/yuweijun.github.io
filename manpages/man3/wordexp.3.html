@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of WORDEXP</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>WORDEXP</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2008-07-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+wordexp, wordfree - perform word expansion like a posix-shell
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>#include &lt;<A HREF="file:/usr/include/wordexp.h">wordexp.h</A>&gt;</B>
+
+<P>
+<B>int wordexp(const char *</B><I>s</I><B>, wordexp_t *</B><I>p</I><B>, int </B><I>flags</I><B>);</B>
+
+<P>
+<B>void wordfree(wordexp_t *</B><I>p</I><B>);</B>
+
+<P>
+
+Feature Test Macro Requirements for glibc (see
+<B><A HREF="/manpages/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)):
+
+
+<P>
+<B>wordexp</B>(),
+
+<B>wordfree</B>():
+
+_XOPEN_SOURCE
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The function
+<B>wordexp</B>()
+
+performs a shell-like expansion of the string
+<I>s</I>
+
+and returns the result in the structure pointed to by
+<I>p</I>.
+
+The data type
+<I>wordexp_t</I>
+
+is a structure that at least has the fields
+<I>we_wordc</I>,
+
+<I>we_wordv</I>,
+
+and
+<I>we_offs</I>.
+
+The field
+<I>we_wordc</I>
+
+is a
+<I>size_t</I>
+
+that gives the number of words in the expansion of
+<I>s</I>.
+
+The field
+<I>we_wordv</I>
+
+is a
+<I>char **</I>
+
+that points to the array of words found.
+The field
+<I>we_offs</I>
+
+of type
+<I>size_t</I>
+
+is sometimes (depending on
+<I>flags</I>,
+
+see below) used to indicate the number of initial elements in the
+<I>we_wordv</I>
+
+array that should be filled with NULLs.
+<P>
+
+The function
+<B>wordfree</B>()
+
+frees the allocated memory again.
+More precisely, it does not free
+its argument, but it frees the array
+<I>we_wordv</I>
+
+and the strings that points to.
+<A NAME="lbAE">&nbsp;</A>
+<H3>The string argument</H3>
+
+Since the expansion is the same as the expansion by the shell (see
+<B><A HREF="/manpages/index.html?1+sh">sh</A></B>(1))
+
+of the parameters to a command, the string
+<I>s</I>
+
+must not contain characters that would be illegal in shell command
+parameters.
+In particular, there must not be any non-escaped
+newline or |, &amp;, ;, &lt;, &gt;, (, ), {, } characters
+outside a command substitution or parameter substitution context.
+<P>
+
+If the argument
+<I>s</I>
+
+contains a word that starts with an unquoted comment character #,
+then it is unspecified whether that word and all following words
+are ignored, or the # is treated as a non-comment character.
+<A NAME="lbAF">&nbsp;</A>
+<H3>The expansion</H3>
+
+The expansion done consists of the following stages:
+tilde expansion (replacing ~user by user's home directory),
+variable substitution (replacing $FOO by the value of the environment
+variable FOO), command substitution (replacing $(command) or `command`
+by the output of command), arithmetic expansion, field splitting,
+wildcard expansion, quote removal.
+<P>
+
+The result of expansion of special parameters
+($@, $*, $#, $?, $-, $$, $!, $0) is unspecified.
+<P>
+
+Field splitting is done using the environment variable $IFS.
+If it is not set, the field separators are space, tab and newline.
+<A NAME="lbAG">&nbsp;</A>
+<H3>The output array</H3>
+
+The array
+<I>we_wordv</I>
+
+contains the words found, followed by a NULL.
+<A NAME="lbAH">&nbsp;</A>
+<H3>The flags argument</H3>
+
+The
+<I>flag</I>
+
+argument is a bitwise inclusive OR of the following values:
+<DL COMPACT>
+<DT><B>WRDE_APPEND</B>
+
+<DD>
+Append the words found to the array resulting from a previous call.
+<DT><B>WRDE_DOOFFS</B>
+
+<DD>
+Insert
+<I>we_offs</I>
+
+initial NULLs in the array
+<I>we_wordv</I>.
+
+(These are not counted in the returned
+<I>we_wordc</I>.)
+
+<DT><B>WRDE_NOCMD</B>
+
+<DD>
+Don't do command substitution.
+<DT><B>WRDE_REUSE</B>
+
+<DD>
+The argument
+<I>p</I>
+
+resulted from a previous call to
+<B>wordexp</B>(),
+
+and
+<B>wordfree</B>()
+
+was not called.
+Reuse the allocated storage.
+<DT><B>WRDE_SHOWERR</B>
+
+<DD>
+Normally during command substitution
+<I>stderr</I>
+
+is redirected to
+<I>/dev/null</I>.
+
+This flag specifies that
+<I>stderr</I>
+
+is not to be redirected.
+<DT><B>WRDE_UNDEF</B>
+
+<DD>
+Consider it an error if an undefined shell variable is expanded.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+In case of success 0 is returned.
+In case of error
+one of the following five values is returned.
+<DL COMPACT>
+<DT><B>WRDE_BADCHAR</B>
+
+<DD>
+Illegal occurrence of newline or one of |, &amp;, ;, &lt;, &gt;, (, ), {, }.
+<DT><B>WRDE_BADVAL</B>
+
+<DD>
+An undefined shell variable was referenced, and the
+<B>WRDE_UNDEF</B>
+
+flag
+told us to consider this an error.
+<DT><B>WRDE_CMDSUB</B>
+
+<DD>
+Command substitution occurred, and the
+<B>WRDE_NOCMD</B>
+
+flag told us to consider this an error.
+<DT><B>WRDE_NOSPACE</B>
+
+<DD>
+Out of memory.
+<DT><B>WRDE_SYNTAX</B>
+
+<DD>
+Shell syntax error, such as unbalanced parentheses or
+unmatched quotes.
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+<B>wordexp</B>()
+
+and
+<B>wordfree</B>()
+
+are provided in glibc since version 2.1.
+<A NAME="lbAK">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+POSIX.1-2001.
+<A NAME="lbAL">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+The output of the following example program
+is approximately that of &quot;ls [a-c]*.c&quot;.
+<P>
+
+<PRE>
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/wordexp.h">wordexp.h</A>&gt;
+
+int
+main(int argc, char **argv)
+{
+    wordexp_t p;
+    char **w;
+    int i;
+
+    wordexp(&quot;[a-c]*.c&quot;, &amp;p, 0);
+    w = p.we_wordv;
+    for (i = 0; i &lt; p.we_wordc; i++)
+        printf(&quot;%s\n&quot;, w[i]);
+    wordfree(&amp;p);
+    exit(EXIT_SUCCESS);
+}
+</PRE>
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?3+fnmatch">fnmatch</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+glob">glob</A></B>(3)
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">The string argument</A><DD>
+<DT><A HREF="#lbAF">The expansion</A><DD>
+<DT><A HREF="#lbAG">The output array</A><DD>
+<DT><A HREF="#lbAH">The flags argument</A><DD>
+</DL>
+<DT><A HREF="#lbAI">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAJ">VERSIONS</A><DD>
+<DT><A HREF="#lbAK">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAL">EXAMPLE</A><DD>
+<DT><A HREF="#lbAM">SEE ALSO</A><DD>
+<DT><A HREF="#lbAN">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:45 GMT, December 24, 2015
+</div></body>
+</HTML>

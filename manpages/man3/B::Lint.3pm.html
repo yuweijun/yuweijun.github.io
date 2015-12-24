@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of B::Lint</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>B::Lint</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+B::Lint - Perl lint
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+perl -MO=Lint[,OPTIONS] foo.pl
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The B::Lint module is equivalent to an extended version of the <B>-w</B>
+option of <B>perl</B>. It is named after the program <I>lint</I> which carries
+out a similar process for C programs.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS AND LINT CHECKS</H2>
+
+<A NAME="ixAAE"></A>
+Option words are separated by commas (not whitespace) and follow the
+usual conventions of compiler backend options. Following any options
+(indicated by a leading <B>-</B>) come lint check arguments. Each such
+argument (apart from the special <B>all</B> and <B>none</B> options) is a
+word representing one possible lint check (turning on that check) or
+is <B>no-foo</B> (turning off that check). Before processing the check
+arguments, a standard list of checks is turned on. Later options
+override earlier ones. Available options are:
+<DL COMPACT>
+<DT><B>magic-diamond</B><DD>
+<A NAME="ixAAF"></A>
+Produces a warning whenever the magic <TT>&quot;&lt;&gt;&quot;</TT> readline is
+used. Internally it uses perl's two-argument open which itself treats
+filenames with special characters specially. This could allow
+interestingly named files to have unexpected effects when reading.
+
+
+<P>
+
+
+
+
+<PRE>
+  % touch 'rm *|'
+  % perl -pe 1
+
+</PRE>
+
+
+
+
+<P>
+
+
+The above creates a file named <TT>&quot;rm *|&quot;</TT>. When perl opens it with
+<TT>&quot;&lt;&gt;&quot;</TT> it actually executes the shell program <TT>&quot;rm *&quot;</TT>. This
+makes <TT>&quot;&lt;&gt;&quot;</TT> dangerous to use carelessly.
+<DT><B>context</B><DD>
+<A NAME="ixAAG"></A>
+Produces a warning whenever an array is used in an implicit scalar
+context. For example, both of the lines
+
+
+<P>
+
+
+
+
+<PRE>
+    $foo = length(@bar);
+    $foo = @bar;
+
+</PRE>
+
+
+
+
+<P>
+
+
+will elicit a warning. Using an explicit <B></B>scalar()<B></B> silences the
+warning. For example,
+
+
+<P>
+
+
+
+
+<PRE>
+    $foo = scalar(@bar);
+
+</PRE>
+
+
+<DT><B>implicit-read</B> and <B>implicit-write</B><DD>
+<A NAME="ixAAH"></A>
+These options produce a warning whenever an operation implicitly
+reads or (respectively) writes to one of Perl's special variables.
+For example, <B>implicit-read</B> will warn about these:
+
+
+<P>
+
+
+
+
+<PRE>
+    /foo/;
+
+</PRE>
+
+
+
+
+<P>
+
+
+and <B>implicit-write</B> will warn about these:
+
+
+<P>
+
+
+
+
+<PRE>
+    s/foo/bar/;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Both <B>implicit-read</B> and <B>implicit-write</B> warn about this:
+
+
+<P>
+
+
+
+
+<PRE>
+    for (@a) { ... }
+
+</PRE>
+
+
+<DT><B>bare-subs</B><DD>
+<A NAME="ixAAI"></A>
+This option warns whenever a bareword is implicitly quoted, but is also
+the name of a subroutine in the current package. Typical mistakes that it will
+trap are:
+
+
+<P>
+
+
+
+
+<PRE>
+    use constant foo =&gt; 'bar';
+    @a = ( foo =&gt; 1 );
+    $b{foo} = 2;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Neither of these will do what a naive user would expect.
+<DT><B>dollar-underscore</B><DD>
+<A NAME="ixAAJ"></A>
+This option warns whenever <TT>$_</TT> is used either explicitly anywhere or
+as the implicit argument of a <B>print</B> statement.
+<DT><B>private-names</B><DD>
+<A NAME="ixAAK"></A>
+This option warns on each use of any variable, subroutine or
+method name that lives in a non-current package but begins with
+an underscore (``_''). Warnings aren't issued for the special case
+of the single character name ``_'' by itself (e.g. <TT>$_</TT> and <TT>@_</TT>).
+<DT><B>undefined-subs</B><DD>
+<A NAME="ixAAL"></A>
+This option warns whenever an undefined subroutine is invoked.
+This option will only catch explicitly invoked subroutines such
+as <TT>&quot;foo()&quot;</TT> and not indirect invocations such as <TT>&quot;&amp;$subref()&quot;</TT>
+or <TT>&quot;$obj-&gt;meth()&quot;</TT>. Note that some programs or modules delay
+definition of subs until runtime by means of the <FONT SIZE="-1">AUTOLOAD</FONT>
+mechanism.
+<DT><B>regexp-variables</B><DD>
+<A NAME="ixAAM"></A>
+This option warns whenever one of the regexp variables <TT>&quot;$`&quot;</TT>, <TT>$&amp;</TT> or <TT>&quot;$'&quot;</TT>
+is used. Any occurrence of any of these variables in your
+program can slow your whole program down. See perlre for
+details.
+<DT><B>all</B><DD>
+<A NAME="ixAAN"></A>
+Turn all warnings on.
+<DT><B>none</B><DD>
+<A NAME="ixAAO"></A>
+Turn all warnings off.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>NON LINT-CHECK OPTIONS</H2>
+
+<A NAME="ixAAP"></A>
+<DL COMPACT>
+<DT><B>-u Package</B><DD>
+<A NAME="ixAAQ"></A>
+Normally, Lint only checks the main code of the program together
+with all subs defined in package main. The <B>-u</B> option lets you
+include other package names whose subs are then checked by Lint.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXTENDING LINT</H2>
+
+<A NAME="ixAAR"></A>
+Lint can be extended by with plugins. Lint uses Module::Pluggable
+to find available plugins. Plugins are expected but not required to
+inform Lint of which checks they are adding.
+<P>
+
+The <TT>&quot;B::Lint-&gt;register_plugin( MyPlugin =&gt; \@new_checks )&quot;</TT> method
+adds the list of <TT>@new_checks</TT> to the list of valid checks. If your
+module wasn't loaded by Module::Pluggable then your class name is
+added to the list of plugins.
+<P>
+
+You must create a <TT>&quot;match( \%checks )&quot;</TT> method in your plugin class or one
+of its parents. It will be called on every op as a regular method call
+with a hash ref of checks as its parameter.
+<P>
+
+The class methods <TT>&quot;B::Lint-&gt;file&quot;</TT> and <TT>&quot;B::Lint-&gt;line&quot;</TT> contain
+the current filename and line number.
+<P>
+
+
+
+<PRE>
+  package Sample;
+  use B::Lint;
+  B::Lint-&gt;register_plugin( Sample =&gt; [ 'good_taste' ] );
+  
+  sub match {
+      my ( $op, $checks_href ) = shift @_;
+      if ( $checks_href-&gt;{good_taste} ) {
+          ...
+      }
+  }
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>TODO</H2>
+
+<A NAME="ixAAS"></A>
+<DL COMPACT>
+<DT>while(&lt;<FONT SIZE="-1">FH</FONT>&gt;) stomps $_<DD>
+
+
+<A NAME="ixAAT"></A>
+
+<DT>strict oo<DD>
+<A NAME="ixAAU"></A>
+<DT>unchecked system calls<DD>
+<A NAME="ixAAV"></A>
+<DT>more tests, validate against older perls<DD>
+<A NAME="ixAAW"></A>
+
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAX"></A>
+This is only a very preliminary version.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAY"></A>
+Malcolm Beattie, <A HREF="mailto:mbeattie@sable.ox.ac.uk">mbeattie@sable.ox.ac.uk</A>.
+<A NAME="lbAK">&nbsp;</A>
+<H2>ACKNOWLEDGEMENTS</H2>
+
+<A NAME="ixAAZ"></A>
+Sebastien Aperghis-Tramoni - bug fixes
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS AND LINT CHECKS</A><DD>
+<DT><A HREF="#lbAF">NON LINT-CHECK OPTIONS</A><DD>
+<DT><A HREF="#lbAG">EXTENDING LINT</A><DD>
+<DT><A HREF="#lbAH">TODO</A><DD>
+<DT><A HREF="#lbAI">BUGS</A><DD>
+<DT><A HREF="#lbAJ">AUTHOR</A><DD>
+<DT><A HREF="#lbAK">ACKNOWLEDGEMENTS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:13 GMT, December 24, 2015
+</div></body>
+</HTML>

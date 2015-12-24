@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CAPGET</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CAPGET</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2009-01-26<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+capget, capset - set/get capabilities of thread(s)
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>#undef _POSIX_SOURCE</B>
+
+<BR>
+
+<B>#include &lt;<A HREF="file:/usr/include/sys/capability.h">sys/capability.h</A>&gt;</B>
+
+<P>
+<B>int capget(cap_user_header_t </B><I>hdrp</I><B>, cap_user_data_t </B><I>datap</I><B>);</B>
+
+<P>
+<B>int capset(cap_user_header_t </B><I>hdrp</I><B>, const cap_user_data_t </B><I>datap</I><B>);</B>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+As of Linux 2.2,
+the power of the superuser (root) has been partitioned into
+a set of discrete capabilities.
+Each thread has a set of effective capabilities identifying
+which capabilities (if any) it may currently exercise.
+Each thread also has a set of inheritable capabilities that may be
+passed through an
+<B><A HREF="/manpages/index.html?2+execve">execve</A></B>(2)
+
+call, and a set of permitted capabilities
+that it can make effective or inheritable.
+<P>
+
+These two functions are the raw kernel interface for getting and
+setting thread capabilities.
+Not only are these system calls specific to Linux,
+but the kernel API is likely to change and use of
+these functions (in particular the format of the
+<I>cap_user_*_t</I>
+
+types) is subject to extension with each kernel revision,
+but old programs will keep working.
+<P>
+The portable interfaces are
+<B><A HREF="/manpages/index.html?3+cap_set_proc">cap_set_proc</A></B>(3)
+
+and
+<B><A HREF="/manpages/index.html?3+cap_get_proc">cap_get_proc</A></B>(3);
+
+if possible you should use those interfaces in applications.
+If you wish to use the Linux extensions in applications, you should
+use the easier-to-use interfaces
+<B><A HREF="/manpages/index.html?3+capsetp">capsetp</A></B>(3)
+
+and
+<B><A HREF="/manpages/index.html?3+capgetp">capgetp</A></B>(3).
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>Current details</H3>
+
+Now that you have been warned, some current kernel details.
+The structures are defined as follows.
+<P>
+<PRE>
+#define _LINUX_CAPABILITY_VERSION_1  0x19980330
+#define _LINUX_CAPABILITY_U32S_1     1
+
+#define _LINUX_CAPABILITY_VERSION_2  0x20071026
+#define _LINUX_CAPABILITY_U32S_2     2
+
+typedef struct __user_cap_header_struct {
+   __u32 version;
+   int pid;
+} *cap_user_header_t;
+
+typedef struct __user_cap_data_struct {
+   __u32 effective;
+   __u32 permitted;
+   __u32 inheritable;
+} *cap_user_data_t;
+</PRE>
+
+
+<P>
+<I>effective, permitted, inheritable</I>
+
+are bitmasks of the capabilities defined in
+<I><A HREF="/manpages/index.html?7+capability">capability</A>(7).</I>
+
+Note the
+<I>CAP_*</I>
+
+values are bit indexes and need to be bit-shifted before ORing into
+the bit fields.
+To define the structures for passing to the system call you have to use the
+<I>struct __user_cap_header_struct</I>
+
+and
+<I>struct __user_cap_data_struct</I>
+
+names because the typedefs are only pointers.
+<P>
+Kernels prior to 2.6.25 prefer
+32-bit capabilities with version
+<B>_LINUX_CAPABILITY_VERSION_1</B>,
+
+and kernels 2.6.25+ prefer 64-bit capabilities with version
+<B>_LINUX_CAPABILITY_VERSION_2</B>.
+
+Note, 64-bit capabilities use
+<I>datap</I>[0]
+
+and
+<I>datap</I>[1],
+
+whereas 32-bit capabilities only use
+<I>datap</I>[0].
+
+<P>
+Another change affecting the behavior of these system calls is kernel
+support for file capabilities (VFS capability support).
+This support is currently a compile time option (added in kernel 2.6.24).
+<P>
+For
+<B>capget</B>()
+
+calls, one can probe the capabilities of any process by specifying its
+process ID with the
+<I>hdrp-&gt;pid</I>
+
+field value.
+<A NAME="lbAF">&nbsp;</A>
+<H3>With VFS Capability Support</H3>
+
+VFS Capability support creates a file-attribute method for adding
+capabilities to privileged executables.
+This privilege model obsoletes kernel support for one process
+asynchronously setting the capabilities of another.
+That is, with VFS support, for
+<B>capset</B>()
+
+calls the only permitted values for
+<I>hdrp-&gt;pid</I>
+
+are 0 or
+<B><A HREF="/manpages/index.html?2+getpid">getpid</A></B>(2),
+
+which are equivalent.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Without VFS Capability Support</H3>
+
+When the kernel does not support VFS capabilities,
+<B>capset</B>()
+
+calls can operate on the capabilities of the thread specified by the
+<I>pid</I>
+
+field of
+<I>hdrp</I>
+
+when that is non-zero, or on the capabilities of the calling thread if
+<I>pid</I>
+
+is 0.
+If
+<I>pid</I>
+
+refers to a single-threaded process, then
+<I>pid</I>
+
+can be specified as a traditional process ID;
+operating on a thread of a multithreaded process requires a thread ID
+of the type returned by
+<B><A HREF="/manpages/index.html?2+gettid">gettid</A></B>(2).
+
+For
+<B>capset</B>(),
+
+<I>pid</I>
+
+can also be: -1, meaning perform the change on all threads except the
+caller and
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8);
+
+or a value less than -1, in which case the change is applied
+to all members of the process group whose ID is -<I>pid</I>.
+<P>
+For details on the data, see
+<B><A HREF="/manpages/index.html?7+capabilities">capabilities</A></B>(7).
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success, zero is returned.
+On error, -1 is returned, and
+<I>errno</I>
+
+is set appropriately.
+<P>
+The calls will fail with the error
+<B>EINVAL</B>,
+
+and set the
+<I>version</I>
+
+field of
+<I>hdrp</I>
+
+to the kernel preferred value of
+<B>_LINUX_CAPABILITY_VERSION_?</B>
+
+when an unsupported
+<I>version</I>
+
+value is specified.
+In this way, one can probe what the current
+preferred capability revision is.
+<A NAME="lbAI">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EFAULT</B>
+
+<DD>
+Bad memory address.
+<I>hdrp</I>
+
+must not be NULL.
+<I>datap</I>
+
+may only be NULL when the user is trying to determine the preferred
+capability version format supported by the kernel.
+<DT><B>EINVAL</B>
+
+<DD>
+One of the arguments was invalid.
+<DT><B>EPERM</B>
+
+<DD>
+An attempt was made to add a capability to the Permitted set, or to set
+a capability in the Effective or Inheritable sets that is not in the
+Permitted set.
+<DT><B>EPERM</B>
+
+<DD>
+The caller attempted to use
+<B>capset</B>()
+
+to modify the capabilities of a thread other than itself,
+but lacked sufficient privilege.
+For kernels supporting VFS
+capabilities, this is never permitted.
+For kernels lacking VFS
+support, the
+<B>CAP_SETPCAP</B>
+
+capability is required.
+(A bug in kernels before 2.6.11 meant that this error could also
+occur if a thread without this capability tried to change its
+own capabilities by specifying the
+<I>pid</I>
+
+field as a non-zero value (i.e., the value returned by
+<B><A HREF="/manpages/index.html?2+getpid">getpid</A></B>(2))
+
+instead of 0.)
+<DT><B>ESRCH</B>
+
+<DD>
+No such thread.
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+These system calls are Linux-specific.
+<A NAME="lbAK">&nbsp;</A>
+<H2>NOTES</H2>
+
+The portable interface to the capability querying and setting
+functions is provided by the
+<I>libcap</I>
+
+library and is available here:
+<BR>
+
+<A HREF="http://www.kernel.org/pub/linux/libs/security/linux-privs">http://www.kernel.org/pub/linux/libs/security/linux-privs</A>
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?2+clone">clone</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+gettid">gettid</A></B>(2),
+
+<B><A HREF="/manpages/index.html?7+capabilities">capabilities</A></B>(7)
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Current details</A><DD>
+<DT><A HREF="#lbAF">With VFS Capability Support</A><DD>
+<DT><A HREF="#lbAG">Without VFS Capability Support</A><DD>
+</DL>
+<DT><A HREF="#lbAH">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAI">ERRORS</A><DD>
+<DT><A HREF="#lbAJ">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAK">NOTES</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+<DT><A HREF="#lbAM">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:03 GMT, December 24, 2015
+</div></body>
+</HTML>

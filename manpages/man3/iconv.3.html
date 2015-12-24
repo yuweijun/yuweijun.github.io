@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of ICONV</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>ICONV</H1>
+Section: Linux Programmer's Manual (3)<BR>Updated: 2008-09-08<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+iconv - perform character set conversion
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/iconv.h">iconv.h</A>&gt;</B>
+
+<B>size_t iconv(iconv_t </B><I>cd</I><B>,</B>
+<B>             char **</B><I>inbuf</I><B>, size_t *</B><I>inbytesleft</I><B>,</B>
+<B>             char **</B><I>outbuf</I><B>, size_t *</B><I>outbytesleft</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The argument <I>cd</I> must be a conversion descriptor created using the
+function
+<B><A HREF="/manpages/index.html?3+iconv_open">iconv_open</A></B>(3).
+
+<P>
+
+The main case is when <I>inbuf</I> is not NULL and <I>*inbuf</I> is not NULL.
+In this case, the
+<B>iconv</B>()
+
+function converts the multibyte sequence
+starting at <I>*inbuf</I> to a multibyte sequence starting at <I>*outbuf</I>.
+At most <I>*inbytesleft</I> bytes, starting at <I>*inbuf</I>, will be read.
+At most <I>*outbytesleft</I> bytes, starting at <I>*outbuf</I>, will be written.
+<P>
+
+The
+<B>iconv</B>()
+
+function converts one multibyte character at a time, and for
+each character conversion it increments <I>*inbuf</I> and decrements
+<I>*inbytesleft</I> by the number of converted input bytes, it increments
+<I>*outbuf</I> and decrements <I>*outbytesleft</I> by the number of converted
+output bytes, and it updates the conversion state contained in <I>cd</I>.
+If the character encoding of the input is stateful, the
+<B>iconv</B>()
+
+function can also convert a sequence of input bytes
+to an update to the conversion state without producing any output bytes;
+such input is called a <I>shift sequence</I>.
+The conversion can stop for four reasons:
+<P>
+
+1. An invalid multibyte sequence is encountered in the input.
+In this case
+it sets <I>errno</I> to <B>EILSEQ</B> and returns
+<I>(size_t)&nbsp;-1</I>.
+
+<I>*inbuf</I>
+is left pointing to the beginning of the invalid multibyte sequence.
+<P>
+
+2. The input byte sequence has been entirely converted,
+that is, <I>*inbytesleft</I> has gone down to 0.
+In this case
+<B>iconv</B>()
+
+returns the number of
+non-reversible conversions performed during this call.
+<P>
+
+3. An incomplete multibyte sequence is encountered in the input, and the
+input byte sequence terminates after it.
+In this case it sets <I>errno</I> to
+<B>EINVAL</B> and returns
+<I>(size_t)&nbsp;-1</I>.
+
+<I>*inbuf</I> is left pointing to the
+beginning of the incomplete multibyte sequence.
+<P>
+
+4. The output buffer has no more room for the next converted character.
+In this case it sets <I>errno</I> to <B>E2BIG</B> and returns
+<I>(size_t)&nbsp;-1</I>.
+
+<P>
+
+A different case is when <I>inbuf</I> is NULL or <I>*inbuf</I> is NULL, but
+<I>outbuf</I> is not NULL and <I>*outbuf</I> is not NULL.
+In this case, the
+<B>iconv</B>()
+
+function attempts to set <I>cd</I>'s conversion state to the
+initial state and store a corresponding shift sequence at <I>*outbuf</I>.
+At most <I>*outbytesleft</I> bytes, starting at <I>*outbuf</I>, will be written.
+If the output buffer has no more room for this reset sequence, it sets
+<I>errno</I> to <B>E2BIG</B> and returns
+<I>(size_t)&nbsp;-1</I>.
+
+Otherwise it increments
+<I>*outbuf</I> and decrements <I>*outbytesleft</I> by the number of bytes
+written.
+<P>
+
+A third case is when <I>inbuf</I> is NULL or <I>*inbuf</I> is NULL, and
+<I>outbuf</I> is NULL or <I>*outbuf</I> is NULL.
+In this case, the
+<B>iconv</B>()
+
+function sets <I>cd</I>'s conversion state to the initial state.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+The
+<B>iconv</B>()
+
+function returns the number of characters converted in a
+non-reversible way during this call; reversible conversions are not counted.
+In case of error, it sets <I>errno</I> and returns
+<I>(size_t)&nbsp;-1</I>.
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+The following errors can occur, among others:
+<DL COMPACT>
+<DT><B>E2BIG</B>
+
+<DD>
+There is not sufficient room at <I>*outbuf</I>.
+<DT><B>EILSEQ</B>
+
+<DD>
+An invalid multibyte sequence has been encountered in the input.
+<DT><B>EINVAL</B>
+
+<DD>
+An incomplete multibyte sequence has been encountered in the input.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+This function is available in glibc since version 2.1.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+POSIX.1-2001.
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?3+iconv_close">iconv_close</A></B>(3),
+
+<B><A HREF="/manpages/index.html?3+iconv_open">iconv_open</A></B>(3)
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">VERSIONS</A><DD>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:29 GMT, December 24, 2015
+</div></body>
+</HTML>

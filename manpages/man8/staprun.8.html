@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of STAPRUN</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>STAPRUN</H1>
+Section: Maintenance Commands (8)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+staprun - systemtap runtime
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<BR>
+
+<B>staprun</B>
+
+[
+<I>OPTIONS</I>
+
+]
+<I>MODULE</I>
+
+[
+<I>MODULE-OPTIONS</I>
+
+]
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+The
+<I>staprun</I>
+
+program is the back-end of the Systemtap tool.  It expects a kernel
+module produced by the front-end
+<I>stap</I>
+
+tool.
+<P>
+
+Splitting the systemtap tool into a front-end and a back-end allows a
+user to compile a systemtap script on a development machine that has
+the kernel debugging information (need to compile the script) and then
+transfer the resulting kernel module to a production machine that
+doesn't have any development tools or kernel debugging information installed.
+<P>
+
+Please refer to stappaths (7) for the version number, or run
+rpm -q systemtap (fedora/red hat)
+apt-get -v systemtap (ubuntu)
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+The
+<I>staprun</I>
+
+program supports the following options.  Any other option
+prints a list of supported options.
+<DL COMPACT>
+<DT><B>-v</B>
+
+<DD>
+Verbose mode.
+<DT><B>-w</B>
+
+<DD>
+Suppress warnings from the script.
+<DT><B>-u</B>
+
+<DD>
+Load the uprobes.ko module.
+<DT><B>-c CMD</B>
+
+<DD>
+Command CMD will be run and the
+<I>staprun</I>
+
+program will exit when CMD
+does.  The '_stp_target' variable will contain the pid for CMD.
+<DT><B>-x PID</B>
+
+<DD>
+The '_stp_target' variable will be set to PID.
+<DT><B>-o FILE</B>
+
+<DD>
+Send output to FILE. If the module uses bulk mode, the output will
+be in percpu files FILE_x(FILE_cpux in background and bulk mode)
+where 'x' is the cpu number. This supports <A HREF="/manpages/index.html?3+strftime">strftime</A>(3) formats
+for FILE.
+<DT><B>-b BUFFER_SIZE</B>
+
+<DD>
+The systemtap module will specify a buffer size.
+Setting one here will override that value. The value should be
+an integer between 1 and 4095 which be assumed to be the
+buffer size in MB. That value will be per-cpu if bulk mode is used.
+<DT><B>-L</B>
+
+<DD>
+Load module and start probes, then detach from the module leaving the
+probes running.  The module can be attached to later by using the
+<B>-A</B>
+
+option.
+<DT><B>-A</B>
+
+<DD>
+Attach to loaded systemtap module.
+<DT><B>-d</B>
+
+<DD>
+Delete a module.  Only detached or unused modules
+the user has permission to access will be deleted. Use &quot;*&quot;
+(quoted) to delete all unused modules.
+<DT><B>-D</B>
+
+<DD>
+Run staprun in background as a daemon and show it's pid.
+<DT><B>-R</B>
+
+<DD>
+Rename the module to a unique name before inserting it.
+<DT><B>-r  N:URI</B>
+
+<DD>
+Pass the given number and URI data to the tapset functions
+remote_id() and remote_uri().
+<DT><B>-S</B><I> size[,N]</I>
+
+<DD>
+Sets the maximum size of output file and the maximum number of output files.
+If the size of output file will exceed
+<B>size</B>
+
+, systemtap switches output file to the next file. And if the number of
+output files exceed
+<B>N</B>
+
+, systemtap removes the oldest output file. You can omit the second argument.
+<DT><B>var1=val</B>
+
+<DD>
+Sets the value of global variable var1 to val. Global variables contained 
+within a module are treated as module options and can be set from the 
+staprun command line.
+<P>
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>ARGUMENTS</H2>
+
+<B>MODULE</B>
+
+is either a module path or a module name.  If it is a module name,
+the module will be looked for in the following directory
+(where 'VERSION' is the output of &quot;uname -r&quot;):
+<DL COMPACT>
+<DT><DD>
+/lib/modules/VERSION/systemtap
+</DL>
+<P>
+
+
+Any additional arguments on the command line are passed to the
+module.  One use of these additional module arguments is to set the value 
+of global variables declared within the module.
+<P>
+
+<P>
+ $ stap -p4 -m mod1 -e&nbsp;[aq]global var1=&quot;foo&quot;; probe begin{printf(&quot;%s\n&quot;, var1); exit()}[aq]
+<BR>
+
+<P>
+
+Running this with an additional module argument:
+<P>
+
+<P>
+ $ staprun mod1.ko var1=&quot;HelloWorld&quot;
+<BR>
+
+ HelloWorld
+<P>
+
+Spaces and exclamation marks currently cannot be passed into global variables 
+this way.
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+See the 
+<I><A HREF="/manpages/index.html?3stap+stapex">stapex</A></I>(3stap)
+
+manual page for a collection of sample scripts.
+<P>
+
+Here is a very basic example of how to use
+<I>staprun.</I>
+
+First, use
+<I>stap</I>
+
+to compile a script.  The
+<I>stap</I>
+
+program will report the pathname to the resulting module.
+<P>
+
+ $ stap -p4 -e [aq]probe begin { printf(&quot;Hello World!\n&quot;); exit() }[aq]
+<BR>
+
+ /home/user/.systemtap/cache/85/stap_8553d83f78c_265.ko
+<P>
+
+Run
+<I>staprun</I>
+
+with the pathname to the module as an argument.
+<P>
+
+ $ staprun /home/user/.systemtap/cache/85/stap_8553d83f78c_265.ko
+<BR>
+
+ Hello World!
+<A NAME="lbAH">&nbsp;</A>
+<H2>MODULE DETACHING AND ATTACHING</H2>
+
+After the
+<I>staprun</I>
+
+program installs a Systemtap kernel module, users can detach from the
+kernel module and reattach to it later.  The
+<B>-L</B>
+
+option loads the module and automatically detaches.  Users can also
+detach from the kernel module interactively by sending the SIGQUIT
+signal from the keyboard (typically by typing Ctrl-\).
+<P>
+
+To reattach to a kernel module, the
+<I>staprun</I>
+
+<B>-A</B>
+
+option would be used.
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>FILE SWITCHING BY SIGNAL</H2>
+
+After the
+<I>staprun</I>
+
+launched the
+<I>stapio</I>
+
+, users can command it to switch output file to next file when it
+outputs to file(s) (running staprun with
+<B>-o</B>
+
+option) by sending a
+<B>SIGUSR2</B>
+
+signal to the
+<I>stapio</I>
+
+process. When it receives SIGUSR2, it will switch output file to
+new file with suffix 
+<I>.N</I>
+
+where N is the sequential number.
+For example,
+<P>
+
+ $ staprun -o foo ...
+<P>
+
+outputs trace logs to 
+<I>foo</I>
+
+and if it receives
+<B>SIGUSR2</B>
+
+signal, it switches output to
+<I>foo.1</I>
+
+file. And receiving
+<B>SIGUSR2</B>
+
+again, it switches to 
+<I>foo.2</I>
+
+file.
+<P>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SAFETY AND SECURITY</H2>
+
+Systemtap is an administrative tool.  It exposes kernel internal data
+structures and potentially private user information.  See the 
+<I><A HREF="/manpages/index.html?1+stap">stap</A></I>(1)
+
+manual page for additional information on safety and security.
+<P>
+
+To increase system security, only the root user and members of both
+<I>stapdev  and  staprun</I>
+
+groups can use
+<I>staprun</I>
+
+to insert systemtap modules (or attach to existing ones).
+Members of the
+<I>stapusr</I>
+
+group only can use
+<I>staprun</I>
+
+to insert or remove systemtap modules (or attach to existing systemtap modules)
+under the following conditions:
+<DL COMPACT>
+<DT>*<DD>
+The module is located in
+the /lib/modules/VERSION/systemtap directory.  This directory
+must be owned by root and not be world writable.
+<DT>*<DD>
+The module has been signed by a trusted signer. Trusted signers are normally
+systemtap compile servers which sign modules when the --unprivileged option is
+specified by the client. See the
+<I><A HREF="/manpages/index.html?8+stap-server">stap-server</A></I>(8)
+
+manual page for a for more information.
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H2>FILES</H2>
+
+<DL COMPACT>
+<DT>/lib/modules/VERSION/systemtap<DD>
+If MODULE is a module name, the module will be looked for in this directory.
+Users who are only in the
+<I>'stapusr'</I>
+
+group can install modules
+located in this directory.  This directory must be owned by the root
+user and not be world writable.
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<I><A HREF="/manpages/index.html?1+stap">stap</A></I>(1),
+
+<I><A HREF="/manpages/index.html?3stap+stapprobes">stapprobes</A></I>(3stap),
+
+<I><A HREF="/manpages/index.html?3stap+stapfuncs">stapfuncs</A></I>(3stap),
+
+<I><A HREF="/manpages/index.html?8+stap-server">stap-server</A></I>(8),
+
+<I><A HREF="/manpages/index.html?3stap+stapex">stapex</A></I>(3stap)
+
+<P>
+<A NAME="lbAM">&nbsp;</A>
+<H2>BUGS</H2>
+
+Use the Bugzilla link of the project web page or our mailing list.
+
+<B><A HREF="http://sourceware.org/systemtap/">http://sourceware.org/systemtap/</A></B>, <B>&lt;<A HREF="mailto:systemtap@sourceware.org">systemtap@sourceware.org</A>&gt;</B>.
+
+
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">ARGUMENTS</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">MODULE DETACHING AND ATTACHING</A><DD>
+<DT><A HREF="#lbAI">FILE SWITCHING BY SIGNAL</A><DD>
+<DT><A HREF="#lbAJ">SAFETY AND SECURITY</A><DD>
+<DT><A HREF="#lbAK">FILES</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+<DT><A HREF="#lbAM">BUGS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:30 GMT, December 24, 2015
+</div></body>
+</HTML>

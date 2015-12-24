@@ -1,0 +1,1758 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of VALGRIND</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>VALGRIND</H1>
+Section: Release 3.6.0 (1)<BR>Updated: 10/21/2010<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+valgrind - a suite of tools for debugging and profiling programs
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<DL COMPACT>
+<DT>
+<B>valgrind</B> [<I>valgrind-options</I>] [<B>your-program</B>] [<I>your-program-options</I>]
+</DL>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>Valgrind</B>
+<DD>is a flexible program for debugging and profiling Linux executables. It consists of a core, which provides a synthetic CPU in software, and a series of debugging and profiling tools. The architecture is modular, so that new tools can be created easily and without disturbing the existing structure.
+<P>
+
+Some of the options described below work with all Valgrind tools, and some only work with a few or one. The section MEMCHECK OPTIONS and those below it describe tool-specific options.
+<P>
+
+This manual page covers only basic usage and options. For more comprehensive information, please see the HTML documentation on your system:
+$INSTALL/share/doc/valgrind/html/index.html, or online:
+<A HREF="http://www.valgrind.org/docs/manual/index.html.">http://www.valgrind.org/docs/manual/index.html.</A>
+<A NAME="lbAE">&nbsp;</A>
+<H2>BASIC OPTIONS</H2>
+
+<P>
+
+These options work with all tools.
+<P>
+
+<B>-h --help</B>
+<DL COMPACT><DT><DD>
+Show help for all options, both for the core and for the selected tool. If the option is repeated it is equivalent to giving
+<B>--help-debug</B>.
+</DL>
+
+<P>
+
+<B>--help-debug</B>
+<DL COMPACT><DT><DD>
+Same as
+<B>--help</B>, but also lists debugging options which usually are only of use to Valgrind's developers.
+</DL>
+
+<P>
+
+<B>--version</B>
+<DL COMPACT><DT><DD>
+Show the version number of the Valgrind core. Tools can have their own version numbers. There is a scheme in place to ensure that tools only execute when the core version is one they are known to work with. This was done to minimise the chances of strange problems arising from tool-vs-core version incompatibilities.
+</DL>
+
+<P>
+
+<B>-q</B>, <B>--quiet</B>
+<DL COMPACT><DT><DD>
+Run silently, and only print error messages. Useful if you are running regression tests or have some other automated test machinery.
+</DL>
+
+<P>
+
+<B>-v</B>, <B>--verbose</B>
+<DL COMPACT><DT><DD>
+Be more verbose. Gives extra information on various aspects of your program, such as: the shared objects loaded, the suppressions used, the progress of the instrumentation and execution engines, and warnings about unusual behaviour. Repeating the option increases the verbosity level.
+</DL>
+
+<P>
+
+<B>--trace-children=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, Valgrind will trace into sub-processes initiated via the
+<I>exec</I>
+system call. This is necessary for multi-process programs.
+<P>
+Note that Valgrind does trace into the child of a
+<I>fork</I>
+(it would be difficult not to, since
+<I>fork</I>
+makes an identical copy of a process), so this option is arguably badly named. However, most children of
+<I>fork</I>
+calls immediately call
+<I>exec</I>
+anyway.
+</DL>
+
+<P>
+
+<B>--trace-children-skip=patt1,patt2 </B>
+<DL COMPACT><DT><DD>
+This option only has an effect when
+<B>--trace-children=yes</B>
+is specified. It allows for some children to be skipped. The option takes a comma separated list of patterns for the names of child executables that Valgrind should not trace into. Patterns may include the metacharacters
+?
+and
+*, which have the usual meaning.
+<P>
+This can be useful for pruning uninteresting branches from a tree of processes being run on Valgrind. But you should be careful when using it. When Valgrind skips tracing into an executable, it doesn't just skip tracing that executable, it also skips tracing any of that executable's child processes. In other words, the flag doesn't merely cause tracing to stop at the specified executables -- it skips tracing of entire process subtrees rooted at any of the specified executables.
+</DL>
+
+<P>
+
+<B>--child-silent-after-fork=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, Valgrind will not show any debugging or logging output for the child process resulting from a
+<I>fork</I>
+call. This can make the output less confusing (although more misleading) when dealing with processes that create children. It is particularly useful in conjunction with
+<I>--trace-children=</I>. Use of this option is also strongly recommended if you are requesting XML output (<I>--xml=yes</I>), since otherwise the XML from child and parent may become mixed up, which usually makes it useless.
+</DL>
+
+<P>
+
+<B>--track-fds=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, Valgrind will print out a list of open file descriptors on exit. Along with each file descriptor is printed a stack backtrace of where the file was opened and any details relating to the file descriptor such as the file name or socket details.
+</DL>
+
+<P>
+
+<B>--time-stamp=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, each message is preceded with an indication of the elapsed wallclock time since startup, expressed as days, hours, minutes, seconds and milliseconds.
+</DL>
+
+<P>
+
+<B>--log-fd=&lt;number&gt; [default: 2, stderr] </B>
+<DL COMPACT><DT><DD>
+Specifies that Valgrind should send all of its messages to the specified file descriptor. The default, 2, is the standard error channel (stderr). Note that this may interfere with the client's own use of stderr, as Valgrind's output will be interleaved with any output that the client sends to stderr.
+</DL>
+
+<P>
+
+<B>--log-file=&lt;filename&gt; </B>
+<DL COMPACT><DT><DD>
+Specifies that Valgrind should send all of its messages to the specified file. If the file name is empty, it causes an abort. There are three special format specifiers that can be used in the file name.
+<P>
+<B>%p</B>
+is replaced with the current process ID. This is very useful for program that invoke multiple processes. WARNING: If you use
+<B>--trace-children=yes</B>
+and your program invokes multiple processes OR your program forks without calling exec afterwards, and you don't use this specifier (or the
+<B>%q</B>
+specifier below), the Valgrind output from all those processes will go into one file, possibly jumbled up, and possibly incomplete.
+<P>
+<B>%q{FOO}</B>
+is replaced with the contents of the environment variable
+<I>FOO</I>. If the
+<B>{FOO}</B>
+part is malformed, it causes an abort. This specifier is rarely needed, but very useful in certain circumstances (eg. when running MPI programs). The idea is that you specify a variable which will be set differently for each process in the job, for example
+BPROC_RANK
+or whatever is applicable in your MPI setup. If the named environment variable is not set, it causes an abort. Note that in some shells, the
+<B>{</B>
+and
+<B>}</B>
+characters may need to be escaped with a backslash.
+<P>
+<B>%%</B>
+is replaced with
+<B>%</B>.
+<P>
+If an
+<B>%</B>
+is followed by any other character, it causes an abort.
+</DL>
+
+<P>
+
+<B>--log-socket=&lt;ip-address:port-number&gt; </B>
+<DL COMPACT><DT><DD>
+Specifies that Valgrind should send all of its messages to the specified port at the specified IP address. The port may be omitted, in which case port 1500 is used. If a connection cannot be made to the specified socket, Valgrind falls back to writing output to the standard error (stderr). This option is intended to be used in conjunction with the
+valgrind-listener
+program. For further details, see
+the commentary
+in the manual.
+</DL>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERROR-RELATED OPTIONS</H2>
+
+<P>
+
+These options are used by all tools that can report errors, e.g. Memcheck, but not Cachegrind.
+<P>
+
+<B>--xml=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, the important parts of the output (e.g. tool error messages) will be in XML format rather than plain text. Furthermore, the XML output will be sent to a different output channel than the plain text output. Therefore, you also must use one of
+<B>--xml-fd</B>,
+<B>--xml-file</B>
+or
+<B>--xml-socket</B>
+to specify where the XML is to be sent.
+<P>
+Less important messages will still be printed in plain text, but because the XML output and plain text output are sent to different output channels (the destination of the plain text output is still controlled by
+<B>--log-fd</B>,
+<B>--log-file</B>
+and
+<B>--log-socket</B>) this should not cause problems.
+<P>
+This option is aimed at making life easier for tools that consume Valgrind's output as input, such as GUI front ends. Currently this option works with Memcheck, Helgrind and Ptrcheck. The output format is specified in the file
+docs/internals/xml-output-protocol4.txt
+in the source tree for Valgrind 3.5.0 or later.
+<P>
+The recommended options for a GUI to pass, when requesting XML output, are:
+<B>--xml=yes</B>
+to enable XML output,
+<B>--xml-file</B>
+to send the XML output to a (presumably GUI-selected) file,
+<B>--log-file</B>
+to send the plain text output to a second GUI-selected file,
+<B>--child-silent-after-fork=yes</B>, and
+<B>-q</B>
+to restrict the plain text output to critical error messages created by Valgrind itself. For example, failure to read a specified suppressions file counts as a critical error message. In this way, for a successful run the text output file will be empty. But if it isn't empty, then it will contain important information which the GUI user should be made aware of.
+</DL>
+
+<P>
+
+<B>--xml-fd=&lt;number&gt; [default: -1, disabled] </B>
+<DL COMPACT><DT><DD>
+Specifies that Valgrind should send its XML output to the specified file descriptor. It must be used in conjunction with
+<B>--xml=yes</B>.
+</DL>
+
+<P>
+
+<B>--xml-file=&lt;filename&gt; </B>
+<DL COMPACT><DT><DD>
+Specifies that Valgrind should send its XML output to the specified file. It must be used in conjunction with
+<B>--xml=yes</B>. Any
+<B>%p</B>
+or
+<B>%q</B>
+sequences appearing in the filename are expanded in exactly the same way as they are for
+<B>--log-file</B>. See the description of
+<B>--log-file</B>
+for details.
+</DL>
+
+<P>
+
+<B>--xml-socket=&lt;ip-address:port-number&gt; </B>
+<DL COMPACT><DT><DD>
+Specifies that Valgrind should send its XML output the specified port at the specified IP address. It must be used in conjunction with
+<B>--xml=yes</B>. The form of the argument is the same as that used by
+<B>--log-socket</B>. See the description of
+<B>--log-socket</B>
+for further details.
+</DL>
+
+<P>
+
+<B>--xml-user-comment=&lt;string&gt; </B>
+<DL COMPACT><DT><DD>
+Embeds an extra user comment string at the start of the XML output. Only works when
+<B>--xml=yes</B>
+is specified; ignored otherwise.
+</DL>
+
+<P>
+
+<B>--demangle=&lt;yes|no&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+Enable/disable automatic demangling (decoding) of C++ names. Enabled by default. When enabled, Valgrind will attempt to translate encoded C++ names back to something approaching the original. The demangler handles symbols mangled by g++ versions 2.X, 3.X and 4.X.
+<P>
+An important fact about demangling is that function names mentioned in suppressions files should be in their mangled form. Valgrind does not demangle function names when searching for applicable suppressions, because to do otherwise would make suppression file contents dependent on the state of Valgrind's demangling machinery, and also slow down suppression matching.
+</DL>
+
+<P>
+
+<B>--num-callers=&lt;number&gt; [default: 12] </B>
+<DL COMPACT><DT><DD>
+Specifies the maximum number of entries shown in stack traces that identify program locations. Note that errors are commoned up using only the top four function locations (the place in the current function, and that of its three immediate callers). So this doesn't affect the total number of errors reported.
+<P>
+The maximum value for this is 50. Note that higher settings will make Valgrind run a bit more slowly and take a bit more memory, but can be useful when working with programs with deeply-nested call chains.
+</DL>
+
+<P>
+
+<B>--error-limit=&lt;yes|no&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+When enabled, Valgrind stops reporting errors after 10,000,000 in total, or 1,000 different ones, have been seen. This is to stop the error tracking machinery from becoming a huge performance overhead in programs with many errors.
+</DL>
+
+<P>
+
+<B>--error-exitcode=&lt;number&gt; [default: 0] </B>
+<DL COMPACT><DT><DD>
+Specifies an alternative exit code to return if Valgrind reported any errors in the run. When set to the default value (zero), the return value from Valgrind will always be the return value of the process being simulated. When set to a nonzero value, that value is returned instead, if Valgrind detects any errors. This is useful for using Valgrind as part of an automated test suite, since it makes it easy to detect test cases for which Valgrind has reported errors, just by inspecting return codes.
+</DL>
+
+<P>
+
+<B>--show-below-main=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+By default, stack traces for errors do not show any functions that appear beneath
+<B>main</B>
+because most of the time it's uninteresting C library stuff and/or gobbledygook. Alternatively, if
+<B>main</B>
+is not present in the stack trace, stack traces will not show any functions below
+<B>main</B>-like functions such as glibc's
+<B>__libc_start_main</B>. Furthermore, if
+<B>main</B>-like functions are present in the trace, they are normalised as
+<B>(below main)</B>, in order to make the output more deterministic.
+<P>
+If this option is enabled, all stack trace entries will be shown and
+<B>main</B>-like functions will not be normalised.
+</DL>
+
+<P>
+
+<B>--fullpath-after=&lt;string&gt; [default: don't show source paths] </B>
+<DL COMPACT><DT><DD>
+By default Valgrind only shows the filenames in stack traces, but not full paths to source files. When using Valgrind in large projects where the sources reside in multiple different directories, this can be inconvenient.
+<B>--fullpath-after</B>
+provides a flexible solution to this problem. When this option is present, the path to each source file is shown, with the following all-important caveat: if
+<B>string</B>
+is found in the path, then the path up to and including
+<B>string</B>
+is omitted, else the path is shown unmodified. Note that
+<B>string</B>
+is not required to be a prefix of the path.
+<P>
+For example, consider a file named
+/home/janedoe/blah/src/foo/bar/xyzzy.c. Specifying
+<B>--fullpath-after=/home/janedoe/blah/src/</B>
+will cause Valgrind to show the name as
+foo/bar/xyzzy.c.
+<P>
+Because the string is not required to be a prefix,
+<B>--fullpath-after=src/</B>
+will produce the same output. This is useful when the path contains arbitrary machine-generated characters. For example, the path
+/my/build/dir/C32A1B47/blah/src/foo/xyzzy
+can be pruned to
+foo/xyzzy
+using
+<B>--fullpath-after=/blah/src/</B>.
+<P>
+If you simply want to see the full path, just specify an empty string:
+<B>--fullpath-after=</B>. This isn't a special case, merely a logical consequence of the above rules.
+<P>
+Finally, you can use
+<B>--fullpath-after</B>
+multiple times. Any appearance of it causes Valgrind to switch to producing full paths and applying the above filtering rule. Each produced path is compared against all the
+<B>--fullpath-after</B>-specified strings, in the order specified. The first string to match causes the path to be truncated as described above. If none match, the full path is shown. This facilitates chopping off prefixes when the sources are drawn from a number of unrelated directories.
+</DL>
+
+<P>
+
+<B>--suppressions=&lt;filename&gt; [default: $PREFIX/lib/valgrind/default.supp] </B>
+<DL COMPACT><DT><DD>
+Specifies an extra file from which to read descriptions of errors to suppress. You may use up to 100 extra suppression files.
+</DL>
+
+<P>
+
+<B>--gen-suppressions=&lt;yes|no|all&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When set to
+<I>yes</I>, Valgrind will pause after every error shown and print the line:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+    ---- Print suppression ? --- [Return/N/n/Y/y/C/c] ----
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+The prompt's behaviour is the same as for the
+<B>--db-attach</B>
+option (see below).
+<P>
+If you choose to, Valgrind will print out a suppression for this error. You can then cut and paste it into a suppression file if you don't want to hear about the error in the future.
+<P>
+When set to
+<I>all</I>, Valgrind will print a suppression for every reported error, without querying the user.
+<P>
+This option is particularly useful with C++ programs, as it prints out the suppressions with mangled names, as required.
+<P>
+Note that the suppressions printed are as specific as possible. You may want to common up similar ones, by adding wildcards to function names, and by using frame-level wildcards. The wildcarding facilities are powerful yet flexible, and with a bit of careful editing, you may be able to suppress a whole family of related errors with only a few suppressions.
+<P>
+Sometimes two different errors are suppressed by the same suppression, in which case Valgrind will output the suppression more than once, but you only need to have one copy in your suppression file (but having more than one won't cause problems). Also, the suppression name is given as
+&lt;insert a suppression name here&gt;; the name doesn't really matter, it's only used with the
+<B>-v</B>
+option which prints out all used suppression records.
+</DL>
+
+<P>
+
+<B>--db-attach=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, Valgrind will pause after every error shown and print the line:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+    ---- Attach to debugger ? --- [Return/N/n/Y/y/C/c] ----
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+Pressing
+<I>Ret</I>, or
+<I>N Ret</I>
+or
+<I>n Ret</I>, causes Valgrind not to start a debugger for this error.
+<P>
+Pressing
+<I>Y Ret</I>
+or
+<I>y Ret</I>
+causes Valgrind to start a debugger for the program at this point. When you have finished with the debugger, quit from it, and the program will continue. Trying to continue from inside the debugger doesn't work.
+<P>
+<I>C Ret</I>
+or
+<I>c Ret</I>
+causes Valgrind not to start a debugger, and not to ask again.
+</DL>
+
+<P>
+
+<B>--db-command=&lt;command&gt; [default: gdb -nw %f %p] </B>
+<DL COMPACT><DT><DD>
+Specify the debugger to use with the
+<B>--db-attach</B>
+command. The default debugger is GDB. This option is a template that is expanded by Valgrind at runtime.
+%f
+is replaced with the executable's file name and
+%p
+is replaced by the process ID of the executable.
+<P>
+This specifies how Valgrind will invoke the debugger. By default it will use whatever GDB is detected at build time, which is usually
+/usr/bin/gdb. Using this command, you can specify some alternative command to invoke the debugger you want to use.
+<P>
+The command string given can include one or instances of the
+%p
+and
+%f
+expansions. Each instance of
+%p
+expands to the PID of the process to be debugged and each instance of
+%f
+expands to the path to the executable for the process to be debugged.
+<P>
+Since
+&lt;command&gt;
+is likely to contain spaces, you will need to put this entire option in quotes to ensure it is correctly handled by the shell.
+</DL>
+
+<P>
+
+<B>--input-fd=&lt;number&gt; [default: 0, stdin] </B>
+<DL COMPACT><DT><DD>
+When using
+<B>--db-attach=yes</B>
+or
+<B>--gen-suppressions=yes</B>, Valgrind will stop so as to read keyboard input from you when each error occurs. By default it reads from the standard input (stdin), which is problematic for programs which close stdin. This option allows you to specify an alternative file descriptor from which to read input.
+</DL>
+
+<P>
+
+<B>--dsymutil=no|yes [no] </B>
+<DL COMPACT><DT><DD>
+This option is only relevant when running Valgrind on Mac OS X.
+<P>
+Mac OS X uses a deferred debug information (debuginfo) linking scheme. When object files containing debuginfo are linked into a
+.dylib
+or an executable, the debuginfo is not copied into the final file. Instead, the debuginfo must be linked manually by running
+dsymutil, a system-provided utility, on the executable or
+.dylib. The resulting combined debuginfo is placed in a directory alongside the executable or
+.dylib, but with the extension
+.dSYM.
+<P>
+With
+<B>--dsymutil=no</B>, Valgrind will detect cases where the
+.dSYM
+directory is either missing, or is present but does not appear to match the associated executable or
+.dylib, most likely because it is out of date. In these cases, Valgrind will print a warning message but take no further action.
+<P>
+With
+<B>--dsymutil=yes</B>, Valgrind will, in such cases, automatically run
+dsymutil
+as necessary to bring the debuginfo up to date. For all practical purposes, if you always use
+<B>--dsymutil=yes</B>, then there is never any need to run
+dsymutil
+manually or as part of your applications's build system, since Valgrind will run it as necessary.
+<P>
+Valgrind will not attempt to run
+dsymutil
+on any executable or library in
+/usr/,
+/bin/,
+/sbin/,
+/opt/,
+/sw/,
+/System/,
+/Library/
+or
+/Applications/
+since
+dsymutil
+will always fail in such situations. It fails both because the debuginfo for such pre-installed system components is not available anywhere, and also because it would require write privileges in those directories.
+<P>
+Be careful when using
+<B>--dsymutil=yes</B>, since it will cause pre-existing
+.dSYM
+directories to be silently deleted and re-created. Also note that
+dsymutil
+is quite slow, sometimes excessively so.
+</DL>
+
+<P>
+
+<B>--max-stackframe=&lt;number&gt; [default: 2000000] </B>
+<DL COMPACT><DT><DD>
+The maximum size of a stack frame. If the stack pointer moves by more than this amount then Valgrind will assume that the program is switching to a different stack.
+<P>
+You may need to use this option if your program has large stack-allocated arrays. Valgrind keeps track of your program's stack pointer. If it changes by more than the threshold amount, Valgrind assumes your program is switching to a different stack, and Memcheck behaves differently than it would for a stack pointer change smaller than the threshold. Usually this heuristic works well. However, if your program allocates large structures on the stack, this heuristic will be fooled, and Memcheck will subsequently report large numbers of invalid stack accesses. This option allows you to change the threshold to a different value.
+<P>
+You should only consider use of this option if Valgrind's debug output directs you to do so. In that case it will tell you the new threshold you should specify.
+<P>
+In general, allocating large structures on the stack is a bad idea, because you can easily run out of stack space, especially on systems with limited memory or which expect to support large numbers of threads each with a small stack, and also because the error checking performed by Memcheck is more effective for heap-allocated data than for stack-allocated data. If you have to use this option, you may wish to consider rewriting your code to allocate on the heap rather than on the stack.
+</DL>
+
+<P>
+
+<B>--main-stacksize=&lt;number&gt; [default: use current 'ulimit' value] </B>
+<DL COMPACT><DT><DD>
+Specifies the size of the main thread's stack.
+<P>
+To simplify its memory management, Valgrind reserves all required space for the main thread's stack at startup. That means it needs to know the required stack size at startup.
+<P>
+By default, Valgrind uses the current &quot;ulimit&quot; value for the stack size, or 16 MB, whichever is lower. In many cases this gives a stack size in the range 8 to 16 MB, which almost never overflows for most applications.
+<P>
+If you need a larger total stack size, use
+<B>--main-stacksize</B>
+to specify it. Only set it as high as you need, since reserving far more space than you need (that is, hundreds of megabytes more than you need) constrains Valgrind's memory allocators and may reduce the total amount of memory that Valgrind can use. This is only really of significance on 32-bit machines.
+<P>
+On Linux, you may request a stack of size up to 2GB. Valgrind will stop with a diagnostic message if the stack cannot be allocated. On AIX5 the allowed stack size is restricted to 128MB.
+<P>
+<B>--main-stacksize</B>
+only affects the stack size for the program's initial thread. It has no bearing on the size of thread stacks, as Valgrind does not allocate those.
+<P>
+You may need to use both
+<B>--main-stacksize</B>
+and
+<B>--max-stackframe</B>
+together. It is important to understand that
+<B>--main-stacksize</B>
+sets the maximum total stack size, whilst
+<B>--max-stackframe</B>
+specifies the largest size of any one stack frame. You will have to work out the
+<B>--main-stacksize</B>
+value for yourself (usually, if your applications segfaults). But Valgrind will tell you the needed
+<B>--max-stackframe</B>
+size, if necessary.
+<P>
+As discussed further in the description of
+<B>--max-stackframe</B>, a requirement for a large stack is a sign of potential portability problems. You are best advised to place all large data in heap-allocated memory.
+</DL>
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>MALLOC()-RELATED OPTIONS</H2>
+
+<P>
+
+For tools that use their own version of
+malloc
+(e.g. Memcheck and Massif), the following options apply.
+<P>
+
+<B>--alignment=&lt;number&gt; [default: 8 or 16, depending on the platform] </B>
+<DL COMPACT><DT><DD>
+By default Valgrind's
+<B>malloc</B>,
+<B>realloc</B>, etc, return a block whose starting address is 8-byte aligned or 16-byte aligned (the value depends on the platform and matches the platform default). This option allows you to specify a different alignment. The supplied value must be greater than or equal to the default, less than or equal to 4096, and must be a power of two.
+</DL>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>UNCOMMON OPTIONS</H2>
+
+<P>
+
+These options apply to all tools, as they affect certain obscure workings of the Valgrind core. Most people won't need to use these.
+<P>
+
+<B>--smc-check=&lt;none|stack|all&gt; [default: stack] </B>
+<DL COMPACT><DT><DD>
+This option controls Valgrind's detection of self-modifying code. If no checking is done, if a program executes some code, then overwrites it with new code, and executes the new code, Valgrind will continue to execute the translations it made for the old code. This will likely lead to incorrect behaviour and/or crashes.
+<P>
+Valgrind has three levels of self-modifying code detection: no detection, detect self-modifying code on the stack (which is used by GCC to implement nested functions), or detect self-modifying code everywhere. Note that the default option will catch the vast majority of cases. The main case it will not catch is programs such as JIT compilers that dynamically generate code
+<I>and</I>
+subsequently overwrite part or all of it. Running with
+<I>all</I>
+will slow Valgrind down noticeably. Running with
+<I>none</I>
+will rarely speed things up, since very little code gets put on the stack for most programs. The
+<B>VALGRIND_DISCARD_TRANSLATIONS</B>
+client request is an alternative to
+<B>--smc-check=all</B>
+that requires more effort but is much faster.
+<P>
+Some architectures (including ppc32, ppc64 and ARM) require programs which create code at runtime to flush the instruction cache in between code generation and first use. Valgrind observes and honours such instructions. Hence, on ppc32/Linux, ppc64/Linux and ARM/Linux, Valgrind always provides complete, transparent support for self-modifying code. It is only on platforms such as x86/Linux, AMD64/Linux and x86/Darwin that you need to use this option.
+</DL>
+
+<P>
+
+<B>--read-var-info=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, Valgrind will read information about variable types and locations from DWARF3 debug info. This slows Valgrind down and makes it use more memory, but for the tools that can take advantage of it (Memcheck, Helgrind, DRD) it can result in more precise error messages. For example, here are some standard errors issued by Memcheck:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+==15516== Uninitialised byte(s) found during client check request
+==15516==    at 0x400633: croak (varinfo1.c:28)
+==15516==    by 0x4006B2: main (varinfo1.c:55)
+==15516==  Address 0x60103b is 7 bytes inside data symbol &quot;global_i2&quot;
+==15516== 
+==15516== Uninitialised byte(s) found during client check request
+==15516==    at 0x400633: croak (varinfo1.c:28)
+==15516==    by 0x4006BC: main (varinfo1.c:56)
+==15516==  Address 0x7fefffefc is on thread 1's stack
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+And here are the same errors with
+<B>--read-var-info=yes</B>:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+==15522== Uninitialised byte(s) found during client check request
+==15522==    at 0x400633: croak (varinfo1.c:28)
+==15522==    by 0x4006B2: main (varinfo1.c:55)
+==15522==  Location 0x60103b is 0 bytes inside global_i2[7],
+==15522==  a global variable declared at varinfo1.c:41
+==15522== 
+==15522== Uninitialised byte(s) found during client check request
+==15522==    at 0x400633: croak (varinfo1.c:28)
+==15522==    by 0x4006BC: main (varinfo1.c:56)
+==15522==  Location 0x7fefffefc is 0 bytes inside local var &quot;local&quot;
+==15522==  declared at varinfo1.c:46, in frame #1 of thread 1
+</PRE>
+
+</DL>
+
+
+
+
+</DL>
+
+<P>
+
+<B>--run-libc-freeres=&lt;yes|no&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+This option is only relevant when running Valgrind on Linux.
+<P>
+The GNU C library (<B>libc.so</B>), which is used by all programs, may allocate memory for its own uses. Usually it doesn't bother to free that memory when the program ends---there would be no point, since the Linux kernel reclaims all process resources when a process exits anyway, so it would just slow things down.
+<P>
+The glibc authors realised that this behaviour causes leak checkers, such as Valgrind, to falsely report leaks in glibc, when a leak check is done at exit. In order to avoid this, they provided a routine called
+<B>__libc_freeres</B>
+specifically to make glibc release all memory it has allocated. Memcheck therefore tries to run
+<B>__libc_freeres</B>
+at exit.
+<P>
+Unfortunately, in some very old versions of glibc,
+<B>__libc_freeres</B>
+is sufficiently buggy to cause segmentation faults. This was particularly noticeable on Red Hat 7.1. So this option is provided in order to inhibit the run of
+<B>__libc_freeres</B>. If your program seems to run fine on Valgrind, but segfaults at exit, you may find that
+<B>--run-libc-freeres=no</B>
+fixes that, although at the cost of possibly falsely reporting space leaks in
+libc.so.
+</DL>
+
+<P>
+
+<B>--sim-hints=hint1,hint2,... </B>
+<DL COMPACT><DT><DD>
+Pass miscellaneous hints to Valgrind which slightly modify the simulated behaviour in nonstandard or dangerous ways, possibly to help the simulation of strange features. By default no hints are enabled. Use with caution! Currently known hints are:
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+<B>lax-ioctls: </B>
+Be very lax about ioctl handling; the only assumption is that the size is correct. Doesn't require the full buffer to be initialized when writing. Without this, using some device drivers with a large number of strange ioctl commands becomes very tiresome.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+<B>enable-inner: </B>
+Enable some special magic needed when the program being run is itself Valgrind.
+</DL>
+
+</DL>
+
+<P>
+
+<B>--kernel-variant=variant1,variant2,...</B>
+<DL COMPACT><DT><DD>
+Handle system calls and ioctls arising from minor variants of the default kernel for this platform. This is useful for running on hacked kernels or with kernel modules which support nonstandard ioctls, for example. Use with caution. If you don't understand what this option does then you almost certainly don't need it. Currently known variants are:
+<P>
+<DL COMPACT><DT><DD>
+*
+
+
+<B>bproc: </B>
+Support the
+<B>sys_broc</B>
+system call on x86. This is for running on BProc, which is a minor variant of standard Linux which is sometimes used for building clusters.
+</DL>
+
+</DL>
+
+<P>
+
+<B>--show-emwarns=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, Valgrind will emit warnings about its CPU emulation in certain cases. These are usually not interesting.
+</DL>
+
+<P>
+
+<B>--require-text-symbol=:sonamepatt:fnnamepatt</B>
+<DL COMPACT><DT><DD>
+When a shared object whose soname matches
+<I>sonamepatt</I>
+is loaded into the process, examine all the text symbols it exports. If none of those match
+<I>fnnamepatt</I>, print an error message and abandon the run. This makes it possible to ensure that the run does not continue unless a given shared object contains a particular function name.
+<P>
+Both
+<I>sonamepatt</I>
+and
+<I>fnnamepatt</I>
+can be written using the usual
+<I>?</I>
+and
+<I>*</I>
+wildcards. For example:
+<I>&quot;:*libc.so*:foo?bar&quot;</I>. You may use characters other than a colon to separate the two patterns. It is only important that the first character and the separator character are the same. For example, the above example could also be written
+<I>&quot;Q*libc.so*Qfoo?bar&quot;</I>. Multiple
+<I> --require-text-symbol</I>
+flags are allowed, in which case shared objects that are loaded into the process will be checked against all of them.
+<P>
+The purpose of this is to support reliable usage of marked-up libraries. For example, suppose we have a version of GCC's
+<I>libgomp.so</I>
+which has been marked up with annotations to support Helgrind. It is only too easy and confusing to load the wrong, un-annotated
+<I>libgomp.so</I>
+into the application. So the idea is: add a text symbol in the marked-up library, for example
+<I>annotated_for_helgrind_3_6</I>, and then give the flag
+<I>--require-text-symbol=:*libgomp*so*:annotated_for_helgrind_3_6</I>
+so that when
+<I>libgomp.so</I>
+is loaded, Valgrind scans its symbol table, and if the symbol isn't present the run is aborted, rather than continuing silently with the un-marked-up library. Note that you should put the entire flag in quotes to stop shells expanding up the
+<I>*</I>
+and
+<I>?</I>
+wildcards.
+</DL>
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>DEBUGGING VALGRIND OPTIONS</H2>
+
+<P>
+
+There are also some options for debugging Valgrind itself. You shouldn't need to use them in the normal run of things. If you wish to see the list, use the
+<B>--help-debug</B>
+option.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>MEMCHECK OPTIONS</H2>
+
+<P>
+
+<B>--leak-check=&lt;no|summary|yes|full&gt; [default: summary] </B>
+<DL COMPACT><DT><DD>
+When enabled, search for memory leaks when the client program finishes. If set to
+<I>summary</I>, it says how many leaks occurred. If set to
+<I>full</I>
+or
+<I>yes</I>, it also gives details of each individual leak.
+</DL>
+
+<P>
+
+<B>--show-possibly-lost=&lt;yes|no&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+When disabled, the memory leak detector will not show &quot;possibly lost&quot; blocks.
+</DL>
+
+<P>
+
+<B>--leak-resolution=&lt;low|med|high&gt; [default: high] </B>
+<DL COMPACT><DT><DD>
+When doing leak checking, determines how willing Memcheck is to consider different backtraces to be the same for the purposes of merging multiple leaks into a single leak report. When set to
+<I>low</I>, only the first two entries need match. When
+<I>med</I>, four entries have to match. When
+<I>high</I>, all entries need to match.
+<P>
+For hardcore leak debugging, you probably want to use
+<B>--leak-resolution=high</B>
+together with
+<B>--num-callers=40</B>
+or some such large number.
+<P>
+Note that the
+<B>--leak-resolution</B>
+setting does not affect Memcheck's ability to find leaks. It only changes how the results are presented.
+</DL>
+
+<P>
+
+<B>--show-reachable=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When disabled, the memory leak detector only shows &quot;definitely lost&quot; and &quot;possibly lost&quot; blocks. When enabled, the leak detector also shows &quot;reachable&quot; and &quot;indirectly lost&quot; blocks. (In other words, it shows all blocks, except suppressed ones, so
+<B>--show-all</B>
+would be a better name for it.)
+</DL>
+
+<P>
+
+<B>--undef-value-errors=&lt;yes|no&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+Controls whether Memcheck reports uses of undefined value errors. Set this to
+<I>no</I>
+if you don't want to see undefined value errors. It also has the side effect of speeding up Memcheck somewhat.
+</DL>
+
+<P>
+
+<B>--track-origins=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+Controls whether Memcheck tracks the origin of uninitialised values. By default, it does not, which means that although it can tell you that an uninitialised value is being used in a dangerous way, it cannot tell you where the uninitialised value came from. This often makes it difficult to track down the root problem.
+<P>
+When set to
+<I>yes</I>, Memcheck keeps track of the origins of all uninitialised values. Then, when an uninitialised value error is reported, Memcheck will try to show the origin of the value. An origin can be one of the following four places: a heap block, a stack allocation, a client request, or miscellaneous other sources (eg, a call to
+<I>brk</I>).
+<P>
+For uninitialised values originating from a heap block, Memcheck shows where the block was allocated. For uninitialised values originating from a stack allocation, Memcheck can tell you which function allocated the value, but no more than that -- typically it shows you the source location of the opening brace of the function. So you should carefully check that all of the function's local variables are initialised properly.
+<P>
+Performance overhead: origin tracking is expensive. It halves Memcheck's speed and increases memory use by a minimum of 100MB, and possibly more. Nevertheless it can drastically reduce the effort required to identify the root cause of uninitialised value errors, and so is often a programmer productivity win, despite running more slowly.
+<P>
+Accuracy: Memcheck tracks origins quite accurately. To avoid very large space and time overheads, some approximations are made. It is possible, although unlikely, that Memcheck will report an incorrect origin, or not be able to identify any origin.
+<P>
+Note that the combination
+<B>--track-origins=yes</B>
+and
+<B>--undef-value-errors=no</B>
+is nonsensical. Memcheck checks for and rejects this combination at startup.
+</DL>
+
+<P>
+
+<B>--partial-loads-ok=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+Controls how Memcheck handles word-sized, word-aligned loads from addresses for which some bytes are addressable and others are not. When
+<I>yes</I>, such loads do not produce an address error. Instead, loaded bytes originating from illegal addresses are marked as uninitialised, and those corresponding to legal addresses are handled in the normal way.
+<P>
+When
+<I>no</I>, loads from partially invalid addresses are treated the same as loads from completely invalid addresses: an illegal-address error is issued, and the resulting bytes are marked as initialised.
+<P>
+Note that code that behaves in this way is in violation of the the ISO C/C++ standards, and should be considered broken. If at all possible, such code should be fixed. This option should be used only as a last resort.
+</DL>
+
+<P>
+
+<B>--freelist-vol=&lt;number&gt; [default: 20000000] </B>
+<DL COMPACT><DT><DD>
+When the client program releases memory using
+<B>free</B>
+(in
+C) or
+delete
+(C++), that memory is not immediately made available for re-allocation. Instead, it is marked inaccessible and placed in a queue of freed blocks. The purpose is to defer as long as possible the point at which freed-up memory comes back into circulation. This increases the chance that Memcheck will be able to detect invalid accesses to blocks for some significant period of time after they have been freed.
+<P>
+This option specifies the maximum total size, in bytes, of the blocks in the queue. The default value is twenty million bytes. Increasing this increases the total amount of memory used by Memcheck but may detect invalid uses of freed blocks which would otherwise go undetected.
+</DL>
+
+<P>
+
+<B>--workaround-gcc296-bugs=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, assume that reads and writes some small distance below the stack pointer are due to bugs in GCC 2.96, and does not report them. The &quot;small distance&quot; is 256 bytes by default. Note that GCC 2.96 is the default compiler on some ancient Linux distributions (RedHat 7.X) and so you may need to use this option. Do not use it if you do not have to, as it can cause real errors to be overlooked. A better alternative is to use a more recent GCC in which this bug is fixed.
+<P>
+You may also need to use this option when working with GCC 3.X or 4.X on 32-bit PowerPC Linux. This is because GCC generates code which occasionally accesses below the stack pointer, particularly for floating-point to/from integer conversions. This is in violation of the 32-bit PowerPC ELF specification, which makes no provision for locations below the stack pointer to be accessible.
+</DL>
+
+<P>
+
+<B>--ignore-ranges=0xPP-0xQQ[,0xRR-0xSS] </B>
+<DL COMPACT><DT><DD>
+Any ranges listed in this option (and multiple ranges can be specified, separated by commas) will be ignored by Memcheck's addressability checking.
+</DL>
+
+<P>
+
+<B>--malloc-fill=&lt;hexnumber&gt; </B>
+<DL COMPACT><DT><DD>
+Fills blocks allocated by
+malloc,
+new, etc, but not by
+calloc, with the specified byte. This can be useful when trying to shake out obscure memory corruption problems. The allocated area is still regarded by Memcheck as undefined -- this option only affects its contents.
+</DL>
+
+<P>
+
+<B>--free-fill=&lt;hexnumber&gt; </B>
+<DL COMPACT><DT><DD>
+Fills blocks freed by
+free,
+delete, etc, with the specified byte value. This can be useful when trying to shake out obscure memory corruption problems. The freed area is still regarded by Memcheck as not valid for access -- this option only affects its contents.
+</DL>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>CACHEGRIND OPTIONS</H2>
+
+<P>
+
+<B>--I1=&lt;size&gt;,&lt;associativity&gt;,&lt;line size&gt; </B>
+<DL COMPACT><DT><DD>
+Specify the size, associativity and line size of the level 1 instruction cache.
+</DL>
+
+<P>
+
+<B>--D1=&lt;size&gt;,&lt;associativity&gt;,&lt;line size&gt; </B>
+<DL COMPACT><DT><DD>
+Specify the size, associativity and line size of the level 1 data cache.
+</DL>
+
+<P>
+
+<B>--LL=&lt;size&gt;,&lt;associativity&gt;,&lt;line size&gt; </B>
+<DL COMPACT><DT><DD>
+Specify the size, associativity and line size of the last-level cache.
+</DL>
+
+<P>
+
+<B>--cache-sim=no|yes [yes] </B>
+<DL COMPACT><DT><DD>
+Enables or disables collection of cache access and miss counts.
+</DL>
+
+<P>
+
+<B>--branch-sim=no|yes [no] </B>
+<DL COMPACT><DT><DD>
+Enables or disables collection of branch instruction and misprediction counts. By default this is disabled as it slows Cachegrind down by approximately 25%. Note that you cannot specify
+<B>--cache-sim=no</B>
+and
+<B>--branch-sim=no</B>
+together, as that would leave Cachegrind with no information to collect.
+</DL>
+
+<P>
+
+<B>--cachegrind-out-file=&lt;file&gt; </B>
+<DL COMPACT><DT><DD>
+Write the profile data to
+file
+rather than to the default output file,
+cachegrind.out.&lt;pid&gt;. The
+<B>%p</B>
+and
+<B>%q</B>
+format specifiers can be used to embed the process ID and/or the contents of an environment variable in the name, as is the case for the core option
+<B>--log-file</B>.
+</DL>
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>CALLGRIND OPTIONS</H2>
+
+<P>
+
+<B>--callgrind-out-file=&lt;file&gt; </B>
+<DL COMPACT><DT><DD>
+Write the profile data to
+file
+rather than to the default output file,
+callgrind.out.&lt;pid&gt;. The
+<B>%p</B>
+and
+<B>%q</B>
+format specifiers can be used to embed the process ID and/or the contents of an environment variable in the name, as is the case for the core option
+<B>--log-file</B>. When multiple dumps are made, the file name is modified further; see below.
+</DL>
+
+<P>
+
+<B>--dump-line=&lt;no|yes&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+This specifies that event counting should be performed at source line granularity. This allows source annotation for sources which are compiled with debug information (<B>-g</B>).
+</DL>
+
+<P>
+
+<B>--dump-instr=&lt;no|yes&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+This specifies that event counting should be performed at per-instruction granularity. This allows for assembly code annotation. Currently the results can only be displayed by KCachegrind.
+</DL>
+
+<P>
+
+<B>--compress-strings=&lt;no|yes&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+This option influences the output format of the profile data. It specifies whether strings (file and function names) should be identified by numbers. This shrinks the file, but makes it more difficult for humans to read (which is not recommended in any case).
+</DL>
+
+<P>
+
+<B>--compress-pos=&lt;no|yes&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+This option influences the output format of the profile data. It specifies whether numerical positions are always specified as absolute values or are allowed to be relative to previous numbers. This shrinks the file size.
+</DL>
+
+<P>
+
+<B>--combine-dumps=&lt;no|yes&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, when multiple profile data parts are to be generated these parts are appended to the same output file. Not recommended.
+</DL>
+
+<P>
+
+<B>--dump-every-bb=&lt;count&gt; [default: 0, never] </B>
+<DL COMPACT><DT><DD>
+Dump profile data every
+<B>count</B>
+basic blocks. Whether a dump is needed is only checked when Valgrind's internal scheduler is run. Therefore, the minimum setting useful is about 100000. The count is a 64-bit value to make long dump periods possible.
+</DL>
+
+<P>
+
+<B>--dump-before=&lt;function&gt; </B>
+<DL COMPACT><DT><DD>
+Dump when entering
+<B>function</B>.
+</DL>
+
+<P>
+
+<B>--zero-before=&lt;function&gt; </B>
+<DL COMPACT><DT><DD>
+Zero all costs when entering
+<B>function</B>.
+</DL>
+
+<P>
+
+<B>--dump-after=&lt;function&gt; </B>
+<DL COMPACT><DT><DD>
+Dump when leaving
+<B>function</B>.
+</DL>
+
+<P>
+
+<B>--instr-atstart=&lt;yes|no&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+Specify if you want Callgrind to start simulation and profiling from the beginning of the program. When set to
+no, Callgrind will not be able to collect any information, including calls, but it will have at most a slowdown of around 4, which is the minimum Valgrind overhead. Instrumentation can be interactively enabled via
+callgrind_control -i on.
+<P>
+Note that the resulting call graph will most probably not contain
+<B>main</B>, but will contain all the functions executed after instrumentation was enabled. Instrumentation can also programatically enabled/disabled. See the Callgrind include file
+callgrind.h
+for the macro you have to use in your source code.
+<P>
+For cache simulation, results will be less accurate when switching on instrumentation later in the program run, as the simulator starts with an empty cache at that moment. Switch on event collection later to cope with this error.
+</DL>
+
+<P>
+
+<B>--collect-atstart=&lt;yes|no&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+Specify whether event collection is enabled at beginning of the profile run.
+<P>
+To only look at parts of your program, you have two possibilities:
+<P>
+<DL COMPACT><DT><DD>
+ 1.
+
+
+Zero event counters before entering the program part you want to profile, and dump the event counters to a file after leaving that program part.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+ 2.
+
+
+Switch on/off collection state as needed to only see event counters happening while inside of the program part you want to profile.
+</DL>
+
+<P>
+The second option can be used if the program part you want to profile is called many times. Option 1, i.e. creating a lot of dumps is not practical here.
+<P>
+Collection state can be toggled at entry and exit of a given function with the option
+<B>--toggle-collect</B>. If you use this option, collection state should be disabled at the beginning. Note that the specification of
+<B>--toggle-collect</B>
+implicitly sets
+<B>--collect-state=no</B>.
+<P>
+Collection state can be toggled also by inserting the client request
+CALLGRIND_TOGGLE_COLLECT ;
+at the needed code positions.
+</DL>
+
+<P>
+
+<B>--toggle-collect=&lt;function&gt; </B>
+<DL COMPACT><DT><DD>
+Toggle collection on entry/exit of
+<B>function</B>.
+</DL>
+
+<P>
+
+<B>--collect-jumps=&lt;no|yes&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+This specifies whether information for (conditional) jumps should be collected. As above, callgrind_annotate currently is not able to show you the data. You have to use KCachegrind to get jump arrows in the annotated code.
+</DL>
+
+<P>
+
+<B>--collect-systime=&lt;no|yes&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+This specifies whether information for system call times should be collected.
+</DL>
+
+<P>
+
+<B>--collect-bus=&lt;no|yes&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+This specifies whether the number of global bus events executed should be collected. The event type &quot;Ge&quot; is used for these events.
+</DL>
+
+<P>
+
+<B>--cache-sim=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+Specify if you want to do full cache simulation. By default, only instruction read accesses will be counted (&quot;Ir&quot;). With cache simulation, further event counters are enabled: Cache misses on instruction reads (&quot;I1mr&quot;/&quot;ILmr&quot;), data read accesses (&quot;Dr&quot;) and related cache misses (&quot;D1mr&quot;/&quot;DLmr&quot;), data write accesses (&quot;Dw&quot;) and related cache misses (&quot;D1mw&quot;/&quot;DLmw&quot;). For more information, see
+???.
+</DL>
+
+<P>
+
+<B>--branch-sim=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+Specify if you want to do branch prediction simulation. Further event counters are enabled: Number of executed conditional branches and related predictor misses (&quot;Bc&quot;/&quot;Bcm&quot;), executed indirect jumps and related misses of the jump address predictor (&quot;Bi&quot;/&quot;Bim&quot;).
+</DL>
+
+<A NAME="lbAM">&nbsp;</A>
+<H2>HELGRIND OPTIONS</H2>
+
+<P>
+
+<B>--track-lockorders=no|yes [default: yes] </B>
+<DL COMPACT><DT><DD>
+When enabled (the default), Helgrind performs lock order consistency checking. For some buggy programs, the large number of lock order errors reported can become annoying, particularly if you're only interested in race errors. You may therefore find it helpful to disable lock order checking.
+</DL>
+
+<P>
+
+<B>--history-level=none|approx|full [default: full] </B>
+<DL COMPACT><DT><DD>
+<B>--history-level=full</B>
+(the default) causes Helgrind collects enough information about &quot;old&quot; accesses that it can produce two stack traces in a race report -- both the stack trace for the current access, and the trace for the older, conflicting access.
+<P>
+Collecting such information is expensive in both speed and memory, particularly for programs that do many inter-thread synchronisation events (locks, unlocks, etc). Without such information, it is more difficult to track down the root causes of races. Nonetheless, you may not need it in situations where you just want to check for the presence or absence of races, for example, when doing regression testing of a previously race-free program.
+<P>
+<B>--history-level=none</B>
+is the opposite extreme. It causes Helgrind not to collect any information about previous accesses. This can be dramatically faster than
+<B>--history-level=full</B>.
+<P>
+<B>--history-level=approx</B>
+provides a compromise between these two extremes. It causes Helgrind to show a full trace for the later access, and approximate information regarding the earlier access. This approximate information consists of two stacks, and the earlier access is guaranteed to have occurred somewhere between program points denoted by the two stacks. This is not as useful as showing the exact stack for the previous access (as
+<B>--history-level=full</B>
+does), but it is better than nothing, and it is almost as fast as
+<B>--history-level=none</B>.
+</DL>
+
+<P>
+
+<B>--conflict-cache-size=N [default: 1000000] </B>
+<DL COMPACT><DT><DD>
+This flag only has any effect at
+<B>--history-level=full</B>.
+<P>
+Information about &quot;old&quot; conflicting accesses is stored in a cache of limited size, with LRU-style management. This is necessary because it isn't practical to store a stack trace for every single memory access made by the program. Historical information on not recently accessed locations is periodically discarded, to free up space in the cache.
+<P>
+This option controls the size of the cache, in terms of the number of different memory addresses for which conflicting access information is stored. If you find that Helgrind is showing race errors with only one stack instead of the expected two stacks, try increasing this value.
+<P>
+The minimum value is 10,000 and the maximum is 30,000,000 (thirty times the default value). Increasing the value by 1 increases Helgrind's memory requirement by very roughly 100 bytes, so the maximum value will easily eat up three extra gigabytes or so of memory.
+</DL>
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>DRD OPTIONS</H2>
+
+<P>
+
+<B>--check-stack-var=&lt;yes|no&gt; [default: no]</B>
+<DL COMPACT><DT><DD>
+Controls whether DRD detects data races on stack variables. Verifying stack variables is disabled by default because most programs do not share stack variables over threads.
+</DL>
+
+<P>
+
+<B>--exclusive-threshold=&lt;n&gt; [default: off]</B>
+<DL COMPACT><DT><DD>
+Print an error message if any mutex or writer lock has been held longer than the time specified in milliseconds. This option enables the detection of lock contention.
+</DL>
+
+<P>
+
+<B> --first-race-only=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+Whether to report only the first data race that has been detected on a memory location or all data races that have been detected on a memory location.
+</DL>
+
+<P>
+
+<B> --free-is-write=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+Whether to report accessing freed memory as a race. Helps to detect memory accesses that occur after memory has been freed but might cause DRD to run slightly slower.
+</DL>
+
+<P>
+
+<B> --report-signal-unlocked=&lt;yes|no&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+Whether to report calls to
+<B>pthread_cond_signal</B>
+and
+<B>pthread_cond_broadcast</B>
+where the mutex associated with the signal through
+<B>pthread_cond_wait</B>
+or
+<B>pthread_cond_timed_wait</B>is not locked at the time the signal is sent. Sending a signal without holding a lock on the associated mutex is a common programming error which can cause subtle race conditions and unpredictable behavior. There exist some uncommon synchronization patterns however where it is safe to send a signal without holding a lock on the associated mutex.
+</DL>
+
+<P>
+
+<B>--segment-merging=&lt;yes|no&gt; [default: yes]</B>
+<DL COMPACT><DT><DD>
+Controls segment merging. Segment merging is an algorithm to limit memory usage of the data race detection algorithm. Disabling segment merging may improve the accuracy of the so-called 'other segments' displayed in race reports but can also trigger an out of memory error.
+</DL>
+
+<P>
+
+<B>--segment-merging-interval=&lt;n&gt; [default: 10]</B>
+<DL COMPACT><DT><DD>
+Perform segment merging only after the specified number of new segments have been created. This is an advanced configuration option that allows to choose whether to minimize DRD's memory usage by choosing a low value or to let DRD run faster by choosing a slightly higher value. The optimal value for this parameter depends on the program being analyzed. The default value works well for most programs.
+</DL>
+
+<P>
+
+<B>--shared-threshold=&lt;n&gt; [default: off]</B>
+<DL COMPACT><DT><DD>
+Print an error message if a reader lock has been held longer than the specified time (in milliseconds). This option enables the detection of lock contention.
+</DL>
+
+<P>
+
+<B>--show-confl-seg=&lt;yes|no&gt; [default: yes]</B>
+<DL COMPACT><DT><DD>
+Show conflicting segments in race reports. Since this information can help to find the cause of a data race, this option is enabled by default. Disabling this option makes the output of DRD more compact.
+</DL>
+
+<P>
+
+<B>--show-stack-usage=&lt;yes|no&gt; [default: no]</B>
+<DL COMPACT><DT><DD>
+Print stack usage at thread exit time. When a program creates a large number of threads it becomes important to limit the amount of virtual memory allocated for thread stacks. This option makes it possible to observe how much stack memory has been used by each thread of the the client program. Note: the DRD tool itself allocates some temporary data on the client thread stack. The space necessary for this temporary data must be allocated by the client program when it allocates stack memory, but is not included in stack usage reported by DRD.
+</DL>
+
+<P>
+
+<B>--trace-addr=&lt;address&gt; [default: none]</B>
+<DL COMPACT><DT><DD>
+Trace all load and store activity for the specified address. This option may be specified more than once.
+</DL>
+
+<P>
+
+<B>--trace-alloc=&lt;yes|no&gt; [default: no]</B>
+<DL COMPACT><DT><DD>
+Trace all memory allocations and deallocations. May produce a huge amount of output.
+</DL>
+
+<P>
+
+<B>--trace-barrier=&lt;yes|no&gt; [default: no]</B>
+<DL COMPACT><DT><DD>
+Trace all barrier activity.
+</DL>
+
+<P>
+
+<B>--trace-cond=&lt;yes|no&gt; [default: no]</B>
+<DL COMPACT><DT><DD>
+Trace all condition variable activity.
+</DL>
+
+<P>
+
+<B>--trace-fork-join=&lt;yes|no&gt; [default: no]</B>
+<DL COMPACT><DT><DD>
+Trace all thread creation and all thread termination events.
+</DL>
+
+<P>
+
+<B>--trace-mutex=&lt;yes|no&gt; [default: no]</B>
+<DL COMPACT><DT><DD>
+Trace all mutex activity.
+</DL>
+
+<P>
+
+<B>--trace-rwlock=&lt;yes|no&gt; [default: no]</B>
+<DL COMPACT><DT><DD>
+Trace all reader-writer lock activity.
+</DL>
+
+<P>
+
+<B>--trace-semaphore=&lt;yes|no&gt; [default: no]</B>
+<DL COMPACT><DT><DD>
+Trace all semaphore activity.
+</DL>
+
+<A NAME="lbAO">&nbsp;</A>
+<H2>MASSIF OPTIONS</H2>
+
+<P>
+
+<B>--heap=&lt;yes|no&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+Specifies whether heap profiling should be done.
+</DL>
+
+<P>
+
+<B>--heap-admin=&lt;size&gt; [default: 8] </B>
+<DL COMPACT><DT><DD>
+If heap profiling is enabled, gives the number of administrative bytes per block to use. This should be an estimate of the average, since it may vary. For example, the allocator used by glibc on Linux requires somewhere between 4 to 15 bytes per block, depending on various factors. That allocator also requires admin space for freed blocks, but Massif cannot account for this.
+</DL>
+
+<P>
+
+<B>--stacks=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+Specifies whether stack profiling should be done. This option slows Massif down greatly, and so is off by default. Note that Massif assumes that the main stack has size zero at start-up. This is not true, but doing otherwise accurately is difficult. Furthermore, starting at zero better indicates the size of the part of the main stack that a user program actually has control over.
+</DL>
+
+<P>
+
+<B>--pages-as-heap=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+Tells Massif to profile memory at the page level rather than at the malloc'd block level. See above for details.
+</DL>
+
+<P>
+
+<B>--depth=&lt;number&gt; [default: 30] </B>
+<DL COMPACT><DT><DD>
+Maximum depth of the allocation trees recorded for detailed snapshots. Increasing it will make Massif run somewhat more slowly, use more memory, and produce bigger output files.
+</DL>
+
+<P>
+
+<B>--alloc-fn=&lt;name&gt; </B>
+<DL COMPACT><DT><DD>
+Functions specified with this option will be treated as though they were a heap allocation function such as
+<B>malloc</B>. This is useful for functions that are wrappers to
+<B>malloc</B>
+or
+<B>new</B>, which can fill up the allocation trees with uninteresting information. This option can be specified multiple times on the command line, to name multiple functions.
+<P>
+Note that the named function will only be treated this way if it is the top entry in a stack trace, or just below another function treated this way. For example, if you have a function
+<B>malloc1</B>
+that wraps
+<B>malloc</B>, and
+<B>malloc2</B>
+that wraps
+<B>malloc1</B>, just specifying
+<B>--alloc-fn=malloc2</B>
+will have no effect. You need to specify
+<B>--alloc-fn=malloc1</B>
+as well. This is a little inconvenient, but the reason is that checking for allocation functions is slow, and it saves a lot of time if Massif can stop looking through the stack trace entries as soon as it finds one that doesn't match rather than having to continue through all the entries.
+<P>
+Note that C++ names are demangled. Note also that overloaded C++ names must be written in full. Single quotes may be necessary to prevent the shell from breaking them up. For example:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+<PRE>
+--alloc-fn='operator new(unsigned, std::nothrow_t const&amp;)'
+</PRE>
+
+</DL>
+
+
+
+
+<P>
+</DL>
+
+<P>
+
+<B>--ignore-fn=&lt;name&gt; </B>
+<DL COMPACT><DT><DD>
+Any direct heap allocation (i.e. a call to
+<B>malloc</B>,
+<B>new</B>, etc, or a call to a function named by an
+<B>--alloc-fn</B>
+option) that occurs in a function specified by this option will be ignored. This is mostly useful for testing purposes. This option can be specified multiple times on the command line, to name multiple functions.
+<P>
+Any
+<B>realloc</B>
+of an ignored block will also be ignored, even if the
+<B>realloc</B>
+call does not occur in an ignored function. This avoids the possibility of negative heap sizes if ignored blocks are shrunk with
+<B>realloc</B>.
+<P>
+The rules for writing C++ function names are the same as for
+<B>--alloc-fn</B>
+above.
+</DL>
+
+<P>
+
+<B>--threshold=&lt;m.n&gt; [default: 1.0] </B>
+<DL COMPACT><DT><DD>
+The significance threshold for heap allocations, as a percentage of total memory size. Allocation tree entries that account for less than this will be aggregated. Note that this should be specified in tandem with ms_print's option of the same name.
+</DL>
+
+<P>
+
+<B>--peak-inaccuracy=&lt;m.n&gt; [default: 1.0] </B>
+<DL COMPACT><DT><DD>
+Massif does not necessarily record the actual global memory allocation peak; by default it records a peak only when the global memory allocation size exceeds the previous peak by at least 1.0%. This is because there can be many local allocation peaks along the way, and doing a detailed snapshot for every one would be expensive and wasteful, as all but one of them will be later discarded. This inaccuracy can be changed (even to 0.0%) via this option, but Massif will run drastically slower as the number approaches zero.
+</DL>
+
+<P>
+
+<B>--time-unit=&lt;i|ms|B&gt; [default: i] </B>
+<DL COMPACT><DT><DD>
+The time unit used for the profiling. There are three possibilities: instructions executed (i), which is good for most cases; real (wallclock) time (ms, i.e. milliseconds), which is sometimes useful; and bytes allocated/deallocated on the heap and/or stack (B), which is useful for very short-run programs, and for testing purposes, because it is the most reproducible across different machines.
+</DL>
+
+<P>
+
+<B>--detailed-freq=&lt;n&gt; [default: 10] </B>
+<DL COMPACT><DT><DD>
+Frequency of detailed snapshots. With
+<B>--detailed-freq=1</B>, every snapshot is detailed.
+</DL>
+
+<P>
+
+<B>--max-snapshots=&lt;n&gt; [default: 100] </B>
+<DL COMPACT><DT><DD>
+The maximum number of snapshots recorded. If set to N, for all programs except very short-running ones, the final number of snapshots will be between N/2 and N.
+</DL>
+
+<P>
+
+<B>--massif-out-file=&lt;file&gt; [default: massif.out.%p] </B>
+<DL COMPACT><DT><DD>
+Write the profile data to
+file
+rather than to the default output file,
+massif.out.&lt;pid&gt;. The
+<B>%p</B>
+and
+<B>%q</B>
+format specifiers can be used to embed the process ID and/or the contents of an environment variable in the name, as is the case for the core option
+<B>--log-file</B>.
+</DL>
+
+<A NAME="lbAP">&nbsp;</A>
+<H2>PTRCHECK OPTIONS</H2>
+
+<P>
+
+<B>--enable-sg-checks=no|yes [default: yes] </B>
+<DL COMPACT><DT><DD>
+By default, Ptrcheck checks for overruns of stack, global and heap arrays. With
+<I>--enable-sg-checks=no</I>, the stack and global array checks are omitted, and only heap checking is performed. This can be useful because the stack and global checks are quite expensive, so omitting them speeds Ptrcheck up a lot.
+</DL>
+
+<P>
+
+<B>--partial-loads-ok=&lt;yes|no&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+This option has the same meaning as it does for Memcheck.
+<P>
+Controls how Ptrcheck handles word-sized, word-aligned loads which partially overlap the end of heap blocks -- that is, some of the bytes in the word are validly addressable, but others are not. When
+<I>yes</I>, such loads do not produce an address error. When
+<I>no</I>
+(the default), loads from partially invalid addresses are treated the same as loads from completely invalid addresses: an illegal heap access error is issued.
+<P>
+Note that code that behaves in this way is in violation of the the ISO C/C++ standards, and should be considered broken. If at all possible, such code should be fixed. This option should be used only as a last resort.
+</DL>
+
+<A NAME="lbAQ">&nbsp;</A>
+<H2>BBV OPTIONS</H2>
+
+<P>
+
+<B>--bb-out-file=&lt;name&gt; [default: bb.out.%p] </B>
+<DL COMPACT><DT><DD>
+This option selects the name of the basic block vector file. The
+<B>%p</B>
+and
+<B>%q</B>
+format specifiers can be used to embed the process ID and/or the contents of an environment variable in the name, as is the case for the core option
+<B>--log-file</B>.
+</DL>
+
+<P>
+
+<B>--pc-out-file=&lt;name&gt; [default: pc.out.%p] </B>
+<DL COMPACT><DT><DD>
+This option selects the name of the PC file. This file holds program counter addresses and function name info for the various basic blocks. This can be used in conjunction with the basic block vector file to fast-forward via function names instead of just instruction counts. The
+<B>%p</B>
+and
+<B>%q</B>
+format specifiers can be used to embed the process ID and/or the contents of an environment variable in the name, as is the case for the core option
+<B>--log-file</B>.
+</DL>
+
+<P>
+
+<B>--interval-size=&lt;number&gt; [default: 100000000] </B>
+<DL COMPACT><DT><DD>
+This option selects the size of the interval to use. The default is 100 million instructions, which is a commonly used value. Other sizes can be used; smaller intervals can help programs with finer-grained phases. However smaller interval size can lead to accuracy issues due to warm-up effects (When fast-forwarding the various architectural features will be un-initialized, and it will take some number of instructions before they &quot;warm up&quot; to the state a full simulation would be at without the fast-forwarding. Large interval sizes tend to mitigate this.)
+</DL>
+
+<P>
+
+<B>--instr-count-only [default: no] </B>
+<DL COMPACT><DT><DD>
+This option tells the tool to only display instruction count totals, and to not generate the actual basic block vector file. This is useful for debugging, and for gathering instruction count info without generating the large basic block vector files.
+</DL>
+
+<A NAME="lbAR">&nbsp;</A>
+<H2>LACKEY OPTIONS</H2>
+
+<P>
+
+<B>--basic-counts=&lt;no|yes&gt; [default: yes] </B>
+<DL COMPACT><DT><DD>
+When enabled, Lackey prints the following statistics and information about the execution of the client program:
+<P>
+<DL COMPACT><DT><DD>
+ 1.
+
+
+The number of calls to the function specified by the
+<B>--fnname</B>
+option (the default is
+main). If the program has had its symbols stripped, the count will always be zero.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+ 2.
+
+
+The number of conditional branches encountered and the number and proportion of those taken.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+ 3.
+
+
+The number of superblocks entered and completed by the program. Note that due to optimisations done by the JIT, this is not at all an accurate value.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+ 4.
+
+
+The number of guest (x86, amd64, ppc, etc.) instructions and IR statements executed. IR is Valgrind's RISC-like intermediate representation via which all instrumentation is done.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+ 5.
+
+
+Ratios between some of these counts.
+</DL>
+
+<P>
+<DL COMPACT><DT><DD>
+ 6.
+
+
+The exit code of the client program.
+</DL>
+
+</DL>
+
+<P>
+
+<B>--detailed-counts=&lt;no|yes&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, Lackey prints a table containing counts of loads, stores and ALU operations, differentiated by their IR types. The IR types are identified by their IR name (&quot;I1&quot;, &quot;I8&quot;, ... &quot;I128&quot;, &quot;F32&quot;, &quot;F64&quot;, and &quot;V128&quot;).
+</DL>
+
+<P>
+
+<B>--trace-mem=&lt;no|yes&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, Lackey prints the size and address of almost every memory access made by the program. See the comments at the top of the file
+lackey/lk_main.c
+for details about the output format, how it works, and inaccuracies in the address trace. Note that this option produces immense amounts of output.
+</DL>
+
+<P>
+
+<B>--trace-superblocks=&lt;no|yes&gt; [default: no] </B>
+<DL COMPACT><DT><DD>
+When enabled, Lackey prints out the address of every superblock (a single entry, multiple exit, linear chunk of code) executed by the program. This is primarily of interest to Valgrind developers. See the comments at the top of the file
+lackey/lk_main.c
+for details about the output format. Note that this option produces large amounts of output.
+</DL>
+
+<P>
+
+<B>--fnname=&lt;name&gt; [default: main] </B>
+<DL COMPACT><DT><DD>
+Changes the function for which calls are counted when
+<B>--basic-counts=yes</B>
+is specified.
+</DL>
+
+<A NAME="lbAS">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<A HREF="/manpages/index.html?1+cg_annotate">cg_annotate</A>(1), <A HREF="http://localhost/cgi-bin/man/man2html?1+callgrind_annotate">callgrind_annotate</A>(1), <A HREF="http://localhost/cgi-bin/man/man2html?1+callgrind_control">callgrind_control</A>(1), <A HREF="http://localhost/cgi-bin/man/man2html?1+ms_print">ms_print</A>(1),
+$INSTALL/share/doc/valgrind/html/index.html
+or
+<A HREF="http://www.valgrind.org/docs/manual/index.html.">http://www.valgrind.org/docs/manual/index.html.</A>
+<A NAME="lbAT">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<P>
+
+The Valgrind developers.
+<P>
+
+This manpage was written by Andres Roldan &lt;<A HREF="mailto:aroldan@debian.org">aroldan@debian.org</A>&gt; and the Valgrind developers.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">BASIC OPTIONS</A><DD>
+<DT><A HREF="#lbAF">ERROR-RELATED OPTIONS</A><DD>
+<DT><A HREF="#lbAG">MALLOC()-RELATED OPTIONS</A><DD>
+<DT><A HREF="#lbAH">UNCOMMON OPTIONS</A><DD>
+<DT><A HREF="#lbAI">DEBUGGING VALGRIND OPTIONS</A><DD>
+<DT><A HREF="#lbAJ">MEMCHECK OPTIONS</A><DD>
+<DT><A HREF="#lbAK">CACHEGRIND OPTIONS</A><DD>
+<DT><A HREF="#lbAL">CALLGRIND OPTIONS</A><DD>
+<DT><A HREF="#lbAM">HELGRIND OPTIONS</A><DD>
+<DT><A HREF="#lbAN">DRD OPTIONS</A><DD>
+<DT><A HREF="#lbAO">MASSIF OPTIONS</A><DD>
+<DT><A HREF="#lbAP">PTRCHECK OPTIONS</A><DD>
+<DT><A HREF="#lbAQ">BBV OPTIONS</A><DD>
+<DT><A HREF="#lbAR">LACKEY OPTIONS</A><DD>
+<DT><A HREF="#lbAS">SEE ALSO</A><DD>
+<DT><A HREF="#lbAT">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:12 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of POSTFIX-WRAPPER</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>POSTFIX-WRAPPER</H1>
+Section: File Formats (5)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+postfix-wrapper
+-
+Postfix multi-instance API
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+Postfix versions 2.6 and later provide support for multiple
+Postfix instances. Instances share executable files and
+documentation, but have their own directories for configuration,
+queue and data files.
+<P>
+This document describes how the familiar &quot;postfix start&quot;
+etc. user interface can be used to manage one or multiple
+Postfix instances, and gives details of an API to coordinate
+activities between the <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command and a multi-instance
+manager program.
+<P>
+With multi-instance support, the default Postfix instance
+is always required. The config_directory parameter's default
+value specifies that instance's configuration file location.
+<A NAME="lbAD">&nbsp;</A>
+<H2>GENERAL OPERATION</H2>
+
+
+<PRE>
+</PRE>
+
+Multi-instance support is backwards compatible: when you
+run only one Postfix instance, commands such as &quot;postfix
+start&quot; will not change behavior at all.
+<P>
+Even with multiple Postfix instances, you can keep using
+the same postfix commands in boot scripts, upgrade procedures,
+and other places. The commands do more work, but humans are
+not forced to learn new tricks.
+<P>
+For example, to start all Postfix instances, use:
+<DL COMPACT>
+<DT><DD>
+# postfix start
+</DL>
+<P>
+
+Other <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) commands also work as expected. For example,
+to find out what Postfix instances exist in a multi-instance
+configuration, use:
+<DL COMPACT>
+<DT><DD>
+# postfix status
+</DL>
+<P>
+
+This enumerates the status of all Postfix instances within
+a multi-instance configuration.
+<A NAME="lbAE">&nbsp;</A>
+<H2>MANAGING AN INDIVIDUAL POSTFIX INSTANCE</H2>
+
+
+<PRE>
+</PRE>
+
+To manage a specific Postfix instance, specify its configuration
+directory on the <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command line:
+<DL COMPACT>
+<DT><DD>
+# postfix -c <I>/path/to/config_directory command</I>
+</DL>
+<P>
+
+Alternatively, the <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command accepts the instance's
+configuration directory via the MAIL_CONFIG environment
+variable (the -c command-line option has higher precedence).
+<P>
+When no Postfix instance information is specified, the
+<A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command will operate on all Postfix instances.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ENABLING <A HREF="/manpages/index.html?1+POSTFIX">POSTFIX</A>(1) MULTI-INSTANCE MODE</H2>
+
+
+<PRE>
+</PRE>
+
+By default, the <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command operates in single-instance
+mode. In this mode the command invokes the postfix-script
+file directly (currently installed in the daemon directory).
+This file contains the commands that start or stop one
+Postfix instance, that upgrade the configuration of one
+Postfix instance, and so on.
+<P>
+When the <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command operates in multi-instance mode
+as discussed below, the command needs to execute start,
+stop, etc.  commands for each Postfix instance.  This
+multiplication of commands is handled by a multi-instance
+manager program.
+<P>
+Turning on <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) multi-instance mode goes as follows:
+in the default Postfix instance's main.cf file, 1) specify
+the pathname of a multi-instance manager program with the
+multi_instance_wrapper parameter; 2) populate the
+multi_instance_directories parameter with the configuration
+directory pathnames of additional Postfix instances.  For
+example:
+<DL COMPACT>
+<DT><DD>
+<PRE>
+/etc/postfix/main.cf:
+    multi_instance_wrapper = $daemon_directory/postfix-wrapper
+    multi_instance_directories = /etc/postfix-test
+</PRE>
+
+</DL>
+<P>
+
+The $daemon_directory/postfix-wrapper file implements a
+simple manager and contains instructions for creating Postfix
+instances by hand.  The <A HREF="/manpages/index.html?1+postmulti">postmulti</A>(1) command provides a
+more extensive implementation including support for life-cycle
+management.
+<P>
+The multi_instance_directories and other main.cf parameters
+are listed below in the CONFIGURATION PARAMETERS section.
+<P>
+In multi-instance mode, the <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command invokes the
+$multi_instance_wrapper command instead of the postfix-script
+file. This multi-instance manager in turn executes the
+<A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command in single-instance mode for each Postfix
+instance.
+<P>
+To illustrate the main ideas behind multi-instance operation,
+below is an example of a simple but useful multi-instance
+manager implementation:
+<DL COMPACT>
+<DT><DD>
+<PRE>
+#!/bin/sh
+
+: ${command_directory?&quot;do not invoke this command directly&quot;}
+
+POSTCONF=$command_directory/postconf
+POSTFIX=$command_directory/postfix
+instance_dirs=`$POSTCONF -h multi_instance_directories |
+                sed 's/,/ /'` || exit 1
+
+err=0
+for dir in $config_directory $instance_dirs
+do
+    case &quot;$1&quot; in
+    stop|abort|flush|reload|drain)
+        test &quot;`$POSTCONF -c $dir -h multi_instance_enable`&quot; \
+            = yes || continue;;
+    start)
+        test &quot;`$POSTCONF -c $dir -h multi_instance_enable`&quot; \
+            = yes || {
+            $POSTFIX -c $dir check || err=$?
+            continue
+        };;
+    esac
+    $POSTFIX -c $dir &quot;$@&quot; || err=$?
+done
+
+exit $err
+</PRE>
+
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>PER-INSTANCE MULTI-INSTANCE MANAGER CONTROLS</H2>
+
+
+<PRE>
+</PRE>
+
+Each Postfix instance has its own main.cf file with parameters
+that control how the multi-instance manager operates on
+that instance.  This section discusses the most important
+settings.
+<P>
+The setting &quot;multi_instance_enable = yes&quot; allows the
+multi-instance manager to start (stop, etc.) the corresponding
+Postfix instance. For safety reasons, this setting is not
+the default.
+<P>
+The default setting &quot;multi_instance_enable = no&quot; is useful
+for manual testing with &quot;postfix -c <I>/path/name</I> start&quot;
+etc.  The multi-instance manager will not start such an
+instance, and it will skip commands such as &quot;stop&quot; or &quot;flush&quot;
+that require a running Postfix instance.  The multi-instance
+manager will execute commands such as &quot;check&quot;, &quot;set-permissions&quot;
+or &quot;upgrade-configuration&quot;, and it will replace &quot;start&quot; by
+&quot;check&quot; so that problems will be reported even when the
+instance is disabled.
+<A NAME="lbAH">&nbsp;</A>
+<H2>MAINTAINING SHARED AND NON-SHARED FILES</H2>
+
+
+<PRE>
+</PRE>
+
+Some files are shared between Postfix instances, such as
+executables and manpages, and some files are per-instance,
+such as configuration files, mail queue files, and data
+files.  See the NON-SHARED FILES section below for a list
+of per-instance files.
+<P>
+Before Postfix multi-instance support was implemented, the
+executables, manpages, etc., have always been maintained
+as part of the default Postfix instance.
+<P>
+With multi-instance support, we simply continue to do this.
+Specifically, a Postfix instance will not check or update
+shared files when that instance's config_directory value is
+listed with the default main.cf file's multi_instance_directories
+parameter.
+<P>
+The consequence of this approach is that the default Postfix
+instance should be checked and updated before any other
+instances.
+<A NAME="lbAI">&nbsp;</A>
+<H2>MULTI-INSTANCE API SUMMARY</H2>
+
+
+<PRE>
+</PRE>
+
+Only the multi-instance manager implements support for the
+multi_instance_enable configuration parameter. The
+multi-instance manager will start only Postfix instances
+whose main.cf file has &quot;multi_instance_enable = yes&quot;. A
+setting of &quot;no&quot; allows a Postfix instance to be tested by
+hand.
+<P>
+The <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command operates on only one Postfix instance
+when the -c option is specified, or when MAIL_CONFIG is
+present in the process environment. This is necessary to
+terminate recursion.
+<P>
+Otherwise, when the multi_instance_directories parameter
+value is non-empty, the <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command executes the
+command specified with the multi_instance_wrapper parameter,
+instead of executing the commands in postfix-script.
+<P>
+The multi-instance manager skips commands such as &quot;stop&quot;
+or &quot;reload&quot; that require a running Postfix instance, when
+an instance does not have &quot;multi_instance_enable = yes&quot;.
+This avoids false error messages.
+<P>
+The multi-instance manager replaces a &quot;start&quot; command by
+&quot;check&quot; when a Postfix instance's main.cf file does not
+have &quot;multi_instance_enable = yes&quot;. This substitution ensures
+that problems will be reported even when the instance is
+disabled.
+<P>
+No Postfix command or script will update or check shared
+files when its config_directory value is listed in the
+default main.cf's multi_instance_directories parameter
+value.  Therefore, the default instance should be checked
+and updated before any Postfix instances that depend on it.
+<P>
+Set-gid commands such as <A HREF="/manpages/index.html?1+postdrop">postdrop</A>(1) and <A HREF="http://localhost/cgi-bin/man/man2html?1+postqueue">postqueue</A>(1)
+effectively append the multi_instance_directories parameter
+value to the legacy alternate_config_directories parameter
+value. The commands use this information to determine whether
+a -c option or MAIL_CONFIG environment setting specifies a
+legitimate value.
+<P>
+The legacy alternate_config_directories parameter remains
+necessary for non-default Postfix instances that are running
+different versions of Postfix, or that are not managed
+together with the default Postfix instance.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>ENVIRONMENT VARIABLES</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT>MAIL_CONFIG<DD>
+When present, this forces the <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) command to operate
+only on the specified Postfix instance. This environment
+variable is exported by the <A HREF="/manpages/index.html?1+postfix">postfix</A>(1) -c option, so that
+<A HREF="/manpages/index.html?1+postfix">postfix</A>(1) commands in descendant processes will work
+correctly.
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H2>CONFIGURATION PARAMETERS</H2>
+
+
+<PRE>
+</PRE>
+
+The text below provides only a parameter summary. See
+<A HREF="/manpages/index.html?5+postconf">postconf</A>(5) for more details.
+<DL COMPACT>
+<DT><B>multi_instance_directories (empty)</B><DD>
+An optional list of non-default Postfix configuration directories;
+these directories belong to additional Postfix instances that share
+the Postfix executable files and documentation with the default
+Postfix instance, and that are started, stopped, etc., together
+with the default Postfix instance.
+<DT><B>multi_instance_wrapper (empty)</B><DD>
+The pathname of a multi-instance manager command that the
+<B><A HREF="/manpages/index.html?1+postfix">postfix</A></B>(1) command invokes when the multi_instance_directories
+parameter value is non-empty.
+<DT><B>multi_instance_name (empty)</B><DD>
+The optional instance name of this Postfix instance.
+<DT><B>multi_instance_group (empty)</B><DD>
+The optional instance group name of this Postfix instance.
+<DT><B>multi_instance_enable (no)</B><DD>
+Allow this Postfix instance to be started, stopped, etc., by a
+multi-instance manager.
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H2>NON-SHARED FILES</H2>
+
+
+<PRE>
+</PRE>
+
+<DL COMPACT>
+<DT><B>config_directory (see 'postconf -d' output)</B><DD>
+The default location of the Postfix main.cf and master.cf
+configuration files.
+<DT><B>data_directory (see 'postconf -d' output)</B><DD>
+The directory with Postfix-writable data files (for example:
+caches, pseudo-random numbers).
+<DT><B>queue_directory (see 'postconf -d' output)</B><DD>
+The location of the Postfix top-level queue directory.
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/manpages/index.html?1+postfix">postfix</A>(1) Postfix control program
+<A HREF="/manpages/index.html?1+postmulti">postmulti</A>(1) full-blown multi-instance manager
+$daemon_directory/postfix-wrapper simple multi-instance manager
+</PRE><A NAME="lbAN">&nbsp;</A>
+<H2>LICENSE</H2>
+
+
+<PRE>
+</PRE>
+
+The Secure Mailer license must be distributed with this
+software.
+<A NAME="lbAO">&nbsp;</A>
+<H2>AUTHOR(S)</H2>
+
+
+<PRE>
+Wietse Venema
+IBM T.J. Watson Research
+P.O. Box 704
+Yorktown Heights, NY 10598, USA
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">GENERAL OPERATION</A><DD>
+<DT><A HREF="#lbAE">MANAGING AN INDIVIDUAL POSTFIX INSTANCE</A><DD>
+<DT><A HREF="#lbAF">ENABLING POSTFIX(1) MULTI-INSTANCE MODE</A><DD>
+<DT><A HREF="#lbAG">PER-INSTANCE MULTI-INSTANCE MANAGER CONTROLS</A><DD>
+<DT><A HREF="#lbAH">MAINTAINING SHARED AND NON-SHARED FILES</A><DD>
+<DT><A HREF="#lbAI">MULTI-INSTANCE API SUMMARY</A><DD>
+<DT><A HREF="#lbAJ">ENVIRONMENT VARIABLES</A><DD>
+<DT><A HREF="#lbAK">CONFIGURATION PARAMETERS</A><DD>
+<DT><A HREF="#lbAL">NON-SHARED FILES</A><DD>
+<DT><A HREF="#lbAM">SEE ALSO</A><DD>
+<DT><A HREF="#lbAN">LICENSE</A><DD>
+<DT><A HREF="#lbAO">AUTHOR(S)</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of TRUNCATE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>TRUNCATE</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+TRUNCATE - empty a table or set of tables
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+TRUNCATE [ TABLE ] [ ONLY ] <I>name</I> [, ... ]
+    [ RESTART IDENTITY | CONTINUE IDENTITY ] [ CASCADE | RESTRICT ]
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>TRUNCATE</B> quickly removes all rows from a set of
+tables. It has the same effect as an unqualified
+<B>DELETE</B> on each table, but since it does not actually
+scan the tables it is faster. Furthermore, it reclaims disk space
+immediately, rather than requiring a subsequent <B>VACUUM</B>
+operation. This is most useful on large tables.
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B></B><I>name</I><B></B><DD>
+The name (optionally schema-qualified) of a table to be
+truncated. If ONLY is specified, only that table is
+truncated. If ONLY is not specified, the table and
+all its descendant tables (if any) are truncated.
+<DT><B>RESTART IDENTITY</B><DD>
+Automatically restart sequences owned by columns of
+the truncated table(s).
+<DT><B>CONTINUE IDENTITY</B><DD>
+Do not change the values of sequences. This is the default.
+<DT><B>CASCADE</B><DD>
+Automatically truncate all tables that have foreign-key references
+to any of the named tables, or to any tables added to the group
+due to CASCADE.
+<DT><B>RESTRICT</B><DD>
+Refuse to truncate if any of the tables have foreign-key references
+from tables that are not listed in the command. This is the default.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+You must have the TRUNCATE privilege on a table
+to truncate it.
+<P>
+
+<B>TRUNCATE</B> acquires an ACCESS EXCLUSIVE lock on each
+table it operates on, which blocks all other concurrent operations
+on the table. If concurrent access to a table is required, then
+the <B>DELETE</B> command should be used instead.
+<P>
+
+<B>TRUNCATE</B> cannot be used on a table that has foreign-key
+references from other tables, unless all such tables are also truncated
+in the same command. Checking validity in such cases would require table
+scans, and the whole point is not to do one. The CASCADE
+option can be used to automatically include all dependent tables ---
+but be very careful when using this option, or else you might lose data you
+did not intend to!
+<P>
+
+<B>TRUNCATE</B> will not fire any ON DELETE
+triggers that might exist for the tables. But it will fire
+ON TRUNCATE triggers.
+If ON TRUNCATE triggers are defined for any of
+the tables, then all BEFORE TRUNCATE triggers are
+fired before any truncation happens, and all AFTER
+TRUNCATE triggers are fired after the last truncation is
+performed. The triggers will fire in the order that the tables are
+to be processed (first those listed in the command, and then any
+that were added due to cascading).
+<P>
+<DL COMPACT><DT><DD>
+<B>Warning:</B>
+
+<B>TRUNCATE</B> is not MVCC-safe (see in the documentation
+for general information about MVCC). After truncation, the table
+will appear empty to all concurrent transactions, even if they
+are using a snapshot taken before the truncation occurred. This
+will only be an issue for a transaction that did not access the
+truncated table before the truncation happened --- any
+transaction that has done so would hold at least an
+ACCESS SHARE lock, which would block
+<B>TRUNCATE</B> until that transaction completes. So
+truncation will not cause any apparent inconsistency in the table
+contents for successive queries on the same table, but it could
+cause visible inconsistency between the contents of the truncated
+table and other tables in the database.
+</DL>
+
+<P>
+<P>
+
+<B>TRUNCATE</B> is transaction-safe with respect to the data
+in the tables: the truncation will be safely rolled back if the surrounding
+transaction does not commit.
+<P>
+<DL COMPACT><DT><DD>
+<B>Warning:</B>
+
+Any <B>ALTER SEQUENCE RESTART</B> operations performed as a
+consequence of using the RESTART IDENTITY option are
+nontransactional and will not be rolled back on failure. To minimize
+the risk, these operations are performed only after all the rest of
+<B>TRUNCATE</B>'s work is done. However, there is still a risk
+if <B>TRUNCATE</B> is performed inside a transaction block that is
+aborted afterwards. For example, consider
+<P>
+<PRE>
+BEGIN;
+TRUNCATE TABLE foo RESTART IDENTITY;
+COPY foo FROM ...;
+COMMIT;
+
+</PRE>
+
+If the <B>COPY</B> fails partway through, the table data
+rolls back correctly, but the sequences will be left with values
+that are probably smaller than they had before, possibly leading
+to duplicate-key failures or other problems in later transactions.
+If this is likely to be a problem, it's best to avoid using
+RESTART IDENTITY, and accept that the new contents of
+the table will have higher serial numbers than the old.
+</DL>
+
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+Truncate the tables bigtable and
+fattable:
+<P>
+<PRE>
+TRUNCATE bigtable, fattable;
+
+</PRE>
+
+<P>
+
+The same, and also reset any associated sequence generators:
+<P>
+<PRE>
+TRUNCATE bigtable, fattable RESTART IDENTITY;
+
+</PRE>
+
+<P>
+
+Truncate the table othertable, and cascade to any tables
+that reference othertable via foreign-key
+constraints:
+<P>
+<PRE>
+TRUNCATE othertable CASCADE;
+
+</PRE>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+The SQL:2008 standard includes a <B>TRUNCATE</B> command with the syntax
+TRUNCATE TABLE <I>tablename</I>.
+The clauses CONTINUE IDENTITY/RESTART IDENTITY
+also appear in that standard but have slightly different but related meanings.
+Some of the concurrency behavior of this command is left implementation-defined
+by the standard, so the above notes should be considered and compared with
+other implementations if necessary.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">NOTES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">COMPATIBILITY</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:16 GMT, December 24, 2015
+</div></body>
+</HTML>

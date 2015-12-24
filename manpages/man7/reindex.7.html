@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of REINDEX</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>REINDEX</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+REINDEX - rebuild indexes
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+REINDEX { INDEX | TABLE | DATABASE | SYSTEM } <I>name</I> [ FORCE ]
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>REINDEX</B> rebuilds an index using the data
+stored in the index's table, replacing the old copy of the index. There are
+several scenarios in which to use <B>REINDEX</B>:
+<DL COMPACT>
+<DT>*<DD>
+An index has become corrupted, and no longer contains valid
+data. Although in theory this should never happen, in
+practice indexes can become corrupted due to software bugs or
+hardware failures. <B>REINDEX</B> provides a
+recovery method.
+<DT>*<DD>
+An index has become ``bloated'', that it is contains many
+empty or nearly-empty pages. This can occur with B-tree indexes in
+PostgreSQL under certain uncommon access
+patterns. <B>REINDEX</B> provides a way to reduce
+the space consumption of the index by writing a new version of
+the index without the dead pages. See in the documentation for more information.
+<DT>*<DD>
+You have altered a storage parameter (such as fillfactor)
+for an index, and wish to ensure that the change has taken full effect.
+<DT>*<DD>
+An index build with the CONCURRENTLY option failed, leaving
+an ``invalid'' index. Such indexes are useless but it can be
+convenient to use <B>REINDEX</B> to rebuild them. Note that
+<B>REINDEX</B> will not perform a concurrent build. To build the
+index without interfering with production you should drop the index and
+reissue the <B>CREATE INDEX CONCURRENTLY</B> command.
+</DL>
+<P>
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B>INDEX</B><DD>
+Recreate the specified index.
+<DT><B>TABLE</B><DD>
+Recreate all indexes of the specified table. If the table has a
+secondary ``TOAST'' table, that is reindexed as well.
+<DT><B>DATABASE</B><DD>
+Recreate all indexes within the current database.
+Indexes on shared system catalogs are skipped except in stand-alone mode
+(see below). This form of <B>REINDEX</B> cannot be executed 
+inside a transaction block.
+<DT><B>SYSTEM</B><DD>
+Recreate all indexes on system catalogs within the current database.
+Indexes on user tables are not processed. Also, indexes on shared
+system catalogs are skipped except in stand-alone mode (see below).
+This form of <B>REINDEX</B> cannot be executed inside a
+transaction block.
+<DT><B></B><I>name</I><B></B><DD>
+The name of the specific index, table, or database to be
+reindexed. Index and table names can be schema-qualified.
+Presently, <B>REINDEX DATABASE</B> and <B>REINDEX SYSTEM</B>
+can only reindex the current database, so their parameter must match
+the current database's name. 
+<DT><B>FORCE</B><DD>
+This is an obsolete option; it is ignored if specified.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+If you suspect corruption of an index on a user table, you can
+simply rebuild that index, or all indexes on the table, using
+<B>REINDEX INDEX</B> or <B>REINDEX TABLE</B>. 
+<P>
+
+Things are more difficult if you need to recover from corruption of
+an index on a system table. In this case it's important for the
+system to not have used any of the suspect indexes itself.
+(Indeed, in this sort of scenario you might find that server
+processes are crashing immediately at start-up, due to reliance on
+the corrupted indexes.) To recover safely, the server must be started
+with the <B>-P</B> option, which prevents it from using
+indexes for system catalog lookups.
+<P>
+
+One way to do this is to shut down the server and start a single-user
+PostgreSQL server
+with the <B>-P</B> option included on its command line.
+Then, <B>REINDEX DATABASE</B>, <B>REINDEX SYSTEM</B>,
+<B>REINDEX TABLE</B>, or <B>REINDEX INDEX</B> can be
+issued, depending on how much you want to reconstruct. If in
+doubt, use <B>REINDEX SYSTEM</B> to select
+reconstruction of all system indexes in the database. Then quit
+the single-user server session and restart the regular server.
+See the <B><A HREF="/manpages/index.html?1+postgres">postgres</A></B>(1) reference page for more
+information about how to interact with the single-user server
+interface.
+<P>
+
+Alternatively, a regular server session can be started with
+<B>-P</B> included in its command line options.
+The method for doing this varies across clients, but in all
+<B>libpq</B>-based clients, it is possible to set
+the <B>PGOPTIONS</B> environment variable to -P
+before starting the client. Note that while this method does not
+require locking out other clients, it might still be wise to prevent
+other users from connecting to the damaged database until repairs
+have been completed.
+<P>
+
+If corruption is suspected in the indexes of any of the shared
+system catalogs (which are <B>pg_authid</B>,
+<B>pg_auth_members</B>,
+<B>pg_database</B>,
+<B>pg_pltemplate</B>,
+<B>pg_shdepend</B>,
+<B>pg_shdescription</B>, and
+<B>pg_tablespace</B>), then a standalone server
+must be used to repair it. <B>REINDEX</B> will not process
+shared catalogs in multiuser mode.
+<P>
+
+For all indexes except the shared system catalogs, <B>REINDEX</B>
+is crash-safe and transaction-safe. <B>REINDEX</B> is not
+crash-safe for shared indexes, which is why this case is disallowed
+during normal operation. If a failure occurs while reindexing one
+of these catalogs in standalone mode, it will not be possible to
+restart the regular server until the problem is rectified. (The
+typical symptom of a partially rebuilt shared index is ``index is not
+a btree'' errors.)
+<P>
+
+<B>REINDEX</B> is similar to a drop and recreate of the index
+in that the index contents are rebuilt from scratch. However, the locking
+considerations are rather different. <B>REINDEX</B> locks out writes
+but not reads of the index's parent table. It also takes an exclusive lock
+on the specific index being processed, which will block reads that attempt
+to use that index. In contrast, <B>DROP INDEX</B> momentarily takes
+exclusive lock on the parent table, blocking both writes and reads. The
+subsequent <B>CREATE INDEX</B> locks out writes but not reads; since
+the index is not there, no read will attempt to use it, meaning that there
+will be no blocking but reads might be forced into expensive sequential
+scans.
+<P>
+
+Reindexing a single index or table requires being the owner of that
+index or table. Reindexing a database requires being the owner of
+the database (note that the owner can therefore rebuild indexes of
+tables owned by other users). Of course, superusers can always
+reindex anything.
+<P>
+
+Prior to PostgreSQL 8.1, <B>REINDEX
+DATABASE</B> processed only system indexes, not all indexes as one would
+expect from the name. This has been changed to reduce the surprise
+factor. The old behavior is available as <B>REINDEX SYSTEM</B>.
+<P>
+
+Prior to PostgreSQL 7.4, <B>REINDEX
+TABLE</B> did not automatically process TOAST tables, and so those had
+to be reindexed by separate commands. This is still possible, but
+redundant.
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+Rebuild a single index:
+<P>
+<PRE>
+REINDEX INDEX my_index;
+
+</PRE>
+
+<P>
+
+Rebuild all the indexes on the table my_table:
+<P>
+<PRE>
+REINDEX TABLE my_table;
+
+</PRE>
+
+<P>
+
+Rebuild all indexes in a particular database, without trusting the
+system indexes to be valid already:
+<P>
+<PRE>
+$ <B>export PGOPTIONS=&quot;-P&quot;</B>
+$ <B>psql broken_db</B>
+broken_db=&gt; REINDEX DATABASE broken_db;
+broken_db=&gt; \q
+
+</PRE>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+There is no <B>REINDEX</B> command in the SQL standard.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">NOTES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">COMPATIBILITY</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:16 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of ipa-join</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>ipa-join</H1>
+Section: FreeIPA Manual Pages (1)<BR>Updated: Oct 8 2009<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ipa-join - Join a machine to an IPA realm and get a keytab for the host service principal
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+ipa-join [<B>-d</B>|<B>--debug</B>] [<B>-q</B>|<B>--quiet</B>] [<B>-u</B>|<B>--unenroll</B>] [<B>-h</B>|<B>--hostname</B> hostname] [<B>-s</B>|<B>--server</B> hostame] [<B>-k</B>|<B>--keytab</B> filename] [<B>-w</B>|<B>--bindpw</B> password] [<B>-b</B>|--<B>basedn basedn</B>] [<B>-?</B>|<B>--help</B>] [<B>--usage</B>]
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+Joins a host to an IPA realm and retrieves a kerberos <I>keytab</I> for the host service principal, or unenrolls an enrolled host from an IPA server.
+<P>
+Kerberos keytabs are used for services (like sshd) to perform kerberos authentication. A keytab is a file with one or more secrets (or keys) for a kerberos principal.
+<P>
+The ipa-join command will create and retrieve a service principal for host/<A HREF="mailto:foo.example.com@EXAMPLE.COM">foo.example.com@EXAMPLE.COM</A> and place it by default into /etc/krb5.keytab. The location can be overridden with the -k option.
+<P>
+The IPA server to contact is set in /etc/ipa/default.conf by default and can be overridden using the -s,--server option.
+<P>
+In order to join the machine needs to be authenticated. This can happen in one of two ways:
+<P>
+* Authenticate using the current kerberos principal
+<P>
+* Provide a password to authenticate with
+<P>
+If a client host has already been joined to the IPA realm the ipa-join command will fail. The host will need to be removed from the server using `ipa host-del FQDN` in order to join the client to the realm.
+<P>
+This command is normally executed by the ipa-client-install command as part of the enrollment process.
+<P>
+The reverse is unenrollment. Unenrolling a host removes the Kerberos key on the IPA server. This prepares the host to be re-enrolled. This uses the host principal stored in /etc/krb5.conf to authenticate to the IPA server to perform the unenrollment.
+<P>
+Please note, that while the ipa-join option removes the client from the domain, it does not actually uninstall the client or properly remove all of the IPA-related configuration. The only way to uninstall a client completely is to use ipa-client-install --uninstall
+(see
+<B><A HREF="/manpages/index.html?1+ipa-client-install">ipa-client-install</A></B>(1)).
+
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-h,--hostname hostname</B><DD>
+The hostname of this server (FQDN). By default of nodename from <A HREF="/manpages/index.html?2+uname">uname</A>(2) is used.
+<DT><B>-s,--server server</B><DD>
+The hostname of the IPA server (FQDN). Note that by default there is no /etc/ipa/default.conf, in most cases it needs to be supplied.
+<DT><B>-k,--keytab keytab-file</B><DD>
+The keytab file where to append the new key (will be created if it does not exist). Default: /etc/krb5.keytab
+<DT><B>-w,--bindpw password</B><DD>
+The password to use if not using Kerberos to authenticate. Use a password of this particular host (one time password created on IPA server)
+<DT><B>-b,--basedn basedn</B><DD>
+The basedn of the IPA server (of the form dc=example,dc=com). This is only needed when not using Kerberos to authenticate and anonymous binds are disallowed in the IPA LDAP server.
+<DT><B>-u,--unenroll</B><DD>
+Unenroll this host from the IPA server. No keytab entry is removed in the process
+(see
+<B><A HREF="/manpages/index.html?1+ipa-rmkeytab">ipa-rmkeytab</A></B>(1)).
+
+<DT><B>-q,--quiet</B><DD>
+Quiet mode. Only errors are displayed.
+<DT><B>-d,--debug</B><DD>
+Print the raw XML-RPC output in GSSAPI mode.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+Join IPA domain and retrieve a keytab with kerberos credentials.
+<P>
+<BR>&nbsp;&nbsp;#&nbsp;kinit&nbsp;admin
+<BR>&nbsp;&nbsp;#&nbsp;ipa-join
+<P>
+Join IPA domain and retrieve a keytab using a one-time password.
+<P>
+<BR>&nbsp;&nbsp;#&nbsp;ipa-join&nbsp;-w&nbsp;secret123
+<P>
+Join IPA domain and save the keytab in another location.
+<P>
+<BR>&nbsp;&nbsp;#&nbsp;ipa-join&nbsp;-k&nbsp;/tmp/host.keytab
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXIT STATUS</H2>
+
+The exit status is 0 on success, nonzero on error.
+<P>
+0 Success
+<P>
+1 Kerberos context initialization failed
+<P>
+2 Incorrect usage
+<P>
+3 Out of memory
+<P>
+4 Invalid service principal name
+<P>
+5 No Kerberos credentials cache
+<P>
+6 No Kerberos principal and no bind DN and password
+<P>
+7 Failed to open keytab
+<P>
+8 Failed to create key material
+<P>
+9 Setting keytab failed
+<P>
+10 Bind password required when using a bind DN
+<P>
+11 Failed to add key to keytab
+<P>
+12 Failed to close keytab
+<P>
+13 Host is already enrolled
+<P>
+14 LDAP failure
+<P>
+15 Incorrect bulk password
+<P>
+16 Host name must be fully-qualified
+<P>
+17 XML-RPC fault
+<P>
+18 Principal not found in host entry
+<P>
+19 Unable to generate Kerberos credentials cache
+<P>
+20 Unenrollment result not in XML-RPC response
+<P>
+21 Failed to get default Kerberos realm
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?1+ipa-rmkeytab">ipa-rmkeytab</A></B>(1)
+
+<B><A HREF="/manpages/index.html?1+ipa-client-instal">ipa-client-instal</A></B>(1)
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">EXAMPLES</A><DD>
+<DT><A HREF="#lbAG">EXIT STATUS</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:05 GMT, December 24, 2015
+</div></body>
+</HTML>

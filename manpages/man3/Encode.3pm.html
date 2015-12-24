@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Encode</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Encode</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-07-13<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Encode - character encodings
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Encode;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H3>Table of Contents</H3>
+
+<A NAME="ixAAD"></A>
+Encode consists of a collection of modules whose details are too big
+to fit in one document.  This <FONT SIZE="-1">POD</FONT> itself explains the top-level APIs
+and general topics at a glance.  For other topics and more details,
+see the PODs below:
+<P>
+
+
+
+<PRE>
+  Name                          Description
+  --------------------------------------------------------
+  Encode::Alias         Alias definitions to encodings
+  Encode::Encoding      Encode Implementation Base Class
+  Encode::Supported     List of Supported Encodings
+  Encode::CN            Simplified Chinese Encodings
+  Encode::JP            Japanese Encodings
+  Encode::KR            Korean Encodings
+  Encode::TW            Traditional Chinese Encodings
+  --------------------------------------------------------
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAE"></A>
+The <TT>&quot;Encode&quot;</TT> module provides the interfaces between Perl's strings
+and the rest of the system.  Perl strings are sequences of
+<B>characters</B>.
+<P>
+
+The repertoire of characters that Perl can represent is at least that
+defined by the Unicode Consortium. On most platforms the ordinal
+values of the characters (as returned by <TT>&quot;ord(ch)&quot;</TT>) is the ``Unicode
+codepoint'' for the character (the exceptions are those platforms where
+the legacy encoding is some variant of <FONT SIZE="-1">EBCDIC</FONT> rather than a super-set
+of <FONT SIZE="-1">ASCII</FONT> - see perlebcdic).
+<P>
+
+Traditionally, computer data has been moved around in 8-bit chunks
+often called ``bytes''. These chunks are also known as ``octets'' in
+networking standards. Perl is widely used to manipulate data of many
+types - not only strings of characters representing human or computer
+languages but also ``binary'' data being the machine's representation of
+numbers, pixels in an image - or just about anything.
+<P>
+
+When Perl is processing ``binary data'', the programmer wants Perl to
+process ``sequences of bytes''. This is not a problem for Perl - as a
+byte has 256 possible values, it easily fits in Perl's much larger
+``logical character''.
+<A NAME="lbAF">&nbsp;</A>
+<H3><FONT SIZE="-1">TERMINOLOGY</FONT></H3>
+
+<A NAME="ixAAF"></A>
+<DL COMPACT>
+<DT>*<DD>
+<I>character</I>: a character in the range 0..(2**32-1) (or more).
+(What Perl's strings are made of.)
+<DT>*<DD>
+<I>byte</I>: a character in the range 0..255
+(A special case of a Perl character.)
+<DT>*<DD>
+<I>octet</I>: 8 bits of data, with ordinal values 0..255
+(Term for bytes passed to or from a non-Perl context, e.g. a disk file.)
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>PERL ENCODING API</H2>
+
+<A NAME="ixAAG"></A>
+<DL COMPACT>
+<DT>$octets  = encode(<FONT SIZE="-1">ENCODING</FONT>, $string [, <FONT SIZE="-1">CHECK</FONT>])<DD>
+
+
+<A NAME="ixAAH"></A>
+Encodes a string from Perl's internal form into <I></I><FONT SIZE="-1"><I>ENCODING</I></FONT><I></I> and returns
+a sequence of octets.  <FONT SIZE="-1">ENCODING</FONT> can be either a canonical name or
+an alias.  For encoding names and aliases, see ``Defining Aliases''.
+For <FONT SIZE="-1">CHECK</FONT>, see ``Handling Malformed Data''.
+
+
+<P>
+
+
+For example, to convert a string from Perl's internal format to
+iso-8859-1 (also known as Latin1),
+
+
+<P>
+
+
+
+
+<PRE>
+  $octets = encode(&quot;iso-8859-1&quot;, $string);
+
+</PRE>
+
+
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>CAVEAT</B></FONT><B></B>: When you run <TT>&quot;$octets = encode(&quot;utf8&quot;, $string)&quot;</TT>, then
+<TT>$octets</TT> <B>may not be equal to</B> <TT>$string</TT>.  Though they both contain the
+same data, the <FONT SIZE="-1">UTF8</FONT> flag for <TT>$octets</TT> is <B>always</B> off.  When you
+encode anything, <FONT SIZE="-1">UTF8</FONT> flag of the result is always off, even when it
+contains completely valid utf8 string. See ``The <FONT SIZE="-1">UTF8</FONT> flag'' below.
+
+
+<P>
+
+
+If the <TT>$string</TT> is <TT>&quot;undef&quot;</TT> then <TT>&quot;undef&quot;</TT> is returned.
+<DT>$string = decode(<FONT SIZE="-1">ENCODING</FONT>, $octets [, <FONT SIZE="-1">CHECK</FONT>])<DD>
+
+
+<A NAME="ixAAI"></A>
+Decodes a sequence of octets assumed to be in <I></I><FONT SIZE="-1"><I>ENCODING</I></FONT><I></I> into Perl's
+internal form and returns the resulting string.  As in <I>encode()</I>,
+<FONT SIZE="-1">ENCODING</FONT> can be either a canonical name or an alias. For encoding names
+and aliases, see ``Defining Aliases''.  For <FONT SIZE="-1">CHECK</FONT>, see
+``Handling Malformed Data''.
+
+
+<P>
+
+
+For example, to convert <FONT SIZE="-1">ISO-8859-1</FONT> data to a string in Perl's internal format:
+
+
+<P>
+
+
+
+
+<PRE>
+  $string = decode(&quot;iso-8859-1&quot;, $octets);
+
+</PRE>
+
+
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>CAVEAT</B></FONT><B></B>: When you run <TT>&quot;$string = decode(&quot;utf8&quot;, $octets)&quot;</TT>, then <TT>$string</TT>
+<B>may not be equal to</B> <TT>$octets</TT>.  Though they both contain the same data,
+the <FONT SIZE="-1">UTF8</FONT> flag for <TT>$string</TT> is on unless <TT>$octets</TT> entirely consists of
+<FONT SIZE="-1">ASCII</FONT> data (or <FONT SIZE="-1">EBCDIC</FONT> on <FONT SIZE="-1">EBCDIC</FONT> machines).  See ``The <FONT SIZE="-1">UTF8</FONT> flag''
+below.
+
+
+<P>
+
+
+If the <TT>$string</TT> is <TT>&quot;undef&quot;</TT> then <TT>&quot;undef&quot;</TT> is returned.
+<DT>[$obj =] find_encoding(<FONT SIZE="-1">ENCODING</FONT>)<DD>
+<A NAME="ixAAJ"></A>
+Returns the <I>encoding object</I> corresponding to <FONT SIZE="-1">ENCODING</FONT>.  Returns
+undef if no matching <FONT SIZE="-1">ENCODING</FONT> is find.
+
+
+<P>
+
+
+This object is what actually does the actual (en|de)coding.
+
+
+<P>
+
+
+
+
+<PRE>
+  $utf8 = decode($name, $bytes);
+
+</PRE>
+
+
+
+
+<P>
+
+
+is in fact
+
+
+<P>
+
+
+
+
+<PRE>
+  $utf8 = do{
+    $obj = find_encoding($name);
+    croak qq(encoding &quot;$name&quot; not found) unless ref $obj;
+    $obj-&gt;decode($bytes)
+  };
+
+</PRE>
+
+
+
+
+<P>
+
+
+with more error checking.
+
+
+<P>
+
+
+Therefore you can save time by reusing this object as follows;
+
+
+<P>
+
+
+
+
+<PRE>
+  my $enc = find_encoding(&quot;iso-8859-1&quot;);
+  while(&lt;&gt;){
+     my $utf8 = $enc-&gt;decode($_);
+     # and do someting with $utf8;
+  }
+
+</PRE>
+
+
+
+
+<P>
+
+
+Besides <TT>&quot;-&gt;decode&quot;</TT> and <TT>&quot;-&gt;encode&quot;</TT>, other methods are
+available as well.  For instance, <TT>&quot;-&gt; name&quot;</TT> returns the canonical
+name of the encoding object.
+
+
+<P>
+
+
+
+
+<PRE>
+  find_encoding(&quot;latin1&quot;)-&gt;name; # iso-8859-1
+
+</PRE>
+
+
+
+
+<P>
+
+
+See Encode::Encoding for details.
+<DT>[$length =] from_to($octets, <FONT SIZE="-1">FROM_ENC</FONT>, <FONT SIZE="-1">TO_ENC</FONT> [, <FONT SIZE="-1">CHECK</FONT>])<DD>
+<A NAME="ixAAK"></A>
+Converts <B>in-place</B> data between two encodings. The data in <TT>$octets</TT>
+must be encoded as octets and not as characters in Perl's internal
+format. For example, to convert <FONT SIZE="-1">ISO-8859-1</FONT> data to Microsoft's <FONT SIZE="-1">CP1250</FONT>
+encoding:
+
+
+<P>
+
+
+
+
+<PRE>
+  from_to($octets, &quot;iso-8859-1&quot;, &quot;cp1250&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+and to convert it back:
+
+
+<P>
+
+
+
+
+<PRE>
+  from_to($octets, &quot;cp1250&quot;, &quot;iso-8859-1&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that because the conversion happens in place, the data to be
+converted cannot be a string constant; it must be a scalar variable.
+
+
+<P>
+
+
+<I>from_to()</I> returns the length of the converted string in octets on
+success, <I>undef</I> on error.
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>CAVEAT</B></FONT><B></B>: The following operations look the same but are not quite so;
+
+
+<P>
+
+
+
+
+<PRE>
+  from_to($data, &quot;iso-8859-1&quot;, &quot;utf8&quot;); #1
+  $data = decode(&quot;iso-8859-1&quot;, $data);  #2
+
+</PRE>
+
+
+
+
+<P>
+
+
+Both #1 and #2 make <TT>$data</TT> consist of a completely valid <FONT SIZE="-1">UTF-8</FONT> string
+but only #2 turns <FONT SIZE="-1">UTF8</FONT> flag on.  #1 is equivalent to
+
+
+<P>
+
+
+
+
+<PRE>
+  $data = encode(&quot;utf8&quot;, decode(&quot;iso-8859-1&quot;, $data));
+
+</PRE>
+
+
+
+
+<P>
+
+
+See ``The <FONT SIZE="-1">UTF8</FONT> flag'' below.
+
+
+<P>
+
+
+Also note that
+
+
+<P>
+
+
+
+
+<PRE>
+  from_to($octets, $from, $to, $check);
+
+</PRE>
+
+
+
+
+<P>
+
+
+is equivalent to
+
+
+<P>
+
+
+
+
+<PRE>
+  $octets = encode($to, decode($from, $octets), $check);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Yes, it does not respect the <TT>$check</TT> during decoding.  It is
+deliberately done that way.  If you need minute control, <TT>&quot;decode&quot;</TT>
+then <TT>&quot;encode&quot;</TT> as follows;
+
+
+<P>
+
+
+
+
+<PRE>
+  $octets = encode($to, decode($from, $octets, $check_from), $check_to);
+
+</PRE>
+
+
+<DT>$octets = encode_utf8($string);<DD>
+
+
+<A NAME="ixAAL"></A>
+Equivalent to <TT>&quot;$octets = encode(&quot;utf8&quot;, $string);&quot;</TT> The characters
+that comprise <TT>$string</TT> are encoded in Perl's internal format and the
+result is returned as a sequence of octets. All possible
+characters have a <FONT SIZE="-1">UTF-8</FONT> representation so this function cannot fail.
+<DT>$string = decode_utf8($octets [, <FONT SIZE="-1">CHECK</FONT>]);<DD>
+
+
+<A NAME="ixAAM"></A>
+equivalent to <TT>&quot;$string = decode(&quot;utf8&quot;, $octets [, CHECK])&quot;</TT>.
+The sequence of octets represented by
+<TT>$octets</TT> is decoded from <FONT SIZE="-1">UTF-8</FONT> into a sequence of logical
+characters. Not all sequences of octets form valid <FONT SIZE="-1">UTF-8</FONT> encodings, so
+it is possible for this call to fail.  For <FONT SIZE="-1">CHECK</FONT>, see
+``Handling Malformed Data''.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Listing available encodings</H3>
+
+<A NAME="ixAAN"></A>
+
+
+<PRE>
+  use Encode;
+  @list = Encode-&gt;encodings();
+
+</PRE>
+
+
+<P>
+
+Returns a list of the canonical names of the available encodings that
+are loaded.  To get a list of all available encodings including the
+ones that are not loaded yet, say
+<P>
+
+
+
+<PRE>
+  @all_encodings = Encode-&gt;encodings(&quot;:all&quot;);
+
+</PRE>
+
+
+<P>
+
+Or you can give the name of a specific module.
+<P>
+
+
+
+<PRE>
+  @with_jp = Encode-&gt;encodings(&quot;Encode::JP&quot;);
+
+</PRE>
+
+
+<P>
+
+When ``::'' is not in the name, ``Encode::'' is assumed.
+<P>
+
+
+
+<PRE>
+  @ebcdic = Encode-&gt;encodings(&quot;EBCDIC&quot;);
+
+</PRE>
+
+
+<P>
+
+To find out in detail which encodings are supported by this package,
+see Encode::Supported.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Defining Aliases</H3>
+
+<A NAME="ixAAO"></A>
+To add a new alias to a given encoding, use:
+<P>
+
+
+
+<PRE>
+  use Encode;
+  use Encode::Alias;
+  define_alias(newName =&gt; ENCODING);
+
+</PRE>
+
+
+<P>
+
+After that, newName can be used as an alias for <FONT SIZE="-1">ENCODING</FONT>.
+<FONT SIZE="-1">ENCODING</FONT> may be either the name of an encoding or an
+<I>encoding object</I>
+<P>
+
+But before you do so, make sure the alias is nonexistent with
+<TT>&quot;resolve_alias()&quot;</TT>, which returns the canonical name thereof.
+i.e.
+<P>
+
+
+
+<PRE>
+  Encode::resolve_alias(&quot;latin1&quot;) eq &quot;iso-8859-1&quot; # true
+  Encode::resolve_alias(&quot;iso-8859-12&quot;)   # false; nonexistent
+  Encode::resolve_alias($name) eq $name  # true if $name is canonical
+
+</PRE>
+
+
+<P>
+
+<I>resolve_alias()</I> does not need <TT>&quot;use Encode::Alias&quot;</TT>; it can be
+exported via <TT>&quot;use Encode qw(resolve_alias)&quot;</TT>.
+<P>
+
+See Encode::Alias for details.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Finding <FONT SIZE="-1">IANA</FONT> Character Set Registry names</H3>
+
+<A NAME="ixAAP"></A>
+The canonical name of a given encoding does not necessarily agree with
+<FONT SIZE="-1">IANA</FONT> <FONT SIZE="-1">IANA</FONT> Character Set Registry, commonly seen as <TT>&quot;Content-Type:
+text/plain; charset=I&lt;whatever&gt;&quot;</TT>.  For most cases canonical names
+work but sometimes it does not (notably 'utf-8-strict').
+<P>
+
+Therefore as of Encode version 2.21, a new method <TT>&quot;mime_name()&quot;</TT> is added.
+<P>
+
+
+
+<PRE>
+  use Encode;
+  my $enc = find_encoding('UTF-8');
+  warn $enc-&gt;name;      # utf-8-strict
+  warn $enc-&gt;mime_name; # UTF-8
+
+</PRE>
+
+
+<P>
+
+See also:  Encode::Encoding
+<A NAME="lbAK">&nbsp;</A>
+<H2>Encoding via PerlIO</H2>
+
+<A NAME="ixAAQ"></A>
+If your perl supports <I>PerlIO</I> (which is the default), you can use a
+PerlIO layer to decode and encode directly via a filehandle.  The
+following two examples are totally identical in their functionality.
+<P>
+
+
+
+<PRE>
+  # via PerlIO
+  open my $in,  &quot;&lt;:encoding(shiftjis)&quot;, $infile  or die;
+  open my $out, &quot;&gt;:encoding(euc-jp)&quot;,   $outfile or die;
+  while(&lt;$in&gt;){ print $out $_; }
+
+  # via from_to
+  open my $in,  &quot;&lt;&quot;, $infile  or die;
+  open my $out, &quot;&gt;&quot;, $outfile or die;
+  while(&lt;$in&gt;){
+    from_to($_, &quot;shiftjis&quot;, &quot;euc-jp&quot;, 1);
+    print $out $_;
+  }
+
+</PRE>
+
+
+<P>
+
+Unfortunately, it may be that encodings are PerlIO-savvy.  You can check
+if your encoding is supported by PerlIO by calling the <TT>&quot;perlio_ok&quot;</TT>
+method.
+<P>
+
+
+
+<PRE>
+  Encode::perlio_ok(&quot;hz&quot;);             # False
+  find_encoding(&quot;euc-cn&quot;)-&gt;perlio_ok;  # True where PerlIO is available
+
+  use Encode qw(perlio_ok);            # exported upon request
+  perlio_ok(&quot;euc-jp&quot;)
+
+</PRE>
+
+
+<P>
+
+Fortunately, all encodings that come with Encode core are PerlIO-savvy
+except for hz and ISO-2022-kr.  For gory details, see
+Encode::Encoding and Encode::PerlIO.
+<A NAME="lbAL">&nbsp;</A>
+<H2>Handling Malformed Data</H2>
+
+<A NAME="ixAAR"></A>
+The optional <I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> argument tells Encode what to do when it
+encounters malformed data.  Without <FONT SIZE="-1">CHECK</FONT>, Encode::FB_DEFAULT ( == 0 )
+is assumed.
+<P>
+
+As of version 2.12 Encode supports coderef values for <FONT SIZE="-1">CHECK</FONT>.  See below.
+<DL COMPACT>
+<DT><B></B><FONT SIZE="-1"><B>NOTE:</B></FONT><B></B> Not all encoding support this feature<DD>
+<A NAME="ixAAS"></A>
+Some encodings ignore <I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> argument.  For example,
+Encode::Unicode ignores <I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> and it always croaks on error.
+</DL>
+<P>
+
+Now here is the list of <I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> values available
+<DL COMPACT>
+<DT><I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> = Encode::FB_DEFAULT ( == 0)<DD>
+<A NAME="ixAAT"></A>
+If <I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> is 0, (en|de)code will put a <I>substitution character</I> in
+place of a malformed character.  When you encode, &lt;subchar&gt;
+will be used.  When you decode the code point <TT>0xFFFD</TT> is used.  If
+the data is supposed to be <FONT SIZE="-1">UTF-8</FONT>, an optional lexical warning
+(category utf8) is given.
+<DT><I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> = Encode::FB_CROAK ( == 1)<DD>
+<A NAME="ixAAU"></A>
+If <I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> is 1, methods will die on error immediately with an error
+message.  Therefore, when <I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> is set to 1,  you should trap the
+error with eval{} unless you really want to let it die.
+<DT><I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> = Encode::FB_QUIET<DD>
+<A NAME="ixAAV"></A>
+If <I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> is set to Encode::FB_QUIET, (en|de)code will immediately
+return the portion of the data that has been processed so far when an
+error occurs. The data argument will be overwritten with everything
+after that point (that is, the unprocessed part of data).  This is
+handy when you have to call decode repeatedly in the case where your
+source data may contain partial multi-byte character sequences,
+(i.e. you are reading with a fixed-width buffer). Here is a sample
+code that does exactly this:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $buffer = ''; my $string = '';
+  while(read $fh, $buffer, 256, length($buffer)){
+    $string .= decode($encoding, $buffer, Encode::FB_QUIET);
+    # $buffer now contains the unprocessed partial character
+  }
+
+</PRE>
+
+
+<DT><I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> = Encode::FB_WARN<DD>
+<A NAME="ixAAW"></A>
+This is the same as above, except that it warns on error.  Handy when
+you are debugging the mode above.
+<DT>perlqq mode (<I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> = Encode::FB_PERLQQ)<DD>
+<A NAME="ixAAX"></A>
+
+<DT><FONT SIZE="-1">HTML</FONT> charref mode (<I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> = Encode::FB_HTMLCREF)<DD>
+<A NAME="ixAAY"></A>
+<DT><FONT SIZE="-1">XML</FONT> charref mode (<I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> = Encode::FB_XMLCREF)<DD>
+<A NAME="ixAAZ"></A>
+
+For encodings that are implemented by Encode::XS, <FONT SIZE="-1">CHECK</FONT> ==
+Encode::FB_PERLQQ turns (en|de)code into <TT>&quot;perlqq&quot;</TT> fallback mode.
+
+
+<P>
+
+
+When you decode, <TT>&quot;\x</TT>HH<TT>&quot;</TT> will be inserted for a malformed character,
+where <I></I><FONT SIZE="-1"><I>HH</I></FONT><I></I> is the hex representation of the octet  that could not be
+decoded to utf8.  And when you encode, <TT>&quot;\x{</TT>HHHH<TT>}&quot;</TT> will be inserted,
+where <I></I><FONT SIZE="-1"><I>HHHH</I></FONT><I></I> is the Unicode <FONT SIZE="-1">ID</FONT> of the character that cannot be found
+in the character repertoire of the encoding.
+
+
+<P>
+
+
+<FONT SIZE="-1">HTML/XML</FONT> character reference modes are about the same, in place of
+<TT>&quot;\x{</TT>HHHH<TT>}&quot;</TT>, <FONT SIZE="-1">HTML</FONT> uses <TT>&quot;&amp;#</TT>NNN<TT>;&quot;</TT> where <I></I><FONT SIZE="-1"><I>NNN</I></FONT><I></I> is a decimal number and
+<FONT SIZE="-1">XML</FONT> uses <TT>&quot;&amp;#x</TT>HHHH<TT>;&quot;</TT> where <I></I><FONT SIZE="-1"><I>HHHH</I></FONT><I></I> is the hexadecimal number.
+
+
+<P>
+
+
+In Encode 2.10 or later, <TT>&quot;LEAVE_SRC&quot;</TT> is also implied.
+<DT>The bitmask<DD>
+<A NAME="ixABA"></A>
+These modes are actually set via a bitmask.  Here is how the <FONT SIZE="-1">FB_XX</FONT>
+constants are laid out.  You can import the <FONT SIZE="-1">FB_XX</FONT> constants via
+<TT>&quot;use Encode qw(:fallbacks)&quot;</TT>; you can import the generic bitmask
+constants via <TT>&quot;use Encode qw(:fallback_all)&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+                     FB_DEFAULT FB_CROAK FB_QUIET FB_WARN  FB_PERLQQ
+ DIE_ON_ERR    0x0001             X
+ WARN_ON_ERR   0x0002                               X
+ RETURN_ON_ERR 0x0004                      X        X
+ LEAVE_SRC     0x0008                                        X
+ PERLQQ        0x0100                                        X
+ HTMLCREF      0x0200
+ XMLCREF       0x0400
+
+</PRE>
+
+
+<DT>Encode::LEAVE_SRC<DD>
+<A NAME="ixABB"></A>
+If the <TT>&quot;Encode::LEAVE_SRC&quot;</TT> bit is not set, but <I></I><FONT SIZE="-1"><I>CHECK</I></FONT><I></I> is, then the second
+argument to <TT>&quot;encode()&quot;</TT> or <TT>&quot;decode()&quot;</TT> may be assigned to by the functions. If
+you're not interested in this, then bitwise-or the bitmask with it.
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H3>coderef for <FONT SIZE="-1">CHECK</FONT></H3>
+
+<A NAME="ixABC"></A>
+As of Encode 2.12 <FONT SIZE="-1">CHECK</FONT> can also be a code reference which takes the
+ord value of unmapped caharacter as an argument and returns a string
+that represents the fallback character.  For instance,
+<P>
+
+
+
+<PRE>
+  $ascii = encode(&quot;ascii&quot;, $utf8, sub{ sprintf &quot;&lt;U+%04X&gt;&quot;, shift });
+
+</PRE>
+
+
+<P>
+
+Acts like <FONT SIZE="-1">FB_PERLQQ</FONT> but &lt;U+<I></I><FONT SIZE="-1"><I>XXXX</I></FONT><I></I>&gt; is used instead of
+\x{<I></I><FONT SIZE="-1"><I>XXXX</I></FONT><I></I>}.
+<A NAME="lbAN">&nbsp;</A>
+<H2>Defining Encodings</H2>
+
+<A NAME="ixABD"></A>
+To define a new encoding, use:
+<P>
+
+
+
+<PRE>
+    use Encode qw(define_encoding);
+    define_encoding($object, 'canonicalName' [, alias...]);
+
+</PRE>
+
+
+<P>
+
+<I>canonicalName</I> will be associated with <I></I>$object<I></I>.  The object
+should provide the interface described in Encode::Encoding.
+If more than two arguments are provided then additional
+arguments are taken as aliases for <I></I>$object<I></I>.
+<P>
+
+See Encode::Encoding for more details.
+<A NAME="lbAO">&nbsp;</A>
+<H2>The UTF8 flag</H2>
+
+<A NAME="ixABE"></A>
+Before the introduction of Unicode support in perl, The <TT>&quot;eq&quot;</TT> operator
+just compared the strings represented by two scalars. Beginning with
+perl 5.8, <TT>&quot;eq&quot;</TT> compares two strings with simultaneous consideration of
+<I>the </I><FONT SIZE="-1"><I>UTF8</I></FONT><I> flag</I>. To explain why we made it so, I will quote page 402 of
+<TT>&quot;Programming Perl, 3rd ed.&quot;</TT>
+<DL COMPACT>
+<DT>Goal #1:<DD>
+<A NAME="ixABF"></A>
+Old byte-oriented programs should not spontaneously break on the old
+byte-oriented data they used to work on.
+<DT>Goal #2:<DD>
+<A NAME="ixABG"></A>
+Old byte-oriented programs should magically start working on the new
+character-oriented data when appropriate.
+<DT>Goal #3:<DD>
+<A NAME="ixABH"></A>
+Programs should run just as fast in the new character-oriented mode
+as in the old byte-oriented mode.
+<DT>Goal #4:<DD>
+<A NAME="ixABI"></A>
+Perl should remain one language, rather than forking into a
+byte-oriented Perl and a character-oriented Perl.
+</DL>
+<P>
+
+Back when <TT>&quot;Programming Perl, 3rd ed.&quot;</TT> was written, not even Perl 5.6.0
+was born and many features documented in the book remained
+unimplemented for a long time.  Perl 5.8 corrected this and the introduction
+of the <FONT SIZE="-1">UTF8</FONT> flag is one of them.  You can think of this perl notion as of a
+byte-oriented mode (<FONT SIZE="-1">UTF8</FONT> flag off) and a character-oriented mode (<FONT SIZE="-1">UTF8</FONT>
+flag on).
+<P>
+
+Here is how Encode takes care of the <FONT SIZE="-1">UTF8</FONT> flag.
+<DL COMPACT>
+<DT>*<DD>
+When you encode, the resulting <FONT SIZE="-1">UTF8</FONT> flag is always off.
+<DT>*<DD>
+When you decode, the resulting <FONT SIZE="-1">UTF8</FONT> flag is on unless you can
+unambiguously represent data.  Here is the definition of
+dis-ambiguity.
+
+
+<P>
+
+
+After <TT>&quot;$utf8 = decode('foo', $octet);&quot;</TT>,
+
+
+<P>
+
+
+
+
+<PRE>
+  When $octet is...   The UTF8 flag in $utf8 is
+  ---------------------------------------------
+  In ASCII only (or EBCDIC only)            OFF
+  In ISO-8859-1                              ON
+  In any other Encoding                      ON
+  ---------------------------------------------
+
+</PRE>
+
+
+
+
+<P>
+
+
+As you see, there is one exception, In <FONT SIZE="-1">ASCII</FONT>.  That way you can assume
+Goal #1.  And with Encode Goal #2 is assumed but you still have to be
+careful in such cases mentioned in <B></B><FONT SIZE="-1"><B>CAVEAT</B></FONT><B></B> paragraphs.
+
+
+<P>
+
+
+This <FONT SIZE="-1">UTF8</FONT> flag is not visible in perl scripts, exactly for the same
+reason you cannot (or you <I>don't have to</I>) see if a scalar contains a
+string, integer, or floating point number.   But you can still peek
+and poke these if you will.  See the section below.
+</DL>
+<A NAME="lbAP">&nbsp;</A>
+<H3>Messing with Perl's Internals</H3>
+
+<A NAME="ixABJ"></A>
+The following <FONT SIZE="-1">API</FONT> uses parts of Perl's internals in the current
+implementation.  As such, they are efficient but may change.
+<DL COMPACT>
+<DT>is_utf8(<FONT SIZE="-1">STRING</FONT> [, <FONT SIZE="-1">CHECK</FONT>])<DD>
+<A NAME="ixABK"></A>
+[<FONT SIZE="-1">INTERNAL</FONT>] Tests whether the <FONT SIZE="-1">UTF8</FONT> flag is turned on in the <FONT SIZE="-1">STRING</FONT>.
+If <FONT SIZE="-1">CHECK</FONT> is true, also checks the data in <FONT SIZE="-1">STRING</FONT> for being well-formed
+<FONT SIZE="-1">UTF-8</FONT>.  Returns true if successful, false otherwise.
+
+
+<P>
+
+
+As of perl 5.8.1, utf8 also has <I>utf8::is_utf8()</I>.
+<DT>_utf8_on(<FONT SIZE="-1">STRING</FONT>)<DD>
+<A NAME="ixABL"></A>
+[<FONT SIZE="-1">INTERNAL</FONT>] Turns on the <FONT SIZE="-1">UTF8</FONT> flag in <FONT SIZE="-1">STRING</FONT>.  The data in <FONT SIZE="-1">STRING</FONT> is
+<B>not</B> checked for being well-formed <FONT SIZE="-1">UTF-8</FONT>.  Do not use unless you
+<B>know</B> that the <FONT SIZE="-1">STRING</FONT> is well-formed <FONT SIZE="-1">UTF-8</FONT>.  Returns the previous
+state of the <FONT SIZE="-1">UTF8</FONT> flag (so please don't treat the return value as
+indicating success or failure), or <TT>&quot;undef&quot;</TT> if <FONT SIZE="-1">STRING</FONT> is not a string.
+
+
+<P>
+
+
+This function does not work on tainted values.
+<DT>_utf8_off(<FONT SIZE="-1">STRING</FONT>)<DD>
+<A NAME="ixABM"></A>
+[<FONT SIZE="-1">INTERNAL</FONT>] Turns off the <FONT SIZE="-1">UTF8</FONT> flag in <FONT SIZE="-1">STRING</FONT>.  Do not use frivolously.
+Returns the previous state of the <FONT SIZE="-1">UTF8</FONT> flag (so please don't treat the
+return value as indicating success or failure), or <TT>&quot;undef&quot;</TT> if <FONT SIZE="-1">STRING</FONT> is
+not a string.
+
+
+<P>
+
+
+This function does not work on tainted values.
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H2>UTF-8 vs. utf8 vs. UTF8</H2>
+
+<A NAME="ixABN"></A>
+
+
+<PRE>
+  ....We now view strings not as sequences of bytes, but as sequences
+  of numbers in the range 0 .. 2**32-1 (or in the case of 64-bit
+  computers, 0 .. 2**64-1) -- Programming Perl, 3rd ed.
+
+</PRE>
+
+
+<P>
+
+That has been the perl's notion of <FONT SIZE="-1">UTF-8</FONT> but official <FONT SIZE="-1">UTF-8</FONT> is more
+strict; Its ranges is much narrower (0 .. 10FFFF), some sequences are
+not allowed (i.e. Those used in the surrogate pair, 0xFFFE, et al).
+<P>
+
+Now that is overruled by Larry Wall himself.
+<P>
+
+
+
+<PRE>
+  From: Larry Wall &lt;<A HREF="mailto:larry@wall.org">larry@wall.org</A>&gt;
+  Date: December 04, 2004 11:51:58 JST
+  To: <A HREF="mailto:perl-unicode@perl.org">perl-unicode@perl.org</A>
+  Subject: Re: Make Encode.pm support the real UTF-8
+  Message-Id: &lt;<A HREF="mailto:20041204025158.GA28754@wall.org">20041204025158.GA28754@wall.org</A>&gt;
+  
+  On Fri, Dec 03, 2004 at 10:12:12PM +0000, Tim Bunce wrote:
+  : I've no problem with 'utf8' being perl's unrestricted uft8 encoding,
+  : but &quot;UTF-8&quot; is the name of the standard and should give the
+  : corresponding behaviour.
+  
+  For what it's worth, that's how I've always kept them straight in my
+  head.
+  
+  Also for what it's worth, Perl 6 will mostly default to strict but
+  make it easy to switch back to lax.
+  
+  Larry
+
+</PRE>
+
+
+<P>
+
+Do you copy?  As of Perl 5.8.7, <B></B><FONT SIZE="-1"><B>UTF-8</B></FONT><B></B> means strict, official <FONT SIZE="-1">UTF-8</FONT>
+while <B>utf8</B> means liberal, lax, version thereof.  And Encode version
+2.10 or later thus groks the difference between <TT>&quot;UTF-8&quot;</TT> and C``utf8''.
+<P>
+
+
+
+<PRE>
+  encode(&quot;utf8&quot;,  &quot;\x{FFFF_FFFF}&quot;, 1); # okay
+  encode(&quot;UTF-8&quot;, &quot;\x{FFFF_FFFF}&quot;, 1); # croaks
+
+</PRE>
+
+
+<P>
+
+<TT>&quot;UTF-8&quot;</TT> in Encode is actually a canonical name for <TT>&quot;utf-8-strict&quot;</TT>.
+Yes, the hyphen between ``<FONT SIZE="-1">UTF</FONT>'' and ``8'' is important.  Without it Encode
+goes ``liberal''
+<P>
+
+
+
+<PRE>
+  find_encoding(&quot;UTF-8&quot;)-&gt;name # is 'utf-8-strict'
+  find_encoding(&quot;utf-8&quot;)-&gt;name # ditto. names are case insensitive
+  find_encoding(&quot;utf_8&quot;)-&gt;name  # ditto. &quot;_&quot; are treated as &quot;-&quot;
+  find_encoding(&quot;UTF8&quot;)-&gt;name  # is 'utf8'.
+
+</PRE>
+
+
+<P>
+
+The <FONT SIZE="-1">UTF8</FONT> flag is internally called <FONT SIZE="-1">UTF8</FONT>, without a hyphen. It indicates
+whether a string is internally encoded as utf8, also without a hypen.
+<A NAME="lbAR">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABO"></A>
+Encode::Encoding,
+Encode::Supported,
+Encode::PerlIO,
+encoding,
+perlebcdic,
+``open'' in perlfunc,
+perlunicode, perluniintro, perlunifaq, perlunitut
+utf8,
+the Perl Unicode Mailing List &lt;<A HREF="mailto:perl-unicode@perl.org">perl-unicode@perl.org</A>&gt;
+<A NAME="lbAS">&nbsp;</A>
+<H2>MAINTAINER</H2>
+
+<A NAME="ixABP"></A>
+This project was originated by Nick Ing-Simmons and later maintained
+by Dan Kogai &lt;<A HREF="mailto:dankogai@dan.co.jp">dankogai@dan.co.jp</A>&gt;.  See <FONT SIZE="-1">AUTHORS</FONT> for a full
+list of people involved.  For any questions, use
+&lt;<A HREF="mailto:perl-unicode@perl.org">perl-unicode@perl.org</A>&gt; so we can all share.
+<P>
+
+While Dan Kogai retains the copyright as a maintainer, the credit
+should go to all those involoved.  See <FONT SIZE="-1">AUTHORS</FONT> for those submitted
+codes.
+<A NAME="lbAT">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABQ"></A>
+Copyright 2002-2006 Dan Kogai &lt;<A HREF="mailto:dankogai@dan.co.jp">dankogai@dan.co.jp</A>&gt;
+<P>
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DL>
+<DT><A HREF="#lbAD">Table of Contents</A><DD>
+</DL>
+<DT><A HREF="#lbAE">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAF"><FONT SIZE="-1">TERMINOLOGY</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAG">PERL ENCODING API</A><DD>
+<DL>
+<DT><A HREF="#lbAH">Listing available encodings</A><DD>
+<DT><A HREF="#lbAI">Defining Aliases</A><DD>
+<DT><A HREF="#lbAJ">Finding <FONT SIZE="-1">IANA</FONT> Character Set Registry names</A><DD>
+</DL>
+<DT><A HREF="#lbAK">Encoding via PerlIO</A><DD>
+<DT><A HREF="#lbAL">Handling Malformed Data</A><DD>
+<DL>
+<DT><A HREF="#lbAM">coderef for <FONT SIZE="-1">CHECK</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAN">Defining Encodings</A><DD>
+<DT><A HREF="#lbAO">The UTF8 flag</A><DD>
+<DL>
+<DT><A HREF="#lbAP">Messing with Perl's Internals</A><DD>
+</DL>
+<DT><A HREF="#lbAQ">UTF-8 vs. utf8 vs. UTF8</A><DD>
+<DT><A HREF="#lbAR">SEE ALSO</A><DD>
+<DT><A HREF="#lbAS">MAINTAINER</A><DD>
+<DT><A HREF="#lbAT">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:23 GMT, December 24, 2015
+</div></body>
+</HTML>

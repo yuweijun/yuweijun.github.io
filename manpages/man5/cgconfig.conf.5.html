@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CGCONFIG.CONF</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CGCONFIG.CONF</H1>
+Section: File Formats (5)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+cgconfig.conf - libcgroup configuration file
+
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>cgconfig.conf</B>
+
+is the configuration file used by
+<B>libcgroup</B>
+
+to define control groups, their parameters and also mount points.
+The file consists of
+<I>mount</I>
+
+and
+<I>group</I>
+
+sections.
+These sections can be in arbitrary order.
+Any line starting with '#' is considered as comment line and is
+ignored.
+<P>
+
+<I>mount</I>
+
+section has the form:
+<DL COMPACT><DT><DD>
+<PRE>
+<B>
+mount {
+<DL COMPACT><DT><DD>&lt;controller&gt; = &lt;path&gt;;
+</B><I>...</I>
+</DL>
+<B>}
+</B></PRE>
+
+</DL>
+
+<P>
+<DL COMPACT>
+<DT><B>controller</B>
+
+<DD>
+Name of kernel subsystem. List of subsystems supported by kernel
+can be found in 
+<I>/proc/cgroups</I>
+
+file.
+<B>Libcgroup</B>
+
+merges all subsystems mounted to the same directory (see
+Example 1) and the directory is mounted only once.
+<P>
+<DT><B>path</B>
+
+<DD>
+The directory path, where group hierarchy associated to given
+controller, shall be mounted. The directory is created
+automatically on cgconfig service startup if it does not exist and
+is deleted on service shutdown.
+</DL>
+<P>
+
+<I>group</I>
+
+section has the form:
+<DL COMPACT><DT><DD>
+<PRE>
+<B>
+group &lt;name&gt; {
+<DL COMPACT><DT><DD>[permissions]
+&lt;controller&gt; {
+<DL COMPACT><DT><DD>&lt;param name&gt; = &lt;param value&gt;;
+</B><I>...</I>
+</DL>
+<B>}
+</B><I>...</I>
+</DL>
+<B>}
+</B></PRE>
+
+</DL>
+
+<P>
+<DL COMPACT>
+<DT><B>name</B>
+
+<DD>
+Name of the control group. It can contain only characters, which are
+allowed for directory names. 
+The groups form a tree, i.e. a control group can contain zero or more
+subgroups. Subgroups can be specified using '/' delimiter. 
+<P>
+The root control group is always created automatically in all hierarchies
+and it is the base of the group hierarchy. It can be explicitly specified in
+<B>cgconfig.conf</B>
+
+file by using '.' as group name. This can be used e.g. to set its permissions,
+as shown in Example 5.
+<P>
+When the parent control group of a subgroup is not specified,
+then it is created automatically.
+<P>
+<DT><B>permissions</B>
+
+<DD>
+Permissions of the given control group on mounted filesystem.
+<I>root</I>
+
+has always permission to do anything with the control group.
+Permissions have the following syntax:
+<DL COMPACT><DT><DD>
+<B>
+</B><PRE>
+perm {
+<DL COMPACT><DT><DD><B>task {
+<DL COMPACT><DT><DD>uid = &lt;task user&gt;;
+gid = &lt;task group&gt;;
+</DL>
+}
+admin {
+<DL COMPACT><DT><DD>uid = &lt;admin name&gt;;
+gid = &lt;admin group&gt;;
+</DL>
+}
+</DL>
+}
+</B></PRE>
+
+</DL>
+
+
+<P>
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>task user/group</B>
+
+<DD>
+Name of the user and the group, which owns
+<I>tasks</I>
+
+file of the control group. I.e. this user and members of this
+group has write access to the file.
+<DT><B>admin user/group</B>
+
+<DD>
+Name of the user and the group, which owns the rest of control group's
+files. These users are allowed to set subsystem
+parameters and create subgroups.
+</DL>
+<P>
+
+Permissions are related only to enclosing control group and are not
+inherited by subgroups. If there is no
+<B>perm</B>
+
+section in control group definition,
+<I>root:root</I>
+
+is owner of all files.
+</DL>
+
+<DT><B>controller</B>
+
+<DD>
+Name of the kernel subsystem.
+The section can be
+empty, default kernel parameters will be used in this case. By
+specifying
+<B>controller</B>
+
+the control group and all its parents are controlled by the specific
+subsystem. One control group can be controlled by multiple subsystems,
+even if the subsystems are mounted to different directories. Each
+control group must be controlled by at least one subsystem, so
+<B>libcgroup</B>
+
+knows, in which hierarchies the control group should be created.
+<P>
+The parameters of given controller can be modified in following section 
+enclosed in brackets.
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>param name</B>
+
+<DD>
+Name of the file to set. Each controller can have zero or more
+parameters.
+<DT><B>param value</B>
+
+<DD>
+Value, which should be written to the file when the control group is
+created. Optionally it can be enclosed in double quotes `&quot;', it can
+contain spaces then.
+</DL>
+</DL>
+
+<P>
+
+</DL>
+<A NAME="lbAD">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+<A NAME="lbAE">&nbsp;</A>
+<H3>Example 1</H3>
+
+<P>
+
+The configuration file:
+<P>
+
+<DL COMPACT><DT><DD>
+<PRE>
+mount {
+<DL COMPACT><DT><DD>cpu = /mnt/cgroups/cpu;
+cpuacct = /mnt/cgroups/cpu;
+</DL>
+}
+</PRE>
+
+</DL>
+
+<P>
+creates the hierarchy controlled by two subsystems, with no groups
+inside. It corresponds to following operations:
+<P>
+
+<DL COMPACT><DT><DD>
+<PRE>
+mkdir /mnt/cgroups/cpu
+mount -t cgroup -o cpu,cpuacct cpu /mnt/cgroups/cpu
+</PRE>
+
+</DL>
+
+<P>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Example 2</H3>
+
+<P>
+
+The configuration file:
+<P>
+
+<DL COMPACT><DT><DD>
+<PRE>
+mount {
+<DL COMPACT><DT><DD>cpu = /mnt/cgroups/cpu;
+cpuacct = /mnt/cgroups/cpu;
+</DL>
+}
+
+group daemons/www {
+<DL COMPACT><DT><DD>perm {
+<DL COMPACT><DT><DD>task {
+<DL COMPACT><DT><DD>uid = root;
+gid = webmaster;
+</DL>
+}
+admin {
+<DL COMPACT><DT><DD>uid = root;
+gid = root;
+</DL>
+}
+</DL>
+}
+cpu {
+<DL COMPACT><DT><DD>cpu.shares = &quot;1000&quot;;
+</DL>
+}
+</DL>
+}
+
+group daemons/ftp {
+<DL COMPACT><DT><DD>perm {
+<DL COMPACT><DT><DD>task {
+<DL COMPACT><DT><DD>uid = root;
+gid = ftpmaster;
+</DL>
+}
+admin {
+<DL COMPACT><DT><DD>uid = root;
+gid = root;
+</DL>
+}
+</DL>
+}
+cpu {
+<DL COMPACT><DT><DD>cpu.shares = &quot;500&quot;;
+</DL>
+}
+</DL>
+}
+</DL>
+</PRE>
+
+creates the hierarchy controlled by two subsystems with one group and
+two subgroups inside, setting one parameter.
+It corresponds to following operations:
+<P>
+
+<DL COMPACT><DT><DD>
+<PRE>
+mkdir /mnt/cgroups/cpu
+mount -t cgroup -o cpu,cpuacct cpu /mnt/cgroups/cpu
+
+mkdir /mnt/cgroups/cpu/daemons
+
+mkdir /mnt/cgroups/cpu/daemons/www
+chown root:root /mnt/cgroups/cpu/daemons/www/*
+chown root:webmaster /mnt/cgroups/cpu/daemons/www/tasks
+echo 1000 &gt; /mnt/cgroups/cpu/daemons/www/cpu.shares
+
+mkdir /mnt/cgroups/cpu/daemons/ftp
+chown root:root /mnt/cgroups/cpu/daemons/ftp/*
+chown root:ftpmaster /mnt/cgroups/cpu/daemons/ftp/tasks
+echo 500 &gt; /mnt/cgroups/cpu/daemons/ftp/cpu.shares
+</PRE>
+
+</DL>
+
+<P>
+The
+<I>daemons</I>
+
+group is created automatically when its first subgroup is
+created. All its parameters have the default value and only root can
+access group's files.
+<P>
+
+Since both
+<I>cpuacct</I>
+
+and
+<I>cpu</I>
+
+subsystems are mounted to the same directory, all
+groups are implicitly controlled also by
+<I>cpuacct</I>
+
+subsystem, even if there is no
+<I>cpuacct</I>
+
+section in any of the groups.
+
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H3>Example 3</H3>
+
+<P>
+
+The configuration file:
+<P>
+<P>
+
+<DL COMPACT><DT><DD>
+<PRE>
+mount {
+<DL COMPACT><DT><DD>cpu = /mnt/cgroups/cpu;
+cpuacct = /mnt/cgroups/cpuacct;
+</DL>
+}
+
+group daemons {
+<DL COMPACT><DT><DD>cpuacct{
+}
+cpu {
+}
+</DL>
+}
+</PRE>
+
+</DL>
+
+creates two hierarchies and one common group in both of them.
+It corresponds to following operations:
+<P>
+
+<DL COMPACT><DT><DD>
+<PRE>
+mkdir /mnt/cgroups/cpu
+mkdir /mnt/cgroups/cpuacct
+mount -t cgroup -o cpu cpu /mnt/cgroups/cpu
+mount -t cgroup -o cpuacct cpuacct /mnt/cgroups/cpuacct
+
+mkdir /mnt/cgroups/cpu/daemons
+mkdir /mnt/cgroups/cpuacct/daemons
+</PRE>
+
+</DL>
+
+<P>
+In fact there are two groups created. One in
+<I>cpuacct</I>
+
+hierarchy, the second in
+<I>cpu</I>
+
+hierarchy. These two groups have nothing in common and can
+contain different subgroups and different tasks.
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Example 4</H3>
+
+<P>
+
+<P>
+The configuration file:
+<P>
+<P>
+
+<DL COMPACT><DT><DD>
+<PRE>
+mount {
+<DL COMPACT><DT><DD>cpu = /mnt/cgroups/cpu;
+cpuacct = /mnt/cgroups/cpuacct;
+</DL>
+}
+
+group daemons {
+<DL COMPACT><DT><DD>cpuacct{
+}
+</DL>
+}
+
+group daemons/www {
+<DL COMPACT><DT><DD>cpu {
+<DL COMPACT><DT><DD>cpu.shares = &quot;1000&quot;;
+</DL>
+}
+</DL>
+}
+
+group daemons/ftp {
+<DL COMPACT><DT><DD>cpu {
+<DL COMPACT><DT><DD>cpu.shares = &quot;500&quot;;
+</DL>
+}
+</DL>
+}
+</PRE>
+
+</DL>
+
+creates two hierarchies with few groups inside. One of groups
+is created in both hierarchies.
+<P>
+It corresponds to following operations:
+<P>
+
+<DL COMPACT><DT><DD>
+<PRE>
+mkdir /mnt/cgroups/cpu
+mkdir /mnt/cgroups/cpuacct
+mount -t cgroup -o cpu cpu /mnt/cgroups/cpu
+mount -t cgroup -o cpuacct cpuacct /mnt/cgroups/cpuacct
+
+mkdir /mnt/cgroups/cpuacct/daemons
+mkdir /mnt/cgroups/cpu/daemons
+mkdir /mnt/cgroups/cpu/daemons/www
+echo 1000 &gt; /mnt/cgroups/cpu/daemons/www/cpu.shares
+mkdir /mnt/cgroups/cpu/daemons/ftp
+echo 500 &gt; /mnt/cgroups/cpu/daemons/ftp/cpu.shares
+</PRE>
+
+</DL>
+
+Group
+<I>daemons</I>
+
+is created in both hierarchies. In
+<I>cpuacct</I>
+
+hierarchy the group is explicitly mentioned in the configuration
+file. In 
+<I>cpu</I>
+
+hierarchy is the group created implicitly when
+<I>www</I>
+
+is created there. These two groups have nothing in common, for example
+they do not share processes and subgroups. Groups
+<I>www</I>
+
+and
+<I>ftp</I>
+
+are created only in
+<I>cpu</I>
+
+hierarchy and are not controlled by
+<I>cpuacct</I>
+
+subsystem.
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Example 5</H3>
+
+<P>
+
+The configuration file:
+<P>
+
+<DL COMPACT><DT><DD>
+<PRE>
+mount {
+<DL COMPACT><DT><DD>cpu = /mnt/cgroups/cpu;
+cpuacct = /mnt/cgroups/cpu;
+</DL>
+}
+
+group . {
+<DL COMPACT><DT><DD>perm {
+<DL COMPACT><DT><DD>task {
+<DL COMPACT><DT><DD>uid = root;
+gid = operator;
+</DL>
+}
+admin {
+<DL COMPACT><DT><DD>uid = root;
+gid = operator;
+</DL>
+}
+</DL>
+}
+cpu {
+}
+</DL>
+}
+
+group daemons {
+<DL COMPACT><DT><DD>perm {
+<DL COMPACT><DT><DD>task {
+<DL COMPACT><DT><DD>uid = root;
+gid = daemonmaster;
+</DL>
+}
+admin {
+<DL COMPACT><DT><DD>uid = root;
+gid = operator;
+</DL>
+}
+</DL>
+}
+cpu {
+}
+</DL>
+}
+</DL>
+</PRE>
+
+creates the hierarchy controlled by two subsystems with one group with some
+special permissions.
+It corresponds to following operations:
+<P>
+
+<DL COMPACT><DT><DD>
+<PRE>
+mkdir /mnt/cgroups/cpu
+mount -t cgroup -o cpu,cpuacct cpu /mnt/cgroups/cpu
+
+chown root:operator /mnt/cgroups/cpu/*
+chown root:operator /mnt/cgroups/cpu/tasks
+
+mkdir /mnt/cgroups/cpu/daemons
+chown root:operator /mnt/cgroups/cpu/daemons/*
+chown root:daemonmaster /mnt/cgroups/cpu/daemons/tasks
+</PRE>
+
+</DL>
+
+<P>
+Users, which are members of the 
+<I>operator</I>
+
+group are allowed to administer the control groups, i.e. create new control
+groups and can move processes between these groups without having root
+privileges.
+<P>
+Members of
+<I>daemonmaster</I>
+
+group can move processes to
+<I>daemons</I>
+
+control group, but they can not move the process out of the group. Only
+<I>operator</I>
+
+or root can do that.
+<P>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>RECOMMENDATIONS</H2>
+
+<A NAME="lbAK">&nbsp;</A>
+<H3>Keep hierarchies separated</H3>
+
+Having multiple hierarchies is perfectly valid and can be useful
+in various scenarios. To keeps things clean, do not
+create one group in multiple hierarchies. Examples 3 and 4 shows,
+how unreadable and confusing it can be, especially when reading
+somebody others configuration file.
+<P>
+<A NAME="lbAL">&nbsp;</A>
+<H3>Explicit is better than implicit</H3>
+
+<B>libcgroup</B>
+
+can implicitly create groups which are needed for creation of
+configured subgroups. This may be useful and save some typing in
+simple scenarios. When it comes to multiple hierarchies, it's
+better to explicitly specify all groups and all controllers
+related to them.
+<P>
+<A NAME="lbAM">&nbsp;</A>
+<H2>FILES</H2>
+
+<P>
+
+
+<DL COMPACT>
+<DT><B>/etc/cgconfig.conf</B>
+
+<DD>
+<DT>default libcgroup configuration file<DD>
+
+<P>
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+cgconfigparser (8)
+<P>
+<A NAME="lbAO">&nbsp;</A>
+<H2>BUGS</H2>
+
+Parameter values can be only single string without spaces.
+Parsing of quoted strings is not implemented.
+<P>
+<A NAME="lbAP">&nbsp;</A>
+<H2></H2>
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">EXAMPLES</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Example 1</A><DD>
+<DT><A HREF="#lbAF">Example 2</A><DD>
+<DT><A HREF="#lbAG">Example 3</A><DD>
+<DT><A HREF="#lbAH">Example 4</A><DD>
+<DT><A HREF="#lbAI">Example 5</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">RECOMMENDATIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAK">Keep hierarchies separated</A><DD>
+<DT><A HREF="#lbAL">Explicit is better than implicit</A><DD>
+</DL>
+<DT><A HREF="#lbAM">FILES</A><DD>
+<DT><A HREF="#lbAN">SEE ALSO</A><DD>
+<DT><A HREF="#lbAO">BUGS</A><DD>
+<DT><A HREF="#lbAP"></A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:59 GMT, December 24, 2015
+</div></body>
+</HTML>

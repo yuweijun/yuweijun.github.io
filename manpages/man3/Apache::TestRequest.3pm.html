@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Apache::TestRequest</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Apache::TestRequest</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2007-12-31<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Apache::TestRequest - Send requests to your Apache test server
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Apache::Test qw(ok have_lwp);
+  use Apache::TestRequest qw(GET POST);
+  use Apache::Constants qw(HTTP_OK);
+
+  plan tests =&gt; 1, have_lwp;
+
+  my $res = GET '/test.html';
+  ok $res-&gt;code == HTTP_OK, &quot;Request is ok&quot;;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<B>Apache::TestRequest</B> provides convenience functions to allow you to
+make requests to your Apache test server in your test scripts. It
+subclasses <TT>&quot;LWP::UserAgent&quot;</TT>, so that you have access to all if its
+methods, but also exports a number of useful functions likely useful
+for majority of your test requests. Users of the old <TT>&quot;Apache::test&quot;</TT>
+(or <TT>&quot;Apache::testold&quot;</TT>) module, take note! Herein lie most of the
+functions you'll need to use to replace <TT>&quot;Apache::test&quot;</TT> in your test
+suites.
+<P>
+
+Each of the functions exported by <TT>&quot;Apache::TestRequest&quot;</TT> uses an
+<TT>&quot;LWP::UserAgent&quot;</TT> object to submit the request and retrieve its
+results. The return value for many of these functions is an
+HTTP::Response object. See HTTP::Response for
+documentation of its methods, which you can use in your tests. For
+example, use the <TT>&quot;code()&quot;</TT> and <TT>&quot;content()&quot;</TT> methods to test the
+response code and content of your request. Using <TT>&quot;GET&quot;</TT>, you can
+perform a couple of tests using these methods like this:
+<P>
+
+
+
+<PRE>
+  use Apache::Test qw(ok have_lwp);
+  use Apache::TestRequest qw(GET POST);
+  use Apache::Constants qw(HTTP_OK);
+
+  plan tests =&gt; 2, have_lwp;
+
+  my $uri = &quot;/test.html?foo=1&amp;bar=2&quot;;
+  my $res = GET $uri;
+  ok $res-&gt;code == HTTP_OK, &quot;Check that the request was OK&quot;;
+  ok $res-&gt;content eq &quot;foo =&gt; 1, bar =&gt; 2&quot;, &quot;Check its content&quot;;
+
+</PRE>
+
+
+<P>
+
+Note that you can also use <TT>&quot;Apache::TestRequest&quot;</TT> with
+<TT>&quot;Test::Builder&quot;</TT> and its derivatives, including <TT>&quot;Test::More&quot;</TT>:
+<P>
+
+
+
+<PRE>
+  use Test::More;
+  # ...
+  is $res-&gt;code, HTTP_OK, &quot;Check that the request was OK&quot;;
+  is $res-&gt;content, &quot;foo =&gt; 1, bar =&gt; 2&quot;, &quot;Check its content&quot;;
+
+</PRE>
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>CONFIGURATION FUNCTION</H2>
+
+<A NAME="ixAAE"></A>
+You can tell <TT>&quot;Apache::TestRequest&quot;</TT> what kind of <TT>&quot;LWP::UserAgent&quot;</TT>
+object to use for its convenience functions with <TT>&quot;user_agent()&quot;</TT>. This
+function uses its arguments to construct an internal global
+<TT>&quot;LWP::UserAgent&quot;</TT> object that will be used for all subsequent requests
+made by the convenience functions. The arguments it takes are the same
+as for the <TT>&quot;LWP::UserAgent&quot;</TT> constructor. See the
+<TT>&quot;LWP::UserAgent&quot;</TT> documentation for a complete list.
+<P>
+
+The <TT>&quot;user_agent()&quot;</TT> function only creates the internal
+<TT>&quot;LWP::UserAgent&quot;</TT> object the first time it is called. Since this
+function is called internally by <TT>&quot;Apache::TestRequest&quot;</TT>, you should
+always use the <TT>&quot;reset&quot;</TT> parameter to force it to create a new global
+<TT>&quot;LWP::UserAgent&quot;</TT> Object:
+<P>
+
+
+
+<PRE>
+  Apache::TestRequest::user_agent(reset =&gt; 1, %params);
+
+</PRE>
+
+
+<P>
+
+<TT>&quot;user_agent()&quot;</TT> differs from <TT>&quot;LWP::UserAgent-&gt;new&quot;</TT> in two
+additional ways. First, it supports an additional parameter,
+<TT>&quot;keep_alive&quot;</TT>, which enables connection persistence, where the same
+connection is used to process multiple requests (and, according to the
+<TT>&quot;LWP::UserAgent&quot;</TT> documentation, has the effect of
+loading and enabling the new experimental <FONT SIZE="-1">HTTP/1</FONT>.1 protocol module).
+<P>
+
+And finally, the semantics of the <TT>&quot;requests_redirectable&quot;</TT> parameter is
+different than for <TT>&quot;LWP::UserAgent&quot;</TT> in that you can pass it a boolean
+value as well as an array for <TT>&quot;LWP::UserAgent&quot;</TT>. To force
+<TT>&quot;Apache::TestRequest&quot;</TT> not to follow redirects in any of its convenience
+functions, pass a false value to <TT>&quot;requests_redirectable&quot;</TT>:
+<P>
+
+
+
+<PRE>
+  Apache::TestRequest::user_agent(reset =&gt; 1,
+                                  requests_redirectable =&gt; 0);
+
+</PRE>
+
+
+<P>
+
+If <FONT SIZE="-1">LWP</FONT> is not installed, then you can still pass in an array reference
+as <TT>&quot;LWP::UserAgent&quot;</TT> expects. <TT>&quot;Apache::TestRequest&quot;</TT> will examine the
+array and allow redirects if the array contains more than one value or
+if there is only one value and that value is not ``<FONT SIZE="-1">POST</FONT>'':
+<P>
+
+
+
+<PRE>
+  # Always allow redirection.
+  my $redir = have_lwp() ? [qw(GET HEAD POST)] : 1;
+  Apache::TestRequest::user_agent(reset =&gt; 1,
+                                  requests_redirectable =&gt; $redir);
+
+</PRE>
+
+
+<P>
+
+But note that redirection will <B>not</B> work with <TT>&quot;POST&quot;</TT> unless <FONT SIZE="-1">LWP</FONT> is
+installed. It's best, therefore, to check <TT>&quot;have_lwp&quot;</TT> before running
+tests that rely on a redirection from <TT>&quot;POST&quot;</TT>.
+<P>
+
+Sometimes it is desireable to have <TT>&quot;Apache::TestRequest&quot;</TT> remember
+cookies sent by the pages you are testing and send them back to the
+server on subsequent requests. This is especially necessary when
+testing pages whose functionality relies on sessions or the presence
+of preferences stored in cookies.
+<P>
+
+By default, <TT>&quot;LWP::UserAgent&quot;</TT> does <B>not</B> remember cookies between
+requests. You can tell it to remember cookies between request by
+adding:
+<P>
+
+
+
+<PRE>
+  Apache::TestRequest::user_agent(cookie_jar =&gt; {});
+
+</PRE>
+
+
+<P>
+
+before issuing the requests.
+<A NAME="lbAF">&nbsp;</A>
+<H2>FUNCTIONS</H2>
+
+<A NAME="ixAAF"></A>
+<TT>&quot;Apache::TestRequest&quot;</TT> exports a number of functions that will likely
+prove convenient for use in the majority of your request tests.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Optional Parameters</H3>
+
+<A NAME="ixAAG"></A>
+Each function also takes a number of optional arguments.
+<DL COMPACT>
+<DT>redirect_ok<DD>
+<A NAME="ixAAH"></A>
+By default a request will follow redirects retrieved from the server. To
+prevent this behavior, pass a false value to a <TT>&quot;redirect_ok&quot;</TT>
+parameter:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $res = GET $uri, redirect_ok =&gt; 0;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Alternately, if all of your tests need to disable redirects, tell
+<TT>&quot;Apache::TestRequest&quot;</TT> to use an <TT>&quot;LWP::UserAgent&quot;</TT> object that
+disables redirects:
+
+
+<P>
+
+
+
+
+<PRE>
+  Apache::TestRequest::user_agent( reset =&gt; 1,
+                                   requests_redirectable =&gt; 0 );
+
+</PRE>
+
+
+<DT>cert<DD>
+<A NAME="ixAAI"></A>
+If you need to force an <FONT SIZE="-1">SSL</FONT> request to use a particular <FONT SIZE="-1">SSL</FONT>
+certificate, pass the name of the certificate via the <TT>&quot;cert&quot;</TT>
+parameter:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $res = GET $uri, cert =&gt; 'my_cert';
+
+</PRE>
+
+
+<DT>content<DD>
+<A NAME="ixAAJ"></A>
+If you need to add content to your request, use the <TT>&quot;content&quot;</TT>
+parameter:
+
+
+<P>
+
+
+
+
+<PRE>
+  my $res = GET $uri, content =&gt; 'hello world!';
+
+</PRE>
+
+
+<DT>filename<DD>
+<A NAME="ixAAK"></A>
+The name of a local file on the file system to be sent to the Apache
+test server via <TT>&quot;UPLOAD()&quot;</TT> and its friends.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>The Functions</H3>
+
+<A NAME="ixAAL"></A>
+<I></I><FONT SIZE="-1"><I>GET</I></FONT><I></I>
+<A NAME="ixAAM"></A>
+<P>
+
+
+
+<PRE>
+  my $res = GET $uri;
+
+</PRE>
+
+
+<P>
+
+Sends a simple <FONT SIZE="-1">GET</FONT> request to the Apache test server. Returns an
+<TT>&quot;HTTP::Response&quot;</TT> object.
+<P>
+
+You can also supply additional headers to be sent with the request by
+adding their name/value pairs after the <TT>&quot;url&quot;</TT> parameter, for example:
+<P>
+
+
+
+<PRE>
+  my $res = GET $url, 'Accept-Language' =&gt; 'de,en-us,en;q=0.5';
+
+</PRE>
+
+
+<P>
+
+<I></I><FONT SIZE="-1"><I>GET_STR</I></FONT><I></I>
+<A NAME="ixAAN"></A>
+<P>
+
+A shortcut function for <TT>&quot;GET($uri)-&gt;as_string&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>GET_BODY</I></FONT><I></I>
+<A NAME="ixAAO"></A>
+<P>
+
+A shortcut function for <TT>&quot;GET($uri)-&gt;content&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>GET_BODY_ASSERT</I></FONT><I></I>
+<A NAME="ixAAP"></A>
+<P>
+
+Use this function when your test is outputting content that you need
+to check, and you want to make sure that the request was successful
+before comparing the contents of the request. If the request was
+unsuccessful, <TT>&quot;GET_BODY_ASSERT&quot;</TT> will return an error
+message. Otherwise it will simply return the content of the request
+just as <TT>&quot;GET_BODY&quot;</TT> would.
+<P>
+
+<I></I><FONT SIZE="-1"><I>GET_OK</I></FONT><I></I>
+<A NAME="ixAAQ"></A>
+<P>
+
+A shortcut function for <TT>&quot;GET($uri)-&gt;is_success&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>GET_RC</I></FONT><I></I>
+<A NAME="ixAAR"></A>
+<P>
+
+A shortcut function for <TT>&quot;GET($uri)-&gt;code&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>GET_HEAD</I></FONT><I></I>
+<A NAME="ixAAS"></A>
+<P>
+
+Throws out the content of the request, and returns the string
+representation of the request. Since the body has been thrown out, the
+representation will consist solely of the headers. Furthermore,
+<TT>&quot;GET_HEAD&quot;</TT> inserts a ``#'' at the beginning of each line of the return
+string, so that the contents are suitable for printing to <FONT SIZE="-1">STDERR</FONT>
+during your tests without interfering with the workings of
+<TT>&quot;Test::Harness&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>HEAD</I></FONT><I></I>
+<A NAME="ixAAT"></A>
+<P>
+
+
+
+<PRE>
+  my $res = HEAD $uri;
+
+</PRE>
+
+
+<P>
+
+Sends a <FONT SIZE="-1">HEAD</FONT> request to the Apache test server. Returns an
+<TT>&quot;HTTP::Response&quot;</TT> object.
+<P>
+
+<I></I><FONT SIZE="-1"><I>HEAD_STR</I></FONT><I></I>
+<A NAME="ixAAU"></A>
+<P>
+
+A shortcut function for <TT>&quot;HEAD($uri)-&gt;as_string&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>HEAD_BODY</I></FONT><I></I>
+<A NAME="ixAAV"></A>
+<P>
+
+A shortcut function for <TT>&quot;HEAD($uri)-&gt;content&quot;</TT>. Of course, this
+means that it will likely return nothing.
+<P>
+
+<I></I><FONT SIZE="-1"><I>HEAD_BODY_ASSERT</I></FONT><I></I>
+<A NAME="ixAAW"></A>
+<P>
+
+Use this function when your test is outputting content that you need
+to check, and you want to make sure that the request was successful
+before comparing the contents of the request. If the request was
+unsuccessful, <TT>&quot;HEAD_BODY_ASSERT&quot;</TT> will return an error
+message. Otherwise it will simply return the content of the request
+just as <TT>&quot;HEAD_BODY&quot;</TT> would.
+<P>
+
+<I></I><FONT SIZE="-1"><I>HEAD_OK</I></FONT><I></I>
+<A NAME="ixAAX"></A>
+<P>
+
+A shortcut function for <TT>&quot;GET($uri)-&gt;is_success&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>HEAD_RC</I></FONT><I></I>
+<A NAME="ixAAY"></A>
+<P>
+
+A shortcut function for <TT>&quot;GET($uri)-&gt;code&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>HEAD_HEAD</I></FONT><I></I>
+<A NAME="ixAAZ"></A>
+<P>
+
+Throws out the content of the request, and returns the string
+representation of the request. Since the body has been thrown out, the
+representation will consist solely of the headers. Furthermore,
+<TT>&quot;GET_HEAD&quot;</TT> inserts a ``#'' at the beginning of each line of the return
+string, so that the contents are suitable for printing to <FONT SIZE="-1">STDERR</FONT>
+during your tests without interfering with the workings of
+<TT>&quot;Test::Harness&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>PUT</I></FONT><I></I>
+<A NAME="ixABA"></A>
+<P>
+
+
+
+<PRE>
+  my $res = PUT $uri;
+
+</PRE>
+
+
+<P>
+
+Sends a simple <FONT SIZE="-1">PUT</FONT> request to the Apache test server. Returns an
+<TT>&quot;HTTP::Response&quot;</TT> object.
+<P>
+
+<I></I><FONT SIZE="-1"><I>PUT_STR</I></FONT><I></I>
+<A NAME="ixABB"></A>
+<P>
+
+A shortcut function for <TT>&quot;PUT($uri)-&gt;as_string&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>PUT_BODY</I></FONT><I></I>
+<A NAME="ixABC"></A>
+<P>
+
+A shortcut function for <TT>&quot;PUT($uri)-&gt;content&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>PUT_BODY_ASSERT</I></FONT><I></I>
+<A NAME="ixABD"></A>
+<P>
+
+Use this function when your test is outputting content that you need
+to check, and you want to make sure that the request was successful
+before comparing the contents of the request. If the request was
+unsuccessful, <TT>&quot;PUT_BODY_ASSERT&quot;</TT> will return an error
+message. Otherwise it will simply return the content of the request
+just as <TT>&quot;PUT_BODY&quot;</TT> would.
+<P>
+
+<I></I><FONT SIZE="-1"><I>PUT_OK</I></FONT><I></I>
+<A NAME="ixABE"></A>
+<P>
+
+A shortcut function for <TT>&quot;PUT($uri)-&gt;is_success&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>PUT_RC</I></FONT><I></I>
+<A NAME="ixABF"></A>
+<P>
+
+A shortcut function for <TT>&quot;PUT($uri)-&gt;code&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>PUT_HEAD</I></FONT><I></I>
+<A NAME="ixABG"></A>
+<P>
+
+Throws out the content of the request, and returns the string
+representation of the request. Since the body has been thrown out, the
+representation will consist solely of the headers. Furthermore,
+<TT>&quot;PUT_HEAD&quot;</TT> inserts a ``#'' at the beginning of each line of the return
+string, so that the contents are suitable for printing to <FONT SIZE="-1">STDERR</FONT>
+during your tests without interfering with the workings of
+<TT>&quot;Test::Harness&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>POST</I></FONT><I></I>
+<A NAME="ixABH"></A>
+<P>
+
+
+
+<PRE>
+  my $res = POST $uri, [ arg =&gt; $val, arg2 =&gt; $val ];
+
+</PRE>
+
+
+<P>
+
+Sends a <FONT SIZE="-1">POST</FONT> request to the Apache test server and returns an
+<TT>&quot;HTTP::Response&quot;</TT> object. An array reference of parameters passed as
+the second argument will be submitted to the Apache test server as the
+<FONT SIZE="-1">POST</FONT> content. Parameters corresponding to those documented in
+Optional Parameters can follow the optional array reference of parameters, or after
+<TT>$uri</TT>.
+<P>
+
+To upload a chunk of data, simply use:
+<P>
+
+
+
+<PRE>
+  my $res = POST $uri, content =&gt; $data;
+
+</PRE>
+
+
+<P>
+
+<I></I><FONT SIZE="-1"><I>POST_STR</I></FONT><I></I>
+<A NAME="ixABI"></A>
+<P>
+
+A shortcut function for <TT>&quot;POST($uri, @args)-&gt;content&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>POST_BODY</I></FONT><I></I>
+<A NAME="ixABJ"></A>
+<P>
+
+A shortcut function for <TT>&quot;POST($uri, @args)-&gt;content&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>POST_BODY_ASSERT</I></FONT><I></I>
+<A NAME="ixABK"></A>
+<P>
+
+Use this function when your test is outputting content that you need
+to check, and you want to make sure that the request was successful
+before comparing the contents of the request. If the request was
+unsuccessful, <TT>&quot;POST_BODY_ASSERT&quot;</TT> will return an error
+message. Otherwise it will simply return the content of the request
+just as <TT>&quot;POST_BODY&quot;</TT> would.
+<P>
+
+<I></I><FONT SIZE="-1"><I>POST_OK</I></FONT><I></I>
+<A NAME="ixABL"></A>
+<P>
+
+A shortcut function for <TT>&quot;POST($uri, @args)-&gt;is_success&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>POST_RC</I></FONT><I></I>
+<A NAME="ixABM"></A>
+<P>
+
+A shortcut function for <TT>&quot;POST($uri, @args)-&gt;code&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>POST_HEAD</I></FONT><I></I>
+<A NAME="ixABN"></A>
+<P>
+
+Throws out the content of the request, and returns the string
+representation of the request. Since the body has been thrown out, the
+representation will consist solely of the headers. Furthermore,
+<TT>&quot;POST_HEAD&quot;</TT> inserts a ``#'' at the beginning of each line of the return
+string, so that the contents are suitable for printing to <FONT SIZE="-1">STDERR</FONT>
+during your tests without interfering with the workings of
+<TT>&quot;Test::Harness&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>UPLOAD</I></FONT><I></I>
+<A NAME="ixABO"></A>
+<P>
+
+
+
+<PRE>
+  my $res = UPLOAD $uri, \@args, filename =&gt; $filename;
+
+</PRE>
+
+
+<P>
+
+Sends a request to the Apache test server that includes an uploaded
+file. Other <FONT SIZE="-1">POST</FONT> parameters can be passed as a second argument as an
+array reference.
+<P>
+
+<TT>&quot;Apache::TestRequest&quot;</TT> will read in the contents of the file named via
+the <TT>&quot;filename&quot;</TT> parameter for submission to the server. If you'd
+rather, you can submit use the <TT>&quot;content&quot;</TT> parameter instead of
+<TT>&quot;filename&quot;</TT>, and its value will be submitted to the Apache server as
+file contents:
+<P>
+
+
+
+<PRE>
+  my $res = UPLOAD $uri, undef, content =&gt; &quot;This is file content&quot;;
+
+</PRE>
+
+
+<P>
+
+The name of the file sent to the server will simply be ``b''. Note that
+in this case, you cannot pass other <FONT SIZE="-1">POST</FONT> arguments to <TT>&quot;UPLOAD()&quot;</TT> ---
+they would be ignored.
+<P>
+
+<I></I><FONT SIZE="-1"><I>UPLOAD_BODY</I></FONT><I></I>
+<A NAME="ixABP"></A>
+<P>
+
+A shortcut function for <TT>&quot;UPLOAD($uri, @params)-&gt;content&quot;</TT>.
+<P>
+
+<I></I><FONT SIZE="-1"><I>UPLOAD_BODY_ASSERT</I></FONT><I></I>
+<A NAME="ixABQ"></A>
+<P>
+
+Use this function when your test is outputting content that you need
+to check, and you want to make sure that the request was successful
+before comparing the contents of the request. If the request was
+unsuccessful, <TT>&quot;UPLOAD_BODY_ASSERT&quot;</TT> will return an error
+message. Otherwise it will simply return the content of the request
+just as <TT>&quot;UPLOAD_BODY&quot;</TT> would.
+<P>
+
+<I></I><FONT SIZE="-1"><I>OPTIONS</I></FONT><I></I>
+<A NAME="ixABR"></A>
+<P>
+
+
+
+<PRE>
+  my $res = OPTIONS $uri;
+
+</PRE>
+
+
+<P>
+
+Sends an <TT>&quot;OPTIONS&quot;</TT> request to the Apache test server. Returns an
+<TT>&quot;HTTP::Response&quot;</TT> object with the <I>Allow</I> header, indicating which
+methods the server supports. Possible methods include <TT>&quot;OPTIONS&quot;</TT>,
+<TT>&quot;GET&quot;</TT>, <TT>&quot;HEAD&quot;</TT> and <TT>&quot;POST&quot;</TT>. This function thus can be useful for
+testing what options the Apache server supports. Consult the <FONT SIZE="-1">HTTPD</FONT> 1.1
+specification, section 9.2, at
+<I><A HREF="http://www.faqs.org/rfcs/rfc2616.html">http://www.faqs.org/rfcs/rfc2616.html</A></I> for more information.
+<A NAME="lbAI">&nbsp;</A>
+<H3><FONT SIZE="-1">URL</FONT> Manipulation Functions</H3>
+
+<A NAME="ixABS"></A>
+<TT>&quot;Apache::TestRequest&quot;</TT> also includes a few helper functions to aid in
+the creation of urls used in the functions above.
+<P>
+
+<I></I>&quot;module2path&quot;<I></I>
+<A NAME="ixABT"></A>
+<P>
+
+
+
+<PRE>
+  $path = Apache::TestRequest::module2path($module_name);
+
+</PRE>
+
+
+<P>
+
+Convert a module name to a path, safe for use in the various request
+methods above. e.g. <TT>&quot;::&quot;</TT> can't be used in URLs on win32. For example:
+<P>
+
+
+
+<PRE>
+  $path = Apache::TestRequest::module2path('Foo::Bar');
+
+</PRE>
+
+
+<P>
+
+returns:
+<P>
+
+
+
+<PRE>
+  /Foo__Bar
+
+</PRE>
+
+
+<P>
+
+<I></I>&quot;module2url&quot;<I></I>
+<A NAME="ixABU"></A>
+<P>
+
+
+
+<PRE>
+  $url = Apache::TestRequest::module2url($module);
+  $url = Apache::TestRequest::module2url($module, \%options);
+
+</PRE>
+
+
+<P>
+
+Convert a module name to a full <FONT SIZE="-1">URL</FONT> including the current
+configurations <TT>&quot;hostname:port&quot;</TT> and sets <TT>&quot;module&quot;</TT> accordingly.
+<P>
+
+
+
+<PRE>
+  $url = Apache::TestRequest::module2url('Foo::Bar');
+
+</PRE>
+
+
+<P>
+
+returns:
+<P>
+
+
+
+<PRE>
+  <A HREF="http://$hostname:$port/Foo__Bar">http://$hostname:$port/Foo__Bar</A>
+
+</PRE>
+
+
+<P>
+
+The default scheme used is <TT>&quot;http&quot;</TT>. You can override this by passing
+your preferred scheme into an optional second param. For example:
+<P>
+
+
+
+<PRE>
+  $module = 'MyTestModule::TestHandler';
+  $url = Apache::TestRequest::module2url($module, {scheme =&gt; 'https'});
+
+</PRE>
+
+
+<P>
+
+returns:
+<P>
+
+
+
+<PRE>
+  <A HREF="https://$hostname:$port/MyTestModule__TestHandler">https://$hostname:$port/MyTestModule__TestHandler</A>
+
+</PRE>
+
+
+<P>
+
+You may also override the default path with a path of your own:
+<P>
+
+
+
+<PRE>
+  $module = 'MyTestModule::TestHandler';
+  $url = Apache::TestRequest::module2url($module, {path =&gt; '/foo'});
+
+</PRE>
+
+
+<P>
+
+returns:
+<P>
+
+
+
+<PRE>
+  <A HREF="http://$hostname:$port/foo">http://$hostname:$port/foo</A>
+
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>ENVIRONMENT VARIABLES</H2>
+
+<A NAME="ixABV"></A>
+The following environment variables can affect the behavior of
+<TT>&quot;Apache::TestRequest&quot;</TT>:
+<DL COMPACT>
+<DT><FONT SIZE="-1">APACHE_TEST_PRETEND_NO_LWP</FONT><DD>
+<A NAME="ixABW"></A>
+If the environment variable <TT>&quot;APACHE_TEST_PRETEND_NO_LWP&quot;</TT> is set to a
+true value, <TT>&quot;Apache::TestRequest&quot;</TT> will pretend that <FONT SIZE="-1">LWP</FONT> is not
+available so one can test whether the test suite will survive on a
+system which doesn't have libwww-perl installed.
+<DT><FONT SIZE="-1">APACHE_TEST_HTTP_09_OK</FONT><DD>
+<A NAME="ixABX"></A>
+If the environment variable <TT>&quot;APACHE_TEST_HTTP_09_OK&quot;</TT> is set to a
+true value, <TT>&quot;Apache::TestRequest&quot;</TT> will allow <FONT SIZE="-1">HTTP/0</FONT>.9 responses
+from the server to proceed.  The default behavior is to die if
+the response protocol is not either <FONT SIZE="-1">HTTP/1</FONT>.0 or <FONT SIZE="-1">HTTP/1</FONT>.1.
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABY"></A>
+Apache::Test is the main Apache testing module. Use it
+to set up your tests, create a plan, and to ensure that you have the
+Apache version and modules you need.
+<P>
+
+Use Apache::TestMM in your <I>Makefile.PL</I> to set up
+your distribution for testing.
+<A NAME="lbAL">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABZ"></A>
+Doug MacEachern with contributions from Geoffrey Young, Philippe
+M. Chiasson, Stas Bekman and others. Documentation by David Wheeler.
+<P>
+
+Questions can be asked at the test-dev &lt;at&gt; httpd.apache.org list. For
+more information see: <I><A HREF="http://httpd.apache.org/test/">http://httpd.apache.org/test/</A></I> and
+<I><A HREF="http://perl.apache.org/docs/general/testing/testing.html">http://perl.apache.org/docs/general/testing/testing.html</A></I>.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">CONFIGURATION FUNCTION</A><DD>
+<DT><A HREF="#lbAF">FUNCTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">Optional Parameters</A><DD>
+<DT><A HREF="#lbAH">The Functions</A><DD>
+<DT><A HREF="#lbAI"><FONT SIZE="-1">URL</FONT> Manipulation Functions</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">ENVIRONMENT VARIABLES</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

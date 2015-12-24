@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Hash::Util</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Hash::Util</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-04-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Hash::Util - A selection of general-utility hash subroutines
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  # Restricted hashes
+
+  use Hash::Util qw(
+                     hash_seed all_keys
+                     lock_keys unlock_keys
+                     lock_value unlock_value
+                     lock_hash unlock_hash
+                     lock_keys_plus hash_locked
+                     hidden_keys legal_keys
+                   );
+
+  %hash = (foo =&gt; 42, bar =&gt; 23);
+  # Ways to restrict a hash
+  lock_keys(%hash);
+  lock_keys(%hash, @keyset);
+  lock_keys_plus(%hash, @additional_keys);
+
+  # Ways to inspect the properties of a restricted hash
+  my @legal = legal_keys(%hash);
+  my @hidden = hidden_keys(%hash);
+  my $ref = all_keys(%hash,@keys,@hidden);
+  my $is_locked = hash_locked(%hash);
+
+  # Remove restrictions on the hash
+  unlock_keys(%hash);
+
+  # Lock individual values in a hash
+  lock_value  (%hash, 'foo');
+  unlock_value(%hash, 'foo');
+
+  # Ways to change the restrictions on both keys and values
+  lock_hash  (%hash);
+  unlock_hash(%hash);
+
+  my $hashes_are_randomised = hash_seed() != 0;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<TT>&quot;Hash::Util&quot;</TT> and <TT>&quot;Hash::Util::FieldHash&quot;</TT> contain special functions
+for manipulating hashes that don't really warrant a keyword.
+<P>
+
+<TT>&quot;Hash::Util&quot;</TT> contains a set of functions that support
+restricted hashes. These are described in
+this document.  <TT>&quot;Hash::Util::FieldHash&quot;</TT> contains an (unrelated)
+set of functions that support the use of hashes in
+<I>inside-out classes</I>, described in Hash::Util::FieldHash.
+<P>
+
+By default <TT>&quot;Hash::Util&quot;</TT> does not export anything.
+<A NAME="lbAE">&nbsp;</A>
+<H3>Restricted hashes</H3>
+
+<A NAME="ixAAE"></A>
+5.8.0 introduces the ability to restrict a hash to a certain set of
+keys.  No keys outside of this set can be added.  It also introduces
+the ability to lock an individual key so it cannot be deleted and the
+ability to ensure that an individual value cannot be changed.
+<P>
+
+This is intended to largely replace the deprecated pseudo-hashes.
+<DL COMPACT>
+<DT><B>lock_keys</B><DD>
+<A NAME="ixAAF"></A>
+
+<DT><B>unlock_keys</B><DD>
+<A NAME="ixAAG"></A>
+
+
+
+<PRE>
+  lock_keys(%hash);
+  lock_keys(%hash, @keys);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Restricts the given <TT>%hash</TT>'s set of keys to <TT>@keys</TT>.  If <TT>@keys</TT> is not
+given it restricts it to its current keyset.  No more keys can be
+added. <I>delete()</I> and <I>exists()</I> will still work, but will not alter
+the set of allowed keys. <B>Note</B>: the current implementation prevents
+the hash from being <I>bless()</I>ed while it is in a locked state. Any attempt
+to do so will raise an exception. Of course you can still <I>bless()</I>
+the hash before you call <I>lock_keys()</I> so this shouldn't be a problem.
+
+
+<P>
+
+
+
+
+<PRE>
+  unlock_keys(%hash);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Removes the restriction on the <TT>%hash</TT>'s keyset.
+
+
+<P>
+
+
+<B>Note</B> that if any of the values of the hash have been locked they will not be unlocked
+after this sub executes.
+
+
+<P>
+
+
+Both routines return a reference to the hash operated on.
+<DT><B>lock_keys_plus</B><DD>
+<A NAME="ixAAH"></A>
+
+
+<PRE>
+  lock_keys_plus(%hash,@additional_keys)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Similar to <TT>&quot;lock_keys()&quot;</TT>, with the difference being that the optional key list
+specifies keys that may or may not be already in the hash. Essentially this is
+an easier way to say
+
+
+<P>
+
+
+
+
+<PRE>
+  lock_keys(%hash,@additional_keys,keys %hash);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns a reference to <TT>%hash</TT>
+<DT><B>lock_value</B><DD>
+<A NAME="ixAAI"></A>
+
+<DT><B>unlock_value</B><DD>
+<A NAME="ixAAJ"></A>
+
+
+
+<PRE>
+  lock_value  (%hash, $key);
+  unlock_value(%hash, $key);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Locks and unlocks the value for an individual key of a hash.  The value of a
+locked key cannot be changed.
+
+
+<P>
+
+
+Unless <TT>%hash</TT> has already been locked the key/value could be deleted
+regardless of this setting.
+
+
+<P>
+
+
+Returns a reference to the <TT>%hash</TT>.
+<DT><B>lock_hash</B><DD>
+<A NAME="ixAAK"></A>
+
+<DT><B>unlock_hash</B><DD>
+<A NAME="ixAAL"></A>
+
+
+
+<PRE>
+    lock_hash(%hash);
+
+</PRE>
+
+
+
+
+<P>
+
+
+<I>lock_hash()</I> locks an entire hash, making all keys and values read-only.
+No value can be changed, no keys can be added or deleted.
+
+
+<P>
+
+
+
+
+<PRE>
+    unlock_hash(%hash);
+
+</PRE>
+
+
+
+
+<P>
+
+
+<I>unlock_hash()</I> does the opposite of <I>lock_hash()</I>.  All keys and values
+are made writable.  All values can be changed and keys can be added
+and deleted.
+
+
+<P>
+
+
+Returns a reference to the <TT>%hash</TT>.
+<DT><B>lock_hash_recurse</B><DD>
+<A NAME="ixAAM"></A>
+
+<DT><B>unlock_hash_recurse</B><DD>
+<A NAME="ixAAN"></A>
+
+
+
+<PRE>
+    lock_hash_recurse(%hash);
+
+</PRE>
+
+
+
+
+<P>
+
+
+<I>lock_hash()</I> locks an entire hash and any hashes it references recursively,
+making all keys and values read-only. No value can be changed, no keys can
+be added or deleted.
+
+
+<P>
+
+
+<B>Only</B> recurses into hashes that are referenced by another hash. Thus a
+Hash of Hashes (HoH) will all be restricted, but a Hash of Arrays of Hashes
+(HoAoH) will only have the top hash restricted.
+
+
+<P>
+
+
+
+
+<PRE>
+    unlock_hash_recurse(%hash);
+
+</PRE>
+
+
+
+
+<P>
+
+
+<I>unlock_hash_recurse()</I> does the opposite of <I>lock_hash_recurse()</I>.  All keys and
+values are made writable.  All values can be changed and keys can be added
+and deleted. Identical recursion restrictions apply as to <I>lock_hash_recurse()</I>.
+
+
+<P>
+
+
+Returns a reference to the <TT>%hash</TT>.
+<DT><B>hash_unlocked</B><DD>
+<A NAME="ixAAO"></A>
+
+
+<PRE>
+  hash_unlocked(%hash) and print &quot;Hash is unlocked!\n&quot;;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns true if the hash and its keys are unlocked.
+<DT><B>legal_keys</B><DD>
+<A NAME="ixAAP"></A>
+
+
+<PRE>
+  my @keys = legal_keys(%hash);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns the list of the keys that are legal in a restricted hash.
+In the case of an unrestricted hash this is identical to calling
+keys(%hash).
+<DT><B>hidden_keys</B><DD>
+<A NAME="ixAAQ"></A>
+
+
+<PRE>
+  my @keys = hidden_keys(%hash);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns the list of the keys that are legal in a restricted hash but
+do not have a value associated to them. Thus if 'foo' is a
+``hidden'' key of the <TT>%hash</TT> it will return false for both <TT>&quot;defined&quot;</TT>
+and <TT>&quot;exists&quot;</TT> tests.
+
+
+<P>
+
+
+In the case of an unrestricted hash this will return an empty list.
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>NOTE</B></FONT><B></B> this is an experimental feature that is heavily dependent
+on the current implementation of restricted hashes. Should the
+implementation change, this routine may become meaningless, in which
+case it will return an empty list.
+<DT><B>all_keys</B><DD>
+<A NAME="ixAAR"></A>
+
+
+<PRE>
+  all_keys(%hash,@keys,@hidden);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Populates the arrays <TT>@keys</TT> with the all the keys that would pass
+an <TT>&quot;exists&quot;</TT> tests, and populates <TT>@hidden</TT> with the remaining legal
+keys that have not been utilized.
+
+
+<P>
+
+
+Returns a reference to the hash.
+
+
+<P>
+
+
+In the case of an unrestricted hash this will be equivalent to
+
+
+<P>
+
+
+
+
+<PRE>
+  $ref = do {
+      @keys = keys %hash;
+      @hidden = ();
+      \%hash
+  };
+
+</PRE>
+
+
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>NOTE</B></FONT><B></B> this is an experimental feature that is heavily dependent
+on the current implementation of restricted hashes. Should the
+implementation change this routine may become meaningless in which
+case it will behave identically to how it would behave on an
+unrestricted hash.
+<DT><B>hash_seed</B><DD>
+<A NAME="ixAAS"></A>
+
+
+<PRE>
+    my $hash_seed = hash_seed();
+
+</PRE>
+
+
+
+
+<P>
+
+
+<I>hash_seed()</I> returns the seed number used to randomise hash ordering.
+Zero means the ``traditional'' random hash ordering, non-zero means the
+new even more random hash ordering introduced in Perl 5.8.1.
+
+
+<P>
+
+
+<B>Note that the hash seed is sensitive information</B>: by knowing it one
+can craft a denial-of-service attack against Perl code, even remotely,
+see ``Algorithmic Complexity Attacks'' in perlsec for more information.
+<B>Do not disclose the hash seed</B> to people who don't need to know it.
+See also ``<FONT SIZE="-1">PERL_HASH_SEED_DEBUG</FONT>'' in perlrun.
+<DT><B>hv_store</B><DD>
+<A NAME="ixAAT"></A>
+
+
+<PRE>
+  my $sv = 0;
+  hv_store(%hash,$key,$sv) or die &quot;Failed to alias!&quot;;
+  $hash{$key} = 1;
+  print $sv; # prints 1
+
+</PRE>
+
+
+
+
+<P>
+
+
+Stores an alias to a variable in a hash instead of copying the value.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Operating on references to hashes.</H3>
+
+<A NAME="ixAAU"></A>
+Most subroutines documented in this module have equivalent versions
+that operate on references to hashes instead of native hashes.
+The following is a list of these subs. They are identical except
+in name and in that instead of taking a <TT>%hash</TT> they take a <TT>$hashref</TT>,
+and additionally are not prototyped.
+<DL COMPACT>
+<DT>lock_ref_keys<DD>
+<A NAME="ixAAV"></A>
+
+<DT>unlock_ref_keys<DD>
+<A NAME="ixAAW"></A>
+<DT>lock_ref_keys_plus<DD>
+<A NAME="ixAAX"></A>
+<DT>lock_ref_value<DD>
+<A NAME="ixAAY"></A>
+<DT>unlock_ref_value<DD>
+<A NAME="ixAAZ"></A>
+<DT>lock_hashref<DD>
+<A NAME="ixABA"></A>
+<DT>unlock_hashref<DD>
+<A NAME="ixABB"></A>
+<DT>lock_hashref_recurse<DD>
+<A NAME="ixABC"></A>
+<DT>unlock_hashref_recurse<DD>
+<A NAME="ixABD"></A>
+<DT>hash_ref_unlocked<DD>
+<A NAME="ixABE"></A>
+<DT>legal_ref_keys<DD>
+<A NAME="ixABF"></A>
+<DT>hidden_ref_keys<DD>
+<A NAME="ixABG"></A>
+
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CAVEATS</H2>
+
+<A NAME="ixABH"></A>
+Note that the trapping of the restricted operations is not atomic:
+for example
+<P>
+
+
+
+<PRE>
+    eval { %hash = (illegal_key =&gt; 1) }
+
+</PRE>
+
+
+<P>
+
+leaves the <TT>%hash</TT> empty rather than with its original contents.
+<A NAME="lbAH">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixABI"></A>
+The interface exposed by this module is very close to the current
+implementation of restricted hashes. Over time it is expected that
+this behavior will be extended and the interface abstracted further.
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABJ"></A>
+Michael G Schwern &lt;<A HREF="mailto:schwern@pobox.com">schwern@pobox.com</A>&gt; on top of code by Nick
+Ing-Simmons and Jeffrey Friedl.
+<P>
+
+<I>hv_store()</I> is from Array::RefElem, Copyright 2000 Gisle Aas.
+<P>
+
+Additional code by Yves Orton.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABK"></A>
+Scalar::Util, List::Util and ``Algorithmic Complexity Attacks'' in perlsec.
+<P>
+
+Hash::Util::FieldHash.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Restricted hashes</A><DD>
+<DT><A HREF="#lbAF">Operating on references to hashes.</A><DD>
+</DL>
+<DT><A HREF="#lbAG">CAVEATS</A><DD>
+<DT><A HREF="#lbAH">BUGS</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:29 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of ALTER OPERATOR FAMILY</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>ALTER OPERATOR FAMILY</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ALTER OPERATOR FAMILY - change the definition of an operator family
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+ALTER OPERATOR FAMILY <I>name</I> USING <I>index_method</I> ADD
+  {  OPERATOR <I>strategy_number</I> <I>operator_name</I> ( <I>op_type</I>, <I>op_type</I> )
+   | FUNCTION <I>support_number</I> [ ( <I>op_type</I> [ , <I>op_type</I> ] ) ] <I>funcname</I> ( <I>argument_type</I> [, ...] )
+  } [, ... ]
+ALTER OPERATOR FAMILY <I>name</I> USING <I>index_method</I> DROP
+  {  OPERATOR <I>strategy_number</I> ( <I>op_type</I> [ , <I>op_type</I> ] )
+   | FUNCTION <I>support_number</I> ( <I>op_type</I> [ , <I>op_type</I> ] )
+  } [, ... ]
+ALTER OPERATOR FAMILY <I>name</I> USING <I>index_method</I> RENAME TO <I>newname</I>
+ALTER OPERATOR FAMILY <I>name</I> USING <I>index_method</I> OWNER TO <I>newowner</I>
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>ALTER OPERATOR FAMILY</B> changes the definition of
+an operator family. You can add operators and support functions
+to the family, remove them from the family,
+or change the family's name or owner.
+<P>
+
+When operators and support functions are added to a family with
+<B>ALTER OPERATOR FAMILY</B>, they are not part of any
+specific operator class within the family, but are just ``loose''
+within the family. This indicates that these operators and functions
+are compatible with the family's semantics, but are not required for
+correct functioning of any specific index. (Operators and functions
+that are so required should be declared as part of an operator class,
+instead; see CREATE OPERATOR CLASS [<B><A HREF="/manpages/index.html?7+create_operator_class">create_operator_class</A></B>(7)].)
+PostgreSQL will allow loose members of a
+family to be dropped from the family at any time, but members of an
+operator class cannot be dropped without dropping the whole class and
+any indexes that depend on it.
+Typically, single-data-type operators
+and functions are part of operator classes because they are needed to
+support an index on that specific data type, while cross-data-type
+operators and functions are made loose members of the family.
+<P>
+
+You must be a superuser to use <B>ALTER OPERATOR FAMILY</B>.
+(This restriction is made because an erroneous operator family definition
+could confuse or even crash the server.)
+<P>
+
+<B>ALTER OPERATOR FAMILY</B> does not presently check
+whether the operator family definition includes all the operators and
+functions required by the index method, nor whether the operators and
+functions form a self-consistent set. It is the user's
+responsibility to define a valid operator family.
+<P>
+
+Refer to in the documentation for further information.
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B></B><I>name</I><B></B><DD>
+The name (optionally schema-qualified) of an existing operator
+family.
+<DT><B></B><I>index_method</I><B></B><DD>
+The name of the index method this operator family is for.
+<DT><B></B><I>strategy_number</I><B></B><DD>
+The index method's strategy number for an operator
+associated with the operator family.
+<DT><B></B><I>operator_name</I><B></B><DD>
+The name (optionally schema-qualified) of an operator associated
+with the operator family.
+<DT><B></B><I>op_type</I><B></B><DD>
+In an OPERATOR clause,
+the operand data type(s) of the operator, or NONE to
+signify a left-unary or right-unary operator. Unlike the comparable
+syntax in <B>CREATE OPERATOR CLASS</B>, the operand data types
+must always be specified.
+<P>
+In an ADD FUNCTION clause, the operand data type(s) the
+function is intended to support, if different from
+the input data type(s) of the function. For B-tree and hash indexes
+it is not necessary to specify <I>op_type</I> since the function's input
+data type(s) are always the correct ones to use. For GIN and GiST
+indexes it is necessary to specify the input data type the function
+is to be used with.
+<P>
+In a DROP FUNCTION clause, the operand data type(s) the
+function is intended to support must be specified.
+<DT><B></B><I>support_number</I><B></B><DD>
+The index method's support procedure number for a
+function associated with the operator family.
+<DT><B></B><I>funcname</I><B></B><DD>
+The name (optionally schema-qualified) of a function that is an
+index method support procedure for the operator family.
+<DT><B></B><I>argument_types</I><B></B><DD>
+The parameter data type(s) of the function.
+<DT><B></B><I>newname</I><B></B><DD>
+The new name of the operator family.
+<DT><B></B><I>newowner</I><B></B><DD>
+The new owner of the operator family.
+</DL>
+<P>
+
+The OPERATOR and FUNCTION
+clauses can appear in any order.
+<P>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+Notice that the DROP syntax only specifies the ``slot''
+in the operator family, by strategy or support number and input data
+type(s). The name of the operator or function occupying the slot is not
+mentioned. Also, for DROP FUNCTION the type(s) to specify
+are the input data type(s) the function is intended to support; for
+GIN and GiST indexes this might have nothing to do with the actual input
+argument types of the function.
+<P>
+
+Because the index machinery does not check access permissions on functions
+before using them, including a function or operator in an operator family
+is tantamount to granting public execute permission on it. This is usually
+not an issue for the sorts of functions that are useful in an operator
+family.
+<P>
+
+The operators should not be defined by SQL functions. A SQL function
+is likely to be inlined into the calling query, which will prevent
+the optimizer from recognizing that the query matches an index.
+<P>
+
+Before PostgreSQL 8.4, the OPERATOR
+clause could include a RECHECK option. This is no longer
+supported because whether an index operator is ``lossy'' is now
+determined on-the-fly at runtime. This allows efficient handling of
+cases where an operator might or might not be lossy.
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+The following example command adds cross-data-type operators and
+support functions to an operator family that already contains B-tree
+operator classes for data types <B>int4</B> and <B>int2</B>.
+<P>
+<PRE>
+ALTER OPERATOR FAMILY integer_ops USING btree ADD
+
+  -- int4 vs int2
+  OPERATOR 1 &lt; (int4, int2) ,
+  OPERATOR 2 &lt;= (int4, int2) ,
+  OPERATOR 3 = (int4, int2) ,
+  OPERATOR 4 &gt;= (int4, int2) ,
+  OPERATOR 5 &gt; (int4, int2) ,
+  FUNCTION 1 btint42cmp(int4, int2) ,
+
+  -- int2 vs int4
+  OPERATOR 1 &lt; (int2, int4) ,
+  OPERATOR 2 &lt;= (int2, int4) ,
+  OPERATOR 3 = (int2, int4) ,
+  OPERATOR 4 &gt;= (int2, int4) ,
+  OPERATOR 5 &gt; (int2, int4) ,
+  FUNCTION 1 btint24cmp(int2, int4) ;
+
+</PRE>
+
+<P>
+
+To remove these entries again:
+<P>
+<PRE>
+ALTER OPERATOR FAMILY integer_ops USING btree DROP
+
+  -- int4 vs int2
+  OPERATOR 1 (int4, int2) ,
+  OPERATOR 2 (int4, int2) ,
+  OPERATOR 3 (int4, int2) ,
+  OPERATOR 4 (int4, int2) ,
+  OPERATOR 5 (int4, int2) ,
+  FUNCTION 1 (int4, int2) ,
+
+  -- int2 vs int4
+  OPERATOR 1 (int2, int4) ,
+  OPERATOR 2 (int2, int4) ,
+  OPERATOR 3 (int2, int4) ,
+  OPERATOR 4 (int2, int4) ,
+  OPERATOR 5 (int2, int4) ,
+  FUNCTION 1 (int2, int4) ;
+
+</PRE>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+There is no <B>ALTER OPERATOR FAMILY</B> statement in
+the SQL standard.
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+CREATE OPERATOR FAMILY [<B><A HREF="/manpages/index.html?7+create_operator_family">create_operator_family</A></B>(7)], DROP OPERATOR FAMILY [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+drop_operator_family">drop_operator_family</A></B>(7)], CREATE OPERATOR CLASS [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+create_operator_class">create_operator_class</A></B>(7)], ALTER OPERATOR CLASS [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+alter_operator_class">alter_operator_class</A></B>(7)], DROP OPERATOR CLASS [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+drop_operator_class">drop_operator_class</A></B>(7)]
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">NOTES</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">COMPATIBILITY</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:14 GMT, December 24, 2015
+</div></body>
+</HTML>

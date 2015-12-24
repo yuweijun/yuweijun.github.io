@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of numad</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>numad</H1>
+Section: Administration (8)<BR>Updated: 0.5.0<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>nuamd</H2>
+
+<P>
+
+numad - A user-level daemon that provides advice and managment for optimum use of CPUs and memory on systems with NUMA topology.
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNTAX</H2>
+
+<P>
+
+numad [<I>-dhvV</I>]
+<BR>
+
+<P>
+
+numad  [<I>-D non-standard-cgroup-mount-point</I>]
+<BR>
+
+<P>
+
+numad  [<I>-i [min_interval:]max_interval</I>]
+<BR>
+
+<P>
+
+numad  [<I>-l log_level</I>]
+<BR>
+
+<P>
+
+numad  [<I>-p PID</I>]
+<BR>
+
+<P>
+
+numad  [<I>-r PID</I>]
+<BR>
+
+<P>
+
+numad  [<I>-S 0|1</I>]
+<BR>
+
+<P>
+
+numad  [<I>-u target_utilization</I>]
+<BR>
+
+<P>
+
+numad  [<I>-w NCPUS[:MB]</I>]
+<BR>
+
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+Numad is a system daemon that monitors NUMA topology and usage. It will attempt
+to locate processes for optimum NUMA locality and affinity, dynamically
+adjusting to changing system conditions. Numad also provides guidance to assist
+management applications with initial manual binding of CPU and memory resources
+for their processes.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+
+<DL COMPACT>
+<DT><B>-d</B><DD>
+Debug output in log, sets the log level to LOG_DEBUG.  Same effect as <I>-l 7</I>.
+<DT><B>-D</B> &lt;<I>non-standard-cgroup-mount-point</I>&gt;<DD>
+This option can be used to communicate a non-standard cgroup mount point to
+numad.  This is not normally necessary.
+<DT><B>-h</B><DD>
+Display usage help information and exit.
+<DT><B>-i</B> &lt;<I>[min_interval:]max_interval</I>&gt;<DD>
+Sets the time interval that numad waits between system scans, in seconds to
+&lt;<I>max_interval</I>&gt;. Default &lt;<I>max_interval</I>&gt; is 15 seconds, default
+&lt;<I>min_interval</I>&gt; is 5 seconds.  Setting a &lt;<I>max_interval</I>&gt; of zero will
+cause the daemon to exit.  (This is the normal mechanism to terminate the
+daemon.)  A bigger &lt;<I>max_interval</I>&gt; will decrease numad overhead but also
+decrease responsiveness to changing loads.
+<DT><B>-l</B> &lt;<I>log_level</I>&gt;<DD>
+Sets the log level to &lt;<I>log_level</I>&gt;.  Good choices are 5, 6, or 7.  The default value is 5.
+<DT><B>-p</B> &lt;<I>PID</I>&gt;<DD>
+Add PID to explicit list of processes to consider for managing, if the process
+uses significant resources.  Multiple <I>-p PID</I> options can be specified at
+daemon start, but after deamon start, only one PID can be added to the explicit
+list per subsequent numad invocation.  Use with -S to precisely control the
+scope of processes numad can manage.  Note that (currently) the specified
+process will not necessarily be actively managed unless it also meets numad's
+significance threshold.
+<DT><B>-r</B> &lt;<I>PID</I>&gt;<DD>
+Remove PID from explicit list of processes to consider for managing.  After
+deamon start, only one PID can be removed from the explicit process list per
+subsequent numad invocation.  Use with -S and -p to precisely control the
+scope of processes numad can manage.  (Currently, removed PIDs are not excluded
+when scanning all processes.  In the future, removed PIDs may be added to a
+PID-exclusion list.  Currently it makes sense to remove a PID from the explicit
+list only when using <I>-S 0</I> and previously having used -p to add the PID.)
+<DT><B>-S</B> &lt;<I>0|1</I>&gt;<DD>
+This option controls whether numad scans all system processes or only the
+explicit PID list.  The default is to scan all processes.  Use <I>-S 0</I> to
+scan only the explicit PID list.  Use <I>-S 1</I> to again scan all system
+processes.  Starting numad as
+<BR>
+
+<I>numad -S 0 -p &lt;PID-1&gt; -p &lt;PID-2&gt; -p &lt;PID-3&gt;</I>
+<BR>
+
+will limit scanning, and thus also automatic NUMA management, to only those
+three explicitly specified processes.
+<DT><B>-u</B>  &lt;<I>target_utilization</I>&gt;<DD>
+Set the desired maximum consumption percentage of a node. Default is 85%.
+Decrease the target value to maintain more available resource margin.  Increase
+the target value to more exhaustively consume node resources.
+<DT><B>-v</B><DD>
+Verbose output in log, sets the log level to LOG_INFO.  Same effect as <I>-l 6</I>.
+<DT><B>-V</B><DD>
+Display version information and exit.
+<DT><B>-w</B> &lt;<I>NCPUS[:MB]</I>&gt;<DD>
+Queries numad for the best NUMA nodes to bind an entity that needs
+&lt;<I>NCPUS</I>&gt;.  The amount of memory (in MBs) is optional, but should be
+specified as well &lt;<I>:MB</I>&gt; so numad can recommend NUMA nodes with available
+CPU capacity and adequate free memory.  This query option can be used
+regardless of whether numad is running as a daemon.  (An invocation using this
+option when numad is not running as a daemon, will not cause the deamon to
+start.) Output of this option is a string that contains a NUMA node list.
+For example: 2-3,6.  The recommended node list could be saved in a shell variable
+(e.g., NODES) and then used as the node list parameter in a
+<BR>
+
+<I>numactl -m $NODES -N $NODES ... </I>
+<BR>
+
+command.  See <A HREF="/manpages/index.html?8+numactl">numactl</A>(8).
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>FILES</H2>
+
+<P>
+
+<I>/usr/bin/numad</I> 
+<BR>
+
+<I>/var/log/numad.log</I> 
+<BR>
+
+<I>/var/run/numad.pid</I> 
+<A NAME="lbAG">&nbsp;</A>
+<H2>ENVIRONMENT VARIABLES</H2>
+
+<P>
+
+<DL COMPACT>
+<DT>None.<DD>
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+Numad is normally run as a system daemon and should be managed by the 
+standard init mechanisms of the host.
+<P>
+
+If interactive (manual) control is desired, you can start the daemon manually by typing:
+<P>
+
+/usr/bin/numad
+<P>
+
+Subsequent numad invocations while the daemon is running can be used to dynamically change run-time options.
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<P>
+
+Bill Gray &lt;<A HREF="mailto:bgray@redhat.com">bgray@redhat.com</A>&gt;
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<A HREF="/manpages/index.html?8+numactl">numactl</A>(8)
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">nuamd</A><DD>
+<DT><A HREF="#lbAC">SYNTAX</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">FILES</A><DD>
+<DT><A HREF="#lbAG">ENVIRONMENT VARIABLES</A><DD>
+<DT><A HREF="#lbAH">EXAMPLES</A><DD>
+<DT><A HREF="#lbAI">AUTHORS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:28 GMT, December 24, 2015
+</div></body>
+</HTML>

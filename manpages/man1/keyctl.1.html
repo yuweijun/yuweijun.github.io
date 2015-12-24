@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of KEYCTL</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>KEYCTL</H1>
+Section: Linux Key Management Utilities (1)<BR>Updated: 17 Nov 2005<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+keyctl - Key management facility control
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>keyctl</B> show
+<BR>
+
+<B>keyctl</B> add &lt;type&gt; &lt;desc&gt; &lt;data&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> padd &lt;type&gt; &lt;desc&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> request &lt;type&gt; &lt;desc&gt; [&lt;dest_keyring&gt;]
+<BR>
+
+<B>keyctl</B> request2 &lt;type&gt; &lt;desc&gt; &lt;info&gt; [&lt;dest_keyring&gt;]
+<BR>
+
+<B>keyctl</B> prequest2 &lt;type&gt; &lt;desc&gt; [&lt;dest_keyring&gt;]
+<BR>
+
+<B>keyctl</B> update &lt;key&gt; &lt;data&gt;
+<BR>
+
+<B>keyctl</B> pupdate &lt;key&gt;
+<BR>
+
+<B>keyctl</B> newring &lt;name&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> revoke &lt;key&gt;
+<BR>
+
+<B>keyctl</B> clear &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> link &lt;key&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> unlink &lt;key&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> search &lt;keyring&gt; &lt;type&gt; &lt;desc&gt; [&lt;dest_keyring&gt;]
+<BR>
+
+<B>keyctl</B> read &lt;key&gt;
+<BR>
+
+<B>keyctl</B> pipe &lt;key&gt;
+<BR>
+
+<B>keyctl</B> print &lt;key&gt;
+<BR>
+
+<B>keyctl</B> list &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> rlist &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> describe &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> rdescribe &lt;keyring&gt; [sep]
+<BR>
+
+<B>keyctl</B> chown &lt;key&gt; &lt;uid&gt;
+<BR>
+
+<B>keyctl</B> chgrp &lt;key&gt; &lt;gid&gt;
+<BR>
+
+<B>keyctl</B> setperm &lt;key&gt; &lt;mask&gt;
+<BR>
+
+<B>keyctl</B> session
+<BR>
+
+<B>keyctl</B> session - [&lt;prog&gt; &lt;arg1&gt; &lt;arg2&gt; ...]
+<BR>
+
+<B>keyctl</B> session &lt;name&gt; [&lt;prog&gt; &lt;arg1&gt; &lt;arg2&gt; ...]
+<BR>
+
+<B>keyctl</B> instantiate &lt;key&gt; &lt;data&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> pinstantiate &lt;key&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> negate &lt;key&gt; &lt;timeout&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl</B> timeout &lt;key&gt; &lt;timeout&gt;
+<BR>
+
+<B>keyctl</B> security &lt;key&gt;
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+This program is used to control the key management facility in various ways
+using a variety of subcommands.
+<A NAME="lbAE">&nbsp;</A>
+<H2>KEY IDENTIFIERS</H2>
+
+
+The key identifiers passed to or returned from keyctl are, in general, positive
+integers. There are, however, some special values with special meanings that
+can be passed as arguments:
+
+(*) No key: <B>0</B>
+
+(*) Thread keyring: <B>@t</B> or <B>-1</B>
+
+Each thread may have its own keyring. This is searched first, before all
+others. The thread keyring is replaced by (v)fork, exec and clone.
+
+(*) Process keyring: <B>@p</B> or <B>-2</B>
+
+Each process (thread group) may have its own keyring. This is shared between
+all members of a group and will be searched after the thread keyring. The
+process keyring is replaced by (v)fork and exec.
+
+(*) Session keyring: <B>@s</B> or <B>-3</B>
+
+Each process subscribes to a session keyring that is inherited across (v)fork,
+exec and clone. This is searched after the process keyring. Session keyrings
+can be named and an extant keyring can be joined in place of a process's
+current session keyring.
+
+(*) User specific keyring: <B>@u</B> or <B>-4</B>
+
+This keyring is shared between all the processes owned by a particular user. It
+isn't searched directly, but is normally linked to from the session keyring.
+
+(*) User default session keyring: <B>@us</B> or <B>-5</B>
+
+This is the default session keyring for a particular user. Login processes that
+change to a particular user will bind to this session until another session is
+set.
+
+(*) Group specific keyring: <B>@g</B> or <B>-6</B>
+
+This is a place holder for a group specific keyring, but is not actually
+implemented yet in the kernel.
+
+(*) Assumed request_key authorisation key: <B>@a</B> or <B>-7</B>
+
+This selects the authorisation key provided to the request_key() helper to
+permit it to access the callers keyrings and instantiate the target key.
+<A NAME="lbAF">&nbsp;</A>
+<H2>COMMAND SYNTAX</H2>
+
+Any non-ambiguous shortening of a command name may be used in lieu of the full
+command name. This facility should not be used in scripting as new commands may
+be added in future that then cause ambiguity.
+
+(*) <B>Show process keyrings</B>
+
+<B>keyctl show</B>
+
+This command recursively shows what keyrings a process is subscribed to and
+what keys and keyrings they contain.
+
+(*) <B>Add a key to a keyring</B>
+
+<B>keyctl add</B> &lt;type&gt; &lt;desc&gt; &lt;data&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl padd</B> &lt;type&gt; &lt;desc&gt; &lt;keyring&gt;
+
+This command creates a key of the specified type and description; instantiates
+it with the given data and attaches it to the specified keyring. It then prints
+the new key's ID on stdout:
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl add user mykey stuff @u
+<BR>
+
+26
+</DL>
+
+
+The <B>padd</B> variant of the command reads the data from stdin rather than
+taking it from the command line:
+
+<DL COMPACT><DT><DD>
+testbox&gt;echo -n stuff | keyctl padd user mykey @u
+<BR>
+
+26
+</DL>
+
+
+(*) <B>Request a key</B>
+
+<B>keyctl request</B> &lt;type&gt; &lt;desc&gt; [&lt;dest_keyring&gt;]
+<BR>
+
+<B>keyctl request2</B> &lt;type&gt; &lt;desc&gt; &lt;info&gt; [&lt;dest_keyring&gt;]
+<BR>
+
+<B>keyctl prequest2</B> &lt;type&gt; &lt;desc&gt; [&lt;dest_keyring&gt;]
+
+These three commands request the lookup of a key of the given type and
+description. The process's keyrings will be searched, and if a match is found
+the matching key's ID will be printed to stdout; and if a destination keyring
+is given, the key will be added to that keyring also.
+
+If there is no key, the first command will simply return the error ENOKEY and
+fail. The second and third commands will create a partial key with the type and
+description, and call out to <B>/sbin/request-key</B> with that key and the
+extra information supplied. This will then attempt to instantiate the key in
+some manner, such that a valid key is obtained.
+
+The third command is like the second, except that the callout information is
+read from stdin rather than being passed on the command line.
+
+If a valid key is obtained, the ID will be printed and the key attached as if
+the original search had succeeded.
+
+If there wasn't a valid key obtained, a temporary negative key will be attached
+to the destination keyring if given and the error &quot;Requested key not available&quot;
+will be given.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl request2 user debug:hello wibble
+<BR>
+
+23
+<BR>
+
+testbox&gt;echo -n wibble | keyctl prequest2 user debug:hello
+<BR>
+
+23
+<BR>
+
+testbox&gt;keyctl request user debug:hello
+<BR>
+
+23
+</DL>
+
+
+(*) <B>Update a key</B>
+
+<B>keyctl update</B> &lt;key&gt; &lt;data&gt;
+<BR>
+
+<B>keyctl pupdate</B> &lt;key&gt;
+
+This command replaces the data attached to a key with a new set of data. If the
+type of the key doesn't support update then error &quot;Operation not supported&quot;
+will be returned.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl update 23 zebra
+</DL>
+
+
+The <B>pupdate</B> variant of the command reads the data from stdin rather than
+taking it from the command line:
+
+<DL COMPACT><DT><DD>
+testbox&gt;echo -n zebra | keyctl pupdate 23
+</DL>
+
+
+(*) <B>Create a keyring</B>
+
+<B>keyctl newring</B> &lt;name&gt; &lt;keyring&gt;
+
+This command creates a new keyring of the specified name and attaches it to the
+specified keyring. The ID of the new keyring will be printed to stdout if
+successful.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl newring squelch @us
+<BR>
+
+27
+</DL>
+
+
+(*) <B>Revoke a key</B>
+
+<B>keyctl revoke</B> &lt;key&gt;
+
+This command marks a key as being revoked. Any further operations on that key
+(apart from unlinking it) will return error &quot;Key has been revoked&quot;.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl revoke 26
+<BR>
+
+testbox&gt;keyctl describe 26
+<BR>
+
+keyctl_describe: Key has been revoked
+</DL>
+
+
+(*) <B>Clear a keyring</B>
+
+<B>keyctl clear</B> &lt;keyring&gt;
+
+This command unlinks all the keys attached to the specified keyring. Error
+&quot;Not a directory&quot; will be returned if the key specified is not a keyring.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl clear 27
+</DL>
+
+
+(*) <B>Link a key to a keyring</B>
+
+<B>keyctl link</B> &lt;key&gt; &lt;keyring&gt;
+
+This command makes a link from the key to the keyring if there's enough
+capacity to do so. Error &quot;Not a directory&quot; will be returned if the destination
+is not a keyring. Error &quot;Permission denied&quot; will be returned if the key doesn't
+have link permission or the keyring doesn't have write permission. Error &quot;File
+table overflow&quot; will be returned if the keyring is full. Error &quot;Resource
+deadlock avoided&quot; will be returned if an attempt was made to introduce a
+recursive link.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl link 23 27
+<BR>
+
+testbox&gt;keyctl link 27 27
+<BR>
+
+keyctl_link: Resource deadlock avoided
+</DL>
+
+
+(*) <B>Unlink a key from a keyring</B>
+
+<B>keyctl unlink</B> &lt;key&gt; &lt;keyring&gt;
+
+This command removes a link to the key from the keyring. Error &quot;Not a
+directory&quot; will be returned if the destination is not a keyring. Error
+&quot;Permission denied&quot; will be returned if the keyring doesn't have write
+permission. Error &quot;No such file or directory&quot; will be returned if the key is
+not linked to by the keyring.
+
+Note that this only removes one key link from the keyring; any further links to
+the same key are not deleted.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl unlink 23 27
+</DL>
+
+
+(*) <B>Search a keyring</B>
+
+<B>keyctl search</B> &lt;keyring&gt; &lt;type&gt; &lt;desc&gt; [&lt;dest_keyring&gt;]
+
+This command non-recursively searches a keyring for a key of a particular type
+and description. If found, the ID of the key will be printed on stdout and the
+key will be attached to the destination keyring if present. Error &quot;Requested
+key not available&quot; will be returned if the key is not found.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl search @us user debug:hello
+<BR>
+
+23
+<BR>
+
+testbox&gt;keyctl search @us user debug:bye
+<BR>
+
+keyctl_search: Requested key not available
+</DL>
+
+
+(*) <B>Read a key</B>
+
+<B>keyctl read</B> &lt;key&gt;
+<BR>
+
+<B>keyctl pipe</B> &lt;key&gt;
+<BR>
+
+<B>keyctl print</B> &lt;key&gt;
+
+These commands read the payload of a key. &quot;read&quot; prints it on stdout as a hex
+dump, &quot;pipe&quot; dumps the raw data to stdout and &quot;print&quot; dumps it to stdout
+directly if it's entirely printable or as a hexdump preceded by &quot;:hex:&quot; if not.
+
+If the key type does not support reading of the payload, then error &quot;Operation
+not supported&quot; will be returned.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl read 26
+<BR>
+
+1 bytes of data in key:
+<BR>
+
+62
+<BR>
+
+testbox&gt;keyctl print 26
+<BR>
+
+b
+<BR>
+
+testbox&gt;keyctl pipe 26
+<BR>
+
+btestbox&gt;
+</DL>
+
+
+(*) <B>List a keyring</B>
+
+<B>keyctl list</B> &lt;keyring&gt;
+<BR>
+
+<B>keyctl rlist</B> &lt;keyring&gt;
+
+These commands list the contents of a key as a keyring. &quot;list&quot; pretty prints
+the contents and &quot;rlist&quot; just produces a space-separated list of key IDs.
+
+No attempt is made to check that the specified keyring is a keyring.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl list @us
+<BR>
+
+2 keys in keyring:
+<BR>
+
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;22:&nbsp;vrwsl----------&nbsp;&nbsp;4043&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;keyring:&nbsp;_uid.4043
+<BR>
+
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;23:&nbsp;vrwsl----------&nbsp;&nbsp;4043&nbsp;&nbsp;4043&nbsp;user:&nbsp;debug:hello
+<BR>
+
+testbox&gt;keyctl rlist @us
+<BR>
+
+22 23
+</DL>
+
+
+(*) <B>Describe a key</B>
+
+<B>keyctl describe</B> &lt;keyring&gt;
+<BR>
+
+<B>keyctl rdescribe</B> &lt;keyring&gt; [sep]
+
+These commands fetch a description of a keyring. &quot;describe&quot; pretty prints the
+description in the same fashion as the &quot;list&quot; command; &quot;rdescribe&quot; prints the
+raw data returned from the kernel.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl describe @us
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-5:&nbsp;vrwsl----------&nbsp;&nbsp;4043&nbsp;&nbsp;&nbsp;&nbsp;-1&nbsp;keyring:&nbsp;_uid_ses.4043
+testbox&gt;keyctl rdescribe @us
+keyring;4043;-1;3f1f0000;_uid_ses.4043
+</DL>
+
+
+The raw string is &quot;&lt;type&gt;;&lt;uid&gt;;&lt;gid&gt;;&lt;perms&gt;;&lt;description&gt;&quot;, where <I>uid</I>
+and <I>gid</I> are the decimal user and group IDs, <I>perms</I> is the
+permissions mask in hex, <I>type</I> and <I>description</I> are the type name and
+description strings (neither of which will contain semicolons).
+
+(*) <B>Change the access controls on a key</B>
+
+<B>keyctl chown</B> &lt;key&gt; &lt;uid&gt;
+<BR>
+
+<B>keyctl chgrp</B> &lt;key&gt; &lt;gid&gt;
+
+These two commands change the UID and GID associated with evaluating a key's
+permissions mask. The UID also governs which quota a key is taken out of.
+
+The chown command is not currently supported; attempting it will earn the error
+&quot;Operation not supported&quot; at best.
+
+For non-superuser users, the GID may only be set to the process's GID or a GID
+in the process's groups list. The superuser may set any GID it likes.
+
+<DL COMPACT><DT><DD>
+testbox&gt;sudo keyctl chown 27 0
+<BR>
+
+keyctl_chown: Operation not supported
+<BR>
+
+testbox&gt;sudo keyctl chgrp 27 0
+</DL>
+
+
+(*) <B>Set the permissions mask on a key</B>
+
+<B>keyctl setperm</B> &lt;key&gt; &lt;mask&gt;
+
+This command changes the permission control mask on a key. The mask may be
+specified as a hex number if it begins &quot;0x&quot;, an octal number if it begins &quot;0&quot;
+or a decimal number otherwise.
+
+The hex numbers are a combination of:
+
+<DL COMPACT><DT><DD>
+Possessor UID       GID       Other     Permission Granted
+<BR>
+
+========  ========  ========  ========  ==================
+<BR>
+
+01000000  00010000  00000100  00000001  View
+<BR>
+
+02000000  00020000  00000200  00000002  Read
+<BR>
+
+04000000  00040000  00000400  00000004  Write
+<BR>
+
+08000000  00080000  00000800  00000008  Search
+<BR>
+
+10000000  00100000  00001000  00000010  Link
+<BR>
+
+20000000  00200000  00002000  00000020  Set Attribute
+<BR>
+
+3f000000  003f0000  00003f00  0000003f  All
+</DL>
+
+
+<I>View</I> permits the type, description and other parameters of a key to be
+viewed.
+
+<I>Read</I> permits the payload (or keyring list) to be read if supported by the
+type.
+
+<I>Write</I> permits the payload (or keyring list) to be modified or updated.
+
+<I>Search</I> on a key permits it to be found when a keyring to which it is
+linked is searched.
+
+<I>Link</I> permits a key to be linked to a keyring.
+
+<I>Set Attribute</I> permits a key to have its owner, group membership,
+permissions mask and timeout changed.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl setperm 27 0x1f1f1f00
+</DL>
+
+
+(*) <B>Start a new session with fresh keyrings</B>
+
+<B>keyctl session</B>
+<BR>
+
+<B>keyctl session</B> - [&lt;prog&gt; &lt;arg1&gt; &lt;arg2&gt; ...]
+<BR>
+
+<B>keyctl session</B> &lt;name&gt; [&lt;prog&gt; &lt;arg1&gt; &lt;arg2&gt; ...]
+
+These commands join or create a new keyring and then run a shell or other
+program with that keyring as the session key.
+
+The variation with no arguments just creates an anonymous session keyring and
+attaches that as the session keyring; it then exec's $SHELL.
+
+The variation with a dash in place of a name creates an anonymous session
+keyring and attaches that as the session keyring; it then exec's the supplied
+command, or $SHELL if one isn't supplied.
+
+The variation with a name supplied creates or joins the named keyring and
+attaches that as the session keyring; it then exec's the supplied command, or
+$SHELL if one isn't supplied.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl rdescribe @s
+<BR>
+
+keyring;4043;-1;3f1f0000;_uid_ses.4043
+
+testbox&gt;keyctl session
+<BR>
+
+Joined session keyring: 28
+<BR>
+
+testbox&gt;keyctl rdescribe @s
+<BR>
+
+keyring;4043;4043;3f1f0000;_ses.24082
+
+testbox&gt;keyctl session -
+<BR>
+
+Joined session keyring: 29
+<BR>
+
+testbox&gt;keyctl rdescribe @s
+<BR>
+
+keyring;4043;4043;3f1f0000;_ses.24139
+
+testbox&gt;keyctl session - keyctl rdescribe @s
+<BR>
+
+Joined session keyring: 30
+<BR>
+
+keyring;4043;4043;3f1f0000;_ses.24185
+
+testbox&gt;keyctl session fish 
+<BR>
+
+Joined session keyring: 34
+<BR>
+
+testbox&gt;keyctl rdescribe @s
+<BR>
+
+keyring;4043;4043;3f1f0000;fish
+
+testbox&gt;keyctl session fish keyctl rdesc @s
+<BR>
+
+Joined session keyring: 35
+<BR>
+
+keyring;4043;4043;3f1f0000;fish
+</DL>
+
+
+(*) <B>Instantiate a key</B>
+
+<B>keyctl instantiate</B> &lt;key&gt; &lt;data&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl pinstantiate</B> &lt;key&gt; &lt;keyring&gt;
+<BR>
+
+<B>keyctl negate</B> &lt;key&gt; &lt;timeout&gt; &lt;keyring&gt;
+
+These commands are used to attach data to a partially set up key (as created by
+the kernel and passed to /sbin/request-key). &quot;instantiate&quot; marks a key as being
+valid and attaches the data as the payload. &quot;negate&quot; marks a key as invalid and
+sets a timeout on it so that it'll go away after a while. This prevents a lot
+of quickly sequential requests from slowing the system down overmuch when they
+all fail, as all subsequent requests will then fail with error &quot;Requested key
+not found&quot; until the negative key has expired.
+
+The newly instantiated key will be attached to the specified keyring.
+
+These commands may only be run from the program run by request-key - a special
+authorisation key is set up by the kernel and attached to the request-key's
+session keyring. This special key is revoked once the key to which it refers
+has been instantiated one way or another.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl instantiate $1 &quot;Debug $3&quot; $4
+<BR>
+
+testbox&gt;keyctl negate $1 30 $4
+</DL>
+
+
+The <B>pinstantiate</B> variant of the command reads the data from stdin rather
+than taking it from the command line:
+
+<DL COMPACT><DT><DD>
+testbox&gt;echo -n &quot;Debug $3&quot; | keyctl pinstantiate $1 $4
+</DL>
+
+
+(*) <B>Set the expiry time on a key</B>
+
+<B>keyctl timeout</B> &lt;key&gt; &lt;timeout&gt;
+
+This command is used to set the timeout on a key, or clear an existing timeout
+if the value specified is zero. The timeout is given as a number of seconds
+into the future.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl timeout $1 45
+</DL>
+
+
+(*) <B>Retrieve a key's security context</B>
+
+<B>keyctl security</B> &lt;key&gt;
+
+This command is used to retrieve a key's LSM security context.  The label is
+printed on stdout.
+
+<DL COMPACT><DT><DD>
+testbox&gt;keyctl security @s
+<BR>
+
+unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023
+</DL>
+
+
+(*) <B>Give the parent process a new session keyring</B>
+
+<B>keyctl new_session</B>
+
+This command is used to give the invoking process (typically a shell) a new
+session keyring, discarding its old session keyring.
+
+<DL COMPACT><DT><DD>
+testbox&gt; keyctl session foo
+<BR>
+
+Joined session keyring: 723488146
+<BR>
+
+testbox&gt; keyctl show
+<BR>
+
+Session Keyring
+<BR>
+
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-3&nbsp;--alswrv&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;keyring:&nbsp;foo
+<BR>
+
+testbox&gt; keyctl new_session
+<BR>
+
+490511412
+<BR>
+
+testbox&gt; keyctl show
+<BR>
+
+Session Keyring
+<BR>
+
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;-3&nbsp;--alswrv&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;&nbsp;keyring:&nbsp;_ses
+</DL>
+
+
+Note that this affects the <I>parent</I> of the process that invokes the system
+call, and so may only affect processes with matching credentials.
+Furthermore, the change does not take effect till the parent process next
+transitions from kernel space to user space - typically when the <B>wait</B>()
+system call returns.
+<A NAME="lbAG">&nbsp;</A>
+<H2>ERRORS</H2>
+
+
+There are a number of common errors returned by this program:
+
+&quot;Not a directory&quot; - a key wasn't a keyring.
+
+&quot;Requested key not found&quot; - the looked for key isn't available.
+
+&quot;Key has been revoked&quot; - a revoked key was accessed.
+
+&quot;Key has expired&quot; - an expired key was accessed.
+
+&quot;Permission denied&quot; - permission was denied by a UID/GID/mask combination.
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?1+keyctl">keyctl</A></B>(1), <B><A HREF="http://localhost/cgi-bin/man/man2html?5+request-key.conf">request-key.conf</A></B>(5)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">KEY IDENTIFIERS</A><DD>
+<DT><A HREF="#lbAF">COMMAND SYNTAX</A><DD>
+<DT><A HREF="#lbAG">ERRORS</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:05 GMT, December 24, 2015
+</div></body>
+</HTML>

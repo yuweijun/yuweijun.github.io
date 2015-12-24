@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of init</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>init</H1>
+Section: File Formats (5)<BR>Updated: 2011-01-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+init - Upstart init daemon job configuration
+
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>/etc/init/</B>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+On startup, the Upstart
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+daemon reads its job configuration from the
+<I>/etc/init</I>
+
+directory, and watches for future changes using
+<B><A HREF="/manpages/index.html?7+inotify">inotify</A></B>(7).
+
+<P>
+To be considered by Upstart, files in this directory must have a
+recognized suffix and may also be present in sub-directories.  There are
+two recognized suffixes:
+<P>
+<DL COMPACT>
+<DT>*<DD>
+Files ending in
+<I>.conf</I>
+
+are called configuration files, or simply &quot;conf files&quot; for short.
+These are the primary vehicle for specifying a job.
+<DT>*<DD>
+Files ending in
+<I>.override</I>
+
+are called override files.  If an override file is present, the stanzas
+it contains take precedence over those equivalently named stanzas in the
+corresponding configuration file contents for a particular job.
+The main use for override files is to modify how a job will run without
+having to modify its configuration file directly.  See the section
+<B>Override File Handling</B> below for further details.
+
+A job can thus be defined by either:
+<DT>[bu]<DD>
+A single configuration file.
+<DT>[bu]<DD>
+A single configuration file <B>and</B> a single override file.
+
+Unless explicitly stated otherwise, any reference to a jobs
+configuration can refer both to a configuration file or an override
+file.
+<P>
+Each configuration file defines the template for a single <I>service</I>
+(long-running process or daemon) or <I>task</I> (short-lived process).
+<P>
+Note that a configuration file is not itself a job: it is a description
+of an environmenta job could be run in.  A job is the runtime embodiment
+of a configuration file.
+<P>
+The configuration file name as displayed by Upstart and associated
+tooling is taken from its relative path within the directory without the
+extension.  For example a configuration file
+<I>/etc/init/rc-sysinit.conf</I>
+
+is named
+<I>rc-sysinit</I>,
+
+while a configuration file
+<I>/etc/init/net/apache.conf</I>
+
+is named
+<I>net/apache</I>.
+
+Since override files only modify the way a configuration file is
+interpreted, they are not named.
+<P>
+Configuration files are plain text and should not be executable.
+
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Configuration File Format</H3>
+
+Each line begins with a configuration stanza and continues until either
+the end of the line or a line containing a closing stanza.  Line breaks
+within a stanza are permitted within single or double quotes, or if
+preceeded by a blackslash.
+<P>
+If a stanza is duplicated, the last occurence will be used. Unrecognized
+stanzas will generate parse errors, which will stop a job from running.
+<P>
+Stanzas and their arguments are delimited by whitespace, which consists
+of one or more space or tab characters which are otherwise ignored unless
+placed within single or double quotes.
+<P>
+Comments begin with a `#' and continue until the end of the line.  Blank
+lines and lines consisting only of whitespace or comments are ignored.
+
+<A NAME="lbAF">&nbsp;</A>
+<H3>Process definition</H3>
+
+The primary use of jobs is to define services or tasks to be run by the
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+daemon.  Each job may have one or more different processes run as part
+of its lifecycle, with the most common known as the main process.
+<P>
+The main process is defined using either the
+<B>exec</B>
+
+or
+<B>script</B>
+
+stanzas, only one of which is permitted.  These specify the executable
+or shell script that will be run when the job is considered to be running.
+Once this process terminates, the job stop.
+<P>
+All processes are run with the full job environment available as
+environment variables in their process.
+<P>
+<DL COMPACT>
+<DT><B>exec </B><I>COMMAND </I>[ <I>ARG </I>]...
+
+<DD>
+This stanza defines the process to be run as the name of an executable
+on the filesystem, and zero or more arguments to be passed to it.  Any
+special characters, e.g. quotes or `$' specified will result in the
+entire command being passed to a shell for expansion.
+<P>
+<PRE>
+exec /usr/sbin/acpid -c $EVENTSDIR -s $SOCKET
+</PRE>
+
+
+<DT><B>script </B>... <B>end script</B>
+
+<DD>
+This stanza defines the process to be run as a shell script that will
+be executed using
+<B><A HREF="/manpages/index.html?1+sh">sh</A>(1).</B>
+
+The
+<I>-e</I>
+
+shell option is always used, so any command that fails will terminate
+the script.
+<P>
+The
+<B>script</B>
+
+stanza appears on its own on a line, the script is everything up until
+the first
+<B>end script</B>
+
+stanza appearing on its own on a line.
+<P>
+<PRE>
+script
+    dd bs=1 if=/proc/kmsg of=$KMSGSINK
+    exec /sbin/klogd -P $KMSGSINK
+end script
+</PRE>
+
+<P>
+</DL>
+<P>
+
+There an additional four processes that may be run as part of the job's
+lifecycle.  These are specified as the process name, followed by an
+<B>exec</B>
+
+or
+<B>script</B>
+
+stanza.
+<P>
+<DL COMPACT>
+<DT><B>pre-start exec</B>|<B>script</B>...
+
+<DD>
+This process will be run after the job's
+<B><A HREF="/manpages/index.html?7+starting">starting</A></B>(7)
+
+event has finished, but before the main process is run.  It is typically
+used to prepare the environment, such as making necessary directories.
+
+<DT><B>post-start exec</B>|<B>script</B>...
+
+<DD>
+This process will be run before the job's
+<B><A HREF="/manpages/index.html?7+started">started</A></B>(7)
+
+event is emitted, but after the main process has been spawned.  It is
+typically used to send necessary commands to the main process, or to
+delay the
+<B><A HREF="/manpages/index.html?7+started">started</A></B>(7)
+
+event until the main process is ready to receive clients.
+
+<DT><B>pre-stop exec</B>|<B>script</B>...
+
+<DD>
+This process is run if the job is stopped by an event listed in its
+<B>stop on</B>
+
+stanza or by the
+<B><A HREF="/manpages/index.html?8+stop">stop</A></B>(8)
+
+command.  It will be run before the job's
+<B><A HREF="/manpages/index.html?7+stopping">stopping</A></B>(7)
+
+event is emitted and before the main process is killed.  It is typically
+used to send any necessary shutdown commands to the main process, and it
+may also call the
+<B><A HREF="/manpages/index.html?8+start">start</A></B>(8)
+
+command without arguments to cancel the stop.
+
+<DT><B>post-stop exec</B>|<B>script</B>...
+
+<DD>
+This process is run after the main process has been killed and before
+the job's
+<B><A HREF="/manpages/index.html?7+stopped">stopped</A></B>(7)
+
+event is emitted.  It is typically used to clean up the environment,
+such as removing temporary directories.
+<P>
+</DL>
+<P>
+
+All of these process, including the main process, are optional.  Services
+without a main process will appear to be running until they are stopped,
+this is commonly used to define states such as runlevels.  It's quite
+permissable to have no main process, but to have
+<B>pre-start</B>
+
+and
+<B>post-stop</B>
+
+processes for the state.
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+pre-start exec ifup -a
+post-stop exec ifdown -a
+</PRE>
+
+</DL>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>Event definition</H3>
+
+Jobs can be manually started and stopped at any time by a system adminstrator
+using the.
+<B><A HREF="/manpages/index.html?8+start">start</A></B>(8)
+
+and
+<B><A HREF="/manpages/index.html?8+stop">stop</A></B>(8)
+
+tools, however it is far more useful for jobs to be started and stopped
+automatically by the
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+daemon when necessary.
+<P>
+This is done by specifying which events should cause your job to be
+started, and which cause your process to be stopped again.
+<P>
+The set of possible events is limitless, however there are a number of
+standard events defined by the
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+daemon and
+<B><A HREF="/manpages/index.html?8+telinit">telinit</A></B>(8)
+
+tools that you will want to use.
+<P>
+When first started, the
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+daemon will emit the
+<B><A HREF="/manpages/index.html?7+startup">startup</A></B>(7)
+
+event.  This will activate jobs that implement System V compatibility and
+the
+<B><A HREF="/manpages/index.html?7+runlevel">runlevel</A></B>(7)
+
+event.  As jobs are started and stopped, the
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+daemon will emit the
+<B><A HREF="/manpages/index.html?7+starting">starting</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+started">started</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+stopping">stopping</A></B>(7)
+
+and
+<B><A HREF="/manpages/index.html?7+stopped">stopped</A></B>(7)
+
+events on their behalf.
+<P>
+<DL COMPACT>
+<DT><B>start on </B><I>EVENT </I>[[<I>KEY=</I>]<I>VALUE</I>]... [<B>and</B>|<B>or</B>...]
+
+<DD>
+The
+<B>start on</B>
+
+stanza defines the set of events that will cause the job to be automatically
+started.  Each
+<I>EVENT</I>
+
+is given by its name.  Multiple events are permitted using the
+<B>and</B>
+
+&amp;
+<B>or</B>
+
+operators, and complex expressions may be performed with parentheses (within
+which line breaks are permitted).
+<P>
+You may also match on the environment variables contained within the event
+by specifying the
+<I>KEY</I>
+
+and expected
+<I>VALUE</I>.
+
+If you know the order in which the variables are given to the event you may
+omit the
+<I>KEY</I>.
+
+<P>
+<I>VALUE</I>
+
+may contain wildcard matches and globs as permitted by
+<B><A HREF="/manpages/index.html?3+fnmatch">fnmatch</A></B>(3)
+
+and may expand the value of any variable defined with the
+<B>env</B>
+
+stanza.
+<P>
+Negation is permitted by using
+<I>!=</I>
+
+between the
+<I>KEY</I>
+
+and
+<I>VALUE</I>.
+
+<P>
+<PRE>
+start on started gdm or started kdm
+
+start on device-added SUBSYSTEM=tty DEVPATH=ttyS*
+
+start on net-device-added INTERFACE!=lo
+</PRE>
+
+
+<DT><B>stop on </B><I>EVENT </I>[[<I>KEY=</I>]<I>VALUE</I>]... [<B>and</B>|<B>or</B>...]
+
+<DD>
+The
+<B>stop on</B>
+
+stanza defines the set of events that will cause the job to be automatically
+stopped.  It has the same syntax as
+<B>start on</B>.
+<P>
+<I>VALUE</I>
+
+may additionally expand the value of any variable that came from the
+job's start environment (either the event or the command that started it).
+<P>
+<PRE>
+stop on stopping gdm or stopping kdm
+
+stop on device-removed DEVPATH=$DEVPATH
+</PRE>
+
+
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>Job environment</H3>
+
+Each job is run with the environment from the events or commands that
+started it.  In addition, you may define defaults in the job which may
+be overridden later and specify which environment variables are exported
+into the events generated for the job.
+<P>
+The special
+<B>UPSTART_EVENTS</B>
+
+environment variable contains the list of events that started the job,
+it will not be present if the job was started manually.
+<P>
+In addition, the
+<B>pre-stop</B>
+
+and
+<B>post-stop</B>
+
+scripts are run with the environment of the events or commands that
+stopped the job.  THe
+<B>UPSTART_STOP_EVENTS</B>
+
+environment variable contains the list of events that stopped the job,
+it will not be present if the job was stopped manually.
+<P>
+All jobs also contain the
+<B>UPSTART_JOB</B>
+
+and
+<B>UPSTART_INSTANCE</B>
+
+environment variables, containing the name of the job and instance.  These
+are mostly used by the
+<B><A HREF="/manpages/index.html?8+initctl">initctl</A></B>(8)
+
+utility to default to acting on the job the commands are called from.
+<P>
+<DL COMPACT>
+<DT><B>env </B><I>KEY</I>=<I>VALUE</I>
+
+<DD>
+Defines a default environment variable, the value of which may be overriden
+by the event or command that starts the job.
+
+<DT><B>export </B><I>KEY</I>
+
+<DD>
+Exports the value of an environment variable into the
+<B><A HREF="/manpages/index.html?7+starting">starting</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+started">started</A></B>(7),
+
+<B><A HREF="/manpages/index.html?7+stopping">stopping</A></B>(7)
+
+and
+<B><A HREF="/manpages/index.html?7+stopped">stopped</A></B>(7)
+
+events for this job.
+
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Services, tasks and respawning</H3>
+
+Jobs are
+<I>services</I>
+
+by default.  This means that the act of starting the job is considered
+to be finished when the job is running, and that even exiting with a
+zero exit status means the service will be respawned.
+<P>
+<DL COMPACT>
+<DT><B>task</B>
+
+<DD>
+This stanza may be used to specify that the job is a
+<I>task</I>
+
+instead.  This means that the act of starting the job is not considered
+to be finished until the job itself has been run and stopped again, but
+that existing with a zero exit status means the task has completed
+successfully and will not be respawned.
+<P>
+</DL>
+<P>
+
+The
+<B><A HREF="/manpages/index.html?8+start">start</A></B>(8)
+
+command, and any
+<B><A HREF="/manpages/index.html?7+starting">starting</A></B>(7)
+
+or
+<B><A HREF="/manpages/index.html?7+stopping">stopping</A></B>(7)
+
+events will block only until a service is running or until a task has
+finished.
+<P>
+<DL COMPACT>
+<DT><B>respawn</B>
+
+<DD>
+A service or task with this stanza will be automatically started if it
+should stop abnormally.  All reasons for a service stopping, except
+the
+<B><A HREF="/manpages/index.html?8+stop">stop</A></B>(8)
+
+command itself, are considered abnormal.  Tasks may exit with a zero
+exit status to prevent being respawned.
+
+<DT><B>respawn limit </B><I>COUNT INTERVAL</I>
+
+<DD>
+Respawning is subject to a limit, if the job is respawned more than
+<I>COUNT</I>
+
+times in
+<I>INTERVAL</I>
+
+seconds, it will be considered to be having deeper problems and will
+be stopped. Default COUNT is 10. Default INTERVAL is 5 seconds.
+<P>
+This only applies to automatic respawns and not the
+<B><A HREF="/manpages/index.html?8+restart">restart</A></B>(8)
+
+command.
+
+<DT><B>normal exit </B><I>STATUS</I>|<I>SIGNAL</I>...
+
+<DD>
+Additional exit statuses or even signals may be added, if the job
+process terminates with any of these it will not be considered to have
+failed and will not be respawned.
+<P>
+<PRE>
+normal exit 0 1 TERM HUP
+</PRE>
+
+
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Instances</H3>
+
+By default, only one instance of any job is permitted to exist at one
+time.  Attempting to start a job when it's already starting or running
+results in an error. Note that a job is considered to be running if its
+pre-start process is running.
+<P>
+Multiple instances may be permitted by defining the names of those
+instances.  If an instance with the same name is not already starting
+or running, a new instance will be started instead of returning an
+error.
+<P>
+<DL COMPACT>
+<DT><B>instance </B><I>NAME</I>
+
+<DD>
+This stanza defines the names of instances, on its own its not particularly
+useful since it would just define the name of the single permitted instance,
+however
+<I>NAME</I>
+
+expands any variable defined in the job's environment.
+<P>
+These will often be variables that you need to pass to the process anyway,
+so are an excellent way to limit the instances.
+<P>
+<PRE>
+instance $CONFFILE
+exec /sbin/httpd -c $CONFFILE
+</PRE>
+
+<P>
+<PRE>
+instance $TTY
+exec /sbin/getty -8 38300 $TTY
+</PRE>
+
+<P>
+These jobs appear in the
+<B><A HREF="/manpages/index.html?8+initctl">initctl</A></B>(8)
+
+output with the instance name in parentheses, and have the
+<B>INSTANCE</B>
+
+environment variable set in their events.
+
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H3>Documentation</H3>
+
+Upstart provides several stanzas useful for documentation and external
+tools.
+<P>
+<DL COMPACT>
+<DT><B>description </B><I>DESCRIPTION</I>
+
+<DD>
+This stanza may contain a description of the job.
+<P>
+<PRE>
+description &quot;This does neat stuff&quot;
+</PRE>
+
+
+<DT><B>author </B><I>AUTHOR</I>
+
+<DD>
+This stanza may contain the author of the job, often used as a contact
+for bug reports.
+<P>
+<PRE>
+author &quot;Scott James Remnant &lt;<A HREF="mailto:scott@netsplit.com">scott@netsplit.com</A>&gt;&quot;
+</PRE>
+
+
+<DT><B>version </B><I>VERSION</I>
+
+<DD>
+This stanza may contain version information about the job, such as revision
+control or package version number.  It is not used or interpreted by
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+in any way.
+<P>
+<PRE>
+version &quot;$Id$&quot;
+</PRE>
+
+
+<DT><B>emits </B><I>EVENT</I>...
+
+<DD>
+All processes on the system are free to emit their own events by using the
+<B><A HREF="/manpages/index.html?8+initctl">initctl</A></B>(8)
+
+tool, or by communicating directly with the
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+daemon.
+<P>
+This stanza allows a job to document in its job configuration what events
+it emits itself, and may be useful for graphing possible transitions.
+
+<DT><B>usage </B><I>USAGE</I>
+
+<DD>
+This stanza may contain the text used by
+<B><A HREF="/manpages/index.html?8+initctl">initctl</A></B>(8) <B>usage</B>
+
+command. This text may be also shown when commands
+<B><A HREF="/manpages/index.html?8+start">start</A></B>(8),
+
+<B><A HREF="/manpages/index.html?8+stop">stop</A></B>(8)
+
+or
+<B><A HREF="/manpages/index.html?8+status">status</A></B>(8)
+
+fail.
+<P>
+<PRE>
+usage &quot;tty DEV=ttyX - where X is console id&quot;
+</PRE>
+
+
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>Process environment</H3>
+
+Many common adjustments to the process environment, such as resource
+limits, may be configured directly in the job rather than having to handle
+them yourself.
+<P>
+<DL COMPACT>
+<DT><B>console output</B>|<B>owner</B>
+
+<DD>
+By default the standard input, output and error file descriptors of jobs
+are connected to
+<I>/dev/null</I>
+
+<P>
+If this stanza is specified, they are connected to
+<I>/dev/console</I>
+
+instead.
+<P>
+<B>console owner</B>
+
+is special, it not only connects the job to the system console but sets
+the job to be the owner of the system console, which means it will receive
+certain signals from the kernel when special key combinations such as
+Control-C are pressed.
+
+<DT><B>umask </B><I>UMASK</I>
+
+<DD>
+A common configuration is to set the file mode creation mask for the
+process.
+<I>UMASK</I>
+
+should be an octal value for the mask, see
+<B><A HREF="/manpages/index.html?2+umask">umask</A></B>(2)
+
+for more details.
+
+<DT><B>nice </B><I>NICE</I>
+
+<DD>
+Another common configuration is to adjust the process's nice value,
+see
+<B><A HREF="/manpages/index.html?1+nice">nice</A></B>(1)
+
+for more details.
+
+<DT><B>oom </B><I>ADJUSTMENT</I>|<B>never</B>
+
+<DD>
+Normally the OOM killer regards all processes equally, this stanza
+advises the kernel to treat this job differently.
+<P>
+<I>ADJUSTMENT</I>
+
+may be an integer value from
+<I>-16</I>
+
+(very unlikely to be killed by the OOM killer) up to
+<I>14</I>
+
+(very likely to be killed by the OOM killer).  It may also be the special
+value
+<B>never</B>
+
+to have the job ignored by the OOM killer entirely.
+
+<DT><B>chroot </B><I>DIR</I>
+
+<DD>
+Runs the job's processes in a
+<B><A HREF="/manpages/index.html?8+chroot">chroot</A>(8)</B>
+
+environment underneath
+<I>DIR</I>
+
+<P>
+Note that
+<I>DIR</I>
+
+must have all the necessary system libraries for the process to be run,
+often including
+<I>/bin/sh</I>
+
+
+<DT><B>chdir </B><I>DIR</I>
+
+<DD>
+Runs the job's processes with a working directory of
+<I>DIR</I>
+
+instead of the root of the filesystem.
+
+<DT><B>limit </B><I>LIMIT SOFT</I>|<B>unlimited </B><I>HARD</I>|<B>unlimited</B>
+
+<DD>
+Sets initial system resource limits for the job's processes.
+<I>LIMIT</I>
+
+may be one of
+<I>core</I>,
+
+<I>cpu</I>,
+
+<I>data</I>,
+
+<I>fsize</I>,
+
+<I>memlock</I>,
+
+<I>msgqueue</I>,
+
+<I>nice</I>,
+
+<I>nofile</I>,
+
+<I>nproc</I>,
+
+<I>rss</I>,
+
+<I>rtprio</I>,
+
+<I>sigpending</I>
+
+or
+<I>stack</I>.
+
+<P>
+Limits are specified as both a
+<I>SOFT</I>
+
+value and a
+<I>HARD</I>
+
+value, both of which are integers.  The special value
+<B>unlimited</B>
+
+may be specified for either.
+
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H3>Override File Handling</H3>
+
+Override files allow a jobs environment to be changed without modifying
+the jobs configuration file. Rules governing override files:
+<P>
+<DL COMPACT>
+<DT>[bu]<DD>
+If a job is embodied with only a configuration file, the contents of
+this file define the job.
+<DT>[bu]<DD>
+If an override files exists where there is no existing cofiguration
+file, the override file is ignored.
+<DT>[bu]<DD>
+If both a configuration file <B>and</B> an override file exist for a job
+and both files are syntactically correct:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT>[bu]<DD>
+stanzas in the override file will take precedence over stanzas present
+in the corresponding configuration file.
+<DT>[bu]<DD>
+stanzas in the override file which are not present in the corresponding
+configuration file will be honoured when the job runs.
+</DL>
+</DL>
+
+<DT>[bu]<DD>
+If both a configuration file and an override file exist for a job and
+subsequently the override file is deleted, the configuration file is
+automatically reloaded with the effect that any changes introduced by
+the override file are undone and the configuration file alone now defines
+the job.
+<DT>[bu]<DD>
+If both a configuration file and an override file exist for a job and
+subsequently the configuration file is deleted, a new instance of the
+job can no longer be started (since without a corresponding
+configuration file an override file is ignored).
+<DT>[bu]<DD>
+If both a configuration file and an override file exist for a job and
+any of the contents of the override file are invalid, the override file
+is ignored and only the contents of the configuration file are
+considered.
+
+<P>
+
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H3>Miscellaneous</H3>
+
+<DL COMPACT>
+<DT><B>kill timeout </B><I>INTERVAL</I>
+
+<DD>
+Specifies the interval between sending the job's main process the
+<I>SIGTERM</I>
+
+and
+<I>SIGKILL</I>
+
+signals when stopping the running job. Default is 5 seconds.
+
+<DT><B>expect stop</B>
+
+<DD>
+Specifies that the job's main process will raise the
+<I>SIGSTOP</I>
+
+signal to indicate that it is ready.
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+will wait for this signal before running the job's post-start script,
+or considering the job to be running.
+<P>
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+will send the process the
+<I>SIGCONT</I>
+
+signal to allow it to continue.
+
+<DT><B>expect daemon</B>
+
+<DD>
+Specifies that the job's main process is a daemon, and will fork twice
+after being run.
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+will follow this daemonisation, and will wait for this to occur before
+running the job's post-start script or considering the job to be running.
+<P>
+Without this stanza
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+is unable to supervise daemon processes and will believe them to have
+stopped as soon as they daemonise on startup.
+
+<DT><B>expect fork</B>
+
+<DD>
+Specifies that the job's main process will fork once after being run.
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+will follow this fork, and will wait for this to occur before
+running the job's post-start script or considering the job to be running.
+<P>
+Without this stanza
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+is unable to supervise forking processes and will believe them to have
+stopped as soon as they fork on startup.
+
+</DL>
+<A NAME="lbAO">&nbsp;</A>
+<H2>BUGS</H2>
+
+The 
+<B>and</B>
+
+and 
+<B>or</B>
+
+operators allowed with
+<B>start on</B>
+
+and
+<B>stop on</B>
+
+do not work intuitively: operands to the right of either operator are
+only evaluated once and state information is then discarded. This can
+lead to jobs with complex <B>start on</B> or stop on conditions
+not behaving as expected <I>when restarted</I>. For example, if a job
+encodes the following condition:
+<BR>
+&nbsp;&nbsp;&nbsp;&nbsp;
+<P>
+<PRE>
+start on A and (B or C)
+</PRE>
+
+<P>
+When 'A' and 'B' become true, the condition is satisfied so the job will
+be run. However, if the job ends and subsequently 'A' and 'C' become true,
+the job will <I>not</I> be re-run even though the condtion is satisfied.
+Avoid using complex conditions with jobs which need to be restarted.
+
+<A NAME="lbAP">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Manual page written by Scott James Remnant
+&lt;<B><A HREF="mailto:scott@netsplit.com">scott@netsplit.com</A></B>&gt;
+
+and James Hunt
+&lt;<B><A HREF="mailto:james.hunt@canonical.com">james.hunt@canonical.com</A></B>&gt;<B>.</B>
+
+
+<A NAME="lbAQ">&nbsp;</A>
+<H2>REPORTING BUGS</H2>
+
+Report bugs at
+&lt;<B><A HREF="https://launchpad.net/upstart/+bugs">https://launchpad.net/upstart/+bugs</A></B>&gt;
+
+
+<A NAME="lbAR">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+Copyright &#169; 2010 Canonical Ltd.
+<BR>
+
+This is free software; see the source for copying conditions.  There is NO
+warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+<P>
+
+<A NAME="lbAS">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?8+init">init</A></B>(8)
+
+<B><A HREF="/manpages/index.html?1+sh">sh</A></B>(1)
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Configuration File Format</A><DD>
+<DT><A HREF="#lbAF">Process definition</A><DD>
+<DT><A HREF="#lbAG">Event definition</A><DD>
+<DT><A HREF="#lbAH">Job environment</A><DD>
+<DT><A HREF="#lbAI">Services, tasks and respawning</A><DD>
+<DT><A HREF="#lbAJ">Instances</A><DD>
+<DT><A HREF="#lbAK">Documentation</A><DD>
+<DT><A HREF="#lbAL">Process environment</A><DD>
+<DT><A HREF="#lbAM">Override File Handling</A><DD>
+<DT><A HREF="#lbAN">Miscellaneous</A><DD>
+</DL>
+<DT><A HREF="#lbAO">BUGS</A><DD>
+<DT><A HREF="#lbAP">AUTHOR</A><DD>
+<DT><A HREF="#lbAQ">REPORTING BUGS</A><DD>
+<DT><A HREF="#lbAR">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAS">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

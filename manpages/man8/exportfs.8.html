@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of exportfs</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>exportfs</H1>
+Section: Maintenance Commands (8)<BR>Updated: 31 December 2009<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+exportfs - maintain table of exported NFS file systems
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>/usr/sbin/exportfs [-avi] [-o </B><I>options,..</I><B>] [</B><I>client:/path</I><B> ..]</B>
+
+<BR>
+
+<B>/usr/sbin/exportfs -r [-v]</B>
+
+<BR>
+
+<B>/usr/sbin/exportfs [-av] -u [</B><I>client:/path</I><B> ..]</B>
+
+<BR>
+
+<B>/usr/sbin/exportfs [-v]</B>
+
+<BR>
+
+<B>/usr/sbin/exportfs -f</B>
+
+<BR>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+An NFS server maintains a table of local physical file systems
+that are accessible to NFS clients.
+Each file system in this table is  referred to as an
+<I>exported file system</I>,
+
+or
+<I>export</I>,
+
+for short.
+<P>
+
+The
+<B>exportfs</B>
+
+command maintains the current table of exports for the NFS server.
+The master export table is kept in a file named
+<I>/var/lib/nfs/etab</I>.
+
+This file is read by
+<B>rpc.mountd</B>
+
+when a client sends an NFS MOUNT request.
+<P>
+
+Normally the master export table is initialized with the contents of
+<I>/etc/exports</I>
+
+by invoking
+<B>exportfs -a</B>.
+
+However, a system administrator can choose to add or delete
+exports without modifying
+<I>/etc/exports</I>
+
+by using the
+<B>exportfs</B>
+
+command.
+<P>
+
+<B>exportfs</B>
+
+and its partner program
+<B>rpc.mountd</B>
+
+work in one of two modes: a legacy mode which applies to 2.4 and
+earlier versions of the Linux kernel, and a new mode which applies to
+2.6 and later versions, providing the
+<B>nfsd</B>
+
+virtual filesystem has been mounted at
+<I>/proc/fs/nfsd</I>
+
+or
+<I>/proc/fs/nfs</I>.
+
+On 2.6 kernels, if this filesystem is not mounted, the legacy mode is used.
+<P>
+
+In the new mode,
+<B>exportfs</B>
+
+does not give any information to the kernel, but provides it only to
+<B>rpc.mountd</B>
+
+through the
+<I>/var/lib/nfs/etab</I>
+
+file.
+<B>rpc.mountd</B>
+
+then manages kernel requests for information about exports, as needed.
+<P>
+
+In the legacy mode,
+exports which identify a specific host, rather than a subnet or netgroup,
+are entered directly into the kernel's export table,
+as well as being written to
+<I>/var/lib/nfs/etab</I>.
+
+Further, exports listed in
+<I>/var/lib/nfs/rmtab</I>
+
+which match a non host-specific export request will cause an
+appropriate export entry for the host given in
+<I>rmtab</I>
+
+to be added to the kernel's export table.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-a</B>
+
+<DD>
+Export or unexport all directories.
+<DT><B>-o </B><I>options,...</I>
+
+<DD>
+Specify a list of export options in the same manner as in
+<B><A HREF="/manpages/index.html?5+exports">exports</A></B>(5).
+
+<DT><B>-i</B>
+
+<DD>
+Ignore the
+<I>/etc/exports</I>
+
+file.  Only default options and options given on the command line are used.
+<DT><B>-r</B>
+
+<DD>
+Reexport all directories, synchronizing
+<I>/var/lib/nfs/etab</I>
+
+with
+<I>/etc/exports</I>.
+
+This option removes entries in
+<I>/var/lib/nfs/etab</I>
+
+which have been deleted from
+<I>/etc/exports, and removes any entries from the</I>
+
+kernel export table which are no longer valid.
+<DT><B>-u</B>
+
+<DD>
+Unexport one or more directories.
+<DT><B>-f</B>
+
+<DD>
+If
+<I>/proc/fs/nfsd</I>
+
+or
+<I>/proc/fs/nfs</I>
+
+is mounted, flush everything out of the kernel's export table.
+Fresh entries for active clients are added to the kernel's export table by
+<B>rpc.mountd</B>
+
+when they make their next NFS mount request.
+<DT><B>-v</B>
+
+<DD>
+Be verbose. When exporting or unexporting, show what's going on. When
+displaying the current export list, also display the list of export
+options.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>DISCUSSION</H2>
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>Exporting Directories</H3>
+
+The first synopsis shows how to invoke
+<B>exportfs</B>
+
+when adding new entries to the export table.  When using
+<B>exportfs -a</B>,
+
+all exports listed in
+<I>/etc/exports</I>
+
+are added to
+<I>/var/lib/nfs/etab</I>.
+
+The kernel's export table is also updated as needed.
+<P>
+
+The
+<I>host:/path</I>
+
+argument specifies a local directory to export,
+along with the client or clients who are permitted to access it.
+See
+<B><A HREF="/manpages/index.html?5+exports">exports</A>(5)</B>
+
+for a description of supported options and access list formats.
+To export a directory to the world, simply specify
+<I>:/path</I>.
+
+<P>
+
+The export options for a particular host/directory pair derive from
+several sources.
+The default export options are
+<B>sync,ro,root_squash,wdelay</B>.
+
+These can be overridden by entries in
+<I>/etc/exports</I>.
+
+<P>
+
+A system administrator may override options from these sources using the
+<B>-o</B>
+
+command-line option on
+<B>exportfs</B>.
+
+This option takes a comma-separated list of options in the same fashion
+as one would specify them in
+<I>/etc/exports</I>.
+
+In this way
+<B>exportfs</B>
+
+can be used to modify the export options of an already exported directory.
+<A NAME="lbAH">&nbsp;</A>
+<H3>Unexporting Directories</H3>
+
+The third synopsis shows how to unexported a currently exported directory.
+When using
+<B>exportfs -ua</B>,
+
+all entries listed in
+<I>/var/lib/nfs/etab</I>
+
+are removed from the kernel export tables, and the file is cleared. This
+effectively shuts down all NFS activity.
+<P>
+
+To remove an export, specify a
+<I>host:/path</I>
+
+pair. This deletes the specified entry from
+<I>/var/lib/nfs/etab</I>
+
+and removes the corresponding kernel entry (if any).
+<P>
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Dumping the Export Table</H3>
+
+Invoking
+<B>exportfs</B>
+
+without options shows the current list of exported file systems.
+Adding the
+<B>-v</B>
+
+option causes
+<B>exportfs</B>
+
+to display the export options for each export.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+The following adds all directories listed in
+<I>/etc/exports</I>
+
+to
+<I>/var/lib/nfs/etab</I>
+
+and pushes the resulting export entries into the kernel:
+<P>
+
+<PRE>
+<B># exportfs -a</B>
+</PRE>
+
+<P>
+
+To export the
+<I>/usr/tmp</I>
+
+directory to host
+<B>django</B>,
+
+allowing insecure file locking requests from clients:
+<P>
+
+<PRE>
+<B># exportfs -o insecure_locks django:/usr/tmp</B>
+</PRE>
+
+<P>
+
+To unexport the
+<I>/usr/tmp</I>
+
+directory:
+<P>
+
+<PRE>
+<B># exportfs -u django:/usr/tmp</B>
+</PRE>
+
+<P>
+
+To unexport all exports listed in
+<I>/etc/exports</I>:
+
+<P>
+
+<PRE>
+<B># exportfs -au</B>
+</PRE>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>USAGE NOTES</H2>
+
+Exporting to IP networks or DNS and NIS domains does not enable clients
+from these groups to access NFS immediately.
+Rather, these sorts of exports are hints to
+<B><A HREF="/manpages/index.html?8+rpc.mountd">rpc.mountd</A></B>(8)
+
+to grant any mount requests from these clients.
+This is usually not a problem, because any existing mounts are preserved in
+<I>rmtab</I>
+
+across reboots.
+<P>
+
+When unexporting a network or domain entry, any current exports to members
+of this group will be checked against the remaining valid exports and
+if they themselves are no longer valid they will be removed.
+<A NAME="lbAL">&nbsp;</A>
+<H2>FILES</H2>
+
+<DL COMPACT>
+<DT><I>/etc/exports</I>
+
+<DD>
+input file listing exports, export options, and access control lists
+<DT><I>/var/lib/nfs/etab</I>
+
+<DD>
+master table of exports
+<DT><I>/var/lib/nfs/rmtab</I>
+
+<DD>
+table of clients accessing server's exports
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?5+exports">exports</A></B>(5),
+
+<B><A HREF="/manpages/index.html?8+rpc.mountd">rpc.mountd</A></B>(8),
+
+<B><A HREF="/manpages/index.html?5+netgroup">netgroup</A></B>(5)
+
+<A NAME="lbAN">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+Olaf Kirch &lt;<A HREF="mailto:okir@monad.swb.de">okir@monad.swb.de</A>&gt;
+<BR>
+
+Neil Brown &lt;<A HREF="mailto:neilb@cse.unsw.edu.au">neilb@cse.unsw.edu.au</A>&gt;
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">DISCUSSION</A><DD>
+<DL>
+<DT><A HREF="#lbAG">Exporting Directories</A><DD>
+<DT><A HREF="#lbAH">Unexporting Directories</A><DD>
+<DT><A HREF="#lbAI">Dumping the Export Table</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">EXAMPLES</A><DD>
+<DT><A HREF="#lbAK">USAGE NOTES</A><DD>
+<DT><A HREF="#lbAL">FILES</A><DD>
+<DT><A HREF="#lbAM">SEE ALSO</A><DD>
+<DT><A HREF="#lbAN">AUTHORS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:25 GMT, December 24, 2015
+</div></body>
+</HTML>

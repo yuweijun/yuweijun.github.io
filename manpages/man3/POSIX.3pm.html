@@ -1,0 +1,3384 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of POSIX</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>POSIX</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-04-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+POSIX - Perl interface to IEEE Std 1003.1
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use POSIX;
+    use POSIX qw(setsid);
+    use POSIX qw(:errno_h :fcntl_h);
+
+    printf &quot;EINTR is %d\n&quot;, EINTR;
+
+    $sess_id = POSIX::setsid();
+
+    $fd = POSIX::open($path, O_CREAT|O_EXCL|O_WRONLY, 0644);
+        # note: that's a filedescriptor, *NOT* a filehandle
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <FONT SIZE="-1">POSIX</FONT> module permits you to access all (or nearly all) the standard
+<FONT SIZE="-1">POSIX</FONT> 1003.1 identifiers.  Many of these identifiers have been given Perl-ish
+interfaces.
+<P>
+
+<I>Everything is exported by default</I> with the exception of any <FONT SIZE="-1">POSIX</FONT>
+functions with the same name as a built-in Perl function, such as
+<TT>&quot;abs&quot;</TT>, <TT>&quot;alarm&quot;</TT>, <TT>&quot;rmdir&quot;</TT>, <TT>&quot;write&quot;</TT>, etc.., which will be exported
+only if you ask for them explicitly.  This is an unfortunate backwards
+compatibility feature.  You can stop the exporting by saying <TT>&quot;use
+POSIX ()&quot;</TT> and then use the fully qualified names (ie. <TT>&quot;POSIX::SEEK_END&quot;</TT>).
+<P>
+
+This document gives a condensed list of the features available in the <FONT SIZE="-1">POSIX</FONT>
+module.  Consult your operating system's manpages for general information on
+most features.  Consult perlfunc for functions which are noted as being
+identical to Perl's builtin functions.
+<P>
+
+The first section describes <FONT SIZE="-1">POSIX</FONT> functions from the 1003.1 specification.
+The second section describes some classes for signal objects, <FONT SIZE="-1">TTY</FONT> objects,
+and other miscellaneous objects.  The remaining sections list various
+constants and macros in an organization which roughly follows <FONT SIZE="-1">IEEE</FONT> Std
+1003.1b-1993.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTE</H2>
+
+<A NAME="ixAAE"></A>
+The <FONT SIZE="-1">POSIX</FONT> module is probably the most complex Perl module supplied with
+the standard distribution.  It incorporates autoloading, namespace games,
+and dynamic loading of code that's in Perl, C, or both.  It's a great
+source of wisdom.
+<A NAME="lbAF">&nbsp;</A>
+<H2>CAVEATS</H2>
+
+<A NAME="ixAAF"></A>
+A few functions are not implemented because they are C specific.  If you
+attempt to call these, they will print a message telling you that they
+aren't implemented, and suggest using the Perl equivalent should one
+exist.  For example, trying to access the <I>setjmp()</I> call will elicit the
+message ``<I>setjmp()</I> is C-specific: use eval {} instead''.
+<P>
+
+Furthermore, some evil vendors will claim 1003.1 compliance, but in fact
+are not so: they will not pass the <FONT SIZE="-1">PCTS</FONT> (<FONT SIZE="-1">POSIX</FONT> Compliance Test Suites).
+For example, one vendor may not define <FONT SIZE="-1">EDEADLK</FONT>, or the semantics of the
+errno values set by <I><A HREF="/manpages/index.html?2+open">open</A></I>(2) might not be quite right.  Perl does not
+attempt to verify <FONT SIZE="-1">POSIX</FONT> compliance.  That means you can currently
+successfully say ``use <FONT SIZE="-1">POSIX</FONT>'',  and then later in your program you find
+that your vendor has been lax and there's no usable <FONT SIZE="-1">ICANON</FONT> macro after
+all.  This could be construed to be a bug.
+<A NAME="lbAG">&nbsp;</A>
+<H2>FUNCTIONS</H2>
+
+<A NAME="ixAAG"></A>
+<DL COMPACT>
+<DT>_exit<DD>
+<A NAME="ixAAH"></A>
+This is identical to the C function <TT>&quot;_exit()&quot;</TT>.  It exits the program
+immediately which means among other things buffered I/O is <B>not</B> flushed.
+
+
+<P>
+
+
+Note that when using threads and in Linux this is <B>not</B> a good way to
+exit a thread because in Linux processes and threads are kind of the
+same thing (Note: while this is the situation in early 2003 there are
+projects under way to have threads with more POSIXly semantics in Linux).
+If you want not to return from a thread, detach the thread.
+<DT>abort<DD>
+<A NAME="ixAAI"></A>
+This is identical to the C function <TT>&quot;abort()&quot;</TT>.  It terminates the
+process with a <TT>&quot;SIGABRT&quot;</TT> signal unless caught by a signal handler or
+if the handler does not return normally (it e.g.  does a <TT>&quot;longjmp&quot;</TT>).
+<DT>abs<DD>
+<A NAME="ixAAJ"></A>
+This is identical to Perl's builtin <TT>&quot;abs()&quot;</TT> function, returning
+the absolute value of its numerical argument.
+<DT>access<DD>
+<A NAME="ixAAK"></A>
+Determines the accessibility of a file.
+
+
+<P>
+
+
+
+
+<PRE>
+        if( POSIX::access( &quot;/&quot;, &amp;POSIX::R_OK ) ){
+                print &quot;have read permission\n&quot;;
+        }
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.  Note: do not use <TT>&quot;access()&quot;</TT> for
+security purposes.  Between the <TT>&quot;access()&quot;</TT> call and the operation
+you are preparing for the permissions might change: a classic
+<I>race condition</I>.
+<DT>acos<DD>
+<A NAME="ixAAL"></A>
+This is identical to the C function <TT>&quot;acos()&quot;</TT>, returning
+the arcus cosine of its numerical argument.  See also Math::Trig.
+<DT>alarm<DD>
+<A NAME="ixAAM"></A>
+This is identical to Perl's builtin <TT>&quot;alarm()&quot;</TT> function,
+either for arming or disarming the <TT>&quot;SIGARLM&quot;</TT> timer.
+<DT>asctime<DD>
+<A NAME="ixAAN"></A>
+This is identical to the C function <TT>&quot;asctime()&quot;</TT>.  It returns
+a string of the form
+
+
+<P>
+
+
+
+
+<PRE>
+        &quot;Fri Jun  2 18:22:13 2000\n\0&quot;
+
+</PRE>
+
+
+
+
+<P>
+
+
+and it is called thusly
+
+
+<P>
+
+
+
+
+<PRE>
+        $asctime = asctime($sec, $min, $hour, $mday, $mon, $year,
+                           $wday, $yday, $isdst);
+
+</PRE>
+
+
+
+
+<P>
+
+
+The <TT>$mon</TT> is zero-based: January equals <TT>0</TT>.  The <TT>$year</TT> is
+1900-based: 2001 equals <TT>101</TT>.  <TT>$wday</TT> and <TT>$yday</TT> default to zero
+(and are usually ignored anyway), and <TT>$isdst</TT> defaults to -1.
+<DT>asin<DD>
+<A NAME="ixAAO"></A>
+This is identical to the C function <TT>&quot;asin()&quot;</TT>, returning
+the arcus sine of its numerical argument.  See also Math::Trig.
+<DT>assert<DD>
+<A NAME="ixAAP"></A>
+Unimplemented, but you can use ``die'' in perlfunc and the Carp module
+to achieve similar things.
+<DT>atan<DD>
+<A NAME="ixAAQ"></A>
+This is identical to the C function <TT>&quot;atan()&quot;</TT>, returning the
+arcus tangent of its numerical argument.  See also Math::Trig.
+<DT>atan2<DD>
+<A NAME="ixAAR"></A>
+This is identical to Perl's builtin <TT>&quot;atan2()&quot;</TT> function, returning
+the arcus tangent defined by its two numerical arguments, the <I>y</I>
+coordinate and the <I>x</I> coordinate.  See also Math::Trig.
+<DT>atexit<DD>
+<A NAME="ixAAS"></A>
+<I>atexit()</I> is C-specific: use <TT>&quot;END {}&quot;</TT> instead, see perlsub.
+<DT>atof<DD>
+<A NAME="ixAAT"></A>
+<I>atof()</I> is C-specific.  Perl converts strings to numbers transparently.
+If you need to force a scalar to a number, add a zero to it.
+<DT>atoi<DD>
+<A NAME="ixAAU"></A>
+<I>atoi()</I> is C-specific.  Perl converts strings to numbers transparently.
+If you need to force a scalar to a number, add a zero to it.
+If you need to have just the integer part, see ``int'' in perlfunc.
+<DT>atol<DD>
+<A NAME="ixAAV"></A>
+<I>atol()</I> is C-specific.  Perl converts strings to numbers transparently.
+If you need to force a scalar to a number, add a zero to it.
+If you need to have just the integer part, see ``int'' in perlfunc.
+<DT>bsearch<DD>
+<A NAME="ixAAW"></A>
+<I>bsearch()</I> not supplied.  For doing binary search on wordlists,
+see Search::Dict.
+<DT>calloc<DD>
+<A NAME="ixAAX"></A>
+<I>calloc()</I> is C-specific.  Perl does memory management transparently.
+<DT>ceil<DD>
+<A NAME="ixAAY"></A>
+This is identical to the C function <TT>&quot;ceil()&quot;</TT>, returning the smallest
+integer value greater than or equal to the given numerical argument.
+<DT>chdir<DD>
+<A NAME="ixAAZ"></A>
+This is identical to Perl's builtin <TT>&quot;chdir()&quot;</TT> function, allowing
+one to change the working (default) directory, see ``chdir'' in perlfunc.
+<DT>chmod<DD>
+<A NAME="ixABA"></A>
+This is identical to Perl's builtin <TT>&quot;chmod()&quot;</TT> function, allowing
+one to change file and directory permissions, see ``chmod'' in perlfunc.
+<DT>chown<DD>
+<A NAME="ixABB"></A>
+This is identical to Perl's builtin <TT>&quot;chown()&quot;</TT> function, allowing one
+to change file and directory owners and groups, see ``chown'' in perlfunc.
+<DT>clearerr<DD>
+<A NAME="ixABC"></A>
+Use the method <TT>&quot;IO::Handle::clearerr()&quot;</TT> instead, to reset the error
+state (if any) and <FONT SIZE="-1">EOF</FONT> state (if any) of the given stream.
+<DT>clock<DD>
+<A NAME="ixABD"></A>
+This is identical to the C function <TT>&quot;clock()&quot;</TT>, returning the
+amount of spent processor time in microseconds.
+<DT>close<DD>
+<A NAME="ixABE"></A>
+Close the file.  This uses file descriptors such as those obtained by calling
+<TT>&quot;POSIX::open&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::open( &quot;foo&quot;, &amp;POSIX::O_RDONLY );
+        POSIX::close( $fd );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+
+
+<P>
+
+
+See also ``close'' in perlfunc.
+<DT>closedir<DD>
+<A NAME="ixABF"></A>
+This is identical to Perl's builtin <TT>&quot;closedir()&quot;</TT> function for closing
+a directory handle, see ``closedir'' in perlfunc.
+<DT>cos<DD>
+<A NAME="ixABG"></A>
+This is identical to Perl's builtin <TT>&quot;cos()&quot;</TT> function, for returning
+the cosine of its numerical argument, see ``cos'' in perlfunc.
+See also Math::Trig.
+<DT>cosh<DD>
+<A NAME="ixABH"></A>
+This is identical to the C function <TT>&quot;cosh()&quot;</TT>, for returning
+the hyperbolic cosine of its numeric argument.  See also Math::Trig.
+<DT>creat<DD>
+<A NAME="ixABI"></A>
+Create a new file.  This returns a file descriptor like the ones returned by
+<TT>&quot;POSIX::open&quot;</TT>.  Use <TT>&quot;POSIX::close&quot;</TT> to close the file.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::creat( &quot;foo&quot;, 0611 );
+        POSIX::close( $fd );
+
+</PRE>
+
+
+
+
+<P>
+
+
+See also ``sysopen'' in perlfunc and its <TT>&quot;O_CREAT&quot;</TT> flag.
+<DT>ctermid<DD>
+<A NAME="ixABJ"></A>
+Generates the path name for the controlling terminal.
+
+
+<P>
+
+
+
+
+<PRE>
+        $path = POSIX::ctermid();
+
+</PRE>
+
+
+<DT>ctime<DD>
+<A NAME="ixABK"></A>
+This is identical to the C function <TT>&quot;ctime()&quot;</TT> and equivalent
+to <TT>&quot;asctime(localtime(...))&quot;</TT>, see ``asctime'' and ``localtime''.
+<DT>cuserid<DD>
+<A NAME="ixABL"></A>
+Get the login name of the owner of the current process.
+
+
+<P>
+
+
+
+
+<PRE>
+        $name = POSIX::cuserid();
+
+</PRE>
+
+
+<DT>difftime<DD>
+<A NAME="ixABM"></A>
+This is identical to the C function <TT>&quot;difftime()&quot;</TT>, for returning
+the time difference (in seconds) between two times (as returned
+by <TT>&quot;time()&quot;</TT>), see ``time''.
+<DT>div<DD>
+<A NAME="ixABN"></A>
+<I>div()</I> is C-specific, use ``int'' in perlfunc on the usual <TT>&quot;/&quot;</TT> division and
+the modulus <TT>&quot;%&quot;</TT>.
+<DT>dup<DD>
+<A NAME="ixABO"></A>
+This is similar to the C function <TT>&quot;dup()&quot;</TT>, for duplicating a file
+descriptor.
+
+
+<P>
+
+
+This uses file descriptors such as those obtained by calling
+<TT>&quot;POSIX::open&quot;</TT>.
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>dup2<DD>
+<A NAME="ixABP"></A>
+This is similar to the C function <TT>&quot;dup2()&quot;</TT>, for duplicating a file
+descriptor to an another known file descriptor.
+
+
+<P>
+
+
+This uses file descriptors such as those obtained by calling
+<TT>&quot;POSIX::open&quot;</TT>.
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>errno<DD>
+<A NAME="ixABQ"></A>
+Returns the value of errno.
+
+
+<P>
+
+
+
+
+<PRE>
+        $errno = POSIX::errno();
+
+</PRE>
+
+
+
+
+<P>
+
+
+This identical to the numerical values of the <TT>$!</TT>, see ``$ERRNO'' in perlvar.
+<DT>execl<DD>
+<A NAME="ixABR"></A>
+<I>execl()</I> is C-specific, see ``exec'' in perlfunc.
+<DT>execle<DD>
+<A NAME="ixABS"></A>
+<I>execle()</I> is C-specific, see ``exec'' in perlfunc.
+<DT>execlp<DD>
+<A NAME="ixABT"></A>
+<I>execlp()</I> is C-specific, see ``exec'' in perlfunc.
+<DT>execv<DD>
+<A NAME="ixABU"></A>
+<I>execv()</I> is C-specific, see ``exec'' in perlfunc.
+<DT>execve<DD>
+<A NAME="ixABV"></A>
+<I>execve()</I> is C-specific, see ``exec'' in perlfunc.
+<DT>execvp<DD>
+<A NAME="ixABW"></A>
+<I>execvp()</I> is C-specific, see ``exec'' in perlfunc.
+<DT>exit<DD>
+<A NAME="ixABX"></A>
+This is identical to Perl's builtin <TT>&quot;exit()&quot;</TT> function for exiting the
+program, see ``exit'' in perlfunc.
+<DT>exp<DD>
+<A NAME="ixABY"></A>
+This is identical to Perl's builtin <TT>&quot;exp()&quot;</TT> function for
+returning the exponent (<I>e</I>-based) of the numerical argument,
+see ``exp'' in perlfunc.
+<DT>fabs<DD>
+<A NAME="ixABZ"></A>
+This is identical to Perl's builtin <TT>&quot;abs()&quot;</TT> function for returning
+the absolute value of the numerical argument, see ``abs'' in perlfunc.
+<DT>fclose<DD>
+<A NAME="ixACA"></A>
+Use method <TT>&quot;IO::Handle::close()&quot;</TT> instead, or see ``close'' in perlfunc.
+<DT>fcntl<DD>
+<A NAME="ixACB"></A>
+This is identical to Perl's builtin <TT>&quot;fcntl()&quot;</TT> function,
+see ``fcntl'' in perlfunc.
+<DT>fdopen<DD>
+<A NAME="ixACC"></A>
+Use method <TT>&quot;IO::Handle::new_from_fd()&quot;</TT> instead, or see ``open'' in perlfunc.
+<DT>feof<DD>
+<A NAME="ixACD"></A>
+Use method <TT>&quot;IO::Handle::eof()&quot;</TT> instead, or see ``eof'' in perlfunc.
+<DT>ferror<DD>
+<A NAME="ixACE"></A>
+Use method <TT>&quot;IO::Handle::error()&quot;</TT> instead.
+<DT>fflush<DD>
+<A NAME="ixACF"></A>
+Use method <TT>&quot;IO::Handle::flush()&quot;</TT> instead.
+See also ``$OUTPUT_AUTOFLUSH'' in perlvar.
+<DT>fgetc<DD>
+<A NAME="ixACG"></A>
+Use method <TT>&quot;IO::Handle::getc()&quot;</TT> instead, or see ``read'' in perlfunc.
+<DT>fgetpos<DD>
+<A NAME="ixACH"></A>
+Use method <TT>&quot;IO::Seekable::getpos()&quot;</TT> instead, or see ``seek'' in L.
+<DT>fgets<DD>
+<A NAME="ixACI"></A>
+Use method <TT>&quot;IO::Handle::gets()&quot;</TT> instead.  Similar to &lt;&gt;, also known
+as ``readline'' in perlfunc.
+<DT>fileno<DD>
+<A NAME="ixACJ"></A>
+Use method <TT>&quot;IO::Handle::fileno()&quot;</TT> instead, or see ``fileno'' in perlfunc.
+<DT>floor<DD>
+<A NAME="ixACK"></A>
+This is identical to the C function <TT>&quot;floor()&quot;</TT>, returning the largest
+integer value less than or equal to the numerical argument.
+<DT>fmod<DD>
+<A NAME="ixACL"></A>
+This is identical to the C function <TT>&quot;fmod()&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+        $r = fmod($x, $y);
+
+</PRE>
+
+
+
+
+<P>
+
+
+It returns the remainder <TT>&quot;$r = $x - $n*$y&quot;</TT>, where <TT>&quot;$n = trunc($x/$y)&quot;</TT>.
+The <TT>$r</TT> has the same sign as <TT>$x</TT> and magnitude (absolute value)
+less than the magnitude of <TT>$y</TT>.
+<DT>fopen<DD>
+<A NAME="ixACM"></A>
+Use method <TT>&quot;IO::File::open()&quot;</TT> instead, or see ``open'' in perlfunc.
+<DT>fork<DD>
+<A NAME="ixACN"></A>
+This is identical to Perl's builtin <TT>&quot;fork()&quot;</TT> function
+for duplicating the current process, see ``fork'' in perlfunc
+and perlfork if you are in Windows.
+<DT>fpathconf<DD>
+<A NAME="ixACO"></A>
+Retrieves the value of a configurable limit on a file or directory.  This
+uses file descriptors such as those obtained by calling <TT>&quot;POSIX::open&quot;</TT>.
+
+
+<P>
+
+
+The following will determine the maximum length of the longest allowable
+pathname on the filesystem which holds <TT>&quot;/var/foo&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::open( &quot;/var/foo&quot;, &amp;POSIX::O_RDONLY );
+        $path_max = POSIX::fpathconf( $fd, &amp;POSIX::_PC_PATH_MAX );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>fprintf<DD>
+<A NAME="ixACP"></A>
+<I>fprintf()</I> is C-specific, see ``printf'' in perlfunc instead.
+<DT>fputc<DD>
+<A NAME="ixACQ"></A>
+<I>fputc()</I> is C-specific, see ``print'' in perlfunc instead.
+<DT>fputs<DD>
+<A NAME="ixACR"></A>
+<I>fputs()</I> is C-specific, see ``print'' in perlfunc instead.
+<DT>fread<DD>
+<A NAME="ixACS"></A>
+<I>fread()</I> is C-specific, see ``read'' in perlfunc instead.
+<DT>free<DD>
+<A NAME="ixACT"></A>
+<I>free()</I> is C-specific.  Perl does memory management transparently.
+<DT>freopen<DD>
+<A NAME="ixACU"></A>
+<I>freopen()</I> is C-specific, see ``open'' in perlfunc instead.
+<DT>frexp<DD>
+<A NAME="ixACV"></A>
+Return the mantissa and exponent of a floating-point number.
+
+
+<P>
+
+
+
+
+<PRE>
+        ($mantissa, $exponent) = POSIX::frexp( 1.234e56 );
+
+</PRE>
+
+
+<DT>fscanf<DD>
+<A NAME="ixACW"></A>
+<I>fscanf()</I> is C-specific, use &lt;&gt; and regular expressions instead.
+<DT>fseek<DD>
+<A NAME="ixACX"></A>
+Use method <TT>&quot;IO::Seekable::seek()&quot;</TT> instead, or see ``seek'' in perlfunc.
+<DT>fsetpos<DD>
+<A NAME="ixACY"></A>
+Use method <TT>&quot;IO::Seekable::setpos()&quot;</TT> instead, or seek ``seek'' in perlfunc.
+<DT>fstat<DD>
+<A NAME="ixACZ"></A>
+Get file status.  This uses file descriptors such as those obtained by
+calling <TT>&quot;POSIX::open&quot;</TT>.  The data returned is identical to the data from
+Perl's builtin <TT>&quot;stat&quot;</TT> function.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::open( &quot;foo&quot;, &amp;POSIX::O_RDONLY );
+        @stats = POSIX::fstat( $fd );
+
+</PRE>
+
+
+<DT>fsync<DD>
+<A NAME="ixADA"></A>
+Use method <TT>&quot;IO::Handle::sync()&quot;</TT> instead.
+<DT>ftell<DD>
+<A NAME="ixADB"></A>
+Use method <TT>&quot;IO::Seekable::tell()&quot;</TT> instead, or see ``tell'' in perlfunc.
+<DT>fwrite<DD>
+<A NAME="ixADC"></A>
+<I>fwrite()</I> is C-specific, see ``print'' in perlfunc instead.
+<DT>getc<DD>
+<A NAME="ixADD"></A>
+This is identical to Perl's builtin <TT>&quot;getc()&quot;</TT> function,
+see ``getc'' in perlfunc.
+<DT>getchar<DD>
+<A NAME="ixADE"></A>
+Returns one character from <FONT SIZE="-1">STDIN</FONT>.  Identical to Perl's <TT>&quot;getc()&quot;</TT>,
+see ``getc'' in perlfunc.
+<DT>getcwd<DD>
+<A NAME="ixADF"></A>
+Returns the name of the current working directory.
+See also Cwd.
+<DT>getegid<DD>
+<A NAME="ixADG"></A>
+Returns the effective group identifier.  Similar to Perl' s builtin
+variable <TT>$(</TT>, see ``$EGID'' in perlvar.
+<DT>getenv<DD>
+<A NAME="ixADH"></A>
+Returns the value of the specified environment variable.
+The same information is available through the <TT>%ENV</TT> array.
+<DT>geteuid<DD>
+<A NAME="ixADI"></A>
+Returns the effective user identifier.  Identical to Perl's builtin <TT>$&gt;</TT>
+variable, see ``$EUID'' in perlvar.
+<DT>getgid<DD>
+<A NAME="ixADJ"></A>
+Returns the user's real group identifier.  Similar to Perl's builtin
+variable <TT>$)</TT>, see ``$GID'' in perlvar.
+<DT>getgrgid<DD>
+<A NAME="ixADK"></A>
+This is identical to Perl's builtin <TT>&quot;getgrgid()&quot;</TT> function for
+returning group entries by group identifiers, see
+``getgrgid'' in perlfunc.
+<DT>getgrnam<DD>
+<A NAME="ixADL"></A>
+This is identical to Perl's builtin <TT>&quot;getgrnam()&quot;</TT> function for
+returning group entries by group names, see ``getgrnam'' in perlfunc.
+<DT>getgroups<DD>
+<A NAME="ixADM"></A>
+Returns the ids of the user's supplementary groups.  Similar to Perl's
+builtin variable <TT>$)</TT>, see ``$GID'' in perlvar.
+<DT>getlogin<DD>
+<A NAME="ixADN"></A>
+This is identical to Perl's builtin <TT>&quot;getlogin()&quot;</TT> function for
+returning the user name associated with the current session, see
+``getlogin'' in perlfunc.
+<DT>getpgrp<DD>
+<A NAME="ixADO"></A>
+This is identical to Perl's builtin <TT>&quot;getpgrp()&quot;</TT> function for
+returning the process group identifier of the current process, see
+``getpgrp'' in perlfunc.
+<DT>getpid<DD>
+<A NAME="ixADP"></A>
+Returns the process identifier.  Identical to Perl's builtin
+variable <TT>$$</TT>, see ``$PID'' in perlvar.
+<DT>getppid<DD>
+<A NAME="ixADQ"></A>
+This is identical to Perl's builtin <TT>&quot;getppid()&quot;</TT> function for
+returning the process identifier of the parent process of the current
+process , see ``getppid'' in perlfunc.
+<DT>getpwnam<DD>
+<A NAME="ixADR"></A>
+This is identical to Perl's builtin <TT>&quot;getpwnam()&quot;</TT> function for
+returning user entries by user names, see ``getpwnam'' in perlfunc.
+<DT>getpwuid<DD>
+<A NAME="ixADS"></A>
+This is identical to Perl's builtin <TT>&quot;getpwuid()&quot;</TT> function for
+returning user entries by user identifiers, see ``getpwuid'' in perlfunc.
+<DT>gets<DD>
+<A NAME="ixADT"></A>
+Returns one line from <TT>&quot;STDIN&quot;</TT>, similar to &lt;&gt;, also known
+as the <TT>&quot;readline()&quot;</TT> function, see ``readline'' in perlfunc.
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>NOTE</B></FONT><B></B>: if you have C programs that still use <TT>&quot;gets()&quot;</TT>, be very
+afraid.  The <TT>&quot;gets()&quot;</TT> function is a source of endless grief because
+it has no buffer overrun checks.  It should <B>never</B> be used.  The
+<TT>&quot;fgets()&quot;</TT> function should be preferred instead.
+<DT>getuid<DD>
+<A NAME="ixADU"></A>
+Returns the user's identifier.  Identical to Perl's builtin <TT>$&lt;</TT> variable,
+see ``$UID'' in perlvar.
+<DT>gmtime<DD>
+<A NAME="ixADV"></A>
+This is identical to Perl's builtin <TT>&quot;gmtime()&quot;</TT> function for
+converting seconds since the epoch to a date in Greenwich Mean Time,
+see ``gmtime'' in perlfunc.
+<DT>isalnum<DD>
+<A NAME="ixADW"></A>
+This is identical to the C function, except that it can apply to a
+single character or to a whole string.  Note that locale settings may
+affect what characters are considered <TT>&quot;isalnum&quot;</TT>.  Does not work on
+Unicode characters code point 256 or higher.  Consider using regular
+expressions and the <TT>&quot;/[[:alnum:]]/&quot;</TT> construct instead, or possibly
+the <TT>&quot;/\w/&quot;</TT> construct.
+<DT>isalpha<DD>
+<A NAME="ixADX"></A>
+This is identical to the C function, except that it can apply to
+a single character or to a whole string.  Note that locale settings
+may affect what characters are considered <TT>&quot;isalpha&quot;</TT>.  Does not work
+on Unicode characters code point 256 or higher.  Consider using regular
+expressions and the <TT>&quot;/[[:alpha:]]/&quot;</TT> construct instead.
+<DT>isatty<DD>
+<A NAME="ixADY"></A>
+Returns a boolean indicating whether the specified filehandle is connected
+to a tty.  Similar to the <TT>&quot;-t&quot;</TT> operator, see ``-X'' in perlfunc.
+<DT>iscntrl<DD>
+<A NAME="ixADZ"></A>
+This is identical to the C function, except that it can apply to
+a single character or to a whole string.  Note that locale settings
+may affect what characters are considered <TT>&quot;iscntrl&quot;</TT>.  Does not work
+on Unicode characters code point 256 or higher.  Consider using regular
+expressions and the <TT>&quot;/[[:cntrl:]]/&quot;</TT> construct instead.
+<DT>isdigit<DD>
+<A NAME="ixAEA"></A>
+This is identical to the C function, except that it can apply to
+a single character or to a whole string.  Note that locale settings
+may affect what characters are considered <TT>&quot;isdigit&quot;</TT> (unlikely, but
+still possible). Does not work on Unicode characters code point 256
+or higher.  Consider using regular expressions and the <TT>&quot;/[[:digit:]]/&quot;</TT>
+construct instead, or the <TT>&quot;/\d/&quot;</TT> construct.
+<DT>isgraph<DD>
+<A NAME="ixAEB"></A>
+This is identical to the C function, except that it can apply to
+a single character or to a whole string.  Note that locale settings
+may affect what characters are considered <TT>&quot;isgraph&quot;</TT>.  Does not work
+on Unicode characters code point 256 or higher.  Consider using regular
+expressions and the <TT>&quot;/[[:graph:]]/&quot;</TT> construct instead.
+<DT>islower<DD>
+<A NAME="ixAEC"></A>
+This is identical to the C function, except that it can apply to
+a single character or to a whole string.  Note that locale settings
+may affect what characters are considered <TT>&quot;islower&quot;</TT>.  Does not work
+on Unicode characters code point 256 or higher.  Consider using regular
+expressions and the <TT>&quot;/[[:lower:]]/&quot;</TT> construct instead.  Do <B>not</B> use
+<TT>&quot;/[a-z]/&quot;</TT>.
+<DT>isprint<DD>
+<A NAME="ixAED"></A>
+This is identical to the C function, except that it can apply to
+a single character or to a whole string.  Note that locale settings
+may affect what characters are considered <TT>&quot;isprint&quot;</TT>.  Does not work
+on Unicode characters code point 256 or higher.  Consider using regular
+expressions and the <TT>&quot;/[[:print:]]/&quot;</TT> construct instead.
+<DT>ispunct<DD>
+<A NAME="ixAEE"></A>
+This is identical to the C function, except that it can apply to
+a single character or to a whole string.  Note that locale settings
+may affect what characters are considered <TT>&quot;ispunct&quot;</TT>.  Does not work
+on Unicode characters code point 256 or higher.  Consider using regular
+expressions and the <TT>&quot;/[[:punct:]]/&quot;</TT> construct instead.
+<DT>isspace<DD>
+<A NAME="ixAEF"></A>
+This is identical to the C function, except that it can apply to
+a single character or to a whole string.  Note that locale settings
+may affect what characters are considered <TT>&quot;isspace&quot;</TT>.  Does not work
+on Unicode characters code point 256 or higher.  Consider using regular
+expressions and the <TT>&quot;/[[:space:]]/&quot;</TT> construct instead, or the <TT>&quot;/\s/&quot;</TT>
+construct.  (Note that <TT>&quot;/\s/&quot;</TT> and <TT>&quot;/[[:space:]]/&quot;</TT> are slightly
+different in that <TT>&quot;/[[:space:]]/&quot;</TT> can normally match a vertical tab,
+while <TT>&quot;/\s/&quot;</TT> does not.)
+<DT>isupper<DD>
+<A NAME="ixAEG"></A>
+This is identical to the C function, except that it can apply to
+a single character or to a whole string.  Note that locale settings
+may affect what characters are considered <TT>&quot;isupper&quot;</TT>.  Does not work
+on Unicode characters code point 256 or higher.  Consider using regular
+expressions and the <TT>&quot;/[[:upper:]]/&quot;</TT> construct instead.  Do <B>not</B> use
+<TT>&quot;/[A-Z]/&quot;</TT>.
+<DT>isxdigit<DD>
+<A NAME="ixAEH"></A>
+This is identical to the C function, except that it can apply to a single
+character or to a whole string.  Note that locale settings may affect what
+characters are considered <TT>&quot;isxdigit&quot;</TT> (unlikely, but still possible).
+Does not work on Unicode characters code point 256 or higher.
+Consider using regular expressions and the <TT>&quot;/[[:xdigit:]]/&quot;</TT>
+construct instead, or simply <TT>&quot;/[0-9a-f]/i&quot;</TT>.
+<DT>kill<DD>
+<A NAME="ixAEI"></A>
+This is identical to Perl's builtin <TT>&quot;kill()&quot;</TT> function for sending
+signals to processes (often to terminate them), see ``kill'' in perlfunc.
+<DT>labs<DD>
+<A NAME="ixAEJ"></A>
+(For returning absolute values of long integers.)
+<I>labs()</I> is C-specific, see ``abs'' in perlfunc instead.
+<DT>ldexp<DD>
+<A NAME="ixAEK"></A>
+This is identical to the C function <TT>&quot;ldexp()&quot;</TT>
+for multiplying floating point numbers with powers of two.
+
+
+<P>
+
+
+
+
+<PRE>
+        $x_quadrupled = POSIX::ldexp($x, 2);
+
+</PRE>
+
+
+<DT>ldiv<DD>
+<A NAME="ixAEL"></A>
+(For computing dividends of long integers.)
+<I>ldiv()</I> is C-specific, use <TT>&quot;/&quot;</TT> and <TT>&quot;int()&quot;</TT> instead.
+<DT>link<DD>
+<A NAME="ixAEM"></A>
+This is identical to Perl's builtin <TT>&quot;link()&quot;</TT> function
+for creating hard links into files, see ``link'' in perlfunc.
+<DT>localeconv<DD>
+<A NAME="ixAEN"></A>
+Get numeric formatting information.  Returns a reference to a hash
+containing the current locale formatting values.
+
+
+<P>
+
+
+Here is how to query the database for the <B>de</B> (Deutsch or German) locale.
+
+
+<P>
+
+
+
+
+<PRE>
+        $loc = POSIX::setlocale( &amp;POSIX::LC_ALL, &quot;de&quot; );
+        print &quot;Locale = $loc\n&quot;;
+        $lconv = POSIX::localeconv();
+        print &quot;decimal_point    = &quot;, $lconv-&gt;{decimal_point},   &quot;\n&quot;;
+        print &quot;thousands_sep    = &quot;, $lconv-&gt;{thousands_sep},   &quot;\n&quot;;
+        print &quot;grouping = &quot;, $lconv-&gt;{grouping},        &quot;\n&quot;;
+        print &quot;int_curr_symbol  = &quot;, $lconv-&gt;{int_curr_symbol}, &quot;\n&quot;;
+        print &quot;currency_symbol  = &quot;, $lconv-&gt;{currency_symbol}, &quot;\n&quot;;
+        print &quot;mon_decimal_point = &quot;, $lconv-&gt;{mon_decimal_point}, &quot;\n&quot;;
+        print &quot;mon_thousands_sep = &quot;, $lconv-&gt;{mon_thousands_sep}, &quot;\n&quot;;
+        print &quot;mon_grouping     = &quot;, $lconv-&gt;{mon_grouping},    &quot;\n&quot;;
+        print &quot;positive_sign    = &quot;, $lconv-&gt;{positive_sign},   &quot;\n&quot;;
+        print &quot;negative_sign    = &quot;, $lconv-&gt;{negative_sign},   &quot;\n&quot;;
+        print &quot;int_frac_digits  = &quot;, $lconv-&gt;{int_frac_digits}, &quot;\n&quot;;
+        print &quot;frac_digits      = &quot;, $lconv-&gt;{frac_digits},     &quot;\n&quot;;
+        print &quot;p_cs_precedes    = &quot;, $lconv-&gt;{p_cs_precedes},   &quot;\n&quot;;
+        print &quot;p_sep_by_space   = &quot;, $lconv-&gt;{p_sep_by_space},  &quot;\n&quot;;
+        print &quot;n_cs_precedes    = &quot;, $lconv-&gt;{n_cs_precedes},   &quot;\n&quot;;
+        print &quot;n_sep_by_space   = &quot;, $lconv-&gt;{n_sep_by_space},  &quot;\n&quot;;
+        print &quot;p_sign_posn      = &quot;, $lconv-&gt;{p_sign_posn},     &quot;\n&quot;;
+        print &quot;n_sign_posn      = &quot;, $lconv-&gt;{n_sign_posn},     &quot;\n&quot;;
+
+</PRE>
+
+
+<DT>localtime<DD>
+<A NAME="ixAEO"></A>
+This is identical to Perl's builtin <TT>&quot;localtime()&quot;</TT> function for
+converting seconds since the epoch to a date see ``localtime'' in perlfunc.
+<DT>log<DD>
+<A NAME="ixAEP"></A>
+This is identical to Perl's builtin <TT>&quot;log()&quot;</TT> function,
+returning the natural (<I>e</I>-based) logarithm of the numerical argument,
+see ``log'' in perlfunc.
+<DT>log10<DD>
+<A NAME="ixAEQ"></A>
+This is identical to the C function <TT>&quot;log10()&quot;</TT>,
+returning the 10-base logarithm of the numerical argument.
+You can also use
+
+
+<P>
+
+
+
+
+<PRE>
+    sub log10 { log($_[0]) / log(10) }
+
+</PRE>
+
+
+
+
+<P>
+
+
+or
+
+
+<P>
+
+
+
+
+<PRE>
+    sub log10 { log($_[0]) / 2.30258509299405 }
+
+</PRE>
+
+
+
+
+<P>
+
+
+or
+
+
+<P>
+
+
+
+
+<PRE>
+    sub log10 { log($_[0]) * 0.434294481903252 }
+
+</PRE>
+
+
+<DT>longjmp<DD>
+<A NAME="ixAER"></A>
+<I>longjmp()</I> is C-specific: use ``die'' in perlfunc instead.
+<DT>lseek<DD>
+<A NAME="ixAES"></A>
+Move the file's read/write position.  This uses file descriptors such as
+those obtained by calling <TT>&quot;POSIX::open&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::open( &quot;foo&quot;, &amp;POSIX::O_RDONLY );
+        $off_t = POSIX::lseek( $fd, 0, &amp;POSIX::SEEK_SET );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>malloc<DD>
+<A NAME="ixAET"></A>
+<I>malloc()</I> is C-specific.  Perl does memory management transparently.
+<DT>mblen<DD>
+<A NAME="ixAEU"></A>
+This is identical to the C function <TT>&quot;mblen()&quot;</TT>.
+Perl does not have any support for the wide and multibyte
+characters of the C standards, so this might be a rather
+useless function.
+<DT>mbstowcs<DD>
+<A NAME="ixAEV"></A>
+This is identical to the C function <TT>&quot;mbstowcs()&quot;</TT>.
+Perl does not have any support for the wide and multibyte
+characters of the C standards, so this might be a rather
+useless function.
+<DT>mbtowc<DD>
+<A NAME="ixAEW"></A>
+This is identical to the C function <TT>&quot;mbtowc()&quot;</TT>.
+Perl does not have any support for the wide and multibyte
+characters of the C standards, so this might be a rather
+useless function.
+<DT>memchr<DD>
+<A NAME="ixAEX"></A>
+<I>memchr()</I> is C-specific, see ``index'' in perlfunc instead.
+<DT>memcmp<DD>
+<A NAME="ixAEY"></A>
+<I>memcmp()</I> is C-specific, use <TT>&quot;eq&quot;</TT> instead, see perlop.
+<DT>memcpy<DD>
+<A NAME="ixAEZ"></A>
+<I>memcpy()</I> is C-specific, use <TT>&quot;=&quot;</TT>, see perlop, or see ``substr'' in perlfunc.
+<DT>memmove<DD>
+<A NAME="ixAFA"></A>
+<I>memmove()</I> is C-specific, use <TT>&quot;=&quot;</TT>, see perlop, or see ``substr'' in perlfunc.
+<DT>memset<DD>
+<A NAME="ixAFB"></A>
+<I>memset()</I> is C-specific, use <TT>&quot;x&quot;</TT> instead, see perlop.
+<DT>mkdir<DD>
+<A NAME="ixAFC"></A>
+This is identical to Perl's builtin <TT>&quot;mkdir()&quot;</TT> function
+for creating directories, see ``mkdir'' in perlfunc.
+<DT>mkfifo<DD>
+<A NAME="ixAFD"></A>
+This is similar to the C function <TT>&quot;mkfifo()&quot;</TT> for creating
+<FONT SIZE="-1">FIFO</FONT> special files.
+
+
+<P>
+
+
+
+
+<PRE>
+        if (mkfifo($path, $mode)) { ....
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.  The <TT>$mode</TT> is similar to the
+mode of <TT>&quot;mkdir()&quot;</TT>, see ``mkdir'' in perlfunc, though for <TT>&quot;mkfifo&quot;</TT>
+you <B>must</B> specify the <TT>$mode</TT>.
+<DT>mktime<DD>
+<A NAME="ixAFE"></A>
+Convert date/time info to a calendar time.
+
+
+<P>
+
+
+Synopsis:
+
+
+<P>
+
+
+
+
+<PRE>
+        mktime(sec, min, hour, mday, mon, year, wday = 0, yday = 0, isdst = -1)
+
+</PRE>
+
+
+
+
+<P>
+
+
+The month (<TT>&quot;mon&quot;</TT>), weekday (<TT>&quot;wday&quot;</TT>), and yearday (<TT>&quot;yday&quot;</TT>) begin at zero.
+I.e. January is 0, not 1; Sunday is 0, not 1; January 1st is 0, not 1.  The
+year (<TT>&quot;year&quot;</TT>) is given in years since 1900.  I.e. The year 1995 is 95; the
+year 2001 is 101.  Consult your system's <TT>&quot;mktime()&quot;</TT> manpage for details
+about these and the other arguments.
+
+
+<P>
+
+
+Calendar time for December 12, 1995, at 10:30 am.
+
+
+<P>
+
+
+
+
+<PRE>
+        $time_t = POSIX::mktime( 0, 30, 10, 12, 11, 95 );
+        print &quot;Date = &quot;, POSIX::ctime($time_t);
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>modf<DD>
+<A NAME="ixAFF"></A>
+Return the integral and fractional parts of a floating-point number.
+
+
+<P>
+
+
+
+
+<PRE>
+        ($fractional, $integral) = POSIX::modf( 3.14 );
+
+</PRE>
+
+
+<DT>nice<DD>
+<A NAME="ixAFG"></A>
+This is similar to the C function <TT>&quot;nice()&quot;</TT>, for changing
+the scheduling preference of the current process.  Positive
+arguments mean more polite process, negative values more
+needy process.  Normal user processes can only be more polite.
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>offsetof<DD>
+<A NAME="ixAFH"></A>
+<I>offsetof()</I> is C-specific, you probably want to see ``pack'' in perlfunc instead.
+<DT>open<DD>
+<A NAME="ixAFI"></A>
+Open a file for reading for writing.  This returns file descriptors, not
+Perl filehandles.  Use <TT>&quot;POSIX::close&quot;</TT> to close the file.
+
+
+<P>
+
+
+Open a file read-only with mode 0666.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::open( &quot;foo&quot; );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Open a file for read and write.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::open( &quot;foo&quot;, &amp;POSIX::O_RDWR );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Open a file for write, with truncation.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::open( &quot;foo&quot;, &amp;POSIX::O_WRONLY | &amp;POSIX::O_TRUNC );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Create a new file with mode 0640.  Set up the file for writing.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::open( &quot;foo&quot;, &amp;POSIX::O_CREAT | &amp;POSIX::O_WRONLY, 0640 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+
+
+<P>
+
+
+See also ``sysopen'' in perlfunc.
+<DT>opendir<DD>
+<A NAME="ixAFJ"></A>
+Open a directory for reading.
+
+
+<P>
+
+
+
+
+<PRE>
+        $dir = POSIX::opendir( &quot;/var&quot; );
+        @files = POSIX::readdir( $dir );
+        POSIX::closedir( $dir );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>pathconf<DD>
+<A NAME="ixAFK"></A>
+Retrieves the value of a configurable limit on a file or directory.
+
+
+<P>
+
+
+The following will determine the maximum length of the longest allowable
+pathname on the filesystem which holds <TT>&quot;/var&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+        $path_max = POSIX::pathconf( &quot;/var&quot;, &amp;POSIX::_PC_PATH_MAX );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>pause<DD>
+<A NAME="ixAFL"></A>
+This is similar to the C function <TT>&quot;pause()&quot;</TT>, which suspends
+the execution of the current process until a signal is received.
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>perror<DD>
+<A NAME="ixAFM"></A>
+This is identical to the C function <TT>&quot;perror()&quot;</TT>, which outputs to the
+standard error stream the specified message followed by ``: '' and the
+current error string.  Use the <TT>&quot;warn()&quot;</TT> function and the <TT>$!</TT>
+variable instead, see ``warn'' in perlfunc and ``$ERRNO'' in perlvar.
+<DT>pipe<DD>
+<A NAME="ixAFN"></A>
+Create an interprocess channel.  This returns file descriptors like those
+returned by <TT>&quot;POSIX::open&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+        my ($read, $write) = POSIX::pipe();
+        POSIX::write( $write, &quot;hello&quot;, 5 );
+        POSIX::read( $read, $buf, 5 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+See also ``pipe'' in perlfunc.
+<DT>pow<DD>
+<A NAME="ixAFO"></A>
+Computes <TT>$x</TT> raised to the power <TT>$exponent</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+        $ret = POSIX::pow( $x, $exponent );
+
+</PRE>
+
+
+
+
+<P>
+
+
+You can also use the <TT>&quot;**&quot;</TT> operator, see perlop.
+<DT>printf<DD>
+<A NAME="ixAFP"></A>
+Formats and prints the specified arguments to <FONT SIZE="-1">STDOUT</FONT>.
+See also ``printf'' in perlfunc.
+<DT>putc<DD>
+<A NAME="ixAFQ"></A>
+<I>putc()</I> is C-specific, see ``print'' in perlfunc instead.
+<DT>putchar<DD>
+<A NAME="ixAFR"></A>
+<I>putchar()</I> is C-specific, see ``print'' in perlfunc instead.
+<DT>puts<DD>
+<A NAME="ixAFS"></A>
+<I>puts()</I> is C-specific, see ``print'' in perlfunc instead.
+<DT>qsort<DD>
+<A NAME="ixAFT"></A>
+<I>qsort()</I> is C-specific, see ``sort'' in perlfunc instead.
+<DT>raise<DD>
+<A NAME="ixAFU"></A>
+Sends the specified signal to the current process.
+See also ``kill'' in perlfunc and the <TT>$$</TT> in ``$PID'' in perlvar.
+<DT>rand<DD>
+<A NAME="ixAFV"></A>
+<TT>&quot;rand()&quot;</TT> is non-portable, see ``rand'' in perlfunc instead.
+<DT>read<DD>
+<A NAME="ixAFW"></A>
+Read from a file.  This uses file descriptors such as those obtained by
+calling <TT>&quot;POSIX::open&quot;</TT>.  If the buffer <TT>$buf</TT> is not large enough for the
+read then Perl will extend it to make room for the request.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::open( &quot;foo&quot;, &amp;POSIX::O_RDONLY );
+        $bytes = POSIX::read( $fd, $buf, 3 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+
+
+<P>
+
+
+See also ``sysread'' in perlfunc.
+<DT>readdir<DD>
+<A NAME="ixAFX"></A>
+This is identical to Perl's builtin <TT>&quot;readdir()&quot;</TT> function
+for reading directory entries, see ``readdir'' in perlfunc.
+<DT>realloc<DD>
+<A NAME="ixAFY"></A>
+<I>realloc()</I> is C-specific.  Perl does memory management transparently.
+<DT>remove<DD>
+<A NAME="ixAFZ"></A>
+This is identical to Perl's builtin <TT>&quot;unlink()&quot;</TT> function
+for removing files, see ``unlink'' in perlfunc.
+<DT>rename<DD>
+<A NAME="ixAGA"></A>
+This is identical to Perl's builtin <TT>&quot;rename()&quot;</TT> function
+for renaming files, see ``rename'' in perlfunc.
+<DT>rewind<DD>
+<A NAME="ixAGB"></A>
+Seeks to the beginning of the file.
+<DT>rewinddir<DD>
+<A NAME="ixAGC"></A>
+This is identical to Perl's builtin <TT>&quot;rewinddir()&quot;</TT> function for
+rewinding directory entry streams, see ``rewinddir'' in perlfunc.
+<DT>rmdir<DD>
+<A NAME="ixAGD"></A>
+This is identical to Perl's builtin <TT>&quot;rmdir()&quot;</TT> function
+for removing (empty) directories, see ``rmdir'' in perlfunc.
+<DT>scanf<DD>
+<A NAME="ixAGE"></A>
+<I>scanf()</I> is C-specific, use &lt;&gt; and regular expressions instead,
+see perlre.
+<DT>setgid<DD>
+<A NAME="ixAGF"></A>
+Sets the real group identifier and the effective group identifier for
+this process.  Similar to assigning a value to the Perl's builtin
+<TT>$)</TT> variable, see ``$EGID'' in perlvar, except that the latter
+will change only the real user identifier, and that the <I>setgid()</I>
+uses only a single numeric argument, as opposed to a space-separated
+list of numbers.
+<DT>setjmp<DD>
+<A NAME="ixAGG"></A>
+<TT>&quot;setjmp()&quot;</TT> is C-specific: use <TT>&quot;eval {}&quot;</TT> instead,
+see ``eval'' in perlfunc.
+<DT>setlocale<DD>
+<A NAME="ixAGH"></A>
+Modifies and queries program's locale.  The following examples assume
+
+
+<P>
+
+
+
+
+<PRE>
+        use POSIX qw(setlocale LC_ALL LC_CTYPE);
+
+</PRE>
+
+
+
+
+<P>
+
+
+has been issued.
+
+
+<P>
+
+
+The following will set the traditional <FONT SIZE="-1">UNIX</FONT> system locale behavior
+(the second argument <TT>&quot;C&quot;</TT>).
+
+
+<P>
+
+
+
+
+<PRE>
+        $loc = setlocale( LC_ALL, &quot;C&quot; );
+
+</PRE>
+
+
+
+
+<P>
+
+
+The following will query the current <FONT SIZE="-1">LC_CTYPE</FONT> category.  (No second
+argument means 'query'.)
+
+
+<P>
+
+
+
+
+<PRE>
+        $loc = setlocale( LC_CTYPE );
+
+</PRE>
+
+
+
+
+<P>
+
+
+The following will set the <FONT SIZE="-1">LC_CTYPE</FONT> behaviour according to the locale
+environment variables (the second argument <TT>&quot;&quot;</TT>).
+Please see your systems <TT><A HREF="/manpages/index.html?3+setlocale">setlocale</A>(3)</TT> documentation for the locale
+environment variables' meaning or consult perllocale.
+
+
+<P>
+
+
+
+
+<PRE>
+        $loc = setlocale( LC_CTYPE, &quot;&quot; );
+
+</PRE>
+
+
+
+
+<P>
+
+
+The following will set the <FONT SIZE="-1">LC_COLLATE</FONT> behaviour to Argentinian
+Spanish. <B></B><FONT SIZE="-1"><B>NOTE</B></FONT><B></B>: The naming and availability of locales depends on
+your operating system. Please consult perllocale for how to find
+out which locales are available in your system.
+
+
+<P>
+
+
+
+
+<PRE>
+        $loc = setlocale( LC_ALL, &quot;es_AR.ISO8859-1&quot; );
+
+</PRE>
+
+
+<DT>setpgid<DD>
+<A NAME="ixAGI"></A>
+This is similar to the C function <TT>&quot;setpgid()&quot;</TT> for
+setting the process group identifier of the current process.
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>setsid<DD>
+<A NAME="ixAGJ"></A>
+This is identical to the C function <TT>&quot;setsid()&quot;</TT> for
+setting the session identifier of the current process.
+<DT>setuid<DD>
+<A NAME="ixAGK"></A>
+Sets the real user identifier and the effective user identifier for
+this process.  Similar to assigning a value to the Perl's builtin
+<TT>$&lt;</TT> variable, see ``$UID'' in perlvar, except that the latter
+will change only the real user identifier.
+<DT>sigaction<DD>
+<A NAME="ixAGL"></A>
+Detailed signal management.  This uses <TT>&quot;POSIX::SigAction&quot;</TT> objects for
+the <TT>&quot;action&quot;</TT> and <TT>&quot;oldaction&quot;</TT> arguments (the oldaction can also be
+just a hash reference).  Consult your system's <TT>&quot;sigaction&quot;</TT> manpage
+for details, see also <TT>&quot;POSIX::SigRt&quot;</TT>.
+
+
+<P>
+
+
+Synopsis:
+
+
+<P>
+
+
+
+
+<PRE>
+        sigaction(signal, action, oldaction = 0)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.  The <TT>&quot;signal&quot;</TT> must be a number (like
+<FONT SIZE="-1">SIGHUP</FONT>), not a string (like ``<FONT SIZE="-1">SIGHUP</FONT>''), though Perl does try hard
+to understand you.
+
+
+<P>
+
+
+If you use the <FONT SIZE="-1">SA_SIGINFO</FONT> flag, the signal handler will in addition to
+the first argument, the signal name, also receive a second argument, a
+hash reference, inside which are the following keys with the following
+semantics, as defined by POSIX/SUSv3:
+
+
+<P>
+
+
+
+
+<PRE>
+    signo       the signal number
+    errno       the error number
+    code        if this is zero or less, the signal was sent by
+                a user process and the uid and pid make sense,
+                otherwise the signal was sent by the kernel
+
+</PRE>
+
+
+
+
+<P>
+
+
+The following are also defined by POSIX/SUSv3, but unfortunately
+not very widely implemented:
+
+
+<P>
+
+
+
+
+<PRE>
+    pid         the process id generating the signal
+    uid         the uid of the process id generating the signal
+    status      exit value or signal for SIGCHLD
+    band        band event for SIGPOLL
+
+</PRE>
+
+
+
+
+<P>
+
+
+A third argument is also passed to the handler, which contains a copy
+of the raw binary contents of the siginfo structure: if a system has
+some non-POSIX fields, this third argument is where to <I>unpack()</I> them
+from.
+
+
+<P>
+
+
+Note that not all siginfo values make sense simultaneously (some are
+valid only for certain signals, for example), and not all values make
+sense from Perl perspective, you should to consult your system's
+<TT>&quot;sigaction&quot;</TT> and possibly also <TT>&quot;siginfo&quot;</TT> documentation.
+<DT>siglongjmp<DD>
+<A NAME="ixAGM"></A>
+<I>siglongjmp()</I> is C-specific: use ``die'' in perlfunc instead.
+<DT>sigpending<DD>
+<A NAME="ixAGN"></A>
+Examine signals that are blocked and pending.  This uses <TT>&quot;POSIX::SigSet&quot;</TT>
+objects for the <TT>&quot;sigset&quot;</TT> argument.  Consult your system's <TT>&quot;sigpending&quot;</TT>
+manpage for details.
+
+
+<P>
+
+
+Synopsis:
+
+
+<P>
+
+
+
+
+<PRE>
+        sigpending(sigset)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>sigprocmask<DD>
+<A NAME="ixAGO"></A>
+Change and/or examine calling process's signal mask.  This uses
+<TT>&quot;POSIX::SigSet&quot;</TT> objects for the <TT>&quot;sigset&quot;</TT> and <TT>&quot;oldsigset&quot;</TT> arguments.
+Consult your system's <TT>&quot;sigprocmask&quot;</TT> manpage for details.
+
+
+<P>
+
+
+Synopsis:
+
+
+<P>
+
+
+
+
+<PRE>
+        sigprocmask(how, sigset, oldsigset = 0)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>sigsetjmp<DD>
+<A NAME="ixAGP"></A>
+<TT>&quot;sigsetjmp()&quot;</TT> is C-specific: use <TT>&quot;eval {}&quot;</TT> instead,
+see ``eval'' in perlfunc.
+<DT>sigsuspend<DD>
+<A NAME="ixAGQ"></A>
+Install a signal mask and suspend process until signal arrives.  This uses
+<TT>&quot;POSIX::SigSet&quot;</TT> objects for the <TT>&quot;signal_mask&quot;</TT> argument.  Consult your
+system's <TT>&quot;sigsuspend&quot;</TT> manpage for details.
+
+
+<P>
+
+
+Synopsis:
+
+
+<P>
+
+
+
+
+<PRE>
+        sigsuspend(signal_mask)
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>sin<DD>
+<A NAME="ixAGR"></A>
+This is identical to Perl's builtin <TT>&quot;sin()&quot;</TT> function
+for returning the sine of the numerical argument,
+see ``sin'' in perlfunc.  See also Math::Trig.
+<DT>sinh<DD>
+<A NAME="ixAGS"></A>
+This is identical to the C function <TT>&quot;sinh()&quot;</TT>
+for returning the hyperbolic sine of the numerical argument.
+See also Math::Trig.
+<DT>sleep<DD>
+<A NAME="ixAGT"></A>
+This is functionally identical to Perl's builtin <TT>&quot;sleep()&quot;</TT> function
+for suspending the execution of the current for process for certain
+number of seconds, see ``sleep'' in perlfunc.  There is one significant
+difference, however: <TT>&quot;POSIX::sleep()&quot;</TT> returns the number of
+<B>unslept</B> seconds, while the <TT>&quot;CORE::sleep()&quot;</TT> returns the
+number of slept seconds.
+<DT>sprintf<DD>
+<A NAME="ixAGU"></A>
+This is similar to Perl's builtin <TT>&quot;sprintf()&quot;</TT> function
+for returning a string that has the arguments formatted as requested,
+see ``sprintf'' in perlfunc.
+<DT>sqrt<DD>
+<A NAME="ixAGV"></A>
+This is identical to Perl's builtin <TT>&quot;sqrt()&quot;</TT> function.
+for returning the square root of the numerical argument,
+see ``sqrt'' in perlfunc.
+<DT>srand<DD>
+<A NAME="ixAGW"></A>
+Give a seed the pseudorandom number generator, see ``srand'' in perlfunc.
+<DT>sscanf<DD>
+<A NAME="ixAGX"></A>
+<I>sscanf()</I> is C-specific, use regular expressions instead,
+see perlre.
+<DT>stat<DD>
+<A NAME="ixAGY"></A>
+This is identical to Perl's builtin <TT>&quot;stat()&quot;</TT> function
+for returning information about files and directories.
+<DT>strcat<DD>
+<A NAME="ixAGZ"></A>
+<I>strcat()</I> is C-specific, use <TT>&quot;.=&quot;</TT> instead, see perlop.
+<DT>strchr<DD>
+<A NAME="ixAHA"></A>
+<I>strchr()</I> is C-specific, see ``index'' in perlfunc instead.
+<DT>strcmp<DD>
+<A NAME="ixAHB"></A>
+<I>strcmp()</I> is C-specific, use <TT>&quot;eq&quot;</TT> or <TT>&quot;cmp&quot;</TT> instead, see perlop.
+<DT>strcoll<DD>
+<A NAME="ixAHC"></A>
+This is identical to the C function <TT>&quot;strcoll()&quot;</TT>
+for collating (comparing) strings transformed using
+the <TT>&quot;strxfrm()&quot;</TT> function.  Not really needed since
+Perl can do this transparently, see perllocale.
+<DT>strcpy<DD>
+<A NAME="ixAHD"></A>
+<I>strcpy()</I> is C-specific, use <TT>&quot;=&quot;</TT> instead, see perlop.
+<DT>strcspn<DD>
+<A NAME="ixAHE"></A>
+<I>strcspn()</I> is C-specific, use regular expressions instead,
+see perlre.
+<DT>strerror<DD>
+<A NAME="ixAHF"></A>
+Returns the error string for the specified errno.
+Identical to the string form of the <TT>$!</TT>, see ``$ERRNO'' in perlvar.
+<DT>strftime<DD>
+<A NAME="ixAHG"></A>
+Convert date and time information to string.  Returns the string.
+
+
+<P>
+
+
+Synopsis:
+
+
+<P>
+
+
+
+
+<PRE>
+        strftime(fmt, sec, min, hour, mday, mon, year, wday = -1, yday = -1, isdst = -1)
+
+</PRE>
+
+
+
+
+<P>
+
+
+The month (<TT>&quot;mon&quot;</TT>), weekday (<TT>&quot;wday&quot;</TT>), and yearday (<TT>&quot;yday&quot;</TT>) begin at zero.
+I.e. January is 0, not 1; Sunday is 0, not 1; January 1st is 0, not 1.  The
+year (<TT>&quot;year&quot;</TT>) is given in years since 1900.  I.e., the year 1995 is 95; the
+year 2001 is 101.  Consult your system's <TT>&quot;strftime()&quot;</TT> manpage for details
+about these and the other arguments.
+
+
+<P>
+
+
+If you want your code to be portable, your format (<TT>&quot;fmt&quot;</TT>) argument
+should use only the conversion specifiers defined by the <FONT SIZE="-1">ANSI</FONT> C
+standard (C89, to play safe).  These are <TT>&quot;aAbBcdHIjmMpSUwWxXyYZ%&quot;</TT>.
+But even then, the <B>results</B> of some of the conversion specifiers are
+non-portable.  For example, the specifiers <TT>&quot;aAbBcpZ&quot;</TT> change according
+to the locale settings of the user, and both how to set locales (the
+locale names) and what output to expect are non-standard.
+The specifier <TT>&quot;c&quot;</TT> changes according to the timezone settings of the
+user and the timezone computation rules of the operating system.
+The <TT>&quot;Z&quot;</TT> specifier is notoriously unportable since the names of
+timezones are non-standard. Sticking to the numeric specifiers is the
+safest route.
+
+
+<P>
+
+
+The given arguments are made consistent as though by calling
+<TT>&quot;mktime()&quot;</TT> before calling your system's <TT>&quot;strftime()&quot;</TT> function,
+except that the <TT>&quot;isdst&quot;</TT> value is not affected.
+
+
+<P>
+
+
+The string for Tuesday, December 12, 1995.
+
+
+<P>
+
+
+
+
+<PRE>
+        $str = POSIX::strftime( &quot;%A, %B %d, %Y&quot;, 0, 0, 0, 12, 11, 95, 2 );
+        print &quot;$str\n&quot;;
+
+</PRE>
+
+
+<DT>strlen<DD>
+<A NAME="ixAHH"></A>
+<I>strlen()</I> is C-specific, use <TT>&quot;length()&quot;</TT> instead, see ``length'' in perlfunc.
+<DT>strncat<DD>
+<A NAME="ixAHI"></A>
+<I>strncat()</I> is C-specific, use <TT>&quot;.=&quot;</TT> instead, see perlop.
+<DT>strncmp<DD>
+<A NAME="ixAHJ"></A>
+<I>strncmp()</I> is C-specific, use <TT>&quot;eq&quot;</TT> instead, see perlop.
+<DT>strncpy<DD>
+<A NAME="ixAHK"></A>
+<I>strncpy()</I> is C-specific, use <TT>&quot;=&quot;</TT> instead, see perlop.
+<DT>strpbrk<DD>
+<A NAME="ixAHL"></A>
+<I>strpbrk()</I> is C-specific, use regular expressions instead,
+see perlre.
+<DT>strrchr<DD>
+<A NAME="ixAHM"></A>
+<I>strrchr()</I> is C-specific, see ``rindex'' in perlfunc instead.
+<DT>strspn<DD>
+<A NAME="ixAHN"></A>
+<I>strspn()</I> is C-specific, use regular expressions instead,
+see perlre.
+<DT>strstr<DD>
+<A NAME="ixAHO"></A>
+This is identical to Perl's builtin <TT>&quot;index()&quot;</TT> function,
+see ``index'' in perlfunc.
+<DT>strtod<DD>
+<A NAME="ixAHP"></A>
+String to double translation. Returns the parsed number and the number
+of characters in the unparsed portion of the string.  Truly
+POSIX-compliant systems set $! ($ERRNO) to indicate a translation
+error, so clear $! before calling strtod.  However, non-POSIX systems
+may not check for overflow, and therefore will never set $!.
+
+
+<P>
+
+
+strtod should respect any <FONT SIZE="-1">POSIX</FONT> <I>setlocale()</I> settings.
+
+
+<P>
+
+
+To parse a string <TT>$str</TT> as a floating point number use
+
+
+<P>
+
+
+
+
+<PRE>
+    $! = 0;
+    ($num, $n_unparsed) = POSIX::strtod($str);
+
+</PRE>
+
+
+
+
+<P>
+
+
+The second returned item and $! can be used to check for valid input:
+
+
+<P>
+
+
+
+
+<PRE>
+    if (($str eq '') || ($n_unparsed != 0) || $!) {
+        die &quot;Non-numeric input $str&quot; . ($! ? &quot;: $!\n&quot; : &quot;\n&quot;);
+    }
+
+</PRE>
+
+
+
+
+<P>
+
+
+When called in a scalar context strtod returns the parsed number.
+<DT>strtok<DD>
+<A NAME="ixAHQ"></A>
+<I>strtok()</I> is C-specific, use regular expressions instead, see
+perlre, or ``split'' in perlfunc.
+<DT>strtol<DD>
+<A NAME="ixAHR"></A>
+String to (long) integer translation.  Returns the parsed number and
+the number of characters in the unparsed portion of the string.  Truly
+POSIX-compliant systems set $! ($ERRNO) to indicate a translation
+error, so clear $! before calling strtol.  However, non-POSIX systems
+may not check for overflow, and therefore will never set $!.
+
+
+<P>
+
+
+strtol should respect any <FONT SIZE="-1">POSIX</FONT> <I>setlocale()</I> settings.
+
+
+<P>
+
+
+To parse a string <TT>$str</TT> as a number in some base <TT>$base</TT> use
+
+
+<P>
+
+
+
+
+<PRE>
+    $! = 0;
+    ($num, $n_unparsed) = POSIX::strtol($str, $base);
+
+</PRE>
+
+
+
+
+<P>
+
+
+The base should be zero or between 2 and 36, inclusive.  When the base
+is zero or omitted strtol will use the string itself to determine the
+base: a leading ``0x'' or ``0X'' means hexadecimal; a leading ``0'' means
+octal; any other leading characters mean decimal.  Thus, ``1234'' is
+parsed as a decimal number, ``01234'' as an octal number, and ``0x1234''
+as a hexadecimal number.
+
+
+<P>
+
+
+The second returned item and $! can be used to check for valid input:
+
+
+<P>
+
+
+
+
+<PRE>
+    if (($str eq '') || ($n_unparsed != 0) || !$!) {
+        die &quot;Non-numeric input $str&quot; . $! ? &quot;: $!\n&quot; : &quot;\n&quot;;
+    }
+
+</PRE>
+
+
+
+
+<P>
+
+
+When called in a scalar context strtol returns the parsed number.
+<DT>strtoul<DD>
+<A NAME="ixAHS"></A>
+String to unsigned (long) integer translation.  <I>strtoul()</I> is identical
+to <I>strtol()</I> except that <I>strtoul()</I> only parses unsigned integers.  See
+``strtol'' for details.
+
+
+<P>
+
+
+Note: Some vendors supply <I>strtod()</I> and <I>strtol()</I> but not <I>strtoul()</I>.
+Other vendors that do supply <I>strtoul()</I> parse ``-1'' as a valid value.
+<DT>strxfrm<DD>
+<A NAME="ixAHT"></A>
+String transformation.  Returns the transformed string.
+
+
+<P>
+
+
+
+
+<PRE>
+        $dst = POSIX::strxfrm( $src );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Used in conjunction with the <TT>&quot;strcoll()&quot;</TT> function, see ``strcoll''.
+
+
+<P>
+
+
+Not really needed since Perl can do this transparently, see
+perllocale.
+<DT>sysconf<DD>
+<A NAME="ixAHU"></A>
+Retrieves values of system configurable variables.
+
+
+<P>
+
+
+The following will get the machine's clock speed.
+
+
+<P>
+
+
+
+
+<PRE>
+        $clock_ticks = POSIX::sysconf( &amp;POSIX::_SC_CLK_TCK );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>system<DD>
+<A NAME="ixAHV"></A>
+This is identical to Perl's builtin <TT>&quot;system()&quot;</TT> function, see
+``system'' in perlfunc.
+<DT>tan<DD>
+<A NAME="ixAHW"></A>
+This is identical to the C function <TT>&quot;tan()&quot;</TT>, returning the
+tangent of the numerical argument.  See also Math::Trig.
+<DT>tanh<DD>
+<A NAME="ixAHX"></A>
+This is identical to the C function <TT>&quot;tanh()&quot;</TT>, returning the
+hyperbolic tangent of the numerical argument.   See also Math::Trig.
+<DT>tcdrain<DD>
+<A NAME="ixAHY"></A>
+This is similar to the C function <TT>&quot;tcdrain()&quot;</TT> for draining
+the output queue of its argument stream.
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>tcflow<DD>
+<A NAME="ixAHZ"></A>
+This is similar to the C function <TT>&quot;tcflow()&quot;</TT> for controlling
+the flow of its argument stream.
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>tcflush<DD>
+<A NAME="ixAIA"></A>
+This is similar to the C function <TT>&quot;tcflush()&quot;</TT> for flushing
+the I/O buffers of its argument stream.
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>tcgetpgrp<DD>
+<A NAME="ixAIB"></A>
+This is identical to the C function <TT>&quot;tcgetpgrp()&quot;</TT> for returning the
+process group identifier of the foreground process group of the controlling
+terminal.
+<DT>tcsendbreak<DD>
+<A NAME="ixAIC"></A>
+This is similar to the C function <TT>&quot;tcsendbreak()&quot;</TT> for sending
+a break on its argument stream.
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>tcsetpgrp<DD>
+<A NAME="ixAID"></A>
+This is similar to the C function <TT>&quot;tcsetpgrp()&quot;</TT> for setting the
+process group identifier of the foreground process group of the controlling
+terminal.
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>time<DD>
+<A NAME="ixAIE"></A>
+This is identical to Perl's builtin <TT>&quot;time()&quot;</TT> function
+for returning the number of seconds since the epoch
+(whatever it is for the system), see ``time'' in perlfunc.
+<DT>times<DD>
+<A NAME="ixAIF"></A>
+The <I>times()</I> function returns elapsed realtime since some point in the past
+(such as system startup), user and system times for this process, and user
+and system times used by child processes.  All times are returned in clock
+ticks.
+
+
+<P>
+
+
+
+
+<PRE>
+    ($realtime, $user, $system, $cuser, $csystem) = POSIX::times();
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note: Perl's builtin <TT>&quot;times()&quot;</TT> function returns four values, measured in
+seconds.
+<DT>tmpfile<DD>
+<A NAME="ixAIG"></A>
+Use method <TT>&quot;IO::File::new_tmpfile()&quot;</TT> instead, or see File::Temp.
+<DT>tmpnam<DD>
+<A NAME="ixAIH"></A>
+Returns a name for a temporary file.
+
+
+<P>
+
+
+
+
+<PRE>
+        $tmpfile = POSIX::tmpnam();
+
+</PRE>
+
+
+
+
+<P>
+
+
+For security reasons, which are probably detailed in your system's
+documentation for the C library <I>tmpnam()</I> function, this interface
+should not be used; instead see File::Temp.
+<DT>tolower<DD>
+<A NAME="ixAII"></A>
+This is identical to the C function, except that it can apply to a single
+character or to a whole string.  Consider using the <TT>&quot;lc()&quot;</TT> function,
+see ``lc'' in perlfunc, or the equivalent <TT>&quot;\L&quot;</TT> operator inside doublequotish
+strings.
+<DT>toupper<DD>
+<A NAME="ixAIJ"></A>
+This is identical to the C function, except that it can apply to a single
+character or to a whole string.  Consider using the <TT>&quot;uc()&quot;</TT> function,
+see ``uc'' in perlfunc, or the equivalent <TT>&quot;\U&quot;</TT> operator inside doublequotish
+strings.
+<DT>ttyname<DD>
+<A NAME="ixAIK"></A>
+This is identical to the C function <TT>&quot;ttyname()&quot;</TT> for returning the
+name of the current terminal.
+<DT>tzname<DD>
+<A NAME="ixAIL"></A>
+Retrieves the time conversion information from the <TT>&quot;tzname&quot;</TT> variable.
+
+
+<P>
+
+
+
+
+<PRE>
+        POSIX::tzset();
+        ($std, $dst) = POSIX::tzname();
+
+</PRE>
+
+
+<DT>tzset<DD>
+<A NAME="ixAIM"></A>
+This is identical to the C function <TT>&quot;tzset()&quot;</TT> for setting
+the current timezone based on the environment variable <TT>&quot;TZ&quot;</TT>,
+to be used by <TT>&quot;ctime()&quot;</TT>, <TT>&quot;localtime()&quot;</TT>, <TT>&quot;mktime()&quot;</TT>, and <TT>&quot;strftime()&quot;</TT>
+functions.
+<DT>umask<DD>
+<A NAME="ixAIN"></A>
+This is identical to Perl's builtin <TT>&quot;umask()&quot;</TT> function
+for setting (and querying) the file creation permission mask,
+see ``umask'' in perlfunc.
+<DT>uname<DD>
+<A NAME="ixAIO"></A>
+Get name of current operating system.
+
+
+<P>
+
+
+
+
+<PRE>
+        ($sysname, $nodename, $release, $version, $machine) = POSIX::uname();
+
+</PRE>
+
+
+
+
+<P>
+
+
+Note that the actual meanings of the various fields are not
+that well standardized, do not expect any great portability.
+The <TT>$sysname</TT> might be the name of the operating system,
+the <TT>$nodename</TT> might be the name of the host, the <TT>$release</TT>
+might be the (major) release number of the operating system,
+the <TT>$version</TT> might be the (minor) release number of the
+operating system, and the <TT>$machine</TT> might be a hardware identifier.
+Maybe.
+<DT>ungetc<DD>
+<A NAME="ixAIP"></A>
+Use method <TT>&quot;IO::Handle::ungetc()&quot;</TT> instead.
+<DT>unlink<DD>
+<A NAME="ixAIQ"></A>
+This is identical to Perl's builtin <TT>&quot;unlink()&quot;</TT> function
+for removing files, see ``unlink'' in perlfunc.
+<DT>utime<DD>
+<A NAME="ixAIR"></A>
+This is identical to Perl's builtin <TT>&quot;utime()&quot;</TT> function
+for changing the time stamps of files and directories,
+see ``utime'' in perlfunc.
+<DT>vfprintf<DD>
+<A NAME="ixAIS"></A>
+<I>vfprintf()</I> is C-specific, see ``printf'' in perlfunc instead.
+<DT>vprintf<DD>
+<A NAME="ixAIT"></A>
+<I>vprintf()</I> is C-specific, see ``printf'' in perlfunc instead.
+<DT>vsprintf<DD>
+<A NAME="ixAIU"></A>
+<I>vsprintf()</I> is C-specific, see ``sprintf'' in perlfunc instead.
+<DT>wait<DD>
+<A NAME="ixAIV"></A>
+This is identical to Perl's builtin <TT>&quot;wait()&quot;</TT> function,
+see ``wait'' in perlfunc.
+<DT>waitpid<DD>
+<A NAME="ixAIW"></A>
+Wait for a child process to change state.  This is identical to Perl's
+builtin <TT>&quot;waitpid()&quot;</TT> function, see ``waitpid'' in perlfunc.
+
+
+<P>
+
+
+
+
+<PRE>
+        $pid = POSIX::waitpid( -1, POSIX::WNOHANG );
+        print &quot;status = &quot;, ($? / 256), &quot;\n&quot;;
+
+</PRE>
+
+
+<DT>wcstombs<DD>
+<A NAME="ixAIX"></A>
+This is identical to the C function <TT>&quot;wcstombs()&quot;</TT>.
+Perl does not have any support for the wide and multibyte
+characters of the C standards, so this might be a rather
+useless function.
+<DT>wctomb<DD>
+<A NAME="ixAIY"></A>
+This is identical to the C function <TT>&quot;wctomb()&quot;</TT>.
+Perl does not have any support for the wide and multibyte
+characters of the C standards, so this might be a rather
+useless function.
+<DT>write<DD>
+<A NAME="ixAIZ"></A>
+Write to a file.  This uses file descriptors such as those obtained by
+calling <TT>&quot;POSIX::open&quot;</TT>.
+
+
+<P>
+
+
+
+
+<PRE>
+        $fd = POSIX::open( &quot;foo&quot;, &amp;POSIX::O_WRONLY );
+        $buf = &quot;hello&quot;;
+        $bytes = POSIX::write( $fd, $buf, 5 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+
+
+<P>
+
+
+See also ``syswrite'' in perlfunc.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>CLASSES</H2>
+
+<A NAME="ixAJA"></A>
+<A NAME="lbAI">&nbsp;</A>
+<H3>POSIX::SigAction</H3>
+
+<A NAME="ixAJB"></A>
+<DL COMPACT>
+<DT>new<DD>
+<A NAME="ixAJC"></A>
+Creates a new <TT>&quot;POSIX::SigAction&quot;</TT> object which corresponds to the C
+<TT>&quot;struct sigaction&quot;</TT>.  This object will be destroyed automatically when
+it is no longer needed.  The first parameter is the handler, a sub
+reference.  The second parameter is a <TT>&quot;POSIX::SigSet&quot;</TT> object, it
+defaults to the empty set.  The third parameter contains the
+<TT>&quot;sa_flags&quot;</TT>, it defaults to 0.
+
+
+<P>
+
+
+
+
+<PRE>
+        $sigset = POSIX::SigSet-&gt;new(SIGINT, SIGQUIT);
+        $sigaction = POSIX::SigAction-&gt;new( \&amp;handler, $sigset, &amp;POSIX::SA_NOCLDSTOP );
+
+</PRE>
+
+
+
+
+<P>
+
+
+This <TT>&quot;POSIX::SigAction&quot;</TT> object is intended for use with the <TT>&quot;POSIX::sigaction()&quot;</TT>
+function.
+<DT>handler<DD>
+<A NAME="ixAJD"></A>
+
+<DT>mask<DD>
+<A NAME="ixAJE"></A>
+<DT>flags<DD>
+<A NAME="ixAJF"></A>
+
+accessor functions to get/set the values of a SigAction object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $sigset = $sigaction-&gt;mask;
+        $sigaction-&gt;flags(&amp;POSIX::SA_RESTART);
+
+</PRE>
+
+
+<DT>safe<DD>
+<A NAME="ixAJG"></A>
+accessor function for the ``safe signals'' flag of a SigAction object; see
+perlipc for general information on safe (a.k.a. ``deferred'') signals.  If
+you wish to handle a signal safely, use this accessor to set the ``safe'' flag
+in the <TT>&quot;POSIX::SigAction&quot;</TT> object:
+
+
+<P>
+
+
+
+
+<PRE>
+        $sigaction-&gt;<A HREF="/manpages/index.html?1+safe">safe</A>(1);
+
+</PRE>
+
+
+
+
+<P>
+
+
+You may also examine the ``safe'' flag on the output action object which is
+filled in when given as the third parameter to <TT>&quot;POSIX::sigaction()&quot;</TT>:
+
+
+<P>
+
+
+
+
+<PRE>
+        sigaction(SIGINT, $new_action, $old_action);
+        if ($old_action-&gt;safe) {
+            # previous SIGINT handler used safe signals
+        }
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3>POSIX::SigRt</H3>
+
+<A NAME="ixAJH"></A>
+<DL COMPACT>
+<DT>%SIGRT<DD>
+
+
+<A NAME="ixAJI"></A>
+A hash of the <FONT SIZE="-1">POSIX</FONT> realtime signal handlers.  It is an extension of
+the standard <TT>%SIG</TT>, the <TT>$POSIX::SIGRT</TT>{<FONT SIZE="-1">SIGRTMIN</FONT>} is roughly equivalent
+to <TT>$SIG</TT>{<FONT SIZE="-1">SIGRTMIN</FONT>}, but the right <FONT SIZE="-1">POSIX</FONT> moves (see below) are made with
+the POSIX::SigSet and POSIX::sigaction instead of accessing the <TT>%SIG</TT>.
+
+
+<P>
+
+
+You can set the <TT>%POSIX::SIGRT</TT> elements to set the <FONT SIZE="-1">POSIX</FONT> realtime
+signal handlers, use <TT>&quot;delete&quot;</TT> and <TT>&quot;exists&quot;</TT> on the elements, and use
+<TT>&quot;scalar&quot;</TT> on the <TT>%POSIX::SIGRT</TT> to find out how many <FONT SIZE="-1">POSIX</FONT> realtime
+signals there are available (<FONT SIZE="-1">SIGRTMAX</FONT> - <FONT SIZE="-1">SIGRTMIN</FONT> + 1, the <FONT SIZE="-1">SIGRTMAX</FONT> is
+a valid <FONT SIZE="-1">POSIX</FONT> realtime signal).
+
+
+<P>
+
+
+Setting the <TT>%SIGRT</TT> elements is equivalent to calling this:
+
+
+<P>
+
+
+
+
+<PRE>
+  sub new {
+    my ($rtsig, $handler, $flags) = @_;
+    my $sigset = POSIX::SigSet($rtsig);
+    my $sigact = POSIX::SigAction-&gt;new($handler, $sigset, $flags);
+    sigaction($rtsig, $sigact);
+  }
+
+</PRE>
+
+
+
+
+<P>
+
+
+The flags default to zero, if you want something different you can
+either use <TT>&quot;local&quot;</TT> on <TT>$POSIX::SigRt::SIGACTION_FLAGS</TT>, or you can
+derive from POSIX::SigRt and define your own <TT>&quot;new()&quot;</TT> (the tied hash
+<FONT SIZE="-1">STORE</FONT> method of the <TT>%SIGRT</TT> calls <TT>&quot;new($rtsig, $handler, $SIGACTION_FLAGS)&quot;</TT>,
+where the <TT>$rtsig</TT> ranges from zero to <FONT SIZE="-1">SIGRTMAX</FONT> - <FONT SIZE="-1">SIGRTMIN</FONT> + 1).
+
+
+<P>
+
+
+Just as with any signal, you can use sigaction($rtsig, undef, <TT>$oa</TT>) to
+retrieve the installed signal handler (or, rather, the signal action).
+
+
+<P>
+
+
+<B></B><FONT SIZE="-1"><B>NOTE:</B></FONT><B></B> whether <FONT SIZE="-1">POSIX</FONT> realtime signals really work in your system, or
+whether Perl has been compiled so that it works with them, is outside
+of this discussion.
+<DT><FONT SIZE="-1">SIGRTMIN</FONT><DD>
+<A NAME="ixAJJ"></A>
+Return the minimum <FONT SIZE="-1">POSIX</FONT> realtime signal number available, or <TT>&quot;undef&quot;</TT>
+if no <FONT SIZE="-1">POSIX</FONT> realtime signals are available.
+<DT><FONT SIZE="-1">SIGRTMAX</FONT><DD>
+<A NAME="ixAJK"></A>
+Return the maximum <FONT SIZE="-1">POSIX</FONT> realtime signal number available, or <TT>&quot;undef&quot;</TT>
+if no <FONT SIZE="-1">POSIX</FONT> realtime signals are available.
+</DL>
+<A NAME="lbAK">&nbsp;</A>
+<H3>POSIX::SigSet</H3>
+
+<A NAME="ixAJL"></A>
+<DL COMPACT>
+<DT>new<DD>
+<A NAME="ixAJM"></A>
+Create a new SigSet object.  This object will be destroyed automatically
+when it is no longer needed.  Arguments may be supplied to initialize the
+set.
+
+
+<P>
+
+
+Create an empty set.
+
+
+<P>
+
+
+
+
+<PRE>
+        $sigset = POSIX::SigSet-&gt;new;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Create a set with <FONT SIZE="-1">SIGUSR1</FONT>.
+
+
+<P>
+
+
+
+
+<PRE>
+        $sigset = POSIX::SigSet-&gt;new( &amp;POSIX::SIGUSR1 );
+
+</PRE>
+
+
+<DT>addset<DD>
+<A NAME="ixAJN"></A>
+Add a signal to a SigSet object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $sigset-&gt;addset( &amp;POSIX::SIGUSR2 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>delset<DD>
+<A NAME="ixAJO"></A>
+Remove a signal from the SigSet object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $sigset-&gt;delset( &amp;POSIX::SIGUSR2 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>emptyset<DD>
+<A NAME="ixAJP"></A>
+Initialize the SigSet object to be empty.
+
+
+<P>
+
+
+
+
+<PRE>
+        $sigset-&gt;emptyset();
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>fillset<DD>
+<A NAME="ixAJQ"></A>
+Initialize the SigSet object to include all signals.
+
+
+<P>
+
+
+
+
+<PRE>
+        $sigset-&gt;fillset();
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>ismember<DD>
+<A NAME="ixAJR"></A>
+Tests the SigSet object to see if it contains a specific signal.
+
+
+<P>
+
+
+
+
+<PRE>
+        if( $sigset-&gt;ismember( &amp;POSIX::SIGUSR1 ) ){
+                print &quot;contains SIGUSR1\n&quot;;
+        }
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H3>POSIX::Termios</H3>
+
+<A NAME="ixAJS"></A>
+<DL COMPACT>
+<DT>new<DD>
+<A NAME="ixAJT"></A>
+Create a new Termios object.  This object will be destroyed automatically
+when it is no longer needed.  A Termios object corresponds to the termios
+C struct.  <I>new()</I> mallocs a new one, <I>getattr()</I> fills it from a file descriptor,
+and <I>setattr()</I> sets a file descriptor's parameters to match Termios' contents.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios = POSIX::Termios-&gt;new;
+
+</PRE>
+
+
+<DT>getattr<DD>
+<A NAME="ixAJU"></A>
+Get terminal control attributes.
+
+
+<P>
+
+
+Obtain the attributes for stdin.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios-&gt;getattr( 0 ) # Recommended for clarity.
+        $termios-&gt;getattr()
+
+</PRE>
+
+
+
+
+<P>
+
+
+Obtain the attributes for stdout.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios-&gt;getattr( 1 )
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>getcc<DD>
+<A NAME="ixAJV"></A>
+Retrieve a value from the c_cc field of a termios object.  The c_cc field is
+an array so an index must be specified.
+
+
+<P>
+
+
+
+
+<PRE>
+        $c_cc[1] = $termios-&gt;<A HREF="/manpages/index.html?1+getcc">getcc</A>(1);
+
+</PRE>
+
+
+<DT>getcflag<DD>
+<A NAME="ixAJW"></A>
+Retrieve the c_cflag field of a termios object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $c_cflag = $termios-&gt;getcflag;
+
+</PRE>
+
+
+<DT>getiflag<DD>
+<A NAME="ixAJX"></A>
+Retrieve the c_iflag field of a termios object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $c_iflag = $termios-&gt;getiflag;
+
+</PRE>
+
+
+<DT>getispeed<DD>
+<A NAME="ixAJY"></A>
+Retrieve the input baud rate.
+
+
+<P>
+
+
+
+
+<PRE>
+        $ispeed = $termios-&gt;getispeed;
+
+</PRE>
+
+
+<DT>getlflag<DD>
+<A NAME="ixAJZ"></A>
+Retrieve the c_lflag field of a termios object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $c_lflag = $termios-&gt;getlflag;
+
+</PRE>
+
+
+<DT>getoflag<DD>
+<A NAME="ixAKA"></A>
+Retrieve the c_oflag field of a termios object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $c_oflag = $termios-&gt;getoflag;
+
+</PRE>
+
+
+<DT>getospeed<DD>
+<A NAME="ixAKB"></A>
+Retrieve the output baud rate.
+
+
+<P>
+
+
+
+
+<PRE>
+        $ospeed = $termios-&gt;getospeed;
+
+</PRE>
+
+
+<DT>setattr<DD>
+<A NAME="ixAKC"></A>
+Set terminal control attributes.
+
+
+<P>
+
+
+Set attributes immediately for stdout.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios-&gt;setattr( 1, &amp;POSIX::TCSANOW );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>setcc<DD>
+<A NAME="ixAKD"></A>
+Set a value in the c_cc field of a termios object.  The c_cc field is an
+array so an index must be specified.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios-&gt;setcc( &amp;POSIX::VEOF, 1 );
+
+</PRE>
+
+
+<DT>setcflag<DD>
+<A NAME="ixAKE"></A>
+Set the c_cflag field of a termios object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios-&gt;setcflag( $c_cflag | &amp;POSIX::CLOCAL );
+
+</PRE>
+
+
+<DT>setiflag<DD>
+<A NAME="ixAKF"></A>
+Set the c_iflag field of a termios object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios-&gt;setiflag( $c_iflag | &amp;POSIX::BRKINT );
+
+</PRE>
+
+
+<DT>setispeed<DD>
+<A NAME="ixAKG"></A>
+Set the input baud rate.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios-&gt;setispeed( &amp;POSIX::B9600 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>setlflag<DD>
+<A NAME="ixAKH"></A>
+Set the c_lflag field of a termios object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios-&gt;setlflag( $c_lflag | &amp;POSIX::ECHO );
+
+</PRE>
+
+
+<DT>setoflag<DD>
+<A NAME="ixAKI"></A>
+Set the c_oflag field of a termios object.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios-&gt;setoflag( $c_oflag | &amp;POSIX::OPOST );
+
+</PRE>
+
+
+<DT>setospeed<DD>
+<A NAME="ixAKJ"></A>
+Set the output baud rate.
+
+
+<P>
+
+
+
+
+<PRE>
+        $termios-&gt;setospeed( &amp;POSIX::B9600 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Returns <TT>&quot;undef&quot;</TT> on failure.
+<DT>Baud rate values<DD>
+<A NAME="ixAKK"></A>
+B38400 B75 B200 B134 B300 B1800 B150 B0 B19200 B1200 B9600 B600 B4800 B50 B2400 B110
+<DT>Terminal interface values<DD>
+<A NAME="ixAKL"></A>
+<FONT SIZE="-1">TCSADRAIN</FONT> <FONT SIZE="-1">TCSANOW</FONT> <FONT SIZE="-1">TCOON</FONT> <FONT SIZE="-1">TCIOFLUSH</FONT> <FONT SIZE="-1">TCOFLUSH</FONT> <FONT SIZE="-1">TCION</FONT> <FONT SIZE="-1">TCIFLUSH</FONT> <FONT SIZE="-1">TCSAFLUSH</FONT> <FONT SIZE="-1">TCIOFF</FONT> <FONT SIZE="-1">TCOOFF</FONT>
+<DT>c_cc field values<DD>
+<A NAME="ixAKM"></A>
+<FONT SIZE="-1">VEOF</FONT> <FONT SIZE="-1">VEOL</FONT> <FONT SIZE="-1">VERASE</FONT> <FONT SIZE="-1">VINTR</FONT> <FONT SIZE="-1">VKILL</FONT> <FONT SIZE="-1">VQUIT</FONT> <FONT SIZE="-1">VSUSP</FONT> <FONT SIZE="-1">VSTART</FONT> <FONT SIZE="-1">VSTOP</FONT> <FONT SIZE="-1">VMIN</FONT> <FONT SIZE="-1">VTIME</FONT> <FONT SIZE="-1">NCCS</FONT>
+<DT>c_cflag field values<DD>
+<A NAME="ixAKN"></A>
+<FONT SIZE="-1">CLOCAL</FONT> <FONT SIZE="-1">CREAD</FONT> <FONT SIZE="-1">CSIZE</FONT> <FONT SIZE="-1">CS5</FONT> <FONT SIZE="-1">CS6</FONT> <FONT SIZE="-1">CS7</FONT> <FONT SIZE="-1">CS8</FONT> <FONT SIZE="-1">CSTOPB</FONT> <FONT SIZE="-1">HUPCL</FONT> <FONT SIZE="-1">PARENB</FONT> <FONT SIZE="-1">PARODD</FONT>
+<DT>c_iflag field values<DD>
+<A NAME="ixAKO"></A>
+<FONT SIZE="-1">BRKINT</FONT> <FONT SIZE="-1">ICRNL</FONT> <FONT SIZE="-1">IGNBRK</FONT> <FONT SIZE="-1">IGNCR</FONT> <FONT SIZE="-1">IGNPAR</FONT> <FONT SIZE="-1">INLCR</FONT> <FONT SIZE="-1">INPCK</FONT> <FONT SIZE="-1">ISTRIP</FONT> <FONT SIZE="-1">IXOFF</FONT> <FONT SIZE="-1">IXON</FONT> <FONT SIZE="-1">PARMRK</FONT>
+<DT>c_lflag field values<DD>
+<A NAME="ixAKP"></A>
+<FONT SIZE="-1">ECHO</FONT> <FONT SIZE="-1">ECHOE</FONT> <FONT SIZE="-1">ECHOK</FONT> <FONT SIZE="-1">ECHONL</FONT> <FONT SIZE="-1">ICANON</FONT> <FONT SIZE="-1">IEXTEN</FONT> <FONT SIZE="-1">ISIG</FONT> <FONT SIZE="-1">NOFLSH</FONT> <FONT SIZE="-1">TOSTOP</FONT>
+<DT>c_oflag field values<DD>
+<A NAME="ixAKQ"></A>
+<FONT SIZE="-1">OPOST</FONT>
+</DL>
+<A NAME="lbAM">&nbsp;</A>
+<H2>PATHNAME CONSTANTS</H2>
+
+<A NAME="ixAKR"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixAKS"></A>
+_PC_CHOWN_RESTRICTED _PC_LINK_MAX _PC_MAX_CANON _PC_MAX_INPUT _PC_NAME_MAX _PC_NO_TRUNC _PC_PATH_MAX _PC_PIPE_BUF _PC_VDISABLE
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H2>POSIX CONSTANTS</H2>
+
+<A NAME="ixAKT"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixAKU"></A>
+_POSIX_ARG_MAX _POSIX_CHILD_MAX _POSIX_CHOWN_RESTRICTED _POSIX_JOB_CONTROL _POSIX_LINK_MAX _POSIX_MAX_CANON _POSIX_MAX_INPUT _POSIX_NAME_MAX _POSIX_NGROUPS_MAX _POSIX_NO_TRUNC _POSIX_OPEN_MAX _POSIX_PATH_MAX _POSIX_PIPE_BUF _POSIX_SAVED_IDS _POSIX_SSIZE_MAX _POSIX_STREAM_MAX _POSIX_TZNAME_MAX _POSIX_VDISABLE _POSIX_VERSION
+</DL>
+<A NAME="lbAO">&nbsp;</A>
+<H2>SYSTEM CONFIGURATION</H2>
+
+<A NAME="ixAKV"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixAKW"></A>
+_SC_ARG_MAX _SC_CHILD_MAX _SC_CLK_TCK _SC_JOB_CONTROL _SC_NGROUPS_MAX _SC_OPEN_MAX _SC_PAGESIZE _SC_SAVED_IDS _SC_STREAM_MAX _SC_TZNAME_MAX _SC_VERSION
+</DL>
+<A NAME="lbAP">&nbsp;</A>
+<H2>ERRNO</H2>
+
+<A NAME="ixAKX"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixAKY"></A>
+E2BIG <FONT SIZE="-1">EACCES</FONT> <FONT SIZE="-1">EADDRINUSE</FONT> <FONT SIZE="-1">EADDRNOTAVAIL</FONT> <FONT SIZE="-1">EAFNOSUPPORT</FONT> <FONT SIZE="-1">EAGAIN</FONT> <FONT SIZE="-1">EALREADY</FONT> <FONT SIZE="-1">EBADF</FONT>
+<FONT SIZE="-1">EBUSY</FONT> <FONT SIZE="-1">ECHILD</FONT> <FONT SIZE="-1">ECONNABORTED</FONT> <FONT SIZE="-1">ECONNREFUSED</FONT> <FONT SIZE="-1">ECONNRESET</FONT> <FONT SIZE="-1">EDEADLK</FONT> <FONT SIZE="-1">EDESTADDRREQ</FONT>
+<FONT SIZE="-1">EDOM</FONT> <FONT SIZE="-1">EDQUOT</FONT> <FONT SIZE="-1">EEXIST</FONT> <FONT SIZE="-1">EFAULT</FONT> <FONT SIZE="-1">EFBIG</FONT> <FONT SIZE="-1">EHOSTDOWN</FONT> <FONT SIZE="-1">EHOSTUNREACH</FONT> <FONT SIZE="-1">EINPROGRESS</FONT> <FONT SIZE="-1">EINTR</FONT>
+<FONT SIZE="-1">EINVAL</FONT> <FONT SIZE="-1">EIO</FONT> <FONT SIZE="-1">EISCONN</FONT> <FONT SIZE="-1">EISDIR</FONT> <FONT SIZE="-1">ELOOP</FONT> <FONT SIZE="-1">EMFILE</FONT> <FONT SIZE="-1">EMLINK</FONT> <FONT SIZE="-1">EMSGSIZE</FONT> <FONT SIZE="-1">ENAMETOOLONG</FONT>
+<FONT SIZE="-1">ENETDOWN</FONT> <FONT SIZE="-1">ENETRESET</FONT> <FONT SIZE="-1">ENETUNREACH</FONT> <FONT SIZE="-1">ENFILE</FONT> <FONT SIZE="-1">ENOBUFS</FONT> <FONT SIZE="-1">ENODEV</FONT> <FONT SIZE="-1">ENOENT</FONT> <FONT SIZE="-1">ENOEXEC</FONT>
+<FONT SIZE="-1">ENOLCK</FONT> <FONT SIZE="-1">ENOMEM</FONT> <FONT SIZE="-1">ENOPROTOOPT</FONT> <FONT SIZE="-1">ENOSPC</FONT> <FONT SIZE="-1">ENOSYS</FONT> <FONT SIZE="-1">ENOTBLK</FONT> <FONT SIZE="-1">ENOTCONN</FONT> <FONT SIZE="-1">ENOTDIR</FONT>
+<FONT SIZE="-1">ENOTEMPTY</FONT> <FONT SIZE="-1">ENOTSOCK</FONT> <FONT SIZE="-1">ENOTTY</FONT> <FONT SIZE="-1">ENXIO</FONT> <FONT SIZE="-1">EOPNOTSUPP</FONT> <FONT SIZE="-1">EPERM</FONT> <FONT SIZE="-1">EPFNOSUPPORT</FONT> <FONT SIZE="-1">EPIPE</FONT>
+<FONT SIZE="-1">EPROCLIM</FONT> <FONT SIZE="-1">EPROTONOSUPPORT</FONT> <FONT SIZE="-1">EPROTOTYPE</FONT> <FONT SIZE="-1">ERANGE</FONT> <FONT SIZE="-1">EREMOTE</FONT> <FONT SIZE="-1">ERESTART</FONT> <FONT SIZE="-1">EROFS</FONT>
+<FONT SIZE="-1">ESHUTDOWN</FONT> <FONT SIZE="-1">ESOCKTNOSUPPORT</FONT> <FONT SIZE="-1">ESPIPE</FONT> <FONT SIZE="-1">ESRCH</FONT> <FONT SIZE="-1">ESTALE</FONT> <FONT SIZE="-1">ETIMEDOUT</FONT> <FONT SIZE="-1">ETOOMANYREFS</FONT>
+<FONT SIZE="-1">ETXTBSY</FONT> <FONT SIZE="-1">EUSERS</FONT> <FONT SIZE="-1">EWOULDBLOCK</FONT> <FONT SIZE="-1">EXDEV</FONT>
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H2>FCNTL</H2>
+
+<A NAME="ixAKZ"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALA"></A>
+<FONT SIZE="-1">FD_CLOEXEC</FONT> F_DUPFD F_GETFD F_GETFL F_GETLK F_OK F_RDLCK F_SETFD F_SETFL F_SETLK F_SETLKW F_UNLCK F_WRLCK O_ACCMODE O_APPEND O_CREAT O_EXCL O_NOCTTY O_NONBLOCK O_RDONLY O_RDWR O_TRUNC O_WRONLY
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H2>FLOAT</H2>
+
+<A NAME="ixALB"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALC"></A>
+<FONT SIZE="-1">DBL_DIG</FONT> <FONT SIZE="-1">DBL_EPSILON</FONT> <FONT SIZE="-1">DBL_MANT_DIG</FONT> <FONT SIZE="-1">DBL_MAX</FONT> <FONT SIZE="-1">DBL_MAX_10_EXP</FONT> <FONT SIZE="-1">DBL_MAX_EXP</FONT> <FONT SIZE="-1">DBL_MIN</FONT> <FONT SIZE="-1">DBL_MIN_10_EXP</FONT> <FONT SIZE="-1">DBL_MIN_EXP</FONT> <FONT SIZE="-1">FLT_DIG</FONT> <FONT SIZE="-1">FLT_EPSILON</FONT> <FONT SIZE="-1">FLT_MANT_DIG</FONT> <FONT SIZE="-1">FLT_MAX</FONT> <FONT SIZE="-1">FLT_MAX_10_EXP</FONT> <FONT SIZE="-1">FLT_MAX_EXP</FONT> <FONT SIZE="-1">FLT_MIN</FONT> <FONT SIZE="-1">FLT_MIN_10_EXP</FONT> <FONT SIZE="-1">FLT_MIN_EXP</FONT> <FONT SIZE="-1">FLT_RADIX</FONT> <FONT SIZE="-1">FLT_ROUNDS</FONT> <FONT SIZE="-1">LDBL_DIG</FONT> <FONT SIZE="-1">LDBL_EPSILON</FONT> <FONT SIZE="-1">LDBL_MANT_DIG</FONT> <FONT SIZE="-1">LDBL_MAX</FONT> <FONT SIZE="-1">LDBL_MAX_10_EXP</FONT> <FONT SIZE="-1">LDBL_MAX_EXP</FONT> <FONT SIZE="-1">LDBL_MIN</FONT> <FONT SIZE="-1">LDBL_MIN_10_EXP</FONT> <FONT SIZE="-1">LDBL_MIN_EXP</FONT>
+</DL>
+<A NAME="lbAS">&nbsp;</A>
+<H2>LIMITS</H2>
+
+<A NAME="ixALD"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALE"></A>
+<FONT SIZE="-1">ARG_MAX</FONT> <FONT SIZE="-1">CHAR_BIT</FONT> <FONT SIZE="-1">CHAR_MAX</FONT> <FONT SIZE="-1">CHAR_MIN</FONT> <FONT SIZE="-1">CHILD_MAX</FONT> <FONT SIZE="-1">INT_MAX</FONT> <FONT SIZE="-1">INT_MIN</FONT> <FONT SIZE="-1">LINK_MAX</FONT> <FONT SIZE="-1">LONG_MAX</FONT> <FONT SIZE="-1">LONG_MIN</FONT> <FONT SIZE="-1">MAX_CANON</FONT> <FONT SIZE="-1">MAX_INPUT</FONT> <FONT SIZE="-1">MB_LEN_MAX</FONT> <FONT SIZE="-1">NAME_MAX</FONT> <FONT SIZE="-1">NGROUPS_MAX</FONT> <FONT SIZE="-1">OPEN_MAX</FONT> <FONT SIZE="-1">PATH_MAX</FONT> <FONT SIZE="-1">PIPE_BUF</FONT> <FONT SIZE="-1">SCHAR_MAX</FONT> <FONT SIZE="-1">SCHAR_MIN</FONT> <FONT SIZE="-1">SHRT_MAX</FONT> <FONT SIZE="-1">SHRT_MIN</FONT> <FONT SIZE="-1">SSIZE_MAX</FONT> <FONT SIZE="-1">STREAM_MAX</FONT> <FONT SIZE="-1">TZNAME_MAX</FONT> <FONT SIZE="-1">UCHAR_MAX</FONT> <FONT SIZE="-1">UINT_MAX</FONT> <FONT SIZE="-1">ULONG_MAX</FONT> <FONT SIZE="-1">USHRT_MAX</FONT>
+</DL>
+<A NAME="lbAT">&nbsp;</A>
+<H2>LOCALE</H2>
+
+<A NAME="ixALF"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALG"></A>
+<FONT SIZE="-1">LC_ALL</FONT> <FONT SIZE="-1">LC_COLLATE</FONT> <FONT SIZE="-1">LC_CTYPE</FONT> <FONT SIZE="-1">LC_MONETARY</FONT> <FONT SIZE="-1">LC_NUMERIC</FONT> <FONT SIZE="-1">LC_TIME</FONT>
+</DL>
+<A NAME="lbAU">&nbsp;</A>
+<H2>MATH</H2>
+
+<A NAME="ixALH"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALI"></A>
+<FONT SIZE="-1">HUGE_VAL</FONT>
+</DL>
+<A NAME="lbAV">&nbsp;</A>
+<H2>SIGNAL</H2>
+
+<A NAME="ixALJ"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALK"></A>
+<FONT SIZE="-1">SA_NOCLDSTOP</FONT> <FONT SIZE="-1">SA_NOCLDWAIT</FONT> <FONT SIZE="-1">SA_NODEFER</FONT> <FONT SIZE="-1">SA_ONSTACK</FONT> <FONT SIZE="-1">SA_RESETHAND</FONT> <FONT SIZE="-1">SA_RESTART</FONT>
+<FONT SIZE="-1">SA_SIGINFO</FONT> <FONT SIZE="-1">SIGABRT</FONT> <FONT SIZE="-1">SIGALRM</FONT> <FONT SIZE="-1">SIGCHLD</FONT> <FONT SIZE="-1">SIGCONT</FONT> <FONT SIZE="-1">SIGFPE</FONT> <FONT SIZE="-1">SIGHUP</FONT> <FONT SIZE="-1">SIGILL</FONT> <FONT SIZE="-1">SIGINT</FONT>
+<FONT SIZE="-1">SIGKILL</FONT> <FONT SIZE="-1">SIGPIPE</FONT> <FONT SIZE="-1">SIGQUIT</FONT> <FONT SIZE="-1">SIGSEGV</FONT> <FONT SIZE="-1">SIGSTOP</FONT> <FONT SIZE="-1">SIGTERM</FONT> <FONT SIZE="-1">SIGTSTP</FONT> <FONT SIZE="-1">SIGTTIN</FONT> <FONT SIZE="-1">SIGTTOU</FONT>
+<FONT SIZE="-1">SIGUSR1</FONT> <FONT SIZE="-1">SIGUSR2</FONT> <FONT SIZE="-1">SIG_BLOCK</FONT> <FONT SIZE="-1">SIG_DFL</FONT> <FONT SIZE="-1">SIG_ERR</FONT> <FONT SIZE="-1">SIG_IGN</FONT> <FONT SIZE="-1">SIG_SETMASK</FONT>
+<FONT SIZE="-1">SIG_UNBLOCK</FONT>
+</DL>
+<A NAME="lbAW">&nbsp;</A>
+<H2>STAT</H2>
+
+<A NAME="ixALL"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALM"></A>
+S_IRGRP S_IROTH S_IRUSR S_IRWXG S_IRWXO S_IRWXU S_ISGID S_ISUID S_IWGRP S_IWOTH S_IWUSR S_IXGRP S_IXOTH S_IXUSR
+<DT>Macros<DD>
+<A NAME="ixALN"></A>
+S_ISBLK S_ISCHR S_ISDIR S_ISFIFO S_ISREG
+</DL>
+<A NAME="lbAX">&nbsp;</A>
+<H2>STDLIB</H2>
+
+<A NAME="ixALO"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALP"></A>
+<FONT SIZE="-1">EXIT_FAILURE</FONT> <FONT SIZE="-1">EXIT_SUCCESS</FONT> <FONT SIZE="-1">MB_CUR_MAX</FONT> <FONT SIZE="-1">RAND_MAX</FONT>
+</DL>
+<A NAME="lbAY">&nbsp;</A>
+<H2>STDIO</H2>
+
+<A NAME="ixALQ"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALR"></A>
+<FONT SIZE="-1">BUFSIZ</FONT> <FONT SIZE="-1">EOF</FONT> <FONT SIZE="-1">FILENAME_MAX</FONT> L_ctermid L_cuserid L_tmpname <FONT SIZE="-1">TMP_MAX</FONT>
+</DL>
+<A NAME="lbAZ">&nbsp;</A>
+<H2>TIME</H2>
+
+<A NAME="ixALS"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALT"></A>
+<FONT SIZE="-1">CLK_TCK</FONT> <FONT SIZE="-1">CLOCKS_PER_SEC</FONT>
+</DL>
+<A NAME="lbBA">&nbsp;</A>
+<H2>UNISTD</H2>
+
+<A NAME="ixALU"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALV"></A>
+R_OK <FONT SIZE="-1">SEEK_CUR</FONT> <FONT SIZE="-1">SEEK_END</FONT> <FONT SIZE="-1">SEEK_SET</FONT> <FONT SIZE="-1">STDIN_FILENO</FONT> <FONT SIZE="-1">STDOUT_FILENO</FONT> <FONT SIZE="-1">STDERR_FILENO</FONT> W_OK X_OK
+</DL>
+<A NAME="lbBB">&nbsp;</A>
+<H2>WAIT</H2>
+
+<A NAME="ixALW"></A>
+<DL COMPACT>
+<DT>Constants<DD>
+<A NAME="ixALX"></A>
+<FONT SIZE="-1">WNOHANG</FONT> <FONT SIZE="-1">WUNTRACED</FONT>
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><FONT SIZE="-1">WNOHANG</FONT><DD>
+<A NAME="ixALY"></A>
+Do not suspend the calling process until a child process
+changes state but instead return immediately.
+<DT><FONT SIZE="-1">WUNTRACED</FONT><DD>
+<A NAME="ixALZ"></A>
+Catch stopped child processes.
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT>Macros<DD>
+<A NAME="ixAMA"></A>
+<FONT SIZE="-1">WIFEXITED</FONT> <FONT SIZE="-1">WEXITSTATUS</FONT> <FONT SIZE="-1">WIFSIGNALED</FONT> <FONT SIZE="-1">WTERMSIG</FONT> <FONT SIZE="-1">WIFSTOPPED</FONT> <FONT SIZE="-1">WSTOPSIG</FONT>
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><FONT SIZE="-1">WIFEXITED</FONT><DD>
+<A NAME="ixAMB"></A>
+<FONT SIZE="-1">WIFEXITED</FONT>($?) returns true if the child process exited normally
+(<TT>&quot;exit()&quot;</TT> or by falling off the end of <TT>&quot;main()&quot;</TT>)
+<DT><FONT SIZE="-1">WEXITSTATUS</FONT><DD>
+<A NAME="ixAMC"></A>
+<FONT SIZE="-1">WEXITSTATUS</FONT>($?) returns the normal exit status of the child process
+(only meaningful if <FONT SIZE="-1">WIFEXITED</FONT>($?) is true)
+<DT><FONT SIZE="-1">WIFSIGNALED</FONT><DD>
+<A NAME="ixAMD"></A>
+<FONT SIZE="-1">WIFSIGNALED</FONT>($?) returns true if the child process terminated because
+of a signal
+<DT><FONT SIZE="-1">WTERMSIG</FONT><DD>
+<A NAME="ixAME"></A>
+<FONT SIZE="-1">WTERMSIG</FONT>($?) returns the signal the child process terminated for
+(only meaningful if <FONT SIZE="-1">WIFSIGNALED</FONT>($?) is true)
+<DT><FONT SIZE="-1">WIFSTOPPED</FONT><DD>
+<A NAME="ixAMF"></A>
+<FONT SIZE="-1">WIFSTOPPED</FONT>($?) returns true if the child process is currently stopped
+(can happen only if you specified the <FONT SIZE="-1">WUNTRACED</FONT> flag to <I>waitpid()</I>)
+<DT><FONT SIZE="-1">WSTOPSIG</FONT><DD>
+<A NAME="ixAMG"></A>
+<FONT SIZE="-1">WSTOPSIG</FONT>($?) returns the signal the child process was stopped for
+(only meaningful if <FONT SIZE="-1">WIFSTOPPED</FONT>($?) is true)
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<P>
+</DL>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTE</A><DD>
+<DT><A HREF="#lbAF">CAVEATS</A><DD>
+<DT><A HREF="#lbAG">FUNCTIONS</A><DD>
+<DT><A HREF="#lbAH">CLASSES</A><DD>
+<DL>
+<DT><A HREF="#lbAI">POSIX::SigAction</A><DD>
+<DT><A HREF="#lbAJ">POSIX::SigRt</A><DD>
+<DT><A HREF="#lbAK">POSIX::SigSet</A><DD>
+<DT><A HREF="#lbAL">POSIX::Termios</A><DD>
+</DL>
+<DT><A HREF="#lbAM">PATHNAME CONSTANTS</A><DD>
+<DT><A HREF="#lbAN">POSIX CONSTANTS</A><DD>
+<DT><A HREF="#lbAO">SYSTEM CONFIGURATION</A><DD>
+<DT><A HREF="#lbAP">ERRNO</A><DD>
+<DT><A HREF="#lbAQ">FCNTL</A><DD>
+<DT><A HREF="#lbAR">FLOAT</A><DD>
+<DT><A HREF="#lbAS">LIMITS</A><DD>
+<DT><A HREF="#lbAT">LOCALE</A><DD>
+<DT><A HREF="#lbAU">MATH</A><DD>
+<DT><A HREF="#lbAV">SIGNAL</A><DD>
+<DT><A HREF="#lbAW">STAT</A><DD>
+<DT><A HREF="#lbAX">STDLIB</A><DD>
+<DT><A HREF="#lbAY">STDIO</A><DD>
+<DT><A HREF="#lbAZ">TIME</A><DD>
+<DT><A HREF="#lbBA">UNISTD</A><DD>
+<DT><A HREF="#lbBB">WAIT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:37 GMT, December 24, 2015
+</div></body>
+</HTML>

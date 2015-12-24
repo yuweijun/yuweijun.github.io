@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of MAKEDUMPFILE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>MAKEDUMPFILE</H1>
+Section: Linux System Administrator's Manual (8)<BR>Updated: 11 November 2009<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+makedumpfile - make a small dumpfile of kdump
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>makedumpfile</B>    [<I>OPTION</I>] [-x <I>VMLINUX</I>|-i <I>VMCOREINFO</I>] <I>VMCORE</I> <I>DUMPFILE</I>
+<BR>
+
+<B>makedumpfile</B> -F [<I>OPTION</I>] [-x <I>VMLINUX</I>|-i <I>VMCOREINFO</I>] <I>VMCORE</I>
+<BR>
+
+<B>makedumpfile</B>   [<I>OPTION</I>] -x <I>VMLINUX</I> --config <I>FILTERCONFIGFILE</I> <I>VMCORE</I> <I>DUMPFILE</I>
+<BR>
+
+<B>makedumpfile</B> -R <I>DUMPFILE</I>
+<BR>
+
+<B>makedumpfile</B> --split [<I>OPTION</I>] [-x <I>VMLINUX</I>|-i <I>VMCOREINFO</I>] <I>VMCORE</I> <I>DUMPFILE1</I> <I>DUMPFILE2</I> [<I>DUMPFILE3</I> ..]
+<BR>
+
+<B>makedumpfile</B> --reassemble <I>DUMPFILE1</I> <I>DUMPFILE2</I> [<I>DUMPFILE3</I> ..] <I>DUMPFILE</I>
+<BR>
+
+<B>makedumpfile</B> -g <I>VMCOREINFO</I> -x <I>VMLINUX</I>
+<BR>
+
+<B>makedumpfile</B> -E [--xen-syms <I>XEN-SYMS</I>|--xen-vmcoreinfo <I>VMCOREINFO</I>] <I>VMCORE</I> <I>DUMPFILE</I>
+<BR>
+
+<B>makedumpfile</B> --dump-dmesg [-x <I>VMLINUX</I>|-i <I>VMCOREINFO</I>] <I>VMCORE</I> <I>LOGFILE</I>
+<BR>
+
+<B>makedumpfile</B>    [<I>OPTION</I>] -x <I>VMLINUX</I> --diskset=<I>VMCORE1</I> --diskset=<I>VMCORE2</I> [--diskset=<I>VMCORE3</I> ..] <I>DUMPFILE</I>
+<BR>
+
+<B>makedumpfile</B>
+
+-h
+<BR>
+
+<B>makedumpfile</B>
+
+-v
+<BR>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+With kdump, the memory image of the first kernel (called &quot;panicked kernel&quot;) can
+be taken as /proc/vmcore while the second kernel (called &quot;kdump kernel&quot; or
+&quot;capture kernel&quot;) is running. This document represents /proc/vmcore as
+<I>VMCORE</I>. makedumpfile makes a small <I>DUMPFILE</I> by compressing dump
+data or by excluding unnecessary pages for analysis, or both. makedumpfile
+needs the first kernel's debug information, so that it can distinguish
+unnecessary pages by analyzing how the first kernel uses the memory.
+The information can be taken from <I>VMLINUX</I> or <I>VMCOREINFO</I>.
+<P>
+
+makedumpfile can exclude the following types of pages while copying
+<I>VMCORE</I> to <I>DUMPFILE</I>, and a user can choose which type of pages will
+be excluded.
+<BR>
+
+<B>- Pages filled with zero</B>
+
+<BR>
+
+<B>- Cache pages</B>
+
+<BR>
+
+<B>- User process data pages</B>
+
+<BR>
+
+<B>- Free pages</B>
+
+<P>
+
+makedumpfile provides two <I>DUMPFILE</I> formats (the ELF format and the
+kdump-compressed format). By default, makedumpfile makes a <I>DUMPFILE</I> in
+the kdump-compressed format. The kdump-compressed format is readable only with
+the crash utility, and it can be smaller than the ELF format because of the
+compression support. The ELF format is readable with GDB and the crash utility.
+If a user wants to use GDB, <I>DUMPFILE</I> format has to be explicitly
+specified to be the ELF format.
+<P>
+
+Apart from the exclusion of unnecessary pages mentioned above, makedumpfile
+allows user to filter out targeted kernel data. The filter config file can
+be used to specify kernel/module symbols and its members that need to be
+filtered out through the erase command syntax. makedumpfile reads the filter
+config and builds the list of memory addresses and its sizes after processing
+filter commands. The memory locations that require to be filtered out are
+then poisoned with character 'X' (58 in Hex). Refer to
+<B><A HREF="/manpages/index.html?8+makedumpfile.conf">makedumpfile.conf</A>(8)</B> for file format.
+<P>
+
+To analyze the first kernel's memory usage, makedumpfile can refer to
+<I>VMCOREINFO</I> instead of <I>VMLINUX</I>. <I>VMCOREINFO</I> contains the first
+kernel's information (structure size, field offset, etc.), and <I>VMCOREINFO</I>
+is small enough to be included into the second kernel's initrd.
+<BR>
+
+If the second kernel is running on its initrd without mounting a root file
+system, makedumpfile cannot refer to <I>VMLINUX</I> because the second kernel's
+initrd cannot include a large file like <I>VMLINUX</I>. To solve the problem,
+makedumpfile makes <I>VMCOREINFO</I> beforehand, and it refers to
+<I>VMCOREINFO</I> instead of <I>VMLINUX</I> while the second kernel is running.
+<BR>
+
+<I>VMCORE</I> has contained <I>VMCOREINFO</I> since linux-2.6.24, and a user does
+not need to specify neither -x nor -i option.
+<P>
+
+If the second kernel is running on its initrd without mounting any file system,
+a user needs to transport the dump data to a remote host. To transport the dump
+data by SSH, makedumpfile outputs the dump data in the intermediate format (the
+flattened format) to the standard output. By piping the output data to SSH,
+a user can transport the dump data to a remote host. Note that analysis tools
+cannot read the flattened format directly, so on a remote host the received
+data in the flattened format needs to be rearranged to a readable
+<I>DUMPFILE</I> format by makedumpfile (or makedumpfile-R.pl).
+<P>
+
+makedumpfile can read a <I>DUMPFILE</I> in the kdump-compressed format instead
+of <I>VMCORE</I> and re-filter it. This feature is useful in situation that
+users need to reduce the file size of <I>DUMPFILE</I> for sending it somewhere
+by ftp/scp/etc. (If all of the page types, which are specified by a new dump_level,
+are excluded from an original <I>DUMPFILE</I> already, a new <I>DUMPFILE</I> is the
+same as an original <I>DUMPFILE</I>.)
+<BR>
+
+For example, makedumpfile can create a <I>DUMPFILE</I> of dump_level 31 from the
+one of dump_level 3 like the following:
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -c -d 3 /proc/vmcore dumpfile.1
+<BR>
+
+# makedumpfile -c -d 31 dumpfile.1 dumpfile.2
+<P>
+
+makedumpfile can read <I>VMCORE</I>(s) in three kinds of sadump
+formats: single partition format, diskset format and media backup
+format, and can convert each of them into kdump-compressed format with
+filtering and compression processing. Note that for <I>VMCORE</I>(s)
+created by sadump, you always need to pass <I>VMLINUX</I> with -x
+option. Also, to pass multiple <I>VMCORE</I>s created on diskset
+configuration, you need to use --diskset option.
+<P>
+<P>
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+<DL COMPACT>
+<DT><B>-c</B><DD>
+Compress dump data by each page.
+<BR>
+
+A user cannot specify this option with -E option, because the ELF format does
+not support compressed data.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -c -d 31 -x vmlinux /proc/vmcore dumpfile
+<P>
+<DT><B>-d</B><I>&nbsp;dump_level</I>
+
+<DD>
+Specify the type of unnecessary page for analysis.
+<BR>
+
+Pages of the specified type are not copied to <I>DUMPFILE</I>. The page type
+marked in the following table is excluded. A user can specify multiple page
+types by setting the sum of each page type for dump_level. The maximum of
+dump_level is 31. Note that a dump_level for Xen dump filtering is 0 or 1 on
+a machine other than x86_64 (On an x86_64 machine, it is possible to specify
+2 or bigger as a dump_level).
+<BR>
+
+If specifying multiple dump_levels with the delimiter ',', makedumpfile retries
+to create a <I>DUMPFILE</I> by other dump_level when &quot;No space on device&quot; error
+happens. For example, if dump_level is &quot;11,31&quot; and makedumpfile fails
+by dump_level 11, makedumpfile retries it by dump_level 31.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -d 11 -x vmlinux /proc/vmcore dumpfile
+<BR>
+
+# makedumpfile -d 11,31 -x vmlinux /proc/vmcore dumpfile
+<P>
+<BR>&nbsp;&nbsp;dump&nbsp;|&nbsp;zero&nbsp;|&nbsp;cache|cache&nbsp;&nbsp;|&nbsp;user&nbsp;|&nbsp;free
+<BR>&nbsp;level&nbsp;|&nbsp;page&nbsp;|&nbsp;page&nbsp;|private|&nbsp;data&nbsp;|&nbsp;page
+<BR>
+
+-------+------+------+-------+------+------
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;5&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;6&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;7&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;8&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;9&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;10&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;11&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;12&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;13&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;14&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;15&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;16&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;17&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;18&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;19&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;20&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;21&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;22&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;23&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;24&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;25&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;26&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;27&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;28&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;29&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;30&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;31&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;X
+<P>
+<P>
+<DT><B>-E</B><DD>
+Create <I>DUMPFILE</I> in the ELF format.
+<BR>
+
+This option cannot be specified with -c option, because the ELF format does not
+support compressed data.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -E -d 31 -x vmlinux /proc/vmcore dumpfile
+<P>
+<DT><B>-f</B><DD>
+Force existing DUMPFILE to be overwritten.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -f -d 31 -x vmlinux /proc/vmcore dumpfile
+<BR>
+
+This command overwrites <I>DUMPFILE</I> even if it already exists.
+<P>
+<DT><B>-x</B> <I>VMLINUX</I><DD>
+Specify the first kernel's <I>VMLINUX</I> with debug information to analyze the
+first kernel's memory usage.
+<BR>
+
+This option is necessary if <I>VMCORE</I> does not contain <I>VMCOREINFO</I>,
+[-i <I>VMCOREINFO</I>] is not specified, and dump_level is 2 or more.
+<BR>
+
+The page size of the first kernel and the second kernel should match.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -d 31 -x vmlinux /proc/vmcore dumpfile
+<P>
+<DT><B>-i</B> <I>VMCOREINFO</I><DD>
+Specify <I>VMCOREINFO</I> instead of <I>VMLINUX</I> for analyzing the first kernel's memory usage.
+<BR>
+
+<I>VMCOREINFO</I> should be made beforehand by makedumpfile with -g option, and
+it contains the first kernel's information.
+<BR>
+
+This option is necessary if <I>VMCORE</I> does not contain <I>VMCOREINFO</I>,
+[-x <I>VMLINUX</I>] is not specified, and dump_level is 2 or more.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -d 31 -i vmcoreinfo /proc/vmcore dumpfile
+<P>
+<DT><B>-g</B> <I>VMCOREINFO</I><DD>
+Generate <I>VMCOREINFO</I> from the first kernel's <I>VMLINUX</I> with debug
+information.
+<BR>
+
+<I>VMCOREINFO</I> must be generated on the system that is running the first
+kernel. With -i option, a user can specify <I>VMCOREINFO</I> generated on the
+other system that is running the same first kernel. [-x <I>VMLINUX</I>] must be
+specified.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -g vmcoreinfo -x vmlinux
+<P>
+<DT><B>--config</B> <I>FILTERCONFIGFILE</I><DD>
+Used in conjunction with -x <I>VMLINUX</I> option, to specify the filter
+config file <I>FILTERCONFIGFILE</I> that contains erase commands to filter out
+desired kernel data from vmcore while creating <I>DUMPFILE</I>. For filter
+command syntax please refer to <B><A HREF="/manpages/index.html?8+makedumpfile.conf">makedumpfile.conf</A>(8)</B>.
+<P>
+<DT><B>-F</B><DD>
+Output the dump data in the flattened format to the standard output for
+transporting the dump data by SSH.
+<BR>
+
+Analysis tools cannot read the flattened format directly. For analysis, the
+dump data in the flattened format should be rearranged to a normal
+<I>DUMPFILE</I> (readable with analysis tools) by -R option. By which option is
+specified with -F option, the format of the rearranged <I>DUMPFILE</I> is fixed.
+In other words, it is impossible to specify the <I>DUMPFILE</I> format when the
+dump data is rearranged with -R option. If specifying -E option with -F option,
+the format of the rearranged <I>DUMPFILE</I> is the ELF format. Otherwise, it
+is the kdump-compressed format. All the messages are output to standard error
+output by -F option because standard output is used for the dump data.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -F -c -d 31 -x vmlinux /proc/vmcore \
+<BR>
+
+| ssh <A HREF="mailto:user@host">user@host</A> &quot;cat &gt; dumpfile.tmp&quot;
+<BR>
+
+# makedumpfile -F -c -d 31 -x vmlinux /proc/vmcore \
+<BR>
+
+| ssh <A HREF="mailto:user@host">user@host</A> &quot;makedumpfile -R dumpfile&quot;
+<BR>
+
+# makedumpfile -F -E -d 31 -i vmcoreinfo  /proc/vmcore \
+<BR>
+
+| ssh <A HREF="mailto:user@host">user@host</A> &quot;makedumpfile -R dumpfile&quot;
+<BR>
+
+# makedumpfile -F -E --xen-vmcoreinfo <I>VMCOREINFO</I> /proc/vmcore \
+<BR>
+
+| ssh <A HREF="mailto:user@host">user@host</A> &quot;makedumpfile -R dumpfile&quot;
+<P>
+<DT><B>-R</B><DD>
+Rearrange the dump data in the flattened format from the standard input to a
+normal <I>DUMPFILE</I> (readable with analysis tools).
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -R dumpfile &lt; dumpfile.tmp
+<BR>
+
+# makedumpfile -F -d 31 -x vmlinux /proc/vmcore \
+<BR>
+
+| ssh <A HREF="mailto:user@host">user@host</A> &quot;makedumpfile -R dumpfile&quot;
+<P>
+Instead of using -R option, a perl script &quot;makedumpfile-R.pl&quot; rearranges the
+dump data in the flattened format to a normal <I>DUMPFILE</I>, too. The perl
+script does not depend on architecture, and most systems have perl command.
+Even if a remote host does not have makedumpfile, it is possible to rearrange
+the dump data in the flattened format to a readable <I>DUMPFILE</I> on a remote
+host by running this script.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -F -d 31 -x vmlinux /proc/vmcore \
+<BR>
+
+| ssh <A HREF="mailto:user@host">user@host</A> &quot;makedumpfile-R.pl dumpfile&quot;
+<P>
+<DT><B>--split</B><DD>
+Split the dump data to multiple <I>DUMPFILE</I>s in parallel. If specifying
+<I>DUMPFILE</I>s on different storage devices, a device can share I/O load
+with other devices and it reduces time for saving the dump data. The file
+size of each <I>DUMPFILE</I> is smaller than the system memory size which
+is divided by the number of <I>DUMPFILE</I>s. This feature supports only
+the kdump-compressed format.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile --split -d 31 -x vmlinux /proc/vmcore dumpfile1 dumpfile2
+<P>
+<DT><B>--reassemble</B><DD>
+Reassemble multiple <I>DUMPFILE</I>s, which are created by --split option,
+into one <I>DUMPFILE</I>. dumpfile1 and dumpfile2 are reassembled into dumpfile
+on the following example.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile --reassemble dumpfile1 dumpfile2 dumpfile
+<P>
+<DT><B>--xen-syms</B> <I>XEN-SYMS</I><DD>
+Specify the <I>XEN-SYMS</I> with debug information to analyze the xen's memory usage.
+This option extracts the part of xen and domain-0.
+-E option must be specified with this option.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -E --xen-syms xen-syms /proc/vmcore dumpfile
+<P>
+<DT><B>--xen-vmcoreinfo</B> <I>VMCOREINFO</I><DD>
+Specify <I>VMCOREINFO</I> instead of <I>XEN-SYMS</I> for analyzing the xen's memory usage.
+<BR>
+
+<I>VMCOREINFO</I> should be made beforehand by makedumpfile with -g option, and
+it contains the xen's information.
+-E option must be specified with this option.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -E --xen-vmcoreinfo <I>VMCOREINFO</I> /proc/vmcore dumpfile
+<P>
+<DT><B>-X</B><DD>
+Exclude all the user domain pages from Xen kdump's <I>VMCORE</I>, and extracts the
+part of xen and domain-0. If <I>VMCORE</I> contains <I>VMCOREINFO</I> for Xen, it is
+not necessary to specify <I>--xen-syms</I> and <I>--xen-vmcoreinfo</I>.
+-E option must be specified with this option.
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -E -X /proc/vmcore dumpfile
+<P>
+<DT><B>--xen_phys_start</B> <I>xen_phys_start_address</I><DD>
+This option is only for x86_64.
+Specify the <I>xen_phys_start_address</I>, if the xen code/data is relocatable
+and <I>VMCORE</I> does not contain <I>xen_phys_start_address</I> in the CRASHINFO.
+<I>xen_phys_start_address</I> can be taken from the line of &quot;Hypervisor code
+and data&quot; in /proc/iomem. For example, specify 0xcee00000 as <I>xen_phys_start_address</I>
+if /proc/iomem is the following:
+<BR>&nbsp;&nbsp;-------------------------------------------------------
+<BR>&nbsp;&nbsp;#&nbsp;cat&nbsp;/proc/iomem
+<BR>&nbsp;&nbsp;...
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;cee00000-cfd99999&nbsp;:&nbsp;Hypervisor&nbsp;code&nbsp;and&nbsp;data
+<BR>&nbsp;&nbsp;...
+<BR>&nbsp;&nbsp;-------------------------------------------------------
+<P>
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile -E -X --xen_phys_start 0xcee00000 /proc/vmcore dumpfile
+<P>
+<DT><B>--message-level</B> <I>message_level</I><DD>
+Specify the message types.
+<BR>
+
+Users can restrict outputs printed by specifying <I>message_level</I>
+with this option. The message type marked with an X in the following
+table is printed. For example, according to the table, specifying 7 as
+<I>message_level</I> means progress indicator, common message, and error
+message are printed, and this is a default value. Note that the maximum
+value of <I>message_level</I> is 31.
+<BR>
+
+<P>
+<BR>&nbsp;message&nbsp;|&nbsp;progress&nbsp;|&nbsp;common&nbsp;&nbsp;|&nbsp;error&nbsp;&nbsp;&nbsp;|&nbsp;debug&nbsp;&nbsp;&nbsp;|&nbsp;report
+<BR>&nbsp;level&nbsp;&nbsp;&nbsp;|&nbsp;indicator|&nbsp;message&nbsp;|&nbsp;message&nbsp;|&nbsp;message&nbsp;|&nbsp;message
+<BR>
+
+---------+----------+---------+---------+---------+---------
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;0&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;3&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;4&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;5&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;6&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*&nbsp;7&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;8&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;9&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;10&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;11&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;12&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;13&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;14&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;15&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;16&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;17&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;18&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;19&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;20&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;21&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;22&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;23&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;24&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;25&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;26&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;27&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;28&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;29&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;30&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;31&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;X
+<P>
+<DT><B>--vtop</B> <I>virtual_address</I><DD>
+This option is useful, when user debugs the translation problem
+of virtual address. If specifing <I>virtual_address</I>, its physical
+address is printed. It makes debugging easy by comparing the
+output of this option with the one of &quot;vtop&quot; subcommand of the
+crash utility.
+&quot;--vtop&quot; option only prints the translation output, and it does
+not affect the dumpfile creation.
+<P>
+<DT><B>--dump-dmesg</B><DD>
+This option overrides the normal behavior of makedumpfile.  Instead of
+compressing and filtering a <I>VMCORE</I> to make it smaller, it simply
+extracts the dmesg log from a <I>VMCORE</I> and writes it to the specified
+<I>LOGFILE</I>. If a <I>VMCORE</I> does not contain <I>VMCOREINFO</I> for dmesg,
+it is necessary to specfiy [-x <I>VMLINUX</I>] or [-i <I>VMCOREINFO</I>].
+<P>
+<BR>
+
+<B>Example:</B>
+
+<BR>
+
+# makedumpfile --dump-dmesg /proc/vmcore dmesgfile
+<BR>
+
+# makedumpfile --dump-dmesg -x vmlinux /proc/vmcore dmesgfile
+<BR>
+
+<P>
+<DT><B>--diskset=VMCORE</B><DD>
+Specify multiple <I>VMCORE</I>s created on sadump diskset configuration
+the same number of times as the number of <I>VMCORE</I>s in increasing
+order from left to right.  <I>VMCORE</I>s are assembled into a single
+<I>DUMPFILE.
+<P>
+<BR>
+
+</I><B>Example:</B>
+
+<BR>
+
+# makedumpfile -x vmlinux --diskset=vmcore1 --diskset=vmcore2 dumpfile
+<P>
+<DT><B>-D</B><DD>
+Print debugging message.
+<P>
+<DT><B>-b &lt;order&gt;</B><DD>
+cache 2^order pages in ram when generating vmcore info before writing to output
+<P>
+<DT><B>-h</B><DD>
+Show help message.
+<P>
+<DT><B>-v</B><DD>
+Show the version of makedumpfile.
+<P>
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+makedumpfile exits with the following value.
+<DL COMPACT>
+<DT><B>0</B> : makedumpfile succeeded.<DD>
+<DT><B>1</B> : makedumpfile failed without the following reasons.<DD>
+<DT><B>2</B> : makedumpfile failed due to the different version between  <I>VMLINUX</I> and <I>VMCORE</I>.<DD>
+<DT><B>3</B> : makedumpfile failed due to the analysis error of the memory.<DD>
+<P>
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<P>
+
+Written by Masaki Tachibana, and Ken'ichi Ohmichi.
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<A HREF="/manpages/index.html?8+crash">crash</A>(8), <A HREF="http://localhost/cgi-bin/man/man2html?1+gdb">gdb</A>(1), <A HREF="http://localhost/cgi-bin/man/man2html?8+kexec">kexec</A>(8), <A HREF="http://localhost/cgi-bin/man/man2html?8+makedumpfile.conf">makedumpfile.conf</A>(8)
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAG">AUTHORS</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:27 GMT, December 24, 2015
+</div></body>
+</HTML>

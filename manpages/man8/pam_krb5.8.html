@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of pam_krb5</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>pam_krb5</H1>
+Section: System Administrator's Manual (8)<BR>Updated: 2009/12/11<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<P>
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+pam_krb5 - Kerberos 5 authentication
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>auth required /$LIB/security/pam_krb5.so</B>
+
+<BR>
+
+<B>session optional /$LIB/security/pam_krb5.so</B>
+
+<BR>
+
+<B>account sufficient /$LIB/security/pam_krb5.so</B>
+
+<BR>
+
+<B>password sufficient /$LIB/security/pam_krb5.so</B>
+
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The pam_krb5.so module is designed to allow smooth integration of Kerberos 5
+password-checking for applications which use PAM.
+It creates session-specific credential cache files.
+
+
+If the system is an AFS client, it will also attempt to obtain tokens
+for the local cell, the cell which contains the user's home directory,
+and any explicitly-configured cells.
+<P>
+When a user logs in, the module's authentication function performs a simple
+password check and, if possible, obtains Kerberos 5
+
+credentials, caching them for later use.  When the application requests
+initialization of credentials (or opens a session), the usual ticket files are
+created.  When the application subsequently requests deletion of credentials or
+closing of the session, the module deletes the ticket files.  When the
+application requests account management, if the module did not participate in
+authenticating the user, it will signal libpam to ignore the module.  If the
+module did participate in authenticating the user, it will check for an expired
+user password and verify the user's authorization using the .k5login file of the
+user being authenticated, which is expected to be accessible to the module.
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>ARGUMENTS</H2>
+
+<P>
+<DL COMPACT>
+<DT>debug<DD>
+turns on debugging via <B><A HREF="/manpages/index.html?3+syslog">syslog</A></B>(3).  Debugging messages are logged with
+priority <I>LOG_DEBUG</I>.
+<P>
+<DT>debug_sensitive<DD>
+turns on debugging of sensitive information via <B><A HREF="/manpages/index.html?3+syslog">syslog</A></B>(3).  Debug
+messages are logged with priority <I>LOG_DEBUG</I>.
+<P>
+<DT>addressless<DD>
+tells pam_krb5.so to obtain credentials without address lists.  This may be
+necessary if your network uses NAT, and should otherwise not be used.  This
+option is deprecated in favor of the <I>noaddresses</I> flag in the
+<I>libdefaults</I> section of <B><A HREF="/manpages/index.html?5+krb5.conf">krb5.conf</A></B>(5).
+<P>
+<DT>afs_cells=<I>cell.example.com[,...]</I><DD>
+tells pam_krb5.so to obtain tokens for the named cells,
+in addition to the local cell, for the user.  The module will guess
+the principal name of the AFS service for the named cells, or it can
+be specified by giving cell in the form
+<I>cellname</I><B>=principalname</B>.
+<P>
+<DT>banner=<I>Kerberos 5</I><DD>
+tells pam_krb5.so how to identify itself when users attempt to change their
+passwords.  The default setting is &quot;Kerberos 5&quot;.
+<P>
+<DT>ccache_dir=<I>/tmp</I><DD>
+tells pam_krb5.so which directory to use for storing credential caches.  The
+default setting is <I>/tmp</I>.
+<P>
+<DT>ccname_template=<I>FILE:%d/krb5cc_%U_XXXXXX</I><DD>
+specifies the location in which to place the user's session-specific
+credential cache.  This value is treated as a template, and these sequences
+are substituted:
+<BR>&nbsp;&nbsp;%u<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>login&nbsp;name<BR>
+<BR>&nbsp;&nbsp;%U<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>login&nbsp;UID<BR>
+<BR>&nbsp;&nbsp;%p<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>principal&nbsp;name<BR>
+<BR>&nbsp;&nbsp;%r<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>realm&nbsp;name<BR>
+<BR>&nbsp;&nbsp;%h<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>home&nbsp;directory<BR>
+<BR>&nbsp;&nbsp;%d<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>the&nbsp;default&nbsp;ccache&nbsp;directory&nbsp;(as&nbsp;set&nbsp;with&nbsp;<I>ccache_dir</I>)<BR>
+<BR>&nbsp;&nbsp;%P<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>the&nbsp;current&nbsp;process&nbsp;ID<BR>
+<BR>&nbsp;&nbsp;%%<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>literal&nbsp;'%'<BR>
+<BR>
+
+The default setting is &quot;<I>FILE:%d/krb5cc_%U_XXXXXX</I>&quot;.
+<P>
+<DT>chpw_prompt<DD>
+tells pam_krb5.so to allow expired passwords to be changed during
+authentication attempts.  While this is the traditional behavior exhibited by
+&quot;kinit&quot;, it is inconsistent with the behavior expected by PAM, which expects
+authentication to (appear to) succeed, only to have password expiration be
+flagged by a subsequent call to the account management function.  Some
+applications which don't handle password expiration correctly will fail
+unconditionally if the user's password is expired, and this flag can be used
+to attempt to work around this bug in those applications.
+The default is <B>false</B>.
+<P>
+<DT>cred_session<DD>
+specifies that pam_krb5 should create and destroy credential caches, as it
+does when the calling application opens and closes a PAM session, when the
+calling application establishes and deletes PAM credentials.  This is done
+to compensate for applications which expect to create a credential cache but
+which don't use PAM session management.  It is usually a harmless redundancy
+in applications which don't require it, so this option is enabled by default.
+except for services in this list: &quot;<I>sshd</I>&quot;.
+<P>
+<DT>existing_ticket<DD>
+tells pam_krb5.so to accept the presence of pre-existing Kerberos credentials
+provided by the calling application in the default credential cache as
+sufficient to authenticate the user, and to skip any account management checks.
+<DT><DD>
+DANGER!  Unless validation is also in use, it is relatively easy to produce a
+credential cache which looks &quot;good enough&quot; to fool pam_krb5.so.
+<P>
+<DT>external<DD>
+<DT>external=<I>sshd</I><DD>
+tells pam_krb5.so to use Kerberos credentials provided by the calling
+application during session setup.
+
+
+
+This is most often useful for obtaining AFS tokens.
+<P>
+<DT>forwardable<DD>
+tells pam_krb5.so that credentials it obtains should be forwardable.  This
+option is deprecated in favor of the <I>forwardable</I> option in the
+<I>libdefaults</I> section of <B><A HREF="/manpages/index.html?5+krb5.conf">krb5.conf</A></B>(5).
+<P>
+<DT>hosts=<I>host[,...]</I><DD>
+tells pam_krb5.so to obtain credentials using the addresses of the given hosts in
+addition to the addresses of interfaces on the local workstation.  For example,
+if your workstation is behind a masquerading firewall, specifying the
+firewall's outward-facing address here should allow Kerberos authentication to
+succeed.  This option is deprecated in favor of the <I>extra_addresses</I> flag
+in the <I>libdefaults</I> section of <B><A HREF="/manpages/index.html?5+krb5.conf">krb5.conf</A></B>(5).
+<P>
+<DT>ignore_unknown_principals<DD>
+<DT>ignore_unknown_spn<DD>
+<DT>ignore_unknown_upn<DD>
+specifies that not pam_krb5 should return a PAM_IGNORE code to libpam
+instead of PAM_USER_UNKNOWN for users for whom the determined principal
+name is expired or does not exist.
+<P>
+<DT>keytab=<I>FILE:/etc/krb5.keytab</I><DD>
+tells pam_krb5.so the location of a keytab to use when validating
+credentials obtained from KDCs.
+<P>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<DT>minimum_uid=<I>0</I><DD>
+tells pam_krb5.so to ignore authentication attempts by users with
+UIDs below the specified number.
+<P>
+<DT>multiple_ccaches<DD>
+specifies that pam_krb5 should maintain multiple credential caches for this
+service, because it both sets credentials and opens a PAM session, but it
+sets the KRB5CCNAME variable after doing only one of the two.  This option is
+usually not necessary for most services.
+<P>
+<DT>no_initial_prompt<DD>
+tells pam_krb5.so to not ask for a password before attempting authentication,
+and to instead allow the Kerberos library to trigger a request for a password
+only in cases where one is needed.
+<P>
+<DT>no_subsequent_prompt<DD>
+tells pam_krb5.so to only provide the previously-entered password in response
+to any request for a password which the Kerberos library might make.
+If the calling application does not properly support PAM conversations
+(possibly due to limitations of a network protocol which it is serving),
+this may be need to be used to prevent the application
+from supplying the user's current password in a password-changing
+situations when a new password is called for.
+<P>
+<DT>no_user_check<DD>
+tells pam_krb5.so to not check if a user exists on the local system, to skip
+authorization checks using the user's .k5login file, and to create ccache files
+owned by the current process's UID.  This is useful for situations where a
+non-privileged server process needs to use Kerberized services on behalf of
+remote users who may not have local access.  Note that such a server should
+have an encrypted connection with its client in order to avoid allowing the
+user's password to be eavesdropped.
+<P>
+<DT>no_validate<DD>
+<DT>no_validate=<I>vlock</I><DD>
+tells pam_krb5.so to not attempt to use the local keytab to verify that the TGT
+obtained from the realm's servers has not been spoofed.
+The <B>libdefaults</B> <B>verify_ap_req_nofail</B> setting can
+affect whether or not errors reading the keytab which are encountered during
+validation will be suppressed.
+<P>
+<DT>null_afs<DD>
+tells pam_krb5.so, when it attempts to set tokens, to try to get
+credentials for services with names which resemble afs@<I>REALM</I>
+before attempting to get credentials for services with names resembling
+afs/<I>cell</I>@<I>REALM</I>.  The default is to assume that the cell's
+name is the instance in the AFS service's Kerberos principal name.
+<P>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<DT>preauth_options=[]<DD>
+controls the preauthentication options which pam_krb5 passes
+to libkrb5, if the system-defaults need to be overridden.
+The list is treated as a template, and these sequences are
+substituted:
+<BR>&nbsp;&nbsp;%u<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>login&nbsp;name<BR>
+<BR>&nbsp;&nbsp;%U<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>login&nbsp;UID<BR>
+<BR>&nbsp;&nbsp;%p<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>principal&nbsp;name<BR>
+<BR>&nbsp;&nbsp;%r<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>realm&nbsp;name<BR>
+<BR>&nbsp;&nbsp;%h<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>home&nbsp;directory<BR>
+<BR>&nbsp;&nbsp;%d<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>the&nbsp;default&nbsp;ccache&nbsp;directory<BR>
+<BR>&nbsp;&nbsp;%P<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>the&nbsp;current&nbsp;process&nbsp;ID<BR>
+<BR>&nbsp;&nbsp;%%<TT>&nbsp;&nbsp;&nbsp;&nbsp;</TT>literal&nbsp;'%'<BR>
+<P>
+<DT>proxiable<DD>
+tells pam_krb5.so that credentials it obtains should be proxiable.  This
+option is deprecated in favor of the <I>proxiable</I> option in the
+<I>libdefaults</I> section of <B><A HREF="/manpages/index.html?5+krb5.conf">krb5.conf</A></B>(5).
+<P>
+<DT>pwhelp=<I>filename</I><DD>
+specifies the name of a text file whose contents will be displayed to
+clients who attempt to change their passwords.  There is no default.
+<P>
+<DT>realm=<I>realm</I><DD>
+overrides the default realm set in <I>/etc/krb5.conf</I>, which pam_krb5.so
+will attempt to authenticate users to.
+<P>
+<DT>renew_lifetime=<I>36000</I><DD>
+sets the default renewable lifetime for credentials.  This
+option is deprecated in favor of the <I>renew_lifetime</I> option in the
+<I>libdefaults</I> section of <B><A HREF="/manpages/index.html?5+krb5.conf">krb5.conf</A></B>(5).
+<P>
+<DT>ticket_lifetime=<I>36000</I><DD>
+sets the default lifetime for credentials.
+<P>
+<DT>tokens<DD>
+<DT>tokens=<I>imap</I><DD>
+signals that pam_krb5.so should create a new AFS PAG and obtain AFS
+tokens during authentication in addition to session setup.  This is
+primarily useful in server applications which need to access a user's
+files but which do not open PAM sessions before doing so.  A
+properly-written server will not need this flag set in order to
+function correctly.
+<P>
+<DT>try_first_pass<DD>
+tells pam_krb5.so to check the previously-entered password as with
+<B>use_first_pass</B>, but to prompt the user for another one if the
+previously-entered one fails. This is the default mode of operation.
+<P>
+<DT>use_first_pass<DD>
+tells pam_krb5.so to get the user's entered password as it was stored by a
+module listed earlier in the stack, usually <B>pam_unix</B> or <B>pam_pwdb</B>,
+instead of prompting the user for it.
+<P>
+<DT>use_authtok<DD>
+tells pam_krb5.so to never prompt for new passwords when changing passwords.
+This is useful if you are using <B>pam_cracklib</B> or <B>pam_passwdqc</B> to try
+to enforce use of less-easy-to-guess passwords.
+<P>
+<DT>use_shmem<DD>
+<DT>use_shmem=<I>sshd</I><DD>
+tells pam_krb5.so to pass credentials from the authentication service function
+to the session management service function using shared memory, or to do so for
+specific services.
+<P>
+<P>
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>FILES</H2>
+
+<I>/etc/krb5.conf</I>
+<BR>
+
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?5+pam_krb5">pam_krb5</A></B>(5)
+
+<B><A HREF="/manpages/index.html?5+krb5.conf">krb5.conf</A></B>(5)
+
+<BR>
+
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>BUGS</H2>
+
+Probably, but let's hope not.  If you find any, please file them in the
+bug database at <A HREF="http://bugzilla.redhat.com/">http://bugzilla.redhat.com/</A> against the &quot;pam_krb5&quot; component.
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Nalin Dahyabhai &lt;<A HREF="mailto:nalin@redhat.com">nalin@redhat.com</A>&gt;
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">ARGUMENTS</A><DD>
+<DT><A HREF="#lbAF">FILES</A><DD>
+<DT><A HREF="#lbAG">SEE ALSO</A><DD>
+<DT><A HREF="#lbAH">BUGS</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:28 GMT, December 24, 2015
+</div></body>
+</HTML>

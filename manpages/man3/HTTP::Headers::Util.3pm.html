@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of HTTP::Headers::Util</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>HTTP::Headers::Util</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-06-13<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+HTTP::Headers::Util - Header value parsing utility functions
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use HTTP::Headers::Util qw(split_header_words);
+  @values = split_header_words($h-&gt;header(&quot;Content-Type&quot;));
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This module provides a few functions that helps parsing and
+construction of valid <FONT SIZE="-1">HTTP</FONT> header values.  None of the functions are
+exported by default.
+<P>
+
+The following functions are available:
+<DL COMPACT>
+<DT>split_header_words( @header_values )<DD>
+
+
+<A NAME="ixAAE"></A>
+This function will parse the header values given as argument into a
+list of anonymous arrays containing key/value pairs.  The function
+knows how to deal with ``,'', ``;'' and ``='' as well as quoted values after
+``=''.  A list of space separated tokens are parsed as if they were
+separated by ``;''.
+
+
+<P>
+
+
+If the <TT>@header_values</TT> passed as argument contains multiple values,
+then they are treated as if they were a single value separated by
+comma ``,''.
+
+
+<P>
+
+
+This means that this function is useful for parsing header fields that
+follow this syntax (<FONT SIZE="-1">BNF</FONT> as from the <FONT SIZE="-1">HTTP/1</FONT>.1 specification, but we relax
+the requirement for tokens).
+
+
+<P>
+
+
+
+
+<PRE>
+  headers           = #header
+  header            = (token | parameter) *( [&quot;;&quot;] (token | parameter))
+
+  token             = 1*&lt;any CHAR except CTLs or separators&gt;
+  separators        = &quot;(&quot; | &quot;)&quot; | &quot;&lt;&quot; | &quot;&gt;&quot; | &quot;@&quot;
+                    | &quot;,&quot; | &quot;;&quot; | &quot;:&quot; | &quot;\&quot; | &lt;&quot;&gt;
+                    | &quot;/&quot; | &quot;[&quot; | &quot;]&quot; | &quot;?&quot; | &quot;=&quot;
+                    | &quot;{&quot; | &quot;}&quot; | SP | HT
+
+  quoted-string     = ( &lt;&quot;&gt; *(qdtext | quoted-pair ) &lt;&quot;&gt; )
+  qdtext            = &lt;any TEXT except &lt;&quot;&gt;&gt;
+  quoted-pair       = &quot;\&quot; CHAR
+
+  parameter         = attribute &quot;=&quot; value
+  attribute         = token
+  value             = token | quoted-string
+
+</PRE>
+
+
+
+
+<P>
+
+
+Each <I>header</I> is represented by an anonymous array of key/value
+pairs.  The keys will be all be forced to lower case.
+The value for a simple token (not part of a parameter) is <TT>&quot;undef&quot;</TT>.
+Syntactically incorrect headers will not necessary be parsed as you
+would want.
+
+
+<P>
+
+
+This is easier to describe with some examples:
+
+
+<P>
+
+
+
+
+<PRE>
+   split_header_words('foo=&quot;bar&quot;; port=&quot;80,81&quot;; DISCARD, BAR=baz');
+   split_header_words('text/html; charset=&quot;iso-8859-1&quot;');
+   split_header_words('Basic realm=&quot;\\&quot;foo\\\\bar\\&quot;&quot;');
+
+</PRE>
+
+
+
+
+<P>
+
+
+will return
+
+
+<P>
+
+
+
+
+<PRE>
+   [foo=&gt;'bar', port=&gt;'80,81', discard=&gt; undef], [bar=&gt;'baz' ]
+   ['text/html' =&gt; undef, charset =&gt; 'iso-8859-1']
+   [basic =&gt; undef, realm =&gt; &quot;\&quot;foo\\bar\&quot;&quot;]
+
+</PRE>
+
+
+
+
+<P>
+
+
+If you don't want the function to convert tokens and attribute keys to
+lower case you can call it as <TT>&quot;_split_header_words&quot;</TT> instead (with a
+leading underscore).
+<DT>join_header_words( @arrays )<DD>
+
+
+<A NAME="ixAAF"></A>
+This will do the opposite of the conversion done by <I>split_header_words()</I>.
+It takes a list of anonymous arrays as arguments (or a list of
+key/value pairs) and produces a single header value.  Attribute values
+are quoted if needed.
+
+
+<P>
+
+
+Example:
+
+
+<P>
+
+
+
+
+<PRE>
+   join_header_words([&quot;text/plain&quot; =&gt; undef, charset =&gt; &quot;iso-8859/1&quot;]);
+   join_header_words(&quot;text/plain&quot; =&gt; undef, charset =&gt; &quot;iso-8859/1&quot;);
+
+</PRE>
+
+
+
+
+<P>
+
+
+will both return the string:
+
+
+<P>
+
+
+
+
+<PRE>
+   text/plain; charset=&quot;iso-8859/1&quot;
+
+</PRE>
+
+
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAG"></A>
+Copyright 1997-1998, Gisle Aas
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:29 GMT, December 24, 2015
+</div></body>
+</HTML>

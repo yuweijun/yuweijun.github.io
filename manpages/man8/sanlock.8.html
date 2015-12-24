@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SANLOCK</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SANLOCK</H1>
+Section: Maintenance Commands (8)<BR>Updated: 2011-08-05<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<P>
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+sanlock - shared storage lock manager
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>sanlock</B>
+
+[COMMAND] [ACTION] ...
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+The sanlock daemon manages leases for applications running on a cluster of
+hosts with shared storage.  All lease management and coordination is done
+through reading and writing blocks on the shared storage.  Two types of
+leases are used, each based on a different algorithm:
+<P>
+&quot;delta leases&quot; are slow to acquire and require regular i/o to shared
+storage.  A delta lease exists in a single sector of storage.  Acquiring a
+delta lease involves reads and writes to that sector separated by specific
+delays.  Once acquired, a lease must be renewed by updating a timestamp in
+the sector regularly.  sanlock uses a delta lease internally to hold a
+lease on a host_id.  host_id leases prevent two hosts from using the same
+host_id and provide basic host liveness information based on the renewals.
+<P>
+&quot;paxos leases&quot; are generally fast to acquire and sanlock makes them
+available to applications as general purpose resource leases.  A paxos
+lease exists in 1MB of shared storage (8MB for 4k sectors).  Acquiring a
+paxos lease involves reads and writes to max_hosts (2000) sectors in a
+specific sequence specified by the Disk Paxos algorithm.  paxos leases use
+host_id's internally to indicate the owner of the lease, and the algorithm
+fails if different hosts use the same host_id.  So, delta leases provide
+the unique host_id's used in paxos leases.  paxos leases also refer to
+delta leases to check if a host_id is alive.
+<P>
+Before sanlock can be used, the user must assign each host a host_id,
+which is a number between 1 and 2000.  Two hosts should not be given the
+same host_id (even though delta leases attempt to detect this mistake.)
+<P>
+sanlock views a pool of storage as a &quot;lockspace&quot;.  Each distinct pool of
+storage, e.g. from different sources, would typically be defined as a
+separate lockspace, with a unique lockspace name.
+<P>
+Part of this storage space must be reserved and initialized for sanlock to
+store delta leases.  Each host that wants to use the lockspace must first
+acquire a delta lease on its host_id number within the lockspace.  (See
+the add_lockspace action/api.)  The space required for 2000 delta leases
+in the lockspace (for 2000 possible host_id's) is 1MB (8MB for 4k
+sectors).  (This is the same size required for a single paxos lease.)
+<P>
+More storage space must be reserved and initialized for paxos leases,
+according to the needs of the applications using sanlock.
+<P>
+The following steps illustrate these concepts using the command line.
+Applications may choose to do these same steps through libsanlock.
+<P>
+1. Create storage pools and reserve and initialize host_id leases
+<BR>
+
+two different LUNs on a SAN: /dev/sdb, /dev/sdc
+<BR>
+
+# vgcreate pool1 /dev/sdb
+<BR>
+
+# vgcreate pool2 /dev/sdc
+<BR>
+
+# lvcreate -n hostid_leases -L 1MB pool1
+<BR>
+
+# lvcreate -n hostid_leases -L 1MB pool2
+<BR>
+
+# sanlock direct init -s LS1:0:/dev/pool1/hostid_leases:0
+<BR>
+
+# sanlock direct init -s LS2:0:/dev/pool2/hostid_leases:0
+<BR>
+
+<P>
+2. Start the sanlock daemon on each host
+<BR>
+
+# sanlock daemon
+<BR>
+
+<P>
+3. Add each lockspace to be used
+<BR>
+
+host1:
+<BR>
+
+# sanlock client add_lockspace -s LS1:1:/dev/pool1/hostid_leases:0
+<BR>
+
+# sanlock client add_lockspace -s LS2:1:/dev/pool2/hostid_leases:0
+<BR>
+
+host2:
+<BR>
+
+# sanlock client add_lockspace -s LS1:2:/dev/pool1/hostid_leases:0
+<BR>
+
+# sanlock client add_lockspace -s LS2:2:/dev/pool2/hostid_leases:0
+<BR>
+
+<P>
+4. Applications can now reserve/initialize space for resource leases, and
+then acquire the leases as they need to access the resources.
+<P>
+The resource leases that are created and how they are used depends on the
+application.  For example, say application A, running on host1 and host2,
+needs to synchronize access to data it stores on /dev/pool1/Adata.  A
+could use a resource lease as follows:
+<P>
+5. Reserve and initialize a single resource lease for Adata
+<BR>
+
+# lvcreate -n Adata_lease -L 1MB pool1
+<BR>
+
+# sanlock direct init -r LS1:Adata:/dev/pool1/Adata_lease:0
+<BR>
+
+<P>
+6. Acquire the lease from the app using libsanlock (see sanlock_register,
+sanlock_acquire).  If the app is already running as pid 123, and has
+registered with the sanlock daemon, the lease can be added for it
+manually.
+<BR>
+
+# sanlock client acquire -r LS1:Adata:/dev/pool1/Adata_lease:0 -p 123
+<BR>
+
+<P>
+<B>offsets</B>
+
+<P>
+offsets must be 1MB aligned for disks with 512 byte sectors, and
+8MB aligned for disks with 4096 byte sectors.
+<P>
+offsets may be used to place leases on the same device rather than using
+separate devices and offset 0 as shown in examples above, e.g. these
+commands above:
+<BR>
+
+# sanlock direct init -s LS1:0:/dev/pool1/hostid_leases:0
+<BR>
+
+# sanlock direct init -r LS1:Adata:/dev/pool1/Adata_lease:0
+<BR>
+
+could be replaced by:
+<BR>
+
+<BR>
+
+# sanlock direct init -s LS1:0:/dev/pool1/leases:0
+<BR>
+
+# sanlock direct init -r LS1:Adata:/dev/pool1/leases:1048576
+<P>
+<B>failures</B>
+
+<P>
+If a process holding resource leases fails or exits without releasing its
+leases, sanlock will release the leases for it automatically.
+<P>
+If the sanlock daemon cannot renew a lockspace host_id for a specific
+period of time (usually because storage access is lost), sanlock will kill
+any process holding a resource lease within the lockspace.
+<P>
+If the sanlock daemon crashes or gets stuck, it will no longer renew the
+expiry time of its per-host_id connections to the wdmd daemon, and the
+watchdog device will reset the host.
+<P>
+<B>watchdog</B>
+
+<P>
+sanlock uses the
+<B><A HREF="/manpages/index.html?8+wdmd">wdmd</A></B>(8)
+
+daemon to access /dev/watchdog.  A separate wdmd connection is maintained
+with wdmd for each host_id being renewed.  Each host_id connection has an
+expiry time for some seconds in the future.  After each successful host_id
+renewal, sanlock updates the associated expiry time in wdmd.  If wdmd
+finds any connection expired, it will not pet /dev/watchdog.  After enough
+successive expired/failed checks, the watchdog device will fire and reset
+the host.
+<P>
+After a number of failed attempts to renew a host_id, sanlock kills any
+process using that lockspace.  Once all those processes have exited,
+sanlock will unregister the associated wdmd connection.  wdmd will no
+longer find the expired connection, and will resume petting /dev/watchdog
+(assuming it finds no other failed/expired tests.)  If the killed
+processes did not exit quickly enough, the expired wdmd connection will
+not be unregistered, and /dev/watchdog will reset the host.
+<P>
+Based on these known timeout values, sanlock on another host can
+calculate, based on the last host_id renewal, when the failed host will
+have been reset by its watchdog (or killed all the necessary processes).
+<P>
+If the sanlock daemon itself fails, crashes, get stuck, it will no longer
+update the expiry time for its host_id connections to wdmd, which will
+also lead to the watchdog resetting the host.
+<P>
+<B>safety</B>
+
+<P>
+sanlock leases are meant to guarantee that two process on two hosts are
+never allowed to hold the same resource lease at once.  If they were, the
+resource being protected may be corrupted.  There are three levels of
+protection built into sanlock itself:
+<P>
+1. The paxos leases and delta leases themselves.
+<P>
+2. If the leases cannot function because storage access is lost (host_id's
+cannot be renewed), the sanlock daemon kills any pids using resource
+leases in the lockspace.
+<P>
+3. If the pids do not exit after being killed, or if the sanlock daemon
+fails, the watchdog device resets the host.
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+
+COMMAND can be one of three primary top level choices
+
+<B>sanlock daemon</B> start daemon
+
+<BR>
+
+<B>sanlock client</B> send request to daemon (default command if none given)
+
+<BR>
+
+<B>sanlock direct</B> access storage directly (no coordination with daemon)
+
+<P>
+<B>sanlock daemon</B> [options]
+
+<P>
+<B>-D</B>    
+
+no fork and print all logging to stderr
+<P>
+<B>-Q</B> 0|1
+
+quiet error messages for common lock contention
+<P>
+<B>-R</B> 0|1
+
+renewal debugging, log debug info for each renewal
+<P>
+<B>-L</B><I> pri</I>
+
+write logging at priority level and up to logfile (-1 none)
+<P>
+<B>-S</B><I> pri</I>
+
+write logging at priority level and up to syslog (-1 none)
+<P>
+<B>-U</B><I> uid</I>
+
+user id
+<P>
+<B>-G</B><I> gid</I>
+
+group id
+<P>
+<B>-t</B><I> num</I>
+
+max worker threads
+<P>
+<B>-w</B> 0|1
+
+use watchdog through wdmd
+<P>
+<B>-h</B> 0|1
+
+use high priority features (realtime scheduling, mlockall)
+<P>
+<B>-a</B> 0|1
+
+use async i/o
+<P>
+<B>-o</B><I> sec</I>
+
+io timeout in seconds
+<P>
+<B>sanlock client</B>
+
+<I>action</I>
+
+[options]
+<P>
+<B>sanlock client status</B>
+
+<P>
+Print processes, lockspaces, and resources being manged by the sanlock
+daemon.  Add -D to show extra internal daemon status for debugging.
+Add -o p to show resources by pid, or -o s to show resources by lockspace.
+<P>
+<B>sanlock client host_status -s</B> LOCKSPACE
+
+<P>
+Print state of host_id delta leases read during the last renewal.
+Only lockspace_name is used from the LOCKSPACE argument.
+Add -D to show extra internal daemon status for debugging.
+<P>
+<B>sanlock client log_dump</B>
+
+<P>
+Print the sanlock daemon internal debug log.
+<P>
+<B>sanlock client shutdown</B>
+
+<P>
+Ask the sanlock daemon to exit.  Without the force option (-f 0), the
+command will be ignored if any lockspaces exist.  With the force option
+(-f 1), any registered processes will be killed, their resource leases
+released, and lockspaces removed.
+<P>
+<B>sanlock client init -s</B> LOCKSPACE
+
+<BR>
+
+<B>sanlock client init -r</B> RESOURCE
+
+<P>
+Tell the sanlock daemon to initialize storage for lease areas.
+(See sanlock direct init.)
+<P>
+<B>sanlock client align -s</B> LOCKSPACE
+
+<P>
+Tell the sanlock daemon to report the required lease alignment for a storage
+path.  Only path is used from the LOCKSPACE argument.
+<P>
+<B>sanlock client add_lockspace -s</B> LOCKSPACE
+
+<P>
+Tell the sanlock daemon to acquire the specified host_id in the lockspace.
+This will allow resources to be acquired in the lockspace.
+<P>
+<B>sanlock client inq_lockspace -s</B> LOCKSPACE
+
+<P>
+Ask to the sanlock daemon weather the lockspace is acquired or not.
+<P>
+<B>sanlock client rem_lockspace -s</B> LOCKSPACE
+
+<P>
+Tell the sanlock daemon to release the specified host_id in the lockspace.
+Any processes holding resource leases in this lockspace will be killed,
+and the resource leases not released.
+<P>
+<B>sanlock client command -r</B> RESOURCE <B>-c</B> <B></B><I>path</I> <B></B><I>args</I>
+
+<P>
+Register with the sanlock daemon, acquire the specified resource lease,
+and exec the command at path with args.  When the command exits, the
+sanlock daemon will release the lease.  -c must be the final option.
+<P>
+<B>sanlock client acquire -r</B> RESOURCE <B>-p</B> <B></B><I>pid</I>
+
+<BR>
+
+<B>sanlock client release -r</B> RESOURCE <B>-p</B> <B></B><I>pid</I>
+
+<P>
+Tell the sanlock daemon to acquire or release the specified resource lease
+for the given pid.  The pid must be registered with the sanlock daemon.
+acquire can optionally take a versioned RESOURCE string RESOURCE:lver,
+where lver is the version of the lease that must be acquired, or fail.
+<P>
+<B>sanlock client inquire -p</B><I> pid</I>
+
+<P>
+Print the resource leases held the given pid.  The format is a versioned
+RESOURCE string &quot;RESOURCE:lver&quot; where lver is the version of the lease
+held.
+<P>
+<B>sanlock client request -r</B> RESOURCE <B>-f</B> <B></B><I>force_mode</I>
+
+<P>
+Request the owner of a resource do something specified by force_mode.  A
+versioned RESOURCE:lver string must be used with a greater version than is
+presently held.  Zero lver and force_mode clears the request.
+<P>
+<B>sanlock client examine -r</B> RESOURCE
+
+<P>
+Examine the request record for the currently held resource lease and carry
+out the action specified by the requested force_mode.
+<P>
+<B>sanlock client examine -s</B> LOCKSPACE
+
+<P>
+Examine requests for all resource leases currently held in the named
+lockspace.  Only lockspace_name is used from the LOCKSPACE argument.
+<P>
+<B>sanlock direct</B>
+
+<I>action</I>
+
+[options]
+<P>
+<B>-a</B> 0|1
+
+use async i/o
+<P>
+<B>-o</B><I> sec</I>
+
+io timeout in seconds
+<P>
+<B>sanlock direct init -s</B> LOCKSPACE
+
+<BR>
+
+<B>sanlock direct init -r</B> RESOURCE
+
+<P>
+Initialize storage for 2000 host_id (delta) leases for the given
+lockspace, or initialize storage for one resource (paxos) lease.  Both
+options require 1MB of space.  The host_id in the LOCKSPACE string is not
+relevant to initialization, so the value is ignored.  (The default of 2000
+host_ids can be changed for special cases using the -n num_hosts and -m
+max_hosts options.)
+<P>
+<B>sanlock direct read_leader -s</B> LOCKSPACE
+
+<BR>
+
+<B>sanlock direct read_leader -r</B> RESOURCE
+
+<P>
+Read a leader record from disk and print the fields.  The leader record is
+the single sector of a delta lease, or the first sector of a paxos lease.
+<P>
+<B>sanlock direct read_id -s</B> LOCKSPACE
+
+<BR>
+
+<B>sanlock direct live_id -s</B> LOCKSPACE
+
+<P>
+read_id reads a host_id and prints the owner.  live_id reads a host_id
+once a second until it the timestamp or owner change (prints live 1), or
+until host_dead_seconds (prints live 0).  (host_dead_seconds is derived
+from the io_timeout option.  The live 0|1 conclusion will not match the
+sanlock daemon's conclusion unless the configured timeouts match.)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<P>
+<B>sanlock direct dump</B><I> path</I><B></B>[<B>:</B><I>offset</I>]
+
+<P>
+Read disk sectors and print leader records for delta or paxos leases.  Add
+-f 1 to print the request record values for paxos leases, and host_ids set
+in delta lease bitmaps.
+<P>
+<A NAME="lbAF">&nbsp;</A>
+<H3>LOCKSPACE option string</H3>
+
+<P>
+<B>-s</B> <B></B><I>lockspace_name</I>:<I>host_id</I>:<I>path</I>:<I>offset</I>
+
+
+<I>lockspace_name</I> name of lockspace
+
+<BR>
+
+<I>host_id</I> local host identifier in lockspace
+
+<BR>
+
+<I>path</I> path to storage reserved for leases
+
+<BR>
+
+<I>offset</I> offset on path (bytes)
+
+<BR>
+
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H3>RESOURCE option string</H3>
+
+<P>
+<B>-r</B> <B></B><I>lockspace_name</I>:<I>resource_name</I>:<I>path</I>:<I>offset</I>
+
+
+<I>lockspace_name</I> name of lockspace
+
+<BR>
+
+<I>resource_name</I> name of resource
+
+<BR>
+
+<I>path</I> path to storage reserved for leases
+
+<BR>
+
+<I>offset</I> offset on path (bytes)
+
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H3>RESOURCE option string with version</H3>
+
+<P>
+<B>-r</B> <B></B><I>lockspace_name</I>:<I>resource_name</I>:<I>path</I>:<I>offset</I>:<I>lver</I>
+
+
+<I>lver</I> leader version or SH for shared lease
+
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Defaults</H3>
+
+<P>
+<B>sanlock help</B>
+
+shows the default values for the options above.
+<P>
+<B>sanlock version</B>
+
+shows the build version.
+<P>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>USAGE</H2>
+
+<P>
+<A NAME="lbAK">&nbsp;</A>
+<H3>Request/Examine</H3>
+
+<P>
+The first part of making a request for a resource is writing the request
+record of the resource (the sector following the leader record).  To make
+a successful request:
+<DL COMPACT>
+<DT>*<DD>
+RESOURCE:lver must be greater than the lver presently held by the other
+host.  This implies the leader record must be read to discover the lver,
+prior to making a request.
+<DT>*<DD>
+RESOURCE:lver must be greater than or equal to the lver presently
+written to the request record.  Two hosts may write a new request at the
+same time for the same lver, in which case both would succeed, but the
+force_mode from the last would win.
+<DT>*<DD>
+The force_mode must be greater than zero.
+<DT>*<DD>
+To unconditionally clear the request record (set both lver and
+force_mode to 0), make request with RESOURCE:0 and force_mode 0.
+</DL>
+<P>
+
+<P>
+The owner of the requested resource will not know of the request unless it
+is explicitly told to examine its resources via the &quot;examine&quot; api/command,
+or otherwise notfied.
+<P>
+The second part of making a request is notifying the resource lease owner
+that it should examine the request records of its resource leases.  The
+notification will cause the lease owner to automatically run the
+equivalent of &quot;sanlock client examine -s LOCKSPACE&quot; for the lockspace of
+the requested resource.
+<P>
+The notification is made using a bitmap in each host_id delta lease.  Each
+bit represents each of the possible host_ids (1-2000).  If host A wants to
+notify host B to examine its resources, A sets the bit in its own bitmap
+that corresponds to the host_id of B.  When B next renews its delta lease,
+it reads the delta leases for all hosts and checks each bitmap to see if
+its own host_id has been set.  It finds the bit for its own host_id set in
+A's bitmap, and examines its resource request records.  (The bit remains
+set in A's bitmap for request_finish_seconds.)
+<P>
+<I>force_mode</I> determines the action the resource lease owner should
+take:
+<P>
+<B>1</B> (KILL_PID): kill the process holding the resource lease.  When the
+process has exited, the resource lease will be released, and can then be
+acquired by anyone.
+<P>
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?8+wdmd">wdmd</A></B>(8)
+
+<P>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DL>
+<DT><A HREF="#lbAF">LOCKSPACE option string</A><DD>
+<DT><A HREF="#lbAG">RESOURCE option string</A><DD>
+<DT><A HREF="#lbAH">RESOURCE option string with version</A><DD>
+<DT><A HREF="#lbAI">Defaults</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">USAGE</A><DD>
+<DL>
+<DT><A HREF="#lbAK">Request/Examine</A><DD>
+</DL>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:29 GMT, December 24, 2015
+</div></body>
+</HTML>

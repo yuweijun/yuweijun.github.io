@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of IFRENAME</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>IFRENAME</H1>
+Section: Linux Programmer's Manual (8)<BR>Updated: 26 February 2007<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ifrename - rename network interfaces based on various static criteria
+
+
+
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>ifrename [-c configfile] [-p] [-d] [-u] [-v] [-V] [-D]</B>
+
+<BR>
+
+<B>ifrename [-c configfile] [-i interface] [-n newname]</B>
+
+
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>Ifrename </B>
+
+is a tool allowing you to assign a consistent name to each of your
+network interface.
+<P>
+
+By default, interface names are dynamic, and each network interface is
+assigned the first available name
+(<I>eth0</I>, <I>eth1</I>...).
+
+The order network interfaces are created may vary. For built-in
+interfaces, the kernel boot time enumeration may vary. For removable
+interface, the user may plug them in any order.
+<P>
+
+<B>Ifrename</B>
+
+allow the user to decide what name a network interface will have.
+<B>Ifrename </B>
+
+can use a variety of
+<I>selectors</I>
+
+to specify how interface names match the network interfaces on the
+system, the most common selector is the interface 
+<I>MAC address</I>.
+
+<P>
+
+<B>Ifrename</B>
+
+must be run before interfaces are brought up, which is why it's mostly
+useful in various scripts (init, hotplug) but is seldom used directly
+by the user. By default,
+<B>ifrename </B>
+
+renames all present system interfaces using mappings defined in
+<I>/etc/iftab</I>.
+
+
+
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B>-c </B><I>configfile</I>
+
+<DD>
+Set the configuration file to be used (by default 
+<I>/etc/iftab</I>).
+
+The configuration file define the mapping between selectors and
+interface names, and is described in
+<I><A HREF="/manpages/index.html?5+iftab">iftab</A></I>(5).
+
+<BR>
+
+If
+<I>configfile</I>
+
+is &quot;-&quot;, the configuration is read from stdin.
+<DT><B>-p</B>
+
+<DD>
+Probe (load) kernel modules before renaming interfaces. By default
+<B>ifrename </B>
+
+only check interfaces already loaded, and doesn't auto-load the
+required kernel modules. This option enables smooth integration with
+system not loading modules before calling
+<B>ifrename</B>.
+
+<DT><B>-d</B>
+
+<DD>
+Enable various
+<B>Debian</B>
+
+specific hacks. Combined with
+<B>-p</B>,
+
+only modules for interfaces specified in
+<I>/etc/network/interface</I>
+
+are loaded.
+<DT><B>-i </B><I>interface</I>
+
+<DD>
+Only rename the specified
+<I>interface </I>
+
+as opposed to all interfaces on the system. The new interface name is
+printed.
+<DT><B>-n </B><I>newname</I>
+
+<DD>
+When used with
+<I>-i</I>,
+
+specify the new name of the interface. The list of mappings from the
+configuration file is bypassed, the interface specified with
+<I>-i</I>
+
+is renamed directly to
+<I>newname</I>.
+
+The new name may be a wildcard containing a single '*'.
+<BR>
+
+When used without 
+<I>-i</I>,
+
+rename interfaces by using only mappings that would rename them to
+<I>newname</I>.
+
+The new name may not be a wildcard. This use of ifrename is
+discouraged, because inefficient
+(<I>-n</I> without <I>-i</I>).
+
+All the interfaces of the system need to be processed at each
+invocation, therefore in most case it is not faster than just letting
+ifrename renaming all of them (without both 
+<I>-n</I> and <I>-i</I>).
+
+<DT><B>-t</B>
+
+<DD>
+Enable name takeover support. This allow interface name swapping
+between two or more interfaces.
+<BR>
+
+Takeover enable an interface to 'steal' the name of another
+interface. This works only with kernel 2.6.X and if the other
+interface is down. Consequently, this is not compatible with
+Hotplug. The other interface is assigned a random name, but may be
+renamed later with 'ifrename'.
+<BR>
+
+The number of takeovers is limited to avoid circular loops, and
+therefore some complex multi-way name swapping situations may not be
+fully processed.
+<BR>
+
+In any case, name swapping and the use of this feature is discouraged,
+and you are invited to choose unique and unambiguous names for your
+interfaces...
+<DT><B>-u</B>
+
+<DD>
+Enable
+<I>udev</I>
+
+output mode. This enables proper integration of
+<B>ifrename</B>
+
+in the
+<I>udev</I>
+
+framework,
+<B><A HREF="/manpages/index.html?8+udevd">udevd</A></B>(8)
+
+will use
+<B>ifrename</B>
+
+to assign interface names present in
+<I>/etc/iftab</I>.
+
+In this mode the output of ifrename can be parsed
+directly by
+<B><A HREF="/manpages/index.html?8+udevd">udevd</A></B>(8)
+
+as an IMPORT action. This requires
+<I>udev</I>
+
+version 107 or later.
+<DT><B>-D</B>
+
+<DD>
+Dry-run mode. Ifrename won't change any interface, it will only print
+new interface name, if applicable, and return.
+<BR>
+
+In dry-run mode, interface name wildcards are not resolved. New
+interface name is printed, even if it is the same as the old name.
+<BR>
+
+Be also aware that some selectors can only be read by root, for
+example those based on
+<B>ethtool</B>),
+
+and will fail silently if run by a normal user. In other words,
+dry-run mode under a standard user may not give the expected result.
+<DT><B>-V</B>
+
+<DD>
+Verbose mode. Ifrename will display internal results of parsing its
+configuration file and querying the interfaces selectors. Combined
+with the
+<I>dry-run</I>
+
+option, this is a good way to debug complex configurations or trivial
+problems.
+
+
+
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Jean Tourrilhes - <A HREF="mailto:jt@hpl.hp.com">jt@hpl.hp.com</A>
+
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>FILES</H2>
+
+<I>/etc/iftab</I>
+
+
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?8+ifconfig">ifconfig</A></B>(8),
+
+<B><A HREF="/manpages/index.html?8+ip">ip</A></B>(8),
+
+<B><A HREF="/manpages/index.html?5+iftab">iftab</A></B>(5).
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DT><A HREF="#lbAF">AUTHOR</A><DD>
+<DT><A HREF="#lbAG">FILES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:26 GMT, December 24, 2015
+</div></body>
+</HTML>

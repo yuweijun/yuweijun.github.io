@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of CREATE TABLE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>CREATE TABLE</H1>
+Section: SQL Commands (7)<BR>Updated: 2012-08-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+CREATE TABLE - define a new table
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<P>
+<PRE>
+CREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } ] TABLE <I>table_name</I> ( [
+  { <I>column_name</I> <I>data_type</I> [ DEFAULT <I>default_expr</I> ] [ <I>column_constraint</I> [ ... ] ]
+    | <I>table_constraint</I>
+    | LIKE <I>parent_table</I> [ { INCLUDING | EXCLUDING } { DEFAULTS | CONSTRAINTS | INDEXES } ] ... }
+    [, ... ]
+] )
+[ INHERITS ( <I>parent_table</I> [, ... ] ) ]
+[ WITH ( <I>storage_parameter</I> [= <I>value</I>] [, ... ] ) | WITH OIDS | WITHOUT OIDS ]
+[ ON COMMIT { PRESERVE ROWS | DELETE ROWS | DROP } ]
+[ TABLESPACE <I>tablespace</I> ]
+
+where <I>column_constraint</I> is:
+
+[ CONSTRAINT <I>constraint_name</I> ]
+{ NOT NULL | 
+  NULL | 
+  UNIQUE <I>index_parameters</I> |
+  PRIMARY KEY <I>index_parameters</I> |
+  CHECK ( <I>expression</I> ) |
+  REFERENCES <I>reftable</I> [ ( <I>refcolumn</I> ) ] [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ]
+    [ ON DELETE <I>action</I> ] [ ON UPDATE <I>action</I> ] }
+[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]
+
+and <I>table_constraint</I> is:
+
+[ CONSTRAINT <I>constraint_name</I> ]
+{ UNIQUE ( <I>column_name</I> [, ... ] ) <I>index_parameters</I> |
+  PRIMARY KEY ( <I>column_name</I> [, ... ] ) <I>index_parameters</I> |
+  CHECK ( <I>expression</I> ) |
+  FOREIGN KEY ( <I>column_name</I> [, ... ] ) REFERENCES <I>reftable</I> [ ( <I>refcolumn</I> [, ... ] ) ]
+    [ MATCH FULL | MATCH PARTIAL | MATCH SIMPLE ] [ ON DELETE <I>action</I> ] [ ON UPDATE <I>action</I> ] }
+[ DEFERRABLE | NOT DEFERRABLE ] [ INITIALLY DEFERRED | INITIALLY IMMEDIATE ]
+
+<I>index_parameters</I> in UNIQUE and PRIMARY KEY constraints are:
+
+[ WITH ( <I>storage_parameter</I> [= <I>value</I>] [, ... ] ) ]
+[ USING INDEX TABLESPACE <I>tablespace</I> ]
+
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+<B>CREATE TABLE</B> will create a new, initially empty table
+in the current database. The table will be owned by the user issuing the
+command.
+<P>
+
+If a schema name is given (for example, CREATE TABLE
+myschema.mytable ...) then the table is created in the specified
+schema. Otherwise it is created in the current schema. Temporary
+tables exist in a special schema, so a schema name cannot be given
+when creating a temporary table. The name of the table must be
+distinct from the name of any other table, sequence, index, or view
+in the same schema.
+<P>
+
+<B>CREATE TABLE</B> also automatically creates a data
+type that represents the composite type corresponding
+to one row of the table. Therefore, tables cannot have the same
+name as any existing data type in the same schema.
+<P>
+
+The optional constraint clauses specify constraints (tests) that
+new or updated rows must satisfy for an insert or update operation
+to succeed. A constraint is an SQL object that helps define the
+set of valid values in the table in various ways.
+<P>
+
+There are two ways to define constraints: table constraints and
+column constraints. A column constraint is defined as part of a
+column definition. A table constraint definition is not tied to a
+particular column, and it can encompass more than one column.
+Every column constraint can also be written as a table constraint;
+a column constraint is only a notational convenience for use when the
+constraint only affects one column.
+<A NAME="lbAE">&nbsp;</A>
+<H2>PARAMETERS</H2>
+
+<DL COMPACT>
+<DT><B>TEMPORARY or TEMP</B><DD>
+If specified, the table is created as a temporary table.
+Temporary tables are automatically dropped at the end of a
+session, or optionally at the end of the current transaction
+(see ON COMMIT below). Existing permanent
+tables with the same name are not visible to the current session
+while the temporary table exists, unless they are referenced
+with schema-qualified names. Any indexes created on a temporary
+table are automatically temporary as well.
+<P>
+Optionally, GLOBAL or LOCAL
+can be written before TEMPORARY or TEMP.
+This makes no difference in PostgreSQL, but see
+Compatibility [<B><A HREF="/manpages/index.html?7+create_table">create_table</A></B>(7)].
+<DT><B></B><I>table_name</I><B></B><DD>
+The name (optionally schema-qualified) of the table to be created.
+<DT><B></B><I>column_name</I><B></B><DD>
+The name of a column to be created in the new table.
+<DT><B></B><I>data_type</I><B></B><DD>
+The data type of the column. This can include array
+specifiers. For more information on the data types supported by
+PostgreSQL, refer to in the documentation.
+<DT><B>DEFAULT</B><DD>
+The DEFAULT clause assigns a default data value for
+the column whose column definition it appears within. The value
+is any variable-free expression (subqueries and cross-references
+to other columns in the current table are not allowed). The
+data type of the default expression must match the data type of the
+column.
+<P>
+The default expression will be used in any insert operation that
+does not specify a value for the column. If there is no default
+for a column, then the default is null.
+<DT><B>INHERITS ( </B><I>parent_table</I><B> [, ... ] )</B><DD>
+The optional INHERITS clause specifies a list of
+tables from which the new table automatically inherits all
+columns.
+<P>
+Use of INHERITS creates a persistent relationship
+between the new child table and its parent table(s). Schema
+modifications to the parent(s) normally propagate to children
+as well, and by default the data of the child table is included in
+scans of the parent(s).
+<P>
+If the same column name exists in more than one parent
+table, an error is reported unless the data types of the columns
+match in each of the parent tables. If there is no conflict,
+then the duplicate columns are merged to form a single column in
+the new table. If the column name list of the new table
+contains a column name that is also inherited, the data type must
+likewise match the inherited column(s), and the column
+definitions are merged into one. If the
+new table explicitly specifies a default value for the column,
+this default overrides any defaults from inherited declarations
+of the column. Otherwise, any parents that specify default
+values for the column must all specify the same default, or an
+error will be reported.
+<P>
+CHECK constraints are merged in essentially the same way as
+columns: if multiple parent tables and/or the new table definition
+contain identically-named CHECK constraints, these
+constraints must all have the same check expression, or an error will be
+reported. Constraints having the same name and expression will
+be merged into one copy. Notice that an unnamed CHECK
+constraint in the new table will never be merged, since a unique name
+will always be chosen for it.
+<DT><B>LIKE </B><I>parent_table</I><B> [ { INCLUDING | EXCLUDING } { DEFAULTS | CONSTRAINTS | INDEXES } ]</B><DD>
+The LIKE clause specifies a table from which
+the new table automatically copies all column names, their data types,
+and their not-null constraints.
+<P>
+Unlike INHERITS, the new table and original table
+are completely decoupled after creation is complete. Changes to the
+original table will not be applied to the new table, and it is not
+possible to include data of the new table in scans of the original
+table.
+<P>
+Default expressions for the copied column definitions will only be
+copied if INCLUDING DEFAULTS is specified. The
+default behavior is to exclude default expressions, resulting in the
+copied columns in the new table having null defaults.
+<P>
+Not-null constraints are always copied to the new table.
+CHECK constraints will only be copied if
+INCLUDING CONSTRAINTS is specified; other types of
+constraints will never be copied. Also, no distinction is made between
+column constraints and table constraints --- when constraints are
+requested, all check constraints are copied.
+<P>
+Any indexes on the original table will not be created on the new
+table, unless the INCLUDING INDEXES clause is
+specified.
+<P>
+Note also that unlike INHERITS, copied columns and
+constraints are not merged with similarly named columns and constraints.
+If the same name is specified explicitly or in another
+LIKE clause, an error is signalled.
+<DT><B>CONSTRAINT </B><I>constraint_name</I><B></B><DD>
+An optional name for a column or table constraint. If the
+constraint is violated, the constraint name is present in error messages,
+so constraint names like col must be positive can be used
+to communicate helpful constraint information to client applications.
+(Double-quotes are needed to specify constraint names that contain spaces.)
+If a constraint name is not specified, the system generates a name.
+<DT><B>NOT NULL</B><DD>
+The column is not allowed to contain null values.
+<DT><B>NULL</B><DD>
+The column is allowed to contain null values. This is the default.
+<P>
+This clause is only provided for compatibility with
+non-standard SQL databases. Its use is discouraged in new
+applications.
+<DT><B>UNIQUE (column constraint)</B><DD>
+<DT><B>UNIQUE ( </B><I>column_name</I><B> [, ... ] ) (table constraint)</B><DD>
+The UNIQUE constraint specifies that a
+group of one or more columns of a table can contain
+only unique values. The behavior of the unique table constraint
+is the same as that for column constraints, with the additional
+capability to span multiple columns.
+<P>
+For the purpose of a unique constraint, null values are not
+considered equal.
+<P>
+Each unique table constraint must name a set of columns that is
+different from the set of columns named by any other unique or
+primary key constraint defined for the table. (Otherwise it
+would just be the same constraint listed twice.)
+<DT><B>PRIMARY KEY (column constraint)</B><DD>
+<DT><B>PRIMARY KEY ( </B><I>column_name</I><B> [, ... ] ) (table constraint)</B><DD>
+The primary key constraint specifies that a column or columns of a table
+can contain only unique (non-duplicate), nonnull values.
+Technically, PRIMARY KEY is merely a
+combination of UNIQUE and NOT NULL, but
+identifying a set of columns as primary key also provides
+metadata about the design of the schema, as a primary key
+implies that other tables
+can rely on this set of columns as a unique identifier for rows.
+<P>
+Only one primary key can be specified for a table, whether as a
+column constraint or a table constraint.
+<P>
+The primary key constraint should name a set of columns that is
+different from other sets of columns named by any unique
+constraint defined for the same table.
+<DT><B>CHECK ( </B><I>expression</I><B> )</B><DD>
+The CHECK clause specifies an expression producing a
+Boolean result which new or updated rows must satisfy for an
+insert or update operation to succeed. Expressions evaluating
+to TRUE or UNKNOWN succeed. Should any row of an insert or
+update operation produce a FALSE result an error exception is
+raised and the insert or update does not alter the database. A
+check constraint specified as a column constraint should
+reference that column's value only, while an expression
+appearing in a table constraint can reference multiple columns.
+<P>
+Currently, CHECK expressions cannot contain
+subqueries nor refer to variables other than columns of the
+current row.
+<DT><B>REFERENCES </B><I>reftable</I><B> [ ( </B><I>refcolumn</I><B> ) ] [ MATCH </B><I>matchtype</I><B> ] [ ON DELETE </B><I>action</I><B> ] [ ON UPDATE </B><I>action</I><B> ] (column constraint)</B><DD>
+<DT><B>FOREIGN KEY ( </B><I>column</I><B> [, ... ] )</B><DD>
+These clauses specify a foreign key constraint, which requires
+that a group of one or more columns of the new table must only
+contain values that match values in the referenced
+column(s) of some row of the referenced table. If <I>refcolumn</I> is omitted, the
+primary key of the <I>reftable</I> is used. The
+referenced columns must be the columns of a unique or primary
+key constraint in the referenced table. Note that foreign key
+constraints cannot be defined between temporary tables and
+permanent tables.
+<P>
+A value inserted into the referencing column(s) is matched against the
+values of the referenced table and referenced columns using the
+given match type. There are three match types: MATCH
+FULL, MATCH PARTIAL, and MATCH
+SIMPLE, which is also the default. MATCH
+FULL will not allow one column of a multicolumn foreign key
+to be null unless all foreign key columns are null.
+MATCH SIMPLE allows some foreign key columns
+to be null while other parts of the foreign key are not
+null. MATCH PARTIAL is not yet implemented.
+<P>
+In addition, when the data in the referenced columns is changed,
+certain actions are performed on the data in this table's
+columns. The ON DELETE clause specifies the
+action to perform when a referenced row in the referenced table is
+being deleted. Likewise, the ON UPDATE
+clause specifies the action to perform when a referenced column
+in the referenced table is being updated to a new value. If the
+row is updated, but the referenced column is not actually
+changed, no action is done. Referential actions other than the
+NO ACTION check cannot be deferred, even if
+the constraint is declared deferrable. There are the following possible
+actions for each clause:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>NO ACTION</B><DD>
+Produce an error indicating that the deletion or update
+would create a foreign key constraint violation.
+If the constraint is deferred, this
+error will be produced at constraint check time if there still
+exist any referencing rows. This is the default action.
+<DT><B>RESTRICT</B><DD>
+Produce an error indicating that the deletion or update
+would create a foreign key constraint violation.
+This is the same as NO ACTION except that
+the check is not deferrable.
+<DT><B>CASCADE</B><DD>
+Delete any rows referencing the deleted row, or update the
+value of the referencing column to the new value of the
+referenced column, respectively.
+<DT><B>SET NULL</B><DD>
+Set the referencing column(s) to null.
+<DT><B>SET DEFAULT</B><DD>
+Set the referencing column(s) to their default values.
+</DL>
+</DL>
+
+</DL>
+<P>
+
+<P>
+If the referenced column(s) are changed frequently, it might be wise to
+add an index to the foreign key column so that referential actions
+associated with the foreign key column can be performed more
+efficiently.
+<DL COMPACT>
+<DT><B>DEFERRABLE</B><DD>
+<DT><B>NOT DEFERRABLE</B><DD>
+This controls whether the constraint can be deferred. A
+constraint that is not deferrable will be checked immediately
+after every command. Checking of constraints that are
+deferrable can be postponed until the end of the transaction
+(using the SET CONSTRAINTS [<B><A HREF="/manpages/index.html?7+set_constraints">set_constraints</A></B>(7)] command).
+NOT DEFERRABLE is the default. Only foreign
+key constraints currently accept this clause. All other
+constraint types are not deferrable.
+<DT><B>INITIALLY IMMEDIATE</B><DD>
+<DT><B>INITIALLY DEFERRED</B><DD>
+If a constraint is deferrable, this clause specifies the default
+time to check the constraint. If the constraint is
+INITIALLY IMMEDIATE, it is checked after each
+statement. This is the default. If the constraint is
+INITIALLY DEFERRED, it is checked only at the
+end of the transaction. The constraint check time can be
+altered with the SET CONSTRAINTS [<B><A HREF="/manpages/index.html?7+set_constraints">set_constraints</A></B>(7)] command.
+<DT><B>WITH ( </B><I>storage_parameter</I><B> [= </B><I>value</I><B>] [, ... ] )</B><DD>
+This clause specifies optional storage parameters for a table or index;
+see Storage Parameters [<B><A HREF="/manpages/index.html?7+create_table">create_table</A></B>(7)] for more
+information. The WITH clause for a
+table can also include OIDS=TRUE (or just OIDS)
+to specify that rows of the new table
+should have OIDs (object identifiers) assigned to them, or
+OIDS=FALSE to specify that the rows should not have OIDs.
+If OIDS is not specified, the default setting depends upon
+the default_with_oids configuration parameter.
+(If the new table inherits from any tables that have OIDs, then
+OIDS=TRUE is forced even if the command says
+OIDS=FALSE.)
+<P>
+If OIDS=FALSE is specified or implied, the new
+table does not store OIDs and no OID will be assigned for a row inserted
+into it. This is generally considered worthwhile, since it
+will reduce OID consumption and thereby postpone the wraparound
+of the 32-bit OID counter. Once the counter wraps around, OIDs
+can no longer be assumed to be unique, which makes them
+considerably less useful. In addition, excluding OIDs from a
+table reduces the space required to store the table on disk by
+4 bytes per row (on most machines), slightly improving performance.
+<P>
+To remove OIDs from a table after it has been created, use ALTER TABLE [<B><A HREF="/manpages/index.html?7+alter_table">alter_table</A></B>(7)].
+<DT><B>WITH OIDS</B><DD>
+<DT><B>WITHOUT OIDS</B><DD>
+These are obsolescent syntaxes equivalent to WITH (OIDS)
+and WITH (OIDS=FALSE), respectively. If you wish to give
+both an OIDS setting and storage parameters, you must use
+the WITH ( ... ) syntax; see above.
+<DT><B>ON COMMIT</B><DD>
+The behavior of temporary tables at the end of a transaction
+block can be controlled using ON COMMIT.
+The three options are:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>PRESERVE ROWS</B><DD>
+No special action is taken at the ends of transactions.
+This is the default behavior.
+<DT><B>DELETE ROWS</B><DD>
+All rows in the temporary table will be deleted at the end
+of each transaction block. Essentially, an automatic TRUNCATE [<B><A HREF="/manpages/index.html?7+truncate">truncate</A></B>(7)] is done
+at each commit.
+<DT><B>DROP</B><DD>
+The temporary table will be dropped at the end of the current
+transaction block.
+</DL>
+</DL>
+
+</DL>
+<P>
+
+<DL COMPACT>
+<DT><B>TABLESPACE </B><I>tablespace</I><B></B><DD>
+The <I>tablespace</I> is the name
+of the tablespace in which the new table is to be created.
+If not specified,
+default_tablespace is consulted, or
+temp_tablespaces if the table is temporary.
+<DT><B>USING INDEX TABLESPACE </B><I>tablespace</I><B></B><DD>
+This clause allows selection of the tablespace in which the index
+associated with a UNIQUE or PRIMARY
+KEY constraint will be created.
+If not specified,
+default_tablespace is consulted, or
+temp_tablespaces if the table is temporary.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>STORAGE PARAMETERS</H3>
+
+<P>
+<P>
+
+The WITH clause can specify <I>storage parameters</I>
+for tables, and for indexes associated with a UNIQUE or
+PRIMARY KEY constraint. Storage parameters for
+indexes are documented in CREATE INDEX [<B><A HREF="/manpages/index.html?7+create_index">create_index</A></B>(7)]. The storage parameters currently
+available for tables are listed below. For each parameter, unless noted,
+there is an additional parameter with the same name prefixed with
+toast., which can be used to control the behavior of the
+table's secondary TOAST table, if any
+(see in the documentation for more information about TOAST).
+Note that the TOAST table inherits the
+autovacuum_* values from its parent table, if there are
+no toast.autovacuum_* settings set.
+<DL COMPACT>
+<DT><B>fillfactor (integer)</B><DD>
+The fillfactor for a table is a percentage between 10 and 100.
+100 (complete packing) is the default. When a smaller fillfactor
+is specified, <B>INSERT</B> operations pack table pages only
+to the indicated percentage; the remaining space on each page is
+reserved for updating rows on that page. This gives <B>UPDATE</B>
+a chance to place the updated copy of a row on the same page as the
+original, which is more efficient than placing it on a different page.
+For a table whose entries are never updated, complete packing is the
+best choice, but in heavily updated tables smaller fillfactors are
+appropriate. This parameter cannot be set for TOAST tables.
+<DT><B>autovacuum_enabled, toast.autovacuum_enabled (boolean)</B><DD>
+Enables or disables the autovacuum daemon on a particular table.
+If true, the autovacuum daemon will initiate a <B>VACUUM</B> operation
+on a particular table when the number of updated or deleted tuples exceeds 
+autovacuum_vacuum_threshold plus 
+autovacuum_vacuum_scale_factor times the number of live tuples 
+currently estimated to be in the relation.
+Similarly, it will initiate an <B>ANALYZE</B> operation when the
+number of inserted, updated or deleted tuples exceeds
+autovacuum_analyze_threshold plus 
+autovacuum_analyze_scale_factor times the number of live tuples 
+currently estimated to be in the relation.
+If false, this table will not be autovacuumed, except to prevent
+transaction Id wraparound. See in the documentation for
+more about wraparound prevention.
+Observe that this variable inherits its value from the autovacuum setting.
+<DT><B>autovacuum_vacuum_threshold, toast.autovacuum_vacuum_threshold (integer)</B><DD>
+Minimum number of updated or deleted tuples before initiate a
+<B>VACUUM</B> operation on a particular table. 
+<DT><B>autovacuum_vacuum_scale_factor, toast.autovacuum_vacuum_scale_factor (float4)</B><DD>
+Multiplier for <B>reltuples</B> to add to
+autovacuum_vacuum_threshold.
+<DT><B>autovacuum_analyze_threshold (integer)</B><DD>
+Minimum number of inserted, updated, or deleted tuples before initiate an
+<B>ANALYZE</B> operation on a particular table.
+<DT><B>autovacuum_analyze_scale_factor (float4)</B><DD>
+Multiplier for <B>reltuples</B> to add to
+autovacuum_analyze_threshold.
+<DT><B>autovacuum_vacuum_cost_delay, toast.autovacuum_vacuum_cost_delay (integer)</B><DD>
+Custom autovacuum_vacuum_cost_delay parameter.
+<DT><B>autovacuum_vacuum_cost_limit, toast.autovacuum_vacuum_cost_limit (integer)</B><DD>
+Custom autovacuum_vacuum_cost_limit parameter.
+<DT><B>autovacuum_freeze_min_age, toast.autovacuum_freeze_min_age (integer)</B><DD>
+Custom vacuum_freeze_min_age parameter. Note that
+autovacuum will ignore attempts to set a per-table
+autovacuum_freeze_min_age larger than the half system-wide 
+autovacuum_freeze_max_age setting.
+<DT><B>autovacuum_freeze_max_age, toast.autovacuum_freeze_max_age (integer)</B><DD>
+Custom autovacuum_freeze_max_age parameter. Note that
+autovacuum will ignore attempts to set a per-table
+autovacuum_freeze_max_age larger than the system-wide setting
+(it can only be set smaller). Note that while you can set
+autovacuum_freeze_max_age very small, or even zero, this is
+usually unwise since it will force frequent vacuuming.
+<DT><B>autovacuum_freeze_table_age, toast.autovacuum_freeze_table_age (integer)</B><DD>
+Custom vacuum_freeze_table_age parameter.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+<P>
+
+Using OIDs in new applications is not recommended: where
+possible, using a SERIAL or other sequence
+generator as the table's primary key is preferred. However, if
+your application does make use of OIDs to identify specific
+rows of a table, it is recommended to create a unique constraint
+on the <B>oid</B> column of that table, to ensure that
+OIDs in the table will indeed uniquely identify rows even after
+counter wraparound. Avoid assuming that OIDs are unique across
+tables; if you need a database-wide unique identifier, use the
+combination of <B>tableoid</B> and row OID for the
+purpose.
+<P>
+<DL COMPACT><DT><DD>
+<B>Tip:</B>
+
+The use of OIDS=FALSE is not recommended
+for tables with no primary key, since without either an OID or a
+unique data key, it is difficult to identify specific rows.
+</DL>
+
+<P>
+<P>
+
+PostgreSQL automatically creates an
+index for each unique constraint and primary key constraint to
+enforce uniqueness. Thus, it is not necessary to create an
+index explicitly for primary key columns. (See CREATE INDEX [<B><A HREF="/manpages/index.html?7+create_index">create_index</A></B>(7)] for more information.)
+<P>
+
+Unique constraints and primary keys are not inherited in the
+current implementation. This makes the combination of
+inheritance and unique constraints rather dysfunctional.
+<P>
+
+A table cannot have more than 1600 columns. (In practice, the
+effective limit is usually lower because of tuple-length constraints.)
+<A NAME="lbAH">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+
+Create table <B>films</B> and table
+<B>distributors</B>:
+<P>
+<PRE>
+CREATE TABLE films (
+    code        <A HREF="/manpages/index.html?5+char">char</A>(5) CONSTRAINT firstkey PRIMARY KEY,
+    title       varchar(40) NOT NULL,
+    did         integer NOT NULL,
+    date_prod   date,
+    kind        varchar(10),
+    len         interval hour to minute
+);
+
+</PRE>
+
+<P>
+<PRE>
+CREATE TABLE distributors (
+     did    integer PRIMARY KEY DEFAULT nextval('serial'),
+     name   varchar(40) NOT NULL CHECK (name &lt;&gt; '')
+);
+
+</PRE>
+
+<P>
+
+Create a table with a 2-dimensional array:
+<P>
+<PRE>
+CREATE TABLE array_int (
+    vector  int[][]
+);
+
+</PRE>
+
+<P>
+
+Define a unique table constraint for the table
+films. Unique table constraints can be defined
+on one or more columns of the table:
+<P>
+<PRE>
+CREATE TABLE films (
+    code        <A HREF="/manpages/index.html?5+char">char</A>(5),
+    title       varchar(40),
+    did         integer,
+    date_prod   date,
+    kind        varchar(10),
+    len         interval hour to minute,
+    CONSTRAINT production UNIQUE(date_prod)
+);
+
+</PRE>
+
+<P>
+
+Define a check column constraint:
+<P>
+<PRE>
+CREATE TABLE distributors (
+    did     integer CHECK (did &gt; 100),
+    name    varchar(40)
+);
+
+</PRE>
+
+<P>
+
+Define a check table constraint:
+<P>
+<PRE>
+CREATE TABLE distributors (
+    did     integer,
+    name    varchar(40)
+    CONSTRAINT con1 CHECK (did &gt; 100 AND name &lt;&gt; '')
+);
+
+</PRE>
+
+<P>
+
+Define a primary key table constraint for the table
+<B>films</B>:
+<P>
+<PRE>
+CREATE TABLE films (
+    code        <A HREF="/manpages/index.html?5+char">char</A>(5),
+    title       varchar(40),
+    did         integer,
+    date_prod   date,
+    kind        varchar(10),
+    len         interval hour to minute,
+    CONSTRAINT code_title PRIMARY KEY(code,title)
+);
+
+</PRE>
+
+<P>
+
+Define a primary key constraint for table
+<B>distributors</B>. The following two examples are
+equivalent, the first using the table constraint syntax, the second
+the column constraint syntax:
+<P>
+<PRE>
+CREATE TABLE distributors (
+    did     integer,
+    name    varchar(40),
+    PRIMARY KEY(did)
+);
+
+</PRE>
+
+<P>
+<PRE>
+CREATE TABLE distributors (
+    did     integer PRIMARY KEY,
+    name    varchar(40)
+);
+
+</PRE>
+
+<P>
+
+Assign a literal constant default value for the column
+name, arrange for the default value of column
+did to be generated by selecting the next value
+of a sequence object, and make the default value of
+modtime be the time at which the row is
+inserted:
+<P>
+<PRE>
+CREATE TABLE distributors (
+    name      varchar(40) DEFAULT 'Luso Films',
+    did       integer DEFAULT nextval('distributors_serial'),
+    modtime   timestamp DEFAULT current_timestamp
+);
+
+</PRE>
+
+<P>
+
+Define two NOT NULL column constraints on the table
+<B>distributors</B>, one of which is explicitly
+given a name:
+<P>
+<PRE>
+CREATE TABLE distributors (
+    did     integer CONSTRAINT no_null NOT NULL,
+    name    varchar(40) NOT NULL
+);
+
+</PRE>
+
+<P>
+
+Define a unique constraint for the name column:
+<P>
+<PRE>
+CREATE TABLE distributors (
+    did     integer,
+    name    varchar(40) UNIQUE
+);
+
+</PRE>
+
+The same, specified as a table constraint:
+<P>
+<PRE>
+CREATE TABLE distributors (
+    did     integer,
+    name    varchar(40),
+    UNIQUE(name)
+);
+
+</PRE>
+
+<P>
+
+Create the same table, specifying 70% fill factor for both the table
+and its unique index:
+<P>
+<PRE>
+CREATE TABLE distributors (
+    did     integer,
+    name    varchar(40),
+    UNIQUE(name) WITH (fillfactor=70)
+)
+WITH (fillfactor=70);
+
+</PRE>
+
+<P>
+
+Create table <B>cinemas</B> in tablespace <B>diskvol1</B>:
+<P>
+<PRE>
+CREATE TABLE cinemas (
+        id serial,
+        name text,
+        location text
+) TABLESPACE diskvol1;
+
+</PRE>
+
+<A NAME="lbAI">&nbsp;</A>
+<H2>COMPATIBILITY</H2>
+
+<P>
+
+The <B>CREATE TABLE</B> command conforms to the
+SQL standard, with exceptions listed below.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>TEMPORARY TABLES</H3>
+
+<P>
+
+Although the syntax of CREATE TEMPORARY TABLE
+resembles that of the SQL standard, the effect is not the same. In the
+standard,
+temporary tables are defined just once and automatically exist (starting
+with empty contents) in every session that needs them.
+PostgreSQL instead
+requires each session to issue its own CREATE TEMPORARY
+TABLE command for each temporary table to be used. This allows
+different sessions to use the same temporary table name for different
+purposes, whereas the standard's approach constrains all instances of a
+given temporary table name to have the same table structure.
+<P>
+
+The standard's definition of the behavior of temporary tables is
+widely ignored. PostgreSQL's behavior
+on this point is similar to that of several other SQL databases.
+<P>
+
+The standard's distinction between global and local temporary tables
+is not in PostgreSQL, since that distinction
+depends on the concept of modules, which
+PostgreSQL does not have.
+For compatibility's sake, PostgreSQL will
+accept the GLOBAL and LOCAL keywords
+in a temporary table declaration, but they have no effect.
+<P>
+
+The ON COMMIT clause for temporary tables
+also resembles the SQL standard, but has some differences.
+If the ON COMMIT clause is omitted, SQL specifies that the
+default behavior is ON COMMIT DELETE ROWS. However, the
+default behavior in PostgreSQL is
+ON COMMIT PRESERVE ROWS. The ON COMMIT
+DROP option does not exist in SQL.
+<A NAME="lbAK">&nbsp;</A>
+<H3>COLUMN CHECK CONSTRAINTS</H3>
+
+<P>
+
+The SQL standard says that CHECK column constraints
+can only refer to the column they apply to; only CHECK
+table constraints can refer to multiple columns.
+PostgreSQL does not enforce this
+restriction; it treats column and table check constraints alike.
+<A NAME="lbAL">&nbsp;</A>
+<H3>NULL ``CONSTRAINT''</H3>
+
+<P>
+
+The NULL ``constraint'' (actually a
+non-constraint) is a PostgreSQL
+extension to the SQL standard that is included for compatibility with some
+other database systems (and for symmetry with the NOT
+NULL constraint). Since it is the default for any
+column, its presence is simply noise.
+<A NAME="lbAM">&nbsp;</A>
+<H3>INHERITANCE</H3>
+
+<P>
+
+Multiple inheritance via the INHERITS clause is
+a PostgreSQL language extension.
+SQL:1999 and later define single inheritance using a
+different syntax and different semantics. SQL:1999-style
+inheritance is not yet supported by
+PostgreSQL.
+<A NAME="lbAN">&nbsp;</A>
+<H3>ZERO-COLUMN TABLES</H3>
+
+<P>
+
+PostgreSQL allows a table of no columns
+to be created (for example, CREATE TABLE foo();). This
+is an extension from the SQL standard, which does not allow zero-column
+tables. Zero-column tables are not in themselves very useful, but
+disallowing them creates odd special cases for <B>ALTER TABLE
+DROP COLUMN</B>, so it seems cleaner to ignore this spec restriction.
+<A NAME="lbAO">&nbsp;</A>
+<H3>WITH CLAUSE</H3>
+
+<P>
+
+The WITH clause is a PostgreSQL
+extension; neither storage parameters nor OIDs are in the standard.
+<A NAME="lbAP">&nbsp;</A>
+<H3>TABLESPACES</H3>
+
+<P>
+
+The PostgreSQL concept of tablespaces is not
+part of the standard. Hence, the clauses TABLESPACE
+and USING INDEX TABLESPACE are extensions.
+<A NAME="lbAQ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+ALTER TABLE [<B><A HREF="/manpages/index.html?7+alter_table">alter_table</A></B>(7)], DROP TABLE [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+drop_table">drop_table</A></B>(7)], CREATE TABLESPACE [<B><A HREF="http://localhost/cgi-bin/man/man2html?7+create_tablespace">create_tablespace</A></B>(7)]
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">PARAMETERS</A><DD>
+<DL>
+<DT><A HREF="#lbAF">STORAGE PARAMETERS</A><DD>
+</DL>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">EXAMPLES</A><DD>
+<DT><A HREF="#lbAI">COMPATIBILITY</A><DD>
+<DL>
+<DT><A HREF="#lbAJ">TEMPORARY TABLES</A><DD>
+<DT><A HREF="#lbAK">COLUMN CHECK CONSTRAINTS</A><DD>
+<DT><A HREF="#lbAL">NULL ``CONSTRAINT''</A><DD>
+<DT><A HREF="#lbAM">INHERITANCE</A><DD>
+<DT><A HREF="#lbAN">ZERO-COLUMN TABLES</A><DD>
+<DT><A HREF="#lbAO">WITH CLAUSE</A><DD>
+<DT><A HREF="#lbAP">TABLESPACES</A><DD>
+</DL>
+<DT><A HREF="#lbAQ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:14 GMT, December 24, 2015
+</div></body>
+</HTML>

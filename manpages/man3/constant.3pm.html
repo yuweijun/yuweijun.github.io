@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of constant</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>constant</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+constant - Perl pragma to declare constants
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use constant PI    =&gt; 4 * atan2(1, 1);
+    use constant DEBUG =&gt; 0;
+
+    print &quot;Pi equals &quot;, PI, &quot;...\n&quot; if DEBUG;
+
+    use constant {
+        SEC   =&gt; 0,
+        MIN   =&gt; 1,
+        HOUR  =&gt; 2,
+        MDAY  =&gt; 3,
+        MON   =&gt; 4,
+        YEAR  =&gt; 5,
+        WDAY  =&gt; 6,
+        YDAY  =&gt; 7,
+        ISDST =&gt; 8,
+    };
+
+    use constant WEEKDAYS =&gt; qw(
+        Sunday Monday Tuesday Wednesday Thursday Friday Saturday
+    );
+
+    print &quot;Today is &quot;, (WEEKDAYS)[ (localtime)[WDAY] ], &quot;.\n&quot;;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This pragma allows you to declare constants at compile-time.
+<P>
+
+When you declare a constant such as <TT>&quot;PI&quot;</TT> using the method shown
+above, each machine your script runs upon can have as many digits
+of accuracy as it can use. Also, your program will be easier to
+read, more likely to be maintained (and maintained correctly), and
+far less likely to send a space probe to the wrong planet because
+nobody noticed the one equation in which you wrote <TT>3.14195</TT>.
+<P>
+
+When a constant is used in an expression, Perl replaces it with its
+value at compile time, and may then optimize the expression further.
+In particular, any code in an <TT>&quot;if (CONSTANT)&quot;</TT> block will be optimized
+away if the constant is false.
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAE"></A>
+As with all <TT>&quot;use&quot;</TT> directives, defining a constant happens at
+compile time. Thus, it's probably not correct to put a constant
+declaration inside of a conditional statement (like <TT>&quot;if ($foo)
+{ use constant ... }&quot;</TT>).
+<P>
+
+Constants defined using this module cannot be interpolated into
+strings like variables.  However, concatenation works just fine:
+<P>
+
+
+
+<PRE>
+    print &quot;Pi equals PI...\n&quot;;        # WRONG: does not expand &quot;PI&quot;
+    print &quot;Pi equals &quot;.PI.&quot;...\n&quot;;    # right
+
+</PRE>
+
+
+<P>
+
+Even though a reference may be declared as a constant, the reference may
+point to data which may be changed, as this code shows.
+<P>
+
+
+
+<PRE>
+    use constant ARRAY =&gt; [ 1,2,3,4 ];
+    print ARRAY-&gt;[1];
+    ARRAY-&gt;[1] = &quot; be changed&quot;;
+    print ARRAY-&gt;[1];
+
+</PRE>
+
+
+<P>
+
+Dereferencing constant references incorrectly (such as using an array
+subscript on a constant hash reference, or vice versa) will be trapped at
+compile time.
+<P>
+
+Constants belong to the package they are defined in.  To refer to a
+constant defined in another package, specify the full package name, as
+in <TT>&quot;Some::Package::CONSTANT&quot;</TT>.  Constants may be exported by modules,
+and may also be called as either class or instance methods, that is,
+as <TT>&quot;Some::Package-&gt;CONSTANT&quot;</TT> or as <TT>&quot;$obj-&gt;CONSTANT&quot;</TT> where
+<TT>$obj</TT> is an instance of <TT>&quot;Some::Package&quot;</TT>.  Subclasses may define
+their own constants to override those in their base class.
+<P>
+
+The use of all caps for constant names is merely a convention,
+although it is recommended in order to make constants stand out
+and to help avoid collisions with other barewords, keywords, and
+subroutine names. Constant names must begin with a letter or
+underscore. Names beginning with a double underscore are reserved. Some
+poor choices for names will generate warnings, if warnings are enabled at
+compile time.
+<A NAME="lbAF">&nbsp;</A>
+<H3>List constants</H3>
+
+<A NAME="ixAAF"></A>
+Constants may be lists of more (or less) than one value.  A constant
+with no values evaluates to <TT>&quot;undef&quot;</TT> in scalar context.  Note that
+constants with more than one value do <I>not</I> return their last value in
+scalar context as one might expect.  They currently return the number
+of values, but <B>this may change in the future</B>.  Do not use constants
+with multiple values in scalar context.
+<P>
+
+<B></B><FONT SIZE="-1"><B>NOTE:</B></FONT><B></B> This implies that the expression defining the value of a
+constant is evaluated in list context.  This may produce surprises:
+<P>
+
+
+
+<PRE>
+    use constant TIMESTAMP =&gt; localtime;                # WRONG!
+    use constant TIMESTAMP =&gt; scalar localtime;         # right
+
+</PRE>
+
+
+<P>
+
+The first line above defines <TT>&quot;TIMESTAMP&quot;</TT> as a 9-element list, as
+returned by <TT>&quot;localtime()&quot;</TT> in list context.  To set it to the string
+returned by <TT>&quot;localtime()&quot;</TT> in scalar context, an explicit <TT>&quot;scalar&quot;</TT>
+keyword is required.
+<P>
+
+List constants are lists, not arrays.  To index or slice them, they
+must be placed in parentheses.
+<P>
+
+
+
+<PRE>
+    my @workdays = WEEKDAYS[1 .. 5];            # WRONG!
+    my @workdays = (WEEKDAYS)[1 .. 5];          # right
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>Defining multiple constants at once</H3>
+
+<A NAME="ixAAG"></A>
+Instead of writing multiple <TT>&quot;use constant&quot;</TT> statements, you may define
+multiple constants in a single statement by giving, instead of the
+constant name, a reference to a hash where the keys are the names of
+the constants to be defined.  Obviously, all constants defined using
+this method must have a single value.
+<P>
+
+
+
+<PRE>
+    use constant {
+        FOO =&gt; &quot;A single value&quot;,
+        BAR =&gt; &quot;This&quot;, &quot;won't&quot;, &quot;work!&quot;,        # Error!
+    };
+
+</PRE>
+
+
+<P>
+
+This is a fundamental limitation of the way hashes are constructed in
+Perl.  The error messages produced when this happens will often be
+quite cryptic --- in the worst case there may be none at all, and
+you'll only later find that something is broken.
+<P>
+
+When defining multiple constants, you cannot use the values of other
+constants defined in the same declaration.  This is because the
+calling package doesn't know about any constant within that group
+until <I>after</I> the <TT>&quot;use&quot;</TT> statement is finished.
+<P>
+
+
+
+<PRE>
+    use constant {
+        BITMASK =&gt; 0xAFBAEBA8,
+        NEGMASK =&gt; ~BITMASK,                    # Error!
+    };
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>Magic constants</H3>
+
+<A NAME="ixAAH"></A>
+Magical values and references can be made into constants at compile
+time, allowing for way cool stuff like this.  (These error numbers
+aren't totally portable, alas.)
+<P>
+
+
+
+<PRE>
+    use constant E2BIG =&gt; ($! = 7);
+    print   E2BIG, &quot;\n&quot;;        # something like &quot;Arg list too long&quot;
+    print 0+E2BIG, &quot;\n&quot;;        # &quot;7&quot;
+
+</PRE>
+
+
+<P>
+
+You can't produce a tied constant by giving a tied scalar as the
+value.  References to tied variables, however, can be used as
+constants without any problems.
+<A NAME="lbAI">&nbsp;</A>
+<H2>TECHNICAL NOTES</H2>
+
+<A NAME="ixAAI"></A>
+In the current implementation, scalar constants are actually
+inlinable subroutines. As of version 5.004 of Perl, the appropriate
+scalar constant is inserted directly in place of some subroutine
+calls, thereby saving the overhead of a subroutine call. See
+``Constant Functions'' in perlsub for details about how and when this
+happens.
+<P>
+
+In the rare case in which you need to discover at run time whether a
+particular constant has been declared via this module, you may use
+this function to examine the hash <TT>%constant::declared</TT>. If the given
+constant name does not include a package name, the current package is
+used.
+<P>
+
+
+
+<PRE>
+    sub declared ($) {
+        use constant 1.01;              # don't omit this!
+        my $name = shift;
+        $name =~ s/^::/main::/;
+        my $pkg = caller;
+        my $full_name = $name =~ /::/ ? $name : &quot;${pkg}::$name&quot;;
+        $constant::declared{$full_name};
+    }
+
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>CAVEATS</H2>
+
+<A NAME="ixAAJ"></A>
+In the current version of Perl, list constants are not inlined
+and some symbols may be redefined without generating a warning.
+<P>
+
+It is not possible to have a subroutine or a keyword with the same
+name as a constant in the same package. This is probably a Good Thing.
+<P>
+
+A constant with a name in the list <TT>&quot;STDIN STDOUT STDERR ARGV ARGVOUT
+ENV INC SIG&quot;</TT> is not allowed anywhere but in package <TT>&quot;main::&quot;</TT>, for
+technical reasons.
+<P>
+
+Unlike constants in some languages, these cannot be overridden
+on the command line or via environment variables.
+<P>
+
+You can get into trouble if you use constants in a context which
+automatically quotes barewords (as is true for any subroutine call).
+For example, you can't say <TT>$hash{CONSTANT}</TT> because <TT>&quot;CONSTANT&quot;</TT> will
+be interpreted as a string.  Use <TT>$hash{CONSTANT()}</TT> or
+<TT>$hash{+CONSTANT}</TT> to prevent the bareword quoting mechanism from
+kicking in.  Similarly, since the <TT>&quot;=&gt;&quot;</TT> operator quotes a bareword
+immediately to its left, you have to say <TT>&quot;CONSTANT() =&gt; 'value'&quot;</TT>
+(or simply use a comma in place of the big arrow) instead of
+<TT>&quot;CONSTANT =&gt; 'value'&quot;</TT>.
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAK"></A>
+Readonly - Facility for creating read-only scalars, arrays, hashes.
+<P>
+
+Const - Facility for creating read-only variables. Similar to <TT>&quot;Readonly&quot;</TT>,
+but uses <TT>&quot;SvREADONLY&quot;</TT> instead of <TT>&quot;tie&quot;</TT>.
+<P>
+
+Attribute::Constant - Make read-only variables via attribute
+<P>
+
+Scalar::Readonly - Perl extension to the <TT>&quot;SvREADONLY&quot;</TT> scalar flag
+<P>
+
+Hash::Util - A selection of general-utility hash subroutines (mostly
+to lock/unlock keys and values)
+<A NAME="lbAL">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAL"></A>
+Please report any bugs or feature requests via the <I><A HREF="/manpages/index.html?1+perlbug">perlbug</A></I>(1) utility.
+<A NAME="lbAM">&nbsp;</A>
+<H2>AUTHORS</H2>
+
+<A NAME="ixAAM"></A>
+Tom Phoenix, &lt;<I><A HREF="mailto:rootbeer@redcat.com">rootbeer@redcat.com</A></I>&gt;, with help from
+many other folks.
+<P>
+
+Multiple constant declarations at once added by Casey West,
+&lt;<I><A HREF="mailto:casey@geeknest.com">casey@geeknest.com</A></I>&gt;.
+<P>
+
+Documentation mostly rewritten by Ilmari Karonen,
+&lt;<I><A HREF="mailto:perl@itz.pp.sci.fi">perl@itz.pp.sci.fi</A></I>&gt;.
+<P>
+
+This program is maintained by the Perl 5 Porters. 
+The <FONT SIZE="-1">CPAN</FONT> distribution is maintained by Sebastien Aperghis-Tramoni
+&lt;<I><A HREF="mailto:sebastien@aperghis.net">sebastien@aperghis.net</A></I>&gt;.
+<A NAME="lbAN">&nbsp;</A>
+<H2>COPYRIGHT &amp; LICENSE</H2>
+
+<A NAME="ixAAN"></A>
+Copyright (C) 1997, 1999 Tom Phoenix
+<P>
+
+This module is free software; you can redistribute it or modify it
+under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DL>
+<DT><A HREF="#lbAF">List constants</A><DD>
+<DT><A HREF="#lbAG">Defining multiple constants at once</A><DD>
+<DT><A HREF="#lbAH">Magic constants</A><DD>
+</DL>
+<DT><A HREF="#lbAI">TECHNICAL NOTES</A><DD>
+<DT><A HREF="#lbAJ">CAVEATS</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">BUGS</A><DD>
+<DT><A HREF="#lbAM">AUTHORS</A><DD>
+<DT><A HREF="#lbAN">COPYRIGHT &amp; LICENSE</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:16 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PERLUNITUT</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PERLUNITUT</H1>
+Section: Perl Programmers Reference Guide (1)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+perlunitut - Perl Unicode Tutorial
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+The days of just flinging strings around are over. It's well established that
+modern programs need to be capable of communicating funny accented letters, and
+things like euro symbols. This means that programmers need new habits. It's
+easy to program Unicode capable software, but it does require discipline to do
+it right.
+<P>
+
+There's a lot to know about character sets, and text encodings. It's probably
+best to spend a full day learning all this, but the basics can be learned in
+minutes.
+<P>
+
+These are not the very basics, though. It is assumed that you already
+know the difference between bytes and characters, and realise (and accept!)
+that there are many different character sets and encodings, and that your
+program has to be explicit about them. Recommended reading is ``The Absolute
+Minimum Every Software Developer Absolutely, Positively Must Know About Unicode
+and Character Sets (No Excuses!)'' by Joel Spolsky, at
+&lt;<A HREF="http://joelonsoftware.com/articles/Unicode.html">http://joelonsoftware.com/articles/Unicode.html</A>&gt;.
+<P>
+
+This tutorial speaks in rather absolute terms, and provides only a limited view
+of the wealth of character string related features that Perl has to offer. For
+most projects, this information will probably suffice.
+<A NAME="lbAD">&nbsp;</A>
+<H3>Definitions</H3>
+
+<A NAME="ixAAD"></A>
+It's important to set a few things straight first. This is the most important
+part of this tutorial. This view may conflict with other information that you
+may have found on the web, but that's mostly because many sources are wrong.
+<P>
+
+You may have to re-read this entire section a few times...
+<P>
+
+<I>Unicode</I>
+<A NAME="ixAAE"></A>
+<P>
+
+<B>Unicode</B> is a character set with room for lots of characters. The ordinal
+value of a character is called a <B>code point</B>.
+<P>
+
+There are many, many code points, but computers work with bytes, and a byte can
+have only 256 values. Unicode has many more characters, so you need a method
+to make these accessible.
+<P>
+
+Unicode is encoded using several competing encodings, of which <FONT SIZE="-1">UTF-8</FONT> is the
+most used. In a Unicode encoding, multiple subsequent bytes can be used to
+store a single code point, or simply: character.
+<P>
+
+<I></I><FONT SIZE="-1"><I>UTF-8</I></FONT><I></I>
+<A NAME="ixAAF"></A>
+<P>
+
+<B></B><FONT SIZE="-1"><B>UTF-8</B></FONT><B></B> is a Unicode encoding. Many people think that Unicode and <FONT SIZE="-1">UTF-8</FONT> are
+the same thing, but they're not. There are more Unicode encodings, but much of
+the world has standardized on <FONT SIZE="-1">UTF-8</FONT>.
+<P>
+
+<FONT SIZE="-1">UTF-8</FONT> treats the first 128 codepoints, 0..127, the same as <FONT SIZE="-1">ASCII</FONT>. They take
+only one byte per character. All other characters are encoded as two or more
+(up to six) bytes using a complex scheme. Fortunately, Perl handles this for
+us, so we don't have to worry about this.
+<P>
+
+<I>Text strings (character strings)</I>
+<A NAME="ixAAG"></A>
+<P>
+
+<B>Text strings</B>, or <B>character strings</B> are made of characters. Bytes are
+irrelevant here, and so are encodings. Each character is just that: the
+character.
+<P>
+
+Text strings are also called <B>Unicode strings</B>, because in Perl, every text
+string is a Unicode string.
+<P>
+
+On a text string, you would do things like:
+<P>
+
+
+
+<PRE>
+    $text =~ s/foo/bar/;
+    if ($string =~ /^\d+$/) { ... }
+    $text = ucfirst $text;
+    my $character_count = length $text;
+
+</PRE>
+
+
+<P>
+
+The value of a character (<TT>&quot;ord&quot;</TT>, <TT>&quot;chr&quot;</TT>) is the corresponding Unicode code
+point.
+<P>
+
+<I>Binary strings (byte strings)</I>
+<A NAME="ixAAH"></A>
+<P>
+
+<B>Binary strings</B>, or <B>byte strings</B> are made of bytes. Here, you don't have
+characters, just bytes. All communication with the outside world (anything
+outside of your current Perl process) is done in binary.
+<P>
+
+On a binary string, you would do things like:
+<P>
+
+
+
+<PRE>
+    my (@length_content) = unpack &quot;(V/a)*&quot;, $binary;
+    $binary =~ s/\x00\x0F/\xFF\xF0/;  # for the brave :)
+    print {$fh} $binary;
+    my $byte_count = length $binary;
+
+</PRE>
+
+
+<P>
+
+<I>Encoding</I>
+<A NAME="ixAAI"></A>
+<P>
+
+<B>Encoding</B> (as a verb) is the conversion from <I>text</I> to <I>binary</I>. To encode,
+you have to supply the target encoding, for example <TT>&quot;iso-8859-1&quot;</TT> or <TT>&quot;UTF-8&quot;</TT>.
+Some encodings, like the <TT>&quot;iso-8859&quot;</TT> (``latin'') range, do not support the full
+Unicode standard; characters that can't be represented are lost in the
+conversion.
+<P>
+
+<I>Decoding</I>
+<A NAME="ixAAJ"></A>
+<P>
+
+<B>Decoding</B> is the conversion from <I>binary</I> to <I>text</I>. To decode, you have to
+know what encoding was used during the encoding phase. And most of all, it must
+be something decodable. It doesn't make much sense to decode a <FONT SIZE="-1">PNG</FONT> image into a
+text string.
+<P>
+
+<I>Internal format</I>
+<A NAME="ixAAK"></A>
+<P>
+
+Perl has an <B>internal format</B>, an encoding that it uses to encode text strings
+so it can store them in memory. All text strings are in this internal format.
+In fact, text strings are never in any other format!
+<P>
+
+You shouldn't worry about what this format is, because conversion is
+automatically done when you decode or encode.
+<A NAME="lbAE">&nbsp;</A>
+<H3>Your new toolkit</H3>
+
+<A NAME="ixAAL"></A>
+Add to your standard heading the following line:
+<P>
+
+
+
+<PRE>
+    use Encode qw(encode decode);
+
+</PRE>
+
+
+<P>
+
+Or, if you're lazy, just:
+<P>
+
+
+
+<PRE>
+    use Encode;
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H3>I/O flow (the actual 5 minute tutorial)</H3>
+
+<A NAME="ixAAM"></A>
+The typical input/output flow of a program is:
+<P>
+
+
+
+<PRE>
+    1. Receive and decode
+    2. Process
+    3. Encode and output
+
+</PRE>
+
+
+<P>
+
+If your input is binary, and is supposed to remain binary, you shouldn't decode
+it to a text string, of course. But in all other cases, you should decode it.
+<P>
+
+Decoding can't happen reliably if you don't know how the data was encoded. If
+you get to choose, it's a good idea to standardize on <FONT SIZE="-1">UTF-8</FONT>.
+<P>
+
+
+
+<PRE>
+    my $foo   = decode('UTF-8', get '<A HREF="http://example.com/');">http://example.com/');</A>
+    my $bar   = decode('ISO-8859-1', readline STDIN);
+    my $xyzzy = decode('Windows-1251', $cgi-&gt;param('foo'));
+
+</PRE>
+
+
+<P>
+
+Processing happens as you knew before. The only difference is that you're now
+using characters instead of bytes. That's very useful if you use things like
+<TT>&quot;substr&quot;</TT>, or <TT>&quot;length&quot;</TT>.
+<P>
+
+It's important to realize that there are no bytes in a text string. Of course,
+Perl has its internal encoding to store the string in memory, but ignore that.
+If you have to do anything with the number of bytes, it's probably best to move
+that part to step 3, just after you've encoded the string. Then you know
+exactly how many bytes it will be in the destination string.
+<P>
+
+The syntax for encoding text strings to binary strings is as simple as decoding:
+<P>
+
+
+
+<PRE>
+    $body = encode('UTF-8', $body);
+
+</PRE>
+
+
+<P>
+
+If you needed to know the length of the string in bytes, now's the perfect time
+for that. Because <TT>$body</TT> is now a byte string, <TT>&quot;length&quot;</TT> will report the
+number of bytes, instead of the number of characters. The number of
+characters is no longer known, because characters only exist in text strings.
+<P>
+
+
+
+<PRE>
+    my $byte_count = length $body;
+
+</PRE>
+
+
+<P>
+
+And if the protocol you're using supports a way of letting the recipient know
+which character encoding you used, please help the receiving end by using that
+feature! For example, E-mail and <FONT SIZE="-1">HTTP</FONT> support <FONT SIZE="-1">MIME</FONT> headers, so you can use the
+<TT>&quot;Content-Type&quot;</TT> header. They can also have <TT>&quot;Content-Length&quot;</TT> to indicate the
+number of <I>bytes</I>, which is always a good idea to supply if the number is
+known.
+<P>
+
+
+
+<PRE>
+    &quot;Content-Type: text/plain; charset=UTF-8&quot;,
+    &quot;Content-Length: $byte_count&quot;
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>SUMMARY</H2>
+
+<A NAME="ixAAN"></A>
+Decode everything you receive, encode everything you send out. (If it's text
+data.)
+<A NAME="lbAH">&nbsp;</A>
+<H2>Q and A (or FAQ)</H2>
+
+<A NAME="ixAAO"></A>
+After reading this document, you ought to read perlunifaq too.
+<A NAME="lbAI">&nbsp;</A>
+<H2>ACKNOWLEDGEMENTS</H2>
+
+<A NAME="ixAAP"></A>
+Thanks to Johan Vromans from Squirrel Consultancy. His <FONT SIZE="-1">UTF-8</FONT> rants during the
+Amsterdam Perl Mongers meetings got me interested and determined to find out
+how to use character encodings in Perl in ways that don't break easily.
+<P>
+
+Thanks to Gerard Goossen from <FONT SIZE="-1">TTY</FONT>. His presentation ``<FONT SIZE="-1">UTF-8</FONT> in the wild'' (Dutch
+Perl Workshop 2006) inspired me to publish my thoughts and write this tutorial.
+<P>
+
+Thanks to the people who asked about this kind of stuff in several Perl <FONT SIZE="-1">IRC</FONT>
+channels, and have constantly reminded me that a simpler explanation was
+needed.
+<P>
+
+Thanks to the people who reviewed this document for me, before it went public.
+They are: Benjamin Smith, Jan-Pieter Cornet, Johan Vromans, Lukas Mai, Nathan
+Gray.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAQ"></A>
+Juerd Waalboer &lt;#####@juerd.nl&gt;
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAR"></A>
+perlunifaq, perlunicode, perluniintro, Encode
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAD">Definitions</A><DD>
+<DT><A HREF="#lbAE">Your new toolkit</A><DD>
+<DT><A HREF="#lbAF">I/O flow (the actual 5 minute tutorial)</A><DD>
+</DL>
+<DT><A HREF="#lbAG">SUMMARY</A><DD>
+<DT><A HREF="#lbAH">Q and A (or FAQ)</A><DD>
+<DT><A HREF="#lbAI">ACKNOWLEDGEMENTS</A><DD>
+<DT><A HREF="#lbAJ">AUTHOR</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:09 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SSL_CTX_set_msg_callback</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SSL_CTX_set_msg_callback</H1>
+Section: OpenSSL (3)<BR>Updated: 2002-08-15<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+SSL_CTX_set_msg_callback, SSL_CTX_set_msg_callback_arg, SSL_set_msg_callback, SSL_get_msg_callback_arg - install callback for observing protocol messages
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/ssl.h">openssl/ssl.h</A>&gt;
+
+ void SSL_CTX_set_msg_callback(SSL_CTX *ctx, void (*cb)(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg));
+ void SSL_CTX_set_msg_callback_arg(SSL_CTX *ctx, void *arg);
+
+ void SSL_set_msg_callback(SSL_CTX *ctx, void (*cb)(int write_p, int version, int content_type, const void *buf, size_t len, SSL *ssl, void *arg));
+ void SSL_set_msg_callback_arg(SSL_CTX *ctx, void *arg);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<I>SSL_CTX_set_msg_callback()</I> or <I>SSL_set_msg_callback()</I> can be used to
+define a message callback function <I>cb</I> for observing all <FONT SIZE="-1">SSL/TLS</FONT>
+protocol messages (such as handshake messages) that are received or
+sent.  <I>SSL_CTX_set_msg_callback_arg()</I> and <I>SSL_set_msg_callback_arg()</I>
+can be used to set argument <I>arg</I> to the callback function, which is
+available for arbitrary application use.
+<P>
+
+<I>SSL_CTX_set_msg_callback()</I> and <I>SSL_CTX_set_msg_callback_arg()</I> specify
+default settings that will be copied to new <B></B><FONT SIZE="-1"><B>SSL</B></FONT><B></B> objects by
+<I><A HREF="/manpages/index.html?3+SSL_new">SSL_new</A></I>(3). <I>SSL_set_msg_callback()</I> and
+<I>SSL_set_msg_callback_arg()</I> modify the actual settings of an <B></B><FONT SIZE="-1"><B>SSL</B></FONT><B></B>
+object. Using a <B>0</B> pointer for <I>cb</I> disables the message callback.
+<P>
+
+When <I>cb</I> is called by the <FONT SIZE="-1">SSL/TLS</FONT> library for a protocol message,
+the function arguments have the following meaning:
+<DL COMPACT>
+<DT><I>write_p</I><DD>
+<A NAME="ixAAE"></A>
+This flag is <B>0</B> when a protocol message has been received and <B>1</B>
+when a protocol message has been sent.
+<DT><I>version</I><DD>
+<A NAME="ixAAF"></A>
+The protocol version according to which the protocol message is
+interpreted by the library. Currently, this is one of
+<B></B><FONT SIZE="-1"><B>SSL2_VERSION</B></FONT><B></B>, <B></B><FONT SIZE="-1"><B>SSL3_VERSION</B></FONT><B></B> and <B></B><FONT SIZE="-1"><B>TLS1_VERSION</B></FONT><B></B> (for <FONT SIZE="-1">SSL</FONT> 2.0, <FONT SIZE="-1">SSL</FONT>
+3.0 and <FONT SIZE="-1">TLS</FONT> 1.0, respectively).
+<DT><I>content_type</I><DD>
+<A NAME="ixAAG"></A>
+In the case of <FONT SIZE="-1">SSL</FONT> 2.0, this is always <B>0</B>.  In the case of <FONT SIZE="-1">SSL</FONT> 3.0
+or <FONT SIZE="-1">TLS</FONT> 1.0, this is one of the <B>ContentType</B> values defined in the
+protocol specification (<B>change_cipher_spec(20)</B>, <B>alert(21)</B>,
+<B>handshake(22)</B>; but never <B>application_data(23)</B> because the
+callback will only be called for protocol messages).
+<DT><I>buf</I>, <I>len</I><DD>
+<A NAME="ixAAH"></A>
+<I>buf</I> points to a buffer containing the protocol message, which
+consists of <I>len</I> bytes. The buffer is no longer valid after the
+callback function has returned.
+<DT><I>ssl</I><DD>
+<A NAME="ixAAI"></A>
+The <B></B><FONT SIZE="-1"><B>SSL</B></FONT><B></B> object that received or sent the message.
+<DT><I>arg</I><DD>
+<A NAME="ixAAJ"></A>
+The user-defined argument optionally defined by
+<I>SSL_CTX_set_msg_callback_arg()</I> or <I>SSL_set_msg_callback_arg()</I>.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixAAK"></A>
+Protocol messages are passed to the callback function after decryption
+and fragment collection where applicable. (Thus record boundaries are
+not visible.)
+<P>
+
+If processing a received protocol message results in an error,
+the callback function may not be called.  For example, the callback
+function will never see messages that are considered too large to be
+processed.
+<P>
+
+Due to automatic protocol version negotiation, <I>version</I> is not
+necessarily the protocol version used by the sender of the message: If
+a <FONT SIZE="-1">TLS</FONT> 1.0 ClientHello message is received by an <FONT SIZE="-1">SSL</FONT> 3.0-only server,
+<I>version</I> will be <B></B><FONT SIZE="-1"><B>SSL3_VERSION</B></FONT><B></B>.
+<A NAME="lbAF">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAL"></A>
+<I><A HREF="/manpages/index.html?3+ssl">ssl</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+SSL_new">SSL_new</A></I>(3)
+<A NAME="lbAG">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<A NAME="ixAAM"></A>
+<I>SSL_CTX_set_msg_callback()</I>, <I>SSL_CTX_set_msg_callback_arg()</I>,
+<I>SSL_set_msg_callback()</I> and <I>SSL_get_msg_callback_arg()</I> were added in OpenSSL 0.9.7.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">NOTES</A><DD>
+<DT><A HREF="#lbAF">SEE ALSO</A><DD>
+<DT><A HREF="#lbAG">HISTORY</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:42 GMT, December 24, 2015
+</div></body>
+</HTML>

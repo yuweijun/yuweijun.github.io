@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of VIRTUAL</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>VIRTUAL</H1>
+Section: File Formats (5)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+virtual
+-
+Postfix virtual alias table format
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+
+<PRE>
+<B>postmap /etc/postfix/virtual</B>
+
+<B>postmap -q &quot;</B><I>string</I><B>&quot; /etc/postfix/virtual</B>
+
+<B>postmap -q - /etc/postfix/virtual &lt;</B><I>inputfile</I>
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+The optional <B><A HREF="/manpages/index.html?5+virtual">virtual</A></B>(5) alias table rewrites recipient
+addresses for all local, all virtual, and all remote mail
+destinations.
+This is unlike the <B><A HREF="/manpages/index.html?5+aliases">aliases</A></B>(5) table which is used
+only for <B><A HREF="/manpages/index.html?8+local">local</A></B>(8) delivery.  Virtual aliasing is
+recursive, and is implemented by the Postfix <B><A HREF="/manpages/index.html?8+cleanup">cleanup</A></B>(8)
+daemon before mail is queued.
+<P>
+The main applications of virtual aliasing are:
+<DL COMPACT>
+<DT>*<DD>
+To redirect mail for one address to one or more addresses.
+<DT>*<DD>
+To implement virtual alias domains where all addresses are aliased
+to addresses in other domains.
+<P>
+Virtual alias domains are not to be confused with the virtual mailbox
+domains that are implemented with the Postfix <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) mail
+delivery agent. With virtual mailbox domains, each recipient address
+can have its own mailbox.
+</DL>
+<P>
+
+Virtual aliasing is applied only to recipient
+envelope addresses, and does not affect message headers.
+Use <B><A HREF="/manpages/index.html?5+canonical">canonical</A></B>(5)
+mapping to rewrite header and envelope addresses in general.
+<P>
+Normally, the <B><A HREF="/manpages/index.html?5+virtual">virtual</A></B>(5) alias table is specified as a text file
+that serves as input to the <B><A HREF="/manpages/index.html?1+postmap">postmap</A></B>(1) command.
+The result, an indexed file in <B>dbm</B> or <B>db</B> format,
+is used for fast searching by the mail system. Execute the command
+&quot;<B>postmap /etc/postfix/virtual</B>&quot; to rebuild an indexed
+file after changing the corresponding text file.
+<P>
+When the table is provided via other means such as NIS, LDAP
+or SQL, the same lookups are done as for ordinary indexed files.
+<P>
+Alternatively, the table can be provided as a regular-expression
+map where patterns are given as regular expressions, or lookups
+can be directed to TCP-based server. In those case, the lookups
+are done in a slightly different way as described below under
+&quot;REGULAR EXPRESSION TABLES&quot; or &quot;TCP-BASED TABLES&quot;.
+<A NAME="lbAE">&nbsp;</A>
+<H2>CASE FOLDING</H2>
+
+
+<PRE>
+</PRE>
+
+The search string is folded to lowercase before database
+lookup. As of Postfix 2.3, the search string is not case
+folded with database types such as regexp: or pcre: whose
+lookup fields can match both upper and lower case.
+<A NAME="lbAF">&nbsp;</A>
+<H2>TABLE FORMAT</H2>
+
+
+<PRE>
+</PRE>
+
+The input format for the <B><A HREF="/manpages/index.html?1+postmap">postmap</A></B>(1) command is as follows:
+<DL COMPACT>
+<DT><I>pattern result</I><DD>
+When <I>pattern</I> matches a mail address, replace it by the
+corresponding <I>result</I>.
+<DT>blank lines and comments<DD>
+Empty lines and whitespace-only lines are ignored, as
+are lines whose first non-whitespace character is a `#'.
+<DT>multi-line text<DD>
+A logical line starts with non-whitespace text. A line that
+starts with whitespace continues a logical line.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>TABLE SEARCH ORDER</H2>
+
+
+<PRE>
+</PRE>
+
+With lookups from indexed files such as DB or DBM, or from networked
+tables such as NIS, LDAP or SQL, patterns are tried in the order as
+listed below:
+<DL COMPACT>
+<DT><I>user</I>@<I>domain address, address, ...</I><DD>
+Redirect mail for <I>user</I>@<I>domain</I> to <I>address</I>.
+This form has the highest precedence.
+<DT><I>user address, address, ...</I><DD>
+Redirect mail for <I>user</I>@<I>site</I> to <I>address</I> when
+<I>site</I> is equal to $<B>myorigin</B>, when <I>site</I> is listed in
+$<B>mydestination</B>, or when it is listed in $<B>inet_interfaces</B>
+or $<B>proxy_interfaces</B>.
+<P>
+This functionality overlaps with functionality of the local
+<I><A HREF="/manpages/index.html?5+aliases">aliases</A></I>(5) database. The difference is that <B><A HREF="http://localhost/cgi-bin/man/man2html?5+virtual">virtual</A></B>(5)
+mapping can be applied to non-local addresses.
+<DT>@<I>domain address, address, ...</I><DD>
+Redirect mail for other users in <I>domain</I> to <I>address</I>.
+This form has the lowest precedence.
+<P>
+Note: @<I>domain</I> is a wild-card. With this form, the
+Postfix SMTP server accepts
+mail for any recipient in <I>domain</I>, regardless of whether
+that recipient exists.  This may turn your mail system into
+a backscatter source: Postfix first accepts mail for
+non-existent recipients and then tries to return that mail
+as &quot;undeliverable&quot; to the often forged sender address.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>RESULT ADDRESS REWRITING</H2>
+
+
+<PRE>
+</PRE>
+
+The lookup result is subject to address rewriting:
+<DL COMPACT>
+<DT>*<DD>
+When the result has the form @<I>otherdomain</I>, the
+result becomes the same <I>user</I> in <I>otherdomain</I>.
+This works only for the first address in a multi-address
+lookup result.
+<DT>*<DD>
+When &quot;<B>append_at_myorigin=yes</B>&quot;, append &quot;<B>@$myorigin</B>&quot;
+to addresses without &quot;@domain&quot;.
+<DT>*<DD>
+When &quot;<B>append_dot_mydomain=yes</B>&quot;, append
+&quot;<B>.$mydomain</B>&quot; to addresses without &quot;.domain&quot;.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>ADDRESS EXTENSION</H2>
+
+
+<PRE>
+</PRE>
+
+
+When a mail address localpart contains the optional recipient delimiter
+(e.g., <I>user+foo</I>@<I>domain</I>), the lookup order becomes:
+<I>user+foo</I>@<I>domain</I>, <I>user</I>@<I>domain</I>, <I>user+foo</I>,
+<I>user</I>, and @<I>domain</I>.
+<P>
+The <B>propagate_unmatched_extensions</B> parameter controls whether
+an unmatched address extension (<I>+foo</I>) is propagated to the
+result of table lookup.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>VIRTUAL ALIAS DOMAINS</H2>
+
+
+<PRE>
+</PRE>
+
+Besides virtual aliases, the virtual alias table can also be used
+to implement virtual alias domains. With a virtual alias domain, all
+recipient addresses are aliased to addresses in other domains.
+<P>
+Virtual alias domains are not to be confused with the virtual mailbox
+domains that are implemented with the Postfix <B><A HREF="/manpages/index.html?8+virtual">virtual</A></B>(8) mail
+delivery agent. With virtual mailbox domains, each recipient address
+can have its own mailbox.
+<P>
+With a virtual alias domain, the virtual domain has its
+own user name space. Local (i.e. non-virtual) usernames are not
+visible in a virtual alias domain. In particular, local
+<B><A HREF="/manpages/index.html?5+aliases">aliases</A></B>(5) and local mailing lists are not visible as
+<I><A HREF="mailto:localname@virtual-alias.domain">localname@virtual-alias.domain</A></I>.
+<P>
+Support for a virtual alias domain looks like:
+<P>
+<PRE>
+/etc/postfix/main.cf:
+    virtual_alias_maps = hash:/etc/postfix/virtual
+</PRE>
+
+<P>
+Note: some systems use <B>dbm</B> databases instead of <B>hash</B>.
+See the output from &quot;<B>postconf -m</B>&quot; for available database types.
+<P>
+<PRE>
+/etc/postfix/virtual:
+    <I>virtual-alias.domain     anything</I> (right-hand content does not matter)
+    <I><A HREF="mailto:postmaster@virtual-alias.domain">postmaster@virtual-alias.domain</A>  postmaster</I>
+    <I><A HREF="mailto:user1@virtual-alias.domain">user1@virtual-alias.domain</A>       address1</I>
+    <I><A HREF="mailto:user2@virtual-alias.domain">user2@virtual-alias.domain</A>       address2, address3</I>
+</PRE>
+
+<P>
+The <I>virtual-alias.domain anything</I> entry is required for a
+virtual alias domain. <B>Without this entry, mail is rejected
+with &quot;relay access denied&quot;, or bounces with
+&quot;mail loops back to myself&quot;.</B>
+<P>
+Do not specify virtual alias domain names in the <B>main.cf
+mydestination</B> or <B>relay_domains</B> configuration parameters.
+<P>
+With a virtual alias domain, the Postfix SMTP server
+accepts mail for <I><A HREF="mailto:known-user@virtual-alias.domain">known-user@virtual-alias.domain</A></I>, and rejects
+mail for <I>unknown-user</I>@<I>virtual-alias.domain</I> as undeliverable.
+<P>
+Instead of specifying the virtual alias domain name via
+the <B>virtual_alias_maps</B> table, you may also specify it via
+the <B>main.cf virtual_alias_domains</B> configuration parameter.
+This latter parameter uses the same syntax as the <B>main.cf
+mydestination</B> configuration parameter.
+<A NAME="lbAK">&nbsp;</A>
+<H2>REGULAR EXPRESSION TABLES</H2>
+
+
+<PRE>
+</PRE>
+
+This section describes how the table lookups change when the table
+is given in the form of regular expressions. For a description of
+regular expression lookup table syntax, see <B><A HREF="/manpages/index.html?5+regexp_table">regexp_table</A></B>(5)
+or <B><A HREF="/manpages/index.html?5+pcre_table">pcre_table</A></B>(5).
+<P>
+Each pattern is a regular expression that is applied to the entire
+address being looked up. Thus, <I><A HREF="mailto:user@domain">user@domain</A></I> mail addresses are not
+broken up into their <I>user</I> and <I>@domain</I> constituent parts,
+nor is <I>user+foo</I> broken up into <I>user</I> and <I>foo</I>.
+<P>
+Patterns are applied in the order as specified in the table, until a
+pattern is found that matches the search string.
+<P>
+Results are the same as with indexed file lookups, with
+the additional feature that parenthesized substrings from the
+pattern can be interpolated as <B>$1</B>, <B>$2</B> and so on.
+<A NAME="lbAL">&nbsp;</A>
+<H2>TCP-BASED TABLES</H2>
+
+
+<PRE>
+</PRE>
+
+This section describes how the table lookups change when lookups
+are directed to a TCP-based server. For a description of the TCP
+client/server lookup protocol, see <B><A HREF="/manpages/index.html?5+tcp_table">tcp_table</A></B>(5).
+This feature is not available up to and including Postfix version 2.4.
+<P>
+Each lookup operation uses the entire address once.  Thus,
+<I><A HREF="mailto:user@domain">user@domain</A></I> mail addresses are not broken up into their
+<I>user</I> and <I>@domain</I> constituent parts, nor is
+<I>user+foo</I> broken up into <I>user</I> and <I>foo</I>.
+<P>
+Results are the same as with indexed file lookups.
+<A NAME="lbAM">&nbsp;</A>
+<H2>BUGS</H2>
+
+
+
+The table format does not understand quoting conventions.
+<A NAME="lbAN">&nbsp;</A>
+<H2>CONFIGURATION PARAMETERS</H2>
+
+
+<PRE>
+</PRE>
+
+The following <B>main.cf</B> parameters are especially relevant to
+this topic. See the Postfix <B>main.cf</B> file for syntax details
+and for default values. Use the &quot;<B>postfix reload</B>&quot; command after
+a configuration change.
+<DL COMPACT>
+<DT><B>virtual_alias_maps</B><DD>
+List of virtual aliasing tables.
+<DT><B>virtual_alias_domains</B><DD>
+List of virtual alias domains. This uses the same syntax
+as the <B>mydestination</B> parameter.
+<DT><B>propagate_unmatched_extensions</B><DD>
+A list of address rewriting or forwarding mechanisms that propagate
+an address extension from the original address to the result.
+Specify zero or more of <B>canonical</B>, <B>virtual</B>, <B>alias</B>,
+<B>forward</B>, <B>include</B>, or <B>generic</B>.
+</DL>
+<P>
+
+Other parameters of interest:
+<DL COMPACT>
+<DT><B>inet_interfaces</B><DD>
+The network interface addresses that this system receives mail on.
+You need to stop and start Postfix when this parameter changes.
+<DT><B>mydestination</B><DD>
+List of domains that this mail system considers local.
+<DT><B>myorigin</B><DD>
+The domain that is appended to any address that does not have a domain.
+<DT><B>owner_request_special</B><DD>
+Give special treatment to <B>owner-</B><I>xxx</I> and <I>xxx</I><B>-request</B>
+addresses.
+<DT><B>proxy_interfaces</B><DD>
+Other interfaces that this machine receives mail on by way of a
+proxy agent or network address translator.
+</DL>
+<A NAME="lbAO">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/manpages/index.html?8+cleanup">cleanup</A>(8), canonicalize and enqueue mail
+<A HREF="/manpages/index.html?1+postmap">postmap</A>(1), Postfix lookup table manager
+<A HREF="/manpages/index.html?5+postconf">postconf</A>(5), configuration parameters
+<A HREF="/manpages/index.html?5+canonical">canonical</A>(5), canonical address mapping
+</PRE><A NAME="lbAP">&nbsp;</A>
+<H2>README FILES</H2>
+
+
+<PRE>
+</PRE>
+
+Use &quot;<B>postconf readme_directory</B>&quot; or
+&quot;<B>postconf html_directory</B>&quot; to locate this information.
+
+<PRE>
+ADDRESS_REWRITING_README, address rewriting guide
+DATABASE_README, Postfix lookup table overview
+VIRTUAL_README, domain hosting guide
+</PRE><A NAME="lbAQ">&nbsp;</A>
+<H2>LICENSE</H2>
+
+
+<PRE>
+</PRE>
+
+The Secure Mailer license must be distributed with this software.
+<A NAME="lbAR">&nbsp;</A>
+<H2>AUTHOR(S)</H2>
+
+
+<PRE>
+Wietse Venema
+IBM T.J. Watson Research
+P.O. Box 704
+Yorktown Heights, NY 10598, USA
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">CASE FOLDING</A><DD>
+<DT><A HREF="#lbAF">TABLE FORMAT</A><DD>
+<DT><A HREF="#lbAG">TABLE SEARCH ORDER</A><DD>
+<DT><A HREF="#lbAH">RESULT ADDRESS REWRITING</A><DD>
+<DT><A HREF="#lbAI">ADDRESS EXTENSION</A><DD>
+<DT><A HREF="#lbAJ">VIRTUAL ALIAS DOMAINS</A><DD>
+<DT><A HREF="#lbAK">REGULAR EXPRESSION TABLES</A><DD>
+<DT><A HREF="#lbAL">TCP-BASED TABLES</A><DD>
+<DT><A HREF="#lbAM">BUGS</A><DD>
+<DT><A HREF="#lbAN">CONFIGURATION PARAMETERS</A><DD>
+<DT><A HREF="#lbAO">SEE ALSO</A><DD>
+<DT><A HREF="#lbAP">README FILES</A><DD>
+<DT><A HREF="#lbAQ">LICENSE</A><DD>
+<DT><A HREF="#lbAR">AUTHOR(S)</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

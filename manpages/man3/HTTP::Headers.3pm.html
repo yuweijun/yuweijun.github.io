@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of HTTP::Headers</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>HTTP::Headers</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-06-15<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+HTTP::Headers - Class encapsulating HTTP Message headers
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ require HTTP::Headers;
+ $h = HTTP::Headers-&gt;new;
+
+ $h-&gt;header('Content-Type' =&gt; 'text/plain');  # set
+ $ct = $h-&gt;header('Content-Type');            # get
+ $h-&gt;remove_header('Content-Type');           # delete
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The <TT>&quot;HTTP::Headers&quot;</TT> class encapsulates HTTP-style message headers.
+The headers consist of attribute-value pairs also called fields, which
+may be repeated, and which are printed in a particular order.  The
+field names are cases insensitive.
+<P>
+
+Instances of this class are usually created as member variables of the
+<TT>&quot;HTTP::Request&quot;</TT> and <TT>&quot;HTTP::Response&quot;</TT> classes, internal to the
+library.
+<P>
+
+The following methods are available:
+<DL COMPACT>
+<DT>$h = HTTP::Headers-&gt;new<DD>
+
+
+<A NAME="ixAAE"></A>
+Constructs a new <TT>&quot;HTTP::Headers&quot;</TT> object.  You might pass some initial
+attribute-value pairs as parameters to the constructor.  <I>E.g.</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+ $h = HTTP::Headers-&gt;new(
+       Date         =&gt; 'Thu, 03 Feb 1994 00:00:00 GMT',
+       Content_Type =&gt; 'text/html; version=3.2',
+       Content_Base =&gt; '<A HREF="http://www.perl.org/');">http://www.perl.org/');</A>
+
+</PRE>
+
+
+
+
+<P>
+
+
+The constructor arguments are passed to the <TT>&quot;header&quot;</TT> method which is
+described below.
+<DT>$h-&gt;clone<DD>
+
+
+<A NAME="ixAAF"></A>
+Returns a copy of this <TT>&quot;HTTP::Headers&quot;</TT> object.
+<DT>$h-&gt;header( $field )<DD>
+
+
+<A NAME="ixAAG"></A>
+
+<DT>$h-&gt;header( $field =&gt; $value )<DD>
+
+
+<A NAME="ixAAH"></A>
+<DT>$h-&gt;header( $f1 =&gt; $v1, $f2 =&gt; $v2, ... )<DD>
+
+
+<A NAME="ixAAI"></A>
+
+Get or set the value of one or more header fields.  The header field
+name ($field) is not case sensitive.  To make the life easier for perl
+users who wants to avoid quoting before the =&gt; operator, you can use
+'_' as a replacement for '-' in header names.
+
+
+<P>
+
+
+The <I>header()</I> method accepts multiple ($field =&gt; <TT>$value</TT>) pairs, which
+means that you can update several fields with a single invocation.
+
+
+<P>
+
+
+The <TT>$value</TT> argument may be a plain string or a reference to an array
+of strings for a multi-valued field. If the <TT>$value</TT> is provided as
+<TT>&quot;undef&quot;</TT> then the field is removed.  If the <TT>$value</TT> is not given, then
+that header field will remain unchanged.
+
+
+<P>
+
+
+The old value (or values) of the last of the header fields is returned.
+If no such field exists <TT>&quot;undef&quot;</TT> will be returned.
+
+
+<P>
+
+
+A multi-valued field will be returned as separate values in list
+context and will be concatenated with ``, '' as separator in scalar
+context.  The <FONT SIZE="-1">HTTP</FONT> spec (<FONT SIZE="-1">RFC</FONT> 2616) promise that joining multiple
+values in this way will not change the semantic of a header field, but
+in practice there are cases like old-style Netscape cookies (see
+HTTP::Cookies) where ``,'' is used as part of the syntax of a single
+field value.
+
+
+<P>
+
+
+Examples:
+
+
+<P>
+
+
+
+
+<PRE>
+ $header-&gt;header(MIME_Version =&gt; '1.0',
+                 User_Agent   =&gt; 'My-Web-Client/0.01');
+ $header-&gt;header(Accept =&gt; &quot;text/html, text/plain, image/*&quot;);
+ $header-&gt;header(Accept =&gt; [qw(text/html text/plain image/*)]);
+ @accepts = $header-&gt;header('Accept');  # get multiple values
+ $accepts = $header-&gt;header('Accept');  # get values as a single string
+
+</PRE>
+
+
+<DT>$h-&gt;push_header( $field =&gt; $value )<DD>
+
+
+<A NAME="ixAAJ"></A>
+
+<DT>$h-&gt;push_header( $f1 =&gt; $v1, $f2 =&gt; $v2, ... )<DD>
+
+
+<A NAME="ixAAK"></A>
+
+Add a new field value for the specified header field.  Previous values
+for the same field are retained.
+
+
+<P>
+
+
+As for the <I>header()</I> method, the field name ($field) is not case
+sensitive and '_' can be used as a replacement for '-'.
+
+
+<P>
+
+
+The <TT>$value</TT> argument may be a scalar or a reference to a list of
+scalars.
+
+
+<P>
+
+
+
+
+<PRE>
+ $header-&gt;push_header(Accept =&gt; 'image/jpeg');
+ $header-&gt;push_header(Accept =&gt; [map &quot;image/$_&quot;, qw(gif png tiff)]);
+
+</PRE>
+
+
+<DT>$h-&gt;init_header( $field =&gt; $value )<DD>
+
+
+<A NAME="ixAAL"></A>
+Set the specified header to the given value, but only if no previous
+value for that field is set.
+
+
+<P>
+
+
+The header field name ($field) is not case sensitive and '_'
+can be used as a replacement for '-'.
+
+
+<P>
+
+
+The <TT>$value</TT> argument may be a scalar or a reference to a list of
+scalars.
+<DT>$h-&gt;remove_header( $field, ... )<DD>
+
+
+<A NAME="ixAAM"></A>
+This function removes the header fields with the specified names.
+
+
+<P>
+
+
+The header field names ($field) are not case sensitive and '_'
+can be used as a replacement for '-'.
+
+
+<P>
+
+
+The return value is the values of the fields removed.  In scalar
+context the number of fields removed is returned.
+
+
+<P>
+
+
+Note that if you pass in multiple field names then it is generally not
+possible to tell which of the returned values belonged to which field.
+<DT>$h-&gt;remove_content_headers<DD>
+
+
+<A NAME="ixAAN"></A>
+This will remove all the header fields used to describe the content of
+a message.  All header field names prefixed with <TT>&quot;Content-&quot;</TT> falls
+into this category, as well as <TT>&quot;Allow&quot;</TT>, <TT>&quot;Expires&quot;</TT> and
+<TT>&quot;Last-Modified&quot;</TT>.  <FONT SIZE="-1">RFC</FONT> 2616 denote these fields as <I>Entity Header
+Fields</I>.
+
+
+<P>
+
+
+The return value is a new <TT>&quot;HTTP::Headers&quot;</TT> object that contains the
+removed headers only.
+<DT>$h-&gt;clear<DD>
+
+
+<A NAME="ixAAO"></A>
+This will remove all header fields.
+<DT>$h-&gt;header_field_names<DD>
+
+
+<A NAME="ixAAP"></A>
+Returns the list of distinct names for the fields present in the
+header.  The field names have case as suggested by <FONT SIZE="-1">HTTP</FONT> spec, and the
+names are returned in the recommended ``Good Practice'' order.
+
+
+<P>
+
+
+In scalar context return the number of distinct field names.
+<DT>$h-&gt;scan( \&amp;process_header_field )<DD>
+
+
+<A NAME="ixAAQ"></A>
+Apply a subroutine to each header field in turn.  The callback routine
+is called with two parameters; the name of the field and a single
+value (a string).  If a header field is multi-valued, then the
+routine is called once for each value.  The field name passed to the
+callback routine has case as suggested by <FONT SIZE="-1">HTTP</FONT> spec, and the headers
+will be visited in the recommended ``Good Practice'' order.
+
+
+<P>
+
+
+Any return values of the callback routine are ignored.  The loop can
+be broken by raising an exception (<TT>&quot;die&quot;</TT>), but the caller of <I>scan()</I>
+would have to trap the exception itself.
+<DT>$h-&gt;as_string<DD>
+
+
+<A NAME="ixAAR"></A>
+
+<DT>$h-&gt;as_string( $eol )<DD>
+
+
+<A NAME="ixAAS"></A>
+
+Return the header fields as a formatted <FONT SIZE="-1">MIME</FONT> header.  Since it
+internally uses the <TT>&quot;scan&quot;</TT> method to build the string, the result
+will use case as suggested by <FONT SIZE="-1">HTTP</FONT> spec, and it will follow
+recommended ``Good Practice'' of ordering the header fields.  Long header
+values are not folded.
+
+
+<P>
+
+
+The optional <TT>$eol</TT> parameter specifies the line ending sequence to
+use.  The default is ``\n''.  Embedded ``\n'' characters in header field
+values will be substituted with this line ending sequence.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>CONVENIENCE METHODS</H2>
+
+<A NAME="ixAAT"></A>
+The most frequently used headers can also be accessed through the
+following convenience Methods.  Most of these methods can both be used to read
+and to set the value of a header.  The header value is set if you pass
+an argument to the method.  The old header value is always returned.
+If the given header did not exist then <TT>&quot;undef&quot;</TT> is returned.
+<P>
+
+Methods that deal with dates/times always convert their value to system
+time (seconds since Jan 1, 1970) and they also expect this kind of
+value when the header value is set.
+<DL COMPACT>
+<DT>$h-&gt;date<DD>
+
+
+<A NAME="ixAAU"></A>
+This header represents the date and time at which the message was
+originated. <I>E.g.</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+  $h-&gt;date(time);  # set current date
+
+</PRE>
+
+
+<DT>$h-&gt;expires<DD>
+
+
+<A NAME="ixAAV"></A>
+This header gives the date and time after which the entity should be
+considered stale.
+<DT>$h-&gt;if_modified_since<DD>
+
+
+<A NAME="ixAAW"></A>
+
+<DT>$h-&gt;if_unmodified_since<DD>
+
+
+<A NAME="ixAAX"></A>
+
+These header fields are used to make a request conditional.  If the requested
+resource has (or has not) been modified since the time specified in this field,
+then the server will return a <TT>&quot;304 Not Modified&quot;</TT> response instead of
+the document itself.
+<DT>$h-&gt;last_modified<DD>
+
+
+<A NAME="ixAAY"></A>
+This header indicates the date and time at which the resource was last
+modified. <I>E.g.</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+  # check if document is more than 1 hour old
+  if (my $last_mod = $h-&gt;last_modified) {
+      if ($last_mod &lt; time - 60*60) {
+          ...
+      }
+  }
+
+</PRE>
+
+
+<DT>$h-&gt;content_type<DD>
+
+
+<A NAME="ixAAZ"></A>
+The Content-Type header field indicates the media type of the message
+content. <I>E.g.</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+  $h-&gt;content_type('text/html');
+
+</PRE>
+
+
+
+
+<P>
+
+
+The value returned will be converted to lower case, and potential
+parameters will be chopped off and returned as a separate value if in
+an array context.  If there is no such header field, then the empty
+string is returned.  This makes it safe to do the following:
+
+
+<P>
+
+
+
+
+<PRE>
+  if ($h-&gt;content_type eq 'text/html') {
+     # we enter this place even if the real header value happens to
+     # be 'TEXT/HTML; version=3.0'
+     ...
+  }
+
+</PRE>
+
+
+<DT>$h-&gt;content_type_charset<DD>
+
+
+<A NAME="ixABA"></A>
+Returns the upper-cased charset specified in the Content-Type header.  In list
+context return the lower-cased bare content type followed by the upper-cased
+charset.  Both values will be <TT>&quot;undef&quot;</TT> if not specified in the header.
+<DT>$h-&gt;content_is_text<DD>
+
+
+<A NAME="ixABB"></A>
+Returns <FONT SIZE="-1">TRUE</FONT> if the Content-Type header field indicate that the
+content is textual.
+<DT>$h-&gt;content_is_html<DD>
+
+
+<A NAME="ixABC"></A>
+Returns <FONT SIZE="-1">TRUE</FONT> if the Content-Type header field indicate that the
+content is some kind of <FONT SIZE="-1">HTML</FONT> (including <FONT SIZE="-1">XHTML</FONT>).  This method can't be
+used to set Content-Type.
+<DT>$h-&gt;content_is_xhtml<DD>
+
+
+<A NAME="ixABD"></A>
+Returns <FONT SIZE="-1">TRUE</FONT> if the Content-Type header field indicate that the
+content is <FONT SIZE="-1">XHTML</FONT>.  This method can't be used to set Content-Type.
+<DT>$h-&gt;content_is_xml<DD>
+
+
+<A NAME="ixABE"></A>
+Returns <FONT SIZE="-1">TRUE</FONT> if the Content-Type header field indicate that the
+content is <FONT SIZE="-1">XML</FONT>.  This method can't be used to set Content-Type.
+<DT>$h-&gt;content_encoding<DD>
+
+
+<A NAME="ixABF"></A>
+The Content-Encoding header field is used as a modifier to the
+media type.  When present, its value indicates what additional
+encoding mechanism has been applied to the resource.
+<DT>$h-&gt;content_length<DD>
+
+
+<A NAME="ixABG"></A>
+A decimal number indicating the size in bytes of the message content.
+<DT>$h-&gt;content_language<DD>
+
+
+<A NAME="ixABH"></A>
+The natural language(s) of the intended audience for the message
+content.  The value is one or more language tags as defined by <FONT SIZE="-1">RFC</FONT>
+1766.  Eg. ``no'' for some kind of Norwegian and ``en-US'' for English the
+way it is written in the <FONT SIZE="-1">US</FONT>.
+<DT>$h-&gt;title<DD>
+
+
+<A NAME="ixABI"></A>
+The title of the document.  In libwww-perl this header will be
+initialized automatically from the &lt;<FONT SIZE="-1">TITLE</FONT>&gt;...&lt;/TITLE&gt; element
+of <FONT SIZE="-1">HTML</FONT> documents.  <I>This header is no longer part of the </I><FONT SIZE="-1"><I>HTTP</I></FONT><I>
+standard.</I>
+<DT>$h-&gt;user_agent<DD>
+
+
+<A NAME="ixABJ"></A>
+This header field is used in request messages and contains information
+about the user agent originating the request.  <I>E.g.</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+  $h-&gt;user_agent('Mozilla/5.0 (compatible; MSIE 7.0; Windows NT 6.0)');
+
+</PRE>
+
+
+<DT>$h-&gt;server<DD>
+
+
+<A NAME="ixABK"></A>
+The server header field contains information about the software being
+used by the originating server program handling the request.
+<DT>$h-&gt;from<DD>
+
+
+<A NAME="ixABL"></A>
+This header should contain an Internet e-mail address for the human
+user who controls the requesting user agent.  The address should be
+machine-usable, as defined by <FONT SIZE="-1">RFC822</FONT>.  E.g.:
+
+
+<P>
+
+
+
+
+<PRE>
+  $h-&gt;from('King Kong &lt;<A HREF="mailto:king@kong.com">king@kong.com</A>&gt;');
+
+</PRE>
+
+
+
+
+<P>
+
+
+<I>This header is no longer part of the </I><FONT SIZE="-1"><I>HTTP</I></FONT><I> standard.</I>
+<DT>$h-&gt;referer<DD>
+
+
+<A NAME="ixABM"></A>
+Used to specify the address (<FONT SIZE="-1">URI</FONT>) of the document from which the
+requested resource address was obtained.
+
+
+<P>
+
+
+The ``Free On-line Dictionary of Computing'' as this to say about the
+word <I>referer</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+     &lt;World-Wide Web&gt; A misspelling of &quot;referrer&quot; which
+     somehow made it into the {HTTP} standard.  A given {web
+     page}'s referer (sic) is the {URL} of whatever web page
+     contains the link that the user followed to the current
+     page.  Most browsers pass this information as part of a
+     request.
+
+     (1998-10-19)
+
+</PRE>
+
+
+
+
+<P>
+
+
+By popular demand <TT>&quot;referrer&quot;</TT> exists as an alias for this method so you
+can avoid this misspelling in your programs and still send the right
+thing on the wire.
+
+
+<P>
+
+
+When setting the referrer, this method removes the fragment from the
+given <FONT SIZE="-1">URI</FONT> if it is present, as mandated by <FONT SIZE="-1">RFC2616</FONT>.  Note that
+the removal does <I>not</I> happen automatically if using the <I>header()</I>,
+<I>push_header()</I> or <I>init_header()</I> methods to set the referrer.
+<DT>$h-&gt;www_authenticate<DD>
+
+
+<A NAME="ixABN"></A>
+This header must be included as part of a <TT>&quot;401 Unauthorized&quot;</TT> response.
+The field value consist of a challenge that indicates the
+authentication scheme and parameters applicable to the requested <FONT SIZE="-1">URI</FONT>.
+<DT>$h-&gt;proxy_authenticate<DD>
+
+
+<A NAME="ixABO"></A>
+This header must be included in a <TT>&quot;407 Proxy Authentication Required&quot;</TT>
+response.
+<DT>$h-&gt;authorization<DD>
+
+
+<A NAME="ixABP"></A>
+
+<DT>$h-&gt;proxy_authorization<DD>
+
+
+<A NAME="ixABQ"></A>
+
+A user agent that wishes to authenticate itself with a server or a
+proxy, may do so by including these headers.
+<DT>$h-&gt;authorization_basic<DD>
+
+
+<A NAME="ixABR"></A>
+This method is used to get or set an authorization header that use the
+``Basic Authentication Scheme''.  In array context it will return two
+values; the user name and the password.  In scalar context it will
+return <I>``uname:password''</I> as a single string value.
+
+
+<P>
+
+
+When used to set the header value, it expects two arguments.  <I>E.g.</I>:
+
+
+<P>
+
+
+
+
+<PRE>
+  $h-&gt;authorization_basic($uname, $password);
+
+</PRE>
+
+
+
+
+<P>
+
+
+The method will croak if the <TT>$uname</TT> contains a colon ':'.
+<DT>$h-&gt;proxy_authorization_basic<DD>
+
+
+<A NAME="ixABS"></A>
+Same as <I>authorization_basic()</I> but will set the ``Proxy-Authorization''
+header instead.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>NON-CANONICALIZED FIELD NAMES</H2>
+
+<A NAME="ixABT"></A>
+The header field name spelling is normally canonicalized including the
+'_' to '-' translation.  There are some application where this is not
+appropriate.  Prefixing field names with ':' allow you to force a
+specific spelling.  For example if you really want a header field name
+to show up as <TT>&quot;foo_bar&quot;</TT> instead of ``Foo-Bar'', you might set it like
+this:
+<P>
+
+
+
+<PRE>
+  $h-&gt;header(&quot;:foo_bar&quot; =&gt; 1);
+
+</PRE>
+
+
+<P>
+
+These field names are returned with the ':' intact for
+<TT>$h</TT>-&gt;header_field_names and the <TT>$h</TT>-&gt;scan callback, but the colons do
+not show in <TT>$h</TT>-&gt;as_string.
+<A NAME="lbAG">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABU"></A>
+Copyright 1995-2005 Gisle Aas.
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">CONVENIENCE METHODS</A><DD>
+<DT><A HREF="#lbAF">NON-CANONICALIZED FIELD NAMES</A><DD>
+<DT><A HREF="#lbAG">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:29 GMT, December 24, 2015
+</div></body>
+</HTML>

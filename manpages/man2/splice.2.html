@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SPLICE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SPLICE</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2009-02-20<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+splice - splice data to/from a pipe
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#define _GNU_SOURCE</B>
+<B>#include &lt;<A HREF="file:/usr/include/fcntl.h">fcntl.h</A>&gt;</B>
+
+<B>long splice(int </B><I>fd_in</I><B>, loff_t *</B><I>off_in</I><B>, int </B><I>fd_out</I><B>,</B>
+<B>            loff_t *</B><I>off_out</I><B>, size_t </B><I>len</I><B>, unsigned int </B><I>flags</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>splice</B>()
+
+moves data between two file descriptors
+without copying between kernel address space and user address space.
+It transfers up to
+<I>len</I>
+
+bytes of data from the file descriptor
+<I>fd_in</I>
+
+to the file descriptor
+<I>fd_out</I>,
+
+where one of the descriptors must refer to a pipe.
+<P>
+If
+<I>fd_in</I>
+
+refers to a pipe, then
+<I>off_in</I>
+
+must be NULL.
+If
+<I>fd_in</I>
+
+does not refer to a pipe and
+<I>off_in</I>
+
+is NULL, then bytes are read from
+<I>fd_in</I>
+
+starting from the current file offset,
+and the current file offset is adjusted appropriately.
+If
+<I>fd_in</I>
+
+does not refer to a pipe and
+<I>off_in</I>
+
+is not NULL, then
+<I>off_in</I>
+
+must point to a buffer which specifies the starting
+offset from which bytes will be read from
+<I>fd_in</I>;
+
+in this case, the current file offset of
+<I>fd_in</I>
+
+is not changed.
+Analogous statements apply for
+<I>fd_out</I>
+
+and
+<I>off_out</I>.
+
+<P>
+The
+<I>flags</I>
+
+argument is a bit mask that is composed by ORing together
+zero or more of the following values:
+<DL COMPACT>
+<DT><B>SPLICE_F_MOVE</B>
+
+<DD>
+Attempt to move pages instead of copying.
+This is only a hint to the kernel:
+pages may still be copied if the kernel cannot move the
+pages from the pipe, or if
+the pipe buffers don't refer to full pages.
+The initial implementation of this flag was buggy:
+therefore starting in Linux 2.6.21 it is a no-op
+(but is still permitted in a
+<B>splice</B>()
+
+call);
+in the future, a correct implementation may be restored.
+<DT><B>SPLICE_F_NONBLOCK</B>
+
+<DD>
+Do not block on I/O.
+This makes the splice pipe operations non-blocking, but
+<B>splice</B>()
+
+may nevertheless block because the file descriptors that
+are spliced to/from may block (unless they have the
+<B>O_NONBLOCK</B>
+
+flag set).
+<DT><B>SPLICE_F_MORE</B>
+
+<DD>
+More data will be coming in a subsequent splice.
+This is a helpful hint when
+the
+<I>fd_out</I>
+
+refers to a socket (see also the description of
+<B>MSG_MORE</B>
+
+in
+<B><A HREF="/manpages/index.html?2+send">send</A></B>(2),
+
+and the description of
+<B>TCP_CORK</B>
+
+in
+<B><A HREF="/manpages/index.html?7+tcp">tcp</A></B>(7))
+
+<DT><B>SPLICE_F_GIFT</B>
+
+<DD>
+Unused for
+<B>splice</B>();
+
+see
+<B><A HREF="/manpages/index.html?2+vmsplice">vmsplice</A></B>(2).
+
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+Upon successful completion,
+<B>splice</B>()
+
+returns the number of bytes
+spliced to or from the pipe.
+A return value of 0 means that there was no data to transfer,
+and it would not make sense to block, because there are no
+writers connected to the write end of the pipe referred to by
+<I>fd_in</I>.
+
+<P>
+On error,
+<B>splice</B>()
+
+returns -1 and
+<I>errno</I>
+
+is set to indicate the error.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EBADF</B>
+
+<DD>
+One or both file descriptors are not valid,
+or do not have proper read-write mode.
+<DT><B>EINVAL</B>
+
+<DD>
+Target file system doesn't support splicing;
+target file is opened in append mode;
+
+
+neither of the descriptors refers to a pipe; or
+offset given for non-seekable device.
+<DT><B>ENOMEM</B>
+
+<DD>
+Out of memory.
+<DT><B>ESPIPE</B>
+
+<DD>
+Either
+<I>off_in</I>
+
+or
+<I>off_out</I>
+
+was not NULL, but the corresponding file descriptor refers to a pipe.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>VERSIONS</H2>
+
+The
+<B>splice</B>()
+
+system call first appeared in Linux 2.6.17.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+This system call is Linux-specific.
+<A NAME="lbAI">&nbsp;</A>
+<H2>NOTES</H2>
+
+The three system calls
+<B>splice</B>(),
+
+<B><A HREF="/manpages/index.html?2+vmsplice">vmsplice</A></B>(2),
+
+and
+<B><A HREF="/manpages/index.html?2+tee">tee</A></B>(2),
+
+provide userspace programs with full control over an arbitrary
+kernel buffer, implemented within the kernel using the same type
+of buffer that is used for a pipe.
+In overview, these system calls perform the following tasks:
+<DL COMPACT>
+<DT><B>splice</B>()
+
+<DD>
+moves data from the buffer to an arbitrary file descriptor, or vice versa,
+or from one buffer to another.
+<DT><B><A HREF="/manpages/index.html?2+tee">tee</A></B>(2)
+
+<DD>
+&quot;copies&quot; the data from one buffer to another.
+<DT><B><A HREF="/manpages/index.html?2+vmsplice">vmsplice</A></B>(2)
+
+<DD>
+&quot;copies&quot; data from user space into the buffer.
+</DL>
+<P>
+
+Though we talk of copying, actual copies are generally avoided.
+The kernel does this by implementing a pipe buffer as a set
+of reference-counted pointers to pages of kernel memory.
+The kernel creates &quot;copies&quot; of pages in a buffer by creating new
+pointers (for the output buffer) referring to the pages,
+and increasing the reference counts for the pages:
+only pointers are copied, not the pages of the buffer.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+See
+<B><A HREF="/manpages/index.html?2+tee">tee</A></B>(2).
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?2+sendfile">sendfile</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+tee">tee</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+vmsplice">vmsplice</A></B>(2),
+
+<B><A HREF="/manpages/index.html?7+feature_test_macros">feature_test_macros</A></B>(7)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">VERSIONS</A><DD>
+<DT><A HREF="#lbAH">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAI">NOTES</A><DD>
+<DT><A HREF="#lbAJ">EXAMPLE</A><DD>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:05 GMT, December 24, 2015
+</div></body>
+</HTML>

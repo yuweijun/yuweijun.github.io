@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of GPG-AGENT</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>GPG-AGENT</H1>
+Section: GNU Privacy Guard (1)<BR>Updated: 2010-11-11<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+<B>gpg-agent</B>
+
+- Secret key management for GnuPG
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>gpg-agent</B>
+
+[<B>--homedir</B>
+
+<I>dir</I>]
+
+[<B>--options</B>
+
+<I>file</I>]
+
+[<I>options</I>]
+
+<BR>
+
+<B>gpg-agent</B>
+
+[<B>--homedir</B>
+
+<I>dir</I>]
+
+[<B>--options</B>
+
+<I>file</I>]
+
+[<I>options</I>]
+
+<B>--server </B>
+
+<BR>
+
+<B>gpg-agent</B>
+
+[<B>--homedir</B>
+
+<I>dir</I>]
+
+[<B>--options</B>
+
+<I>file</I>]
+
+[<I>options</I>]
+
+<B>--daemon </B>
+
+[<I>command_line</I>]
+
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>gpg-agent</B> is a daemon to manage secret (private) keys
+independently from any protocol.  It is used as a backend for
+<B>gpg</B> and <B>gpgsm</B> as well as for a couple of other
+utilities.
+<P>
+<P>
+The usual way to run the agent is from the <B>~/.xsession</B> file:
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+eval $(gpg-agent --daemon)
+</PRE>
+
+</DL>
+
+<P>
+<P>
+If you don't use an X server, you can also put this into your regular
+startup file <B>~/.profile</B> or <B>.bash_profile</B>.  It is best not
+to run multiple instance of the <B>gpg-agent</B>, so you should make
+sure that only one is running: <B>gpg-agent</B> uses an environment
+variable to inform clients about the communication parameters. You can
+write the content of this environment variable to a file so that you can
+test for a running agent.  Here is an example using Bourne shell syntax:
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+gpg-agent --daemon --enable-ssh-support \
+          --write-env-file &quot;${HOME}/.gpg-agent-info&quot;
+</PRE>
+
+</DL>
+
+<P>
+This code should only be run once per user session to initially fire up
+the agent.  In the example the optional support for the included Secure
+Shell agent is enabled and the information about the agent is written to
+a file in the HOME directory.  Note that by running gpg-agent without
+arguments you may test whether an agent is already running; however such
+a test may lead to a race condition, thus it is not suggested.
+<P>
+<P>
+The second script needs to be run for each interactive session:
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+if [ -f &quot;${HOME}/.gpg-agent-info&quot; ]; then
+  . &quot;${HOME}/.gpg-agent-info&quot;
+  export GPG_AGENT_INFO
+  export SSH_AUTH_SOCK
+  export SSH_AGENT_PID
+fi
+</PRE>
+
+</DL>
+
+<P>
+<P>
+It reads the data out of the file and exports the variables.  If you
+don't use Secure Shell, you don't need the last two export statements.
+<BR>&nbsp;
+<P>
+You should always add the following lines to your <B>.bashrc</B> or
+whatever initialization file is used for all shell invocations:
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+GPG_TTY=$(tty)
+export GPG_TTY
+</PRE>
+
+</DL>
+
+<P>
+<P>
+It is important that this environment variable always reflects the
+output of the <B>tty</B> command.  For W32 systems this option is not
+required.
+<P>
+Please make sure that a proper pinentry program has been installed
+under the default filename (which is system dependant) or use the
+option <B>pinentry-program</B> to specify the full name of that program.
+It is often useful to install a symbolic link from the actual used
+pinentry (e.g. oq<I>/usr/bin/pinentry-gtk</I>cq) to the expected
+one (e.g. oq<I>/usr/bin/pinentry</I>cq).
+<P>
+<P>
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>COMMANDS</H2>
+
+<P>
+Commands are not distinguished from options except for the fact that
+only one command is allowed.
+<P>
+<DL COMPACT>
+<DT><B>--version</B>
+
+<DD>
+Print the program version and licensing information.  Not that you can
+abbreviate this command.
+<P>
+<DT><B>--help</B>
+
+<DD>
+<DT><B>-h</B>
+
+<DD>
+Print a usage message summarizing the most useful command-line options.
+Not that you can abbreviate this command.
+<P>
+<DT><B>--dump-options</B>
+
+<DD>
+Print a list of all available options and commands.  Not that you can
+abbreviate this command.
+<P>
+<DT><B>--server</B>
+
+<DD>
+Run in server mode and wait for commands on the <B>stdin</B>.  The
+default mode is to create a socket and listen for commands there.
+<P>
+<DT><B>--daemon [</B><I>command line</I>]
+
+<DD>
+Start the gpg-agent as a daemon; that is, detach it from the console
+and run it in the background.  Because <B>gpg-agent</B> prints out
+important information required for further use, a common way of
+invoking gpg-agent is: <B>eval $(gpg-agent --daemon)</B> to setup the
+environment variables.  The option <B>--write-env-file</B> is
+another way commonly used to do this.  Yet another way is creating
+a new process as a child of gpg-agent: <B>gpg-agent --daemon
+/bin/sh</B>.  This way you get a new shell with the environment setup
+properly; if you exit from this shell, gpg-agent terminates as well.
+<P>
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<P>
+<P>
+<P>
+<DL COMPACT>
+<DT><B>--options </B><I>file</I>
+
+<DD>
+Reads configuration from <I>file</I> instead of from the default
+per-user configuration file.  The default configuration file is named
+oq<I>gpg-agent.conf</I>cq and expected in the oq<I>.gnupg</I>cq directory directly
+below the home directory of the user.
+<P>
+<P>
+<DT><B>--homedir </B><I>dir</I>
+
+<DD>
+Set the name of the home directory to <I>dir</I>. If this option is not
+used, the home directory defaults to oq<I>~/.gnupg</I>cq.  It is only
+recognized when given on the command line.  It also overrides any home
+directory stated through the environment variable oq<I>GNUPGHOME</I>cq or
+(on W32 systems) by means of the Registry entry
+<I>HKCU\Software\GNU\GnuPG:HomeDir</I>.
+<P>
+<P>
+<P>
+<DT><B>-v</B>
+
+<DD>
+<DT><B>--verbose</B>
+
+<DD>
+Outputs additional information while running.
+You can increase the verbosity by giving several
+verbose commands to <B>gpgsm</B>, such as aq-vvaq.
+<P>
+<DT><B>-q</B>
+
+<DD>
+<DT><B>--quiet</B>
+
+<DD>
+Try to be as quiet as possible.
+<P>
+<DT><B>--batch</B>
+
+<DD>
+Don't invoke a pinentry or do any other thing requiring human interaction.
+<P>
+<DT><B>--faked-system-time </B><I>epoch</I>
+
+<DD>
+This option is only useful for testing; it sets the system time back or
+forth to <I>epoch</I> which is the number of seconds elapsed since the year
+1970.
+<P>
+<DT><B>--debug-level </B><I>level</I>
+
+<DD>
+Select the debug level for investigating problems. <I>level</I> may be
+a numeric value or a keyword:
+<P>
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>none</B>
+
+<DD>
+No debugging at all.  A value of less than 1 may be used instead of
+the keyword.
+<DT><B>basic  </B>
+
+<DD>
+Some basic debug messages.  A value between 1 and 2 may be used
+instead of the keyword.
+<DT><B>advanced</B>
+
+<DD>
+More verbose debug messages.  A value between 3 and 5 may be used
+instead of the keyword.
+<DT><B>expert</B>
+
+<DD>
+Even more detailed messages.  A value between 6 and 8 may be used
+instead of the keyword.
+<DT><B>guru</B>
+
+<DD>
+All of the debug messages you can get. A value greater than 8 may be
+used instead of the keyword.  The creation of hash tracing files is
+only enabled if the keyword is used.
+</DL>
+</DL>
+
+<P>
+How these messages are mapped to the actual debugging flags is not
+specified and may change with newer releases of this program. They are
+however carefully selected to best aid in debugging.
+<P>
+<DT><B>--debug </B><I>flags</I>
+
+<DD>
+This option is only useful for debugging and the behaviour may change at
+any time without notice.  FLAGS are bit encoded and may be given in
+usual C-Syntax. The currently defined bits are:
+<P>
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>0  (1)</B>
+
+<DD>
+X.509 or OpenPGP protocol related data
+<DT><B>1  (2)  </B>
+
+<DD>
+values of big number integers 
+<DT><B>2  (4)</B>
+
+<DD>
+low level crypto operations
+<DT><B>5  (32)</B>
+
+<DD>
+memory allocation
+<DT><B>6  (64)</B>
+
+<DD>
+caching
+<DT><B>7  (128)</B>
+
+<DD>
+show memory statistics.
+<DT><B>9  (512)</B>
+
+<DD>
+write hashed data to files named <B>dbgmd-000*</B>
+<DT><B>10 (1024)</B>
+
+<DD>
+trace Assuan protocol
+<DT><B>12 (4096)</B>
+
+<DD>
+bypass all certificate validation
+</DL>
+</DL>
+
+<P>
+<DT><B>--debug-all</B>
+
+<DD>
+Same as <B>--debug=0xffffffff</B>
+<P>
+<DT><B>--debug-wait </B><I>n</I>
+
+<DD>
+When running in server mode, wait <I>n</I> seconds before entering the
+actual processing loop and print the pid.  This gives time to attach a
+debugger.
+<P>
+<DT><B>--no-detach</B>
+
+<DD>
+Don't detach the process from the console.  This is mainly useful for
+debugging.
+<P>
+<DT><B>-s</B>
+
+<DD>
+<DT><B>--sh</B>
+
+<DD>
+<DT><B>-c</B>
+
+<DD>
+<DT><B>--csh</B>
+
+<DD>
+Format the info output in daemon mode for use with the standard Bourne
+shell or the C-shell respectively.  The default is to guess it based on
+the environment variable <B>SHELL</B> which is correct in almost all
+cases.
+<P>
+<DT><B>--write-env-file </B><I>file</I>
+
+<DD>
+Often it is required to connect to the agent from a process not being an
+inferior of <B>gpg-agent</B> and thus the environment variable with
+the socket name is not available.  To help setting up those variables in
+other sessions, this option may be used to write the information into
+<I>file</I>.  If <I>file</I> is not specified the default name
+oq<I>${HOME}/.gpg-agent-info</I>cq will be used.  The format is suitable
+to be evaluated by a Bourne shell like in this simple example:
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+eval $(cat <I>file</I>)
+eval $(cut -d= -f 1 &lt; <I>file</I> | xargs echo export)
+</PRE>
+
+</DL>
+
+<P>
+<P>
+<P>
+<DT><B>--no-grab</B>
+
+<DD>
+Tell the pinentry not to grab the keyboard and mouse.  This option
+should in general not be used to avoid X-sniffing attacks.
+<P>
+<DT><B>--log-file </B><I>file</I>
+
+<DD>
+Append all logging output to <I>file</I>.  This is very helpful in
+seeing what the agent actually does.
+<P>
+<P>
+<DT><B>--allow-mark-trusted</B>
+
+<DD>
+Allow clients to mark keys as trusted, i.e. put them into the
+oq<I>trustlist.txt</I>cq file.  This is by default not allowed to make it
+harder for users to inadvertently accept Root-CA keys.
+<P>
+<DT><B>--ignore-cache-for-signing</B>
+
+<DD>
+This option will let <B>gpg-agent</B> bypass the passphrase cache for all
+signing operation.  Note that there is also a per-session option to
+control this behaviour but this command line option takes precedence.
+<P>
+<DT><B>--default-cache-ttl </B><I>n</I>
+
+<DD>
+Set the time a cache entry is valid to <I>n</I> seconds.  The default is
+600 seconds.
+<P>
+<DT><B>--default-cache-ttl-ssh </B><I>n</I>
+
+<DD>
+Set the time a cache entry used for SSH keys is valid to <I>n</I>
+seconds.  The default is 1800 seconds.
+<P>
+<DT><B>--max-cache-ttl </B><I>n</I>
+
+<DD>
+Set the maximum time a cache entry is valid to <I>n</I> seconds.  After
+this time a cache entry will be expired even if it has been accessed
+recently.  The default is 2 hours (7200 seconds).
+<P>
+<DT><B>--max-cache-ttl-ssh </B><I>n</I>
+
+<DD>
+Set the maximum time a cache entry used for SSH keys is valid to <I>n</I>
+seconds.  After this time a cache entry will be expired even if it has
+been accessed recently.  The default is 2 hours (7200 seconds).
+<P>
+<DT><B>--enforce-passphrase-constraints</B>
+
+<DD>
+Enforce the passphrase constraints by not allowing the user to bypass
+them using the ``Take it anyway'' button.
+<P>
+<DT><B>--min-passphrase-len </B><I>n</I>
+
+<DD>
+Set the minimal length of a passphrase.  When entering a new passphrase
+shorter than this value a warning will be displayed.  Defaults to 8.
+<P>
+<DT><B>--min-passphrase-nonalpha </B><I>n</I>
+
+<DD>
+Set the minimal number of digits or special characters required in a
+passphrase.  When entering a new passphrase with less than this number
+of digits or special characters a warning will be displayed.  Defaults
+to 1.
+<P>
+<DT><B>--check-passphrase-pattern </B><I>file</I>
+
+<DD>
+Check the passphrase against the pattern given in <I>file</I>.  When
+entering a new passphrase matching one of these pattern a warning will
+be displayed. <I>file</I> should be an absolute filename.  The default is
+not to use any pattern file. 
+<P>
+Security note: It is known that checking a passphrase against a list of
+pattern or even against a complete dictionary is not very effective to
+enforce good passphrases.  Users will soon figure up ways to bypass such
+a policy.  A better policy is to educate users on good security
+behavior and optionally to run a passphrase cracker regularly on all
+users passphrases to catch the very simple ones.
+<P>
+<DT><B>--max-passphrase-days </B><I>n</I>
+
+<DD>
+Ask the user to change the passphrase if <I>n</I> days have passed since
+the last change.  With <B>--enforce-passphrase-constraints</B> set the
+user may not bypass this check.
+<P>
+<DT><B>--enable-passphrase-history</B>
+
+<DD>
+This option does nothing yet.
+<P>
+<DT><B>--pinentry-program </B><I>filename</I>
+
+<DD>
+Use program <I>filename</I> as the PIN entry.  The default is installation
+dependent and can be shown with the <B>--version</B> command.
+<P>
+<DT><B>--pinentry-touch-file </B><I>filename</I>
+
+<DD>
+By default the filename of the socket gpg-agent is listening for
+requests is passed to Pinentry, so that it can touch that file before
+exiting (it does this only in curses mode).  This option changes the
+file passed to Pinentry to <I>filename</I>.  The special name
+<B>/dev/null</B> may be used to completely disable this feature.  Note
+that Pinentry will not create that file, it will only change the
+modification and access time.
+<P>
+<P>
+<DT><B>--scdaemon-program </B><I>filename</I>
+
+<DD>
+Use program <I>filename</I> as the Smartcard daemon.  The default is
+installation dependent and can be shown with the <B>--version</B>
+command.
+<P>
+<DT><B>--disable-scdaemon</B>
+
+<DD>
+Do not make use of the scdaemon tool.  This option has the effect of
+disabling the ability to do smartcard operations.  Note, that enabling
+this option at runtime does not kill an already forked scdaemon.
+<P>
+<DT><B>--use-standard-socket</B>
+
+<DD>
+<DT><B>--no-use-standard-socket</B>
+
+<DD>
+By enabling this option <B>gpg-agent</B> will listen on the socket
+named oq<I>S.gpg-agent</I>cq, located in the home directory, and not create
+a random socket below a temporary directory.  Tools connecting to
+<B>gpg-agent</B> should first try to connect to the socket given in
+environment variable <I>GPG_AGENT_INFO</I> and then fall back to this
+socket.  This option may not be used if the home directory is mounted as
+a remote file system.  Note, that <B>--use-standard-socket</B> is the
+default on Windows systems.
+<P>
+<P>
+<DT><B>--display </B><I>string</I>
+
+<DD>
+<DT><B>--ttyname </B><I>string</I>
+
+<DD>
+<DT><B>--ttytype </B><I>string</I>
+
+<DD>
+<DT><B>--lc-ctype </B><I>string</I>
+
+<DD>
+<DT><B>--lc-messages </B><I>string</I>
+
+<DD>
+<DT><B>--xauthority </B><I>string</I>
+
+<DD>
+These options are used with the server mode to pass localization
+information.
+<P>
+<DT><B>--keep-tty</B>
+
+<DD>
+<DT><B>--keep-display</B>
+
+<DD>
+Ignore requests to change the current <B>tty</B> or X window system's
+<B>DISPLAY</B> variable respectively.  This is useful to lock the
+pinentry to pop up at the <B>tty</B> or display you started the agent.
+<P>
+<P>
+<DT><B>--enable-ssh-support</B>
+
+<DD>
+<P>
+Enable emulation of the OpenSSH Agent protocol.
+<P>
+In this mode of operation, the agent does not only implement the
+gpg-agent protocol, but also the agent protocol used by OpenSSH
+(through a separate socket).  Consequently, it should be possible to use
+the gpg-agent as a drop-in replacement for the well known ssh-agent.
+<P>
+SSH Keys, which are to be used through the agent, need to be added to
+the gpg-agent initially through the ssh-add utility.  When a key is
+added, ssh-add will ask for the password of the provided key file and
+send the unprotected key material to the agent; this causes the
+gpg-agent to ask for a passphrase, which is to be used for encrypting
+the newly received key and storing it in a gpg-agent specific
+directory.
+<P>
+Once a key has been added to the gpg-agent this way, the gpg-agent
+will be ready to use the key.
+<P>
+Note: in case the gpg-agent receives a signature request, the user might
+need to be prompted for a passphrase, which is necessary for decrypting
+the stored key.  Since the ssh-agent protocol does not contain a
+mechanism for telling the agent on which display/terminal it is running,
+gpg-agent's ssh-support will use the TTY or X display where gpg-agent
+has been started.  To switch this display to the current one, the
+following command may be used:
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+echo UPDATESTARTUPTTY | gpg-connect-agent
+</PRE>
+
+</DL>
+
+<P>
+<P>
+<P>
+<P>
+All the long options may also be given in the configuration file after
+stripping off the two leading dashes.
+<P>
+<P>
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<P>
+The usual way to invoke <B>gpg-agent</B> is
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+$ eval $(gpg-agent --daemon)
+</PRE>
+
+</DL>
+
+<P>
+An alternative way is by replacing <B>ssh-agent</B> with
+<B>gpg-agent</B>.  If for example <B>ssh-agent</B> is started as
+part of the Xsession initialization, you may simply replace
+<B>ssh-agent</B> by a script like:
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+#!/bin/sh
+
+exec /usr/local/bin/gpg-agent --enable-ssh-support --daemon \
+      --write-env-file ${HOME}/.gpg-agent-info &quot;$@&quot;
+</PRE>
+
+</DL>
+
+<P>
+<P>
+and add something like (for Bourne shells)
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+  if [ -f &quot;${HOME}/.gpg-agent-info&quot; ]; then
+    . &quot;${HOME}/.gpg-agent-info&quot;
+    export GPG_AGENT_INFO
+    export SSH_AUTH_SOCK
+    export SSH_AGENT_PID
+  fi
+</PRE>
+
+</DL>
+
+<P>
+<P>
+to your shell initialization file (e.g. oq<I>~/.bashrc</I>cq).
+<P>
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>FILES</H2>
+
+<P>
+There are a few configuration files needed for the operation of the
+agent. By default they may all be found in the current home directory
+(see: [option --homedir]).
+<P>
+<P>
+<DL COMPACT>
+<DT><B>gpg-agent.conf</B>
+
+<DD>
+<BR>&nbsp;&nbsp;This&nbsp;is&nbsp;the&nbsp;standard&nbsp;configuration&nbsp;file&nbsp;read&nbsp;by&nbsp;<B>gpg-agent</B>&nbsp;on
+<BR>&nbsp;&nbsp;startup.&nbsp;&nbsp;It&nbsp;may&nbsp;contain&nbsp;any&nbsp;valid&nbsp;long&nbsp;option;&nbsp;the&nbsp;leading
+<BR>&nbsp;&nbsp;two&nbsp;dashes&nbsp;may&nbsp;not&nbsp;be&nbsp;entered&nbsp;and&nbsp;the&nbsp;option&nbsp;may&nbsp;not&nbsp;be&nbsp;abbreviated.
+<BR>&nbsp;&nbsp;This&nbsp;file&nbsp;is&nbsp;also&nbsp;read&nbsp;after&nbsp;a&nbsp;<B>SIGHUP</B>&nbsp;however&nbsp;only&nbsp;a&nbsp;few
+<BR>&nbsp;&nbsp;options&nbsp;will&nbsp;actually&nbsp;have&nbsp;an&nbsp;effect.&nbsp;&nbsp;This&nbsp;default&nbsp;name&nbsp;may&nbsp;be
+<BR>&nbsp;&nbsp;changed&nbsp;on&nbsp;the&nbsp;command&nbsp;line&nbsp;(see:&nbsp;[option&nbsp;--options]).&nbsp;&nbsp;
+<BR>&nbsp;&nbsp;You&nbsp;should&nbsp;backup&nbsp;this&nbsp;file.
+<P>
+<DT><B>trustlist.txt</B>
+
+<DD>
+<BR>&nbsp;&nbsp;This&nbsp;is&nbsp;the&nbsp;list&nbsp;of&nbsp;trusted&nbsp;keys.&nbsp;&nbsp;You&nbsp;should&nbsp;backup&nbsp;this&nbsp;file.
+<P>
+<BR>&nbsp;&nbsp;Comment&nbsp;lines,&nbsp;indicated&nbsp;by&nbsp;a&nbsp;leading&nbsp;hash&nbsp;mark,&nbsp;as&nbsp;well&nbsp;as&nbsp;empty
+<BR>&nbsp;&nbsp;lines&nbsp;are&nbsp;ignored.&nbsp;&nbsp;To&nbsp;mark&nbsp;a&nbsp;key&nbsp;as&nbsp;trusted&nbsp;you&nbsp;need&nbsp;to&nbsp;enter&nbsp;its
+<BR>&nbsp;&nbsp;fingerprint&nbsp;followed&nbsp;by&nbsp;a&nbsp;space&nbsp;and&nbsp;a&nbsp;capital&nbsp;letter&nbsp;<B>S</B>.&nbsp;&nbsp;Colons
+<BR>&nbsp;&nbsp;may&nbsp;optionally&nbsp;be&nbsp;used&nbsp;to&nbsp;separate&nbsp;the&nbsp;bytes&nbsp;of&nbsp;a&nbsp;fingerprint;&nbsp;this
+<BR>&nbsp;&nbsp;allows&nbsp;to&nbsp;cut&nbsp;and&nbsp;paste&nbsp;the&nbsp;fingerprint&nbsp;from&nbsp;a&nbsp;key&nbsp;listing&nbsp;output.&nbsp;&nbsp;If
+<BR>&nbsp;&nbsp;the&nbsp;line&nbsp;is&nbsp;prefixed&nbsp;with&nbsp;a&nbsp;<B>!</B>&nbsp;the&nbsp;key&nbsp;is&nbsp;explicitly&nbsp;marked&nbsp;as
+<BR>&nbsp;&nbsp;not&nbsp;trusted.
+<BR>&nbsp;&nbsp;
+<BR>&nbsp;&nbsp;Here&nbsp;is&nbsp;an&nbsp;example&nbsp;where&nbsp;two&nbsp;keys&nbsp;are&nbsp;marked&nbsp;as&nbsp;ultimately&nbsp;trusted
+<BR>&nbsp;&nbsp;and&nbsp;one&nbsp;as&nbsp;not&nbsp;trusted:
+<BR>&nbsp;&nbsp;
+<BR>&nbsp;&nbsp;.RS&nbsp;2
+<PRE>
+  # CN=Wurzel ZS 3,O=Intevation GmbH,C=DE
+  A6935DD34EF3087973C706FC311AA2CCF733765B S
+  
+  # CN=PCA-1-Verwaltung-02/O=PKI-1-Verwaltung/C=DE
+  DC:BD:69:25:48:BD:BB:7E:31:6E:BB:80:D3:00:80:35:D4:F8:A6:CD S 
+
+  # CN=Root-CA/O=Schlapphuete/L=Pullach/C=DE
+  !14:56:98:D3:FE:9C:CA:5A:31:6E:BC:81:D3:11:4E:00:90:A3:44:C2 S
+  .fi
+  
+Before entering a key into this file, you need to ensure its
+authenticity.  How to do this depends on your organisation; your
+administrator might have already entered those keys which are deemed
+trustworthy enough into this file.  Places where to look for the
+fingerprint of a root certificate are letters received from the CA or
+the website of the CA (after making 100% sure that this is indeed the
+website of that CA).  You may want to consider allowing interactive
+updates of this file by using the see: [option --allow-mark-trusted].
+This is however not as secure as maintaining this file manually.  It is
+even advisable to change the permissions to read-only so that this file
+can't be changed inadvertently.
+
+As a special feature a line <B>include-default</B> will include a global
+list of trusted certificates (e.g. oq<I>/etc/gnupg/trustlist.txt</I>cq).
+This global list is also used if the local list is not available.
+
+It is possible to add further flags after the <B>S</B> for use by the
+caller:
+
+<DL COMPACT><DT><DD><DL COMPACT>
+<DT><B>relax</B>
+<DD>Relax checking of some root certificate requirements.  This is for
+example required if the certificate is missing the basicConstraints
+attribute (despite that it is a MUST for CA certificates).
+
+<DT><B>cm</B>
+<DD>If validation of a certificate finally issued by a CA with this flag set
+fails, try again using the chain validation model.
+
+</DL>
+</DL>
+
+  
+<DT><B>sshcontrol</B>
+<DD>
+This file is used when support for the secure shell agent protocol has
+been enabled (see: [option --enable-ssh-support]). Only keys present in
+this file are used in the SSH protocol.  You should backup this file.
+
+The <B>ssh-add</B> tool may be used to add new entries to this file;
+you may also add them manually.  Comment lines, indicated by a leading
+hash mark, as well as empty lines are ignored.  An entry starts with
+optional whitespace, followed by the keygrip of the key given as 40 hex
+digits, optionally followed by the caching TTL in seconds and another
+optional field for arbitrary flags.  A non-zero TTL overrides the global
+default as set by <B>--default-cache-ttl-ssh</B>.
+
+The keygrip may be prefixed with a <B>!</B> to disable an entry entry.
+    
+The following example lists exactly one key.  Note that keys available
+through a OpenPGP smartcard in the active smartcard reader are
+implicitly added to this list; i.e. there is no need to list them.
+  
+  .RS 2
+  # Key added on 2005-02-25 15:08:29
+  5A6592BF45DC73BD876874A28FD4639282E29B52 0
+  .fi
+
+<DT><B>private-keys-v1.d/</B>
+<DD>
+  This is the directory where gpg-agent stores the private keys.  Each
+  key is stored in a file with the name made up of the keygrip and the
+  suffix oq<I>key</I>cq.  You should backup all files in this directory
+  and take great care to keep this backup closed away.
+
+
+
+Note that on larger installations, it is useful to put predefined
+files into the directory oq<I>/etc/skel/.gnupg/</I>cq so that newly created
+users start up with a working configuration.  For existing users the
+a small helper script is provided to create these files (see: [addgnupghome]).
+
+
+
+
+</DL>
+</PRE><A NAME="lbAI">&nbsp;</A>
+<H2>SIGNALS</H2>
+
+A running <B>gpg-agent</B> may be controlled by signals, i.e. using
+the <B>kill</B> command to send a signal to the process. 
+<P>
+Here is a list of supported signals:
+<P>
+<P>
+<DL COMPACT>
+<DT><B>SIGHUP</B>
+
+<DD>
+This signal flushes all cached passphrases and if the program has been
+started with a configuration file, the configuration file is read again.
+Only certain options are honored: <B>quiet</B>, <B>verbose</B>,
+<B>debug</B>, <B>debug-all</B>, <B>debug-level</B>, <B>no-grab</B>,
+<B>pinentry-program</B>, <B>default-cache-ttl</B>, <B>max-cache-ttl</B>,
+<B>ignore-cache-for-signing</B>, <B>allow-mark-trusted</B> and
+<B>disable-scdaemon</B>.  <B>scdaemon-program</B> is also supported but
+due to the current implementation, which calls the scdaemon only once,
+it is not of much use unless you manually kill the scdaemon.
+<P>
+<P>
+<DT><B>SIGTERM</B>
+
+<DD>
+Shuts down the process but waits until all current requests are
+fulfilled.  If the process has received 3 of these signals and requests
+are still pending, a shutdown is forced.
+<P>
+<DT><B>SIGINT</B>
+
+<DD>
+Shuts down the process immediately.
+<P>
+<DT><B>SIGUSR1</B>
+
+<DD>
+Dump internal information to the log file.
+<P>
+<DT><B>SIGUSR2</B>
+
+<DD>
+This signal is used for internal purposes.
+<P>
+<P>
+<P>
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?1+gpg2">gpg2</A></B>(1), 
+<B><A HREF="/manpages/index.html?1+gpgsm">gpgsm</A></B>(1), 
+<B><A HREF="/manpages/index.html?1+gpg-connect-agent">gpg-connect-agent</A></B>(1),
+<B><A HREF="/manpages/index.html?1+scdaemon">scdaemon</A></B>(1)
+<P>
+The full documentation for this tool is maintained as a Texinfo manual.
+If GnuPG and the info program are properly installed at your site, the
+command
+<P>
+<DL COMPACT><DT><DD>
+<PRE>
+info gnupg
+</PRE>
+
+</DL>
+
+<P>
+should give you access to the complete manual including a menu structure
+and an index.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">COMMANDS</A><DD>
+<DT><A HREF="#lbAF">OPTIONS</A><DD>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DT><A HREF="#lbAH">FILES</A><DD>
+<DT><A HREF="#lbAI">SIGNALS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:04 GMT, December 24, 2015
+</div></body>
+</HTML>

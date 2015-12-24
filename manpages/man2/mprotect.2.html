@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of MPROTECT</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>MPROTECT</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2008-08-06<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+mprotect - set protection on a region of memory
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/mman.h">sys/mman.h</A>&gt;</B>
+
+<B>int mprotect(const void *</B><I>addr</I><B>, size_t </B><I>len</I><B>, int </B><I>prot</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>mprotect</B>()
+
+changes protection for the calling process's memory page(s)
+containing any part of the address range in the
+interval [<I>addr</I>,&nbsp;<I>addr</I>+<I>len</I>-1].
+<I>addr</I>
+
+must be aligned to a page boundary.
+<P>
+If the calling process tries to access memory in a manner
+that violates the protection, then the kernel generates a
+<B>SIGSEGV</B>
+
+signal for the process.
+<P>
+
+<I>prot</I>
+
+is either
+<B>PROT_NONE</B>
+
+or a bitwise-or of the other values in the following list:
+<DL COMPACT>
+<DT><B>PROT_NONE</B>
+
+<DD>
+The memory cannot be accessed at all.
+<DT><B>PROT_READ</B>
+
+<DD>
+The memory can be read.
+<DT><B>PROT_WRITE</B>
+
+<DD>
+The memory can be modified.
+<DT><B>PROT_EXEC</B>
+
+<DD>
+The memory can be executed.
+
+
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success,
+<B>mprotect</B>()
+
+returns zero.
+On error, -1 is returned, and
+<I>errno</I>
+
+is set appropriately.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EACCES</B>
+
+<DD>
+The memory cannot be given the specified access.
+This can happen, for example, if you
+<B><A HREF="/manpages/index.html?2+mmap">mmap</A></B>(2)
+
+a file to which you have read-only access, then ask
+<B>mprotect</B>()
+
+to mark it
+<B>PROT_WRITE</B>.
+
+<DT><B>EINVAL</B>
+
+<DD>
+<I>addr</I> is not a valid pointer,
+or not a multiple of the system page size.
+
+<DT><B>ENOMEM</B>
+
+<DD>
+Internal kernel structures could not be allocated.
+<DT><B>ENOMEM</B>
+
+<DD>
+Addresses in the range
+[<I>addr</I>,
+
+<I>addr</I>+<I>len</I>]
+
+are invalid for the address space of the process,
+or specify one or more pages that are not mapped.
+(Before kernel 2.4.19, the error
+<B>EFAULT</B>
+
+was incorrectly produced for these cases.)
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+SVr4, POSIX.1-2001.
+
+
+POSIX says that the behavior of
+<B>mprotect</B>()
+
+is unspecified if it is applied to a region of memory that
+was not obtained via
+<B><A HREF="/manpages/index.html?2+mmap">mmap</A></B>(2).
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+On Linux it is always permissible to call
+<B>mprotect</B>()
+
+on any address in a process's address space (except for the
+kernel vsyscall area).
+In particular it can be used
+to change existing code mappings to be writable.
+<P>
+Whether
+<B>PROT_EXEC</B>
+
+has any effect different from
+<B>PROT_READ</B>
+
+is architecture- and kernel version-dependent.
+On some hardware architectures (e.g., i386),
+<B>PROT_WRITE</B>
+
+implies
+<B>PROT_READ</B>.
+
+<P>
+POSIX.1-2001 says that an implementation may permit access
+other than that specified in
+<I>prot</I>,
+
+but at a minimum can only allow write access if
+<B>PROT_WRITE</B>
+
+has been set, and must not allow any access if
+<B>PROT_NONE</B>
+
+has been set.
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+
+<P>
+
+The program below allocates four pages of memory, makes the third
+of these pages read-only, and then executes a loop that walks upwards
+through the allocated region modifying bytes.
+<P>
+An example of what we might see when running the program is the
+following:
+<P>
+
+<PRE>
+$<B> ./a.out</B>
+Start of region:        0x804c000
+Got SIGSEGV at address: 0x804e000
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Program source</H3>
+
+
+<PRE>
+#include &lt;<A HREF="file:/usr/include/unistd.h">unistd.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/signal.h">signal.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdio.h">stdio.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/malloc.h">malloc.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/stdlib.h">stdlib.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/errno.h">errno.h</A>&gt;
+#include &lt;<A HREF="file:/usr/include/sys/mman.h">sys/mman.h</A>&gt;
+
+#define handle_error(msg) \
+    do { perror(msg); exit(EXIT_FAILURE); } while (0)
+
+char *buffer;
+
+static void
+handler(int sig, siginfo_t *si, void *unused)
+{
+    printf(&quot;Got SIGSEGV at address: 0x%lx\n&quot;,
+            (long) si-&gt;si_addr);
+    exit(EXIT_FAILURE);
+}
+
+int
+main(int argc, char *argv[])
+{
+    char *p;
+    int pagesize;
+    struct sigaction sa;
+
+    sa.sa_flags = SA_SIGINFO;
+    sigemptyset(&amp;sa.sa_mask);
+    sa.sa_sigaction = handler;
+    if (sigaction(SIGSEGV, &amp;sa, NULL) == -1)
+        handle_error(&quot;sigaction&quot;);
+
+    pagesize = sysconf(_SC_PAGE_SIZE);
+    if (pagesize == -1)
+        handle_error(&quot;sysconf&quot;);
+
+    /* Allocate a buffer aligned on a page boundary;
+       initial protection is PROT_READ | PROT_WRITE */
+
+    buffer = memalign(pagesize, 4 * pagesize);
+    if (buffer == NULL)
+        handle_error(&quot;memalign&quot;);
+
+    printf(&quot;Start of region:        0x%lx\n&quot;, (long) buffer);
+
+    if (mprotect(buffer + pagesize * 2, pagesize,
+                PROT_NONE) == -1)
+        handle_error(&quot;mprotect&quot;);
+
+    for (p = buffer ; ; )
+        *(p++) = aqaaq;
+
+    printf(&quot;Loop completed\n&quot;);     /* Should never happen */
+    exit(EXIT_SUCCESS);
+}
+</PRE>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?2+mmap">mmap</A></B>(2),
+
+<B><A HREF="/manpages/index.html?3+sysconf">sysconf</A></B>(3)
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DT><A HREF="#lbAI">EXAMPLE</A><DD>
+<DL>
+<DT><A HREF="#lbAJ">Program source</A><DD>
+</DL>
+<DT><A HREF="#lbAK">SEE ALSO</A><DD>
+<DT><A HREF="#lbAL">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:04 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of docs::api::Apache2::Access</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>docs::api::Apache2::Access</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2008-04-17<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Apache2::Access - A Perl API for Apache request object: Access,
+Authentication and Authorization.
+<A NAME="lbAC">&nbsp;</A>
+<H2>Synopsis</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Apache2::Access ();
+  
+  # allow only GET method
+  $r-&gt;allow_methods(1, qw(GET));
+  
+  # Apache Options value
+  $options = $r-&gt;allow_options();
+  
+  # Apache AllowOverride value
+  $allow_override = $r-&gt;allow_overrides();
+  
+  # which Options are allowed by AllowOverride (since Apache 2.2)
+  $allow_override_opts = $r-&gt;allow_override_opts();
+  
+  # auth name (&quot;foo bar&quot;)
+  $auth_name = $r-&gt;auth_name();
+  
+  # auth type
+  $auth_type = $r-&gt;auth_type();
+  $r-&gt;auth_type(&quot;Digest&quot;);
+  
+  # Basic authentication process
+  my ($rc, $passwd) = $r-&gt;get_basic_auth_pw();
+  
+  # the login name of the remote user (RFC1413)
+  $remote_logname = $r-&gt;get_remote_logname();
+  
+  # dynamically figure out which auth has failed
+  $r-&gt;note_auth_failure();
+  
+  # note Basic auth failure
+  $r-&gt;note_basic_auth_failure();
+  
+  # note Digest auth failure
+  $r-&gt;note_digest_auth_failure();
+  
+  # Apache Request value(s)
+  $requires = $r-&gt;requires();
+  
+  # Apache Satisfy value (as a number)
+  $satisfy = $r-&gt;satisfies();
+  
+  # check whether some auth is configured
+  $need_auth = $r-&gt;some_auth_required();
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>Description</H2>
+
+<A NAME="ixAAD"></A>
+The <FONT SIZE="-1">API</FONT> provided by this module deals with access, authentication and
+authorization phases.
+<P>
+
+<TT>&quot;Apache2::Access&quot;</TT> extends
+<TT>&quot;Apache2::RequestRec&quot;</TT>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>API</H2>
+
+<A NAME="ixAAE"></A>
+<TT>&quot;Apache2::Access&quot;</TT> provides the following functions and/or methods:
+<A NAME="lbAF">&nbsp;</A>
+<H3>allow_methods</H3>
+
+
+
+<A NAME="ixAAF"></A>
+Specify which <FONT SIZE="-1">HTTP</FONT> methods are allowed
+<P>
+
+
+
+<PRE>
+  $r-&gt;allow_methods($reset);
+  $r-&gt;allow_methods($reset, @methods);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAG"></A>
+The current request
+<DT>arg1: $reset ( boolean )<DD>
+
+
+<A NAME="ixAAH"></A>
+If a true value is passed all the previously allowed methods are
+removed. Otherwise the list is left intact.
+<DT>opt arg2: @methods ( array of strings )<DD>
+
+
+<A NAME="ixAAI"></A>
+a list of <FONT SIZE="-1">HTTP</FONT> methods to be allowed (e.g. <TT>&quot;GET&quot;</TT> and <TT>&quot;POST&quot;</TT>)
+<DT>ret: no return value<DD>
+<A NAME="ixAAJ"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAK"></A>
+
+</DL>
+<P>
+
+For example: here is how to allow only <TT>&quot;GET&quot;</TT> and <TT>&quot;POST&quot;</TT> methods,
+regardless to what was the previous setting:
+<P>
+
+
+
+<PRE>
+  $r-&gt;allow_methods(1, qw(GET POST));
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>allow_options</H3>
+
+
+
+<A NAME="ixAAL"></A>
+Retrieve the value of <TT>&quot;Options&quot;</TT> for this request
+<P>
+
+
+
+<PRE>
+  $options = $r-&gt;allow_options();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAM"></A>
+The current request
+<DT>ret: $options ( integer )<DD>
+
+
+<A NAME="ixAAN"></A>
+the <TT>&quot;Options&quot;</TT> bitmask. Normally used with bitlogic operators against
+<TT>&quot;Apache2::Const :options
+constants&quot;</TT>.
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAO"></A>
+</DL>
+<P>
+
+For example if the configuration for the current request was:
+<P>
+
+
+
+<PRE>
+  Options None
+  Options Indexes FollowSymLinks
+
+</PRE>
+
+
+<P>
+
+The following applies:
+<P>
+
+
+
+<PRE>
+  use Apache2::Const -compile =&gt; qw(:options);
+  $r-&gt;allow_options &amp; Apache2::Const::OPT_INDEXES;   # TRUE
+  $r-&gt;allow_options &amp; Apache2::Const::OPT_SYM_LINKS; # TRUE
+  $r-&gt;allow_options &amp; Apache2::Const::OPT_EXECCGI;   # FALSE
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>allow_overrides</H3>
+
+
+
+<A NAME="ixAAP"></A>
+Retrieve the value of <TT>&quot;AllowOverride&quot;</TT> for this request
+<P>
+
+
+
+<PRE>
+  $allow_override = $r-&gt;allow_overrides();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAQ"></A>
+The current request
+<DT>ret: $allow_override ( integer )<DD>
+
+
+<A NAME="ixAAR"></A>
+the <TT>&quot;AllowOverride&quot;</TT> bitmask. Normally used with bitlogic operators
+against <TT>&quot;Apache2::Const :override
+constants&quot;</TT>.
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAS"></A>
+</DL>
+<P>
+
+For example if the configuration for the current request was:
+<P>
+
+
+
+<PRE>
+  AllowOverride AuthConfig
+
+</PRE>
+
+
+<P>
+
+The following applies:
+<P>
+
+
+
+<PRE>
+  use Apache2::Const -compile =&gt; qw(:override);
+  $r-&gt;allow_overrides &amp; Apache2::Const::OR_AUTHCFG; # TRUE
+  $r-&gt;allow_overrides &amp; Apache2::Const::OR_LIMIT; # FALSE
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>allow_override_opts</H3>
+
+
+
+<A NAME="ixAAT"></A>
+Retrieve the bitmask of allowed <TT>&quot;Options&quot;</TT> set by <TT>&quot;AllowOverride Options=...&quot;</TT>
+for this request
+<P>
+
+
+
+<PRE>
+  $override_opts = $r-&gt;allow_override_opts();
+
+</PRE>
+
+
+<P>
+
+Enabling single options was introduced in Apache 2.2. For Apache 2.0 this
+function returns
+<TT>&quot;Apache2::Const::OPT_UNSET&quot;</TT> |
+<TT>&quot;Apache2::Const::OPT_ALL&quot;</TT> |
+<TT>&quot;Apache2::Const::OPT_INCNOEXEC&quot;</TT> |
+<TT>&quot;Apache2::Const::OPT_SYM_OWNER&quot;</TT> |
+<TT>&quot;Apache2::Const::OPT_MULTI&quot;</TT>,
+which corresponds to the default value (if not set) for Apache 2.2.
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAU"></A>
+The current request
+<DT>ret: $override_opts ( integer )<DD>
+
+
+<A NAME="ixAAV"></A>
+the override options bitmask. Normally used with bitlogic operators
+against <TT>&quot;Apache2::Const :options
+constants&quot;</TT>.
+<DT>since: 2.0.3<DD>
+<A NAME="ixAAW"></A>
+</DL>
+<P>
+
+For example if the configuration for the current request was:
+<P>
+
+
+
+<PRE>
+  AllowOverride Options=Indexes,ExecCGI
+
+</PRE>
+
+
+<P>
+
+The following applies:
+<P>
+
+
+
+<PRE>
+  use Apache2::Const -compile =&gt; qw(:options);
+  $r-&gt;allow_override_opts &amp; Apache2::Const::OPT_EXECCGI; # TRUE
+  $r-&gt;allow_override_opts &amp; Apache2::Const::OPT_SYM_LINKS; # FALSE
+
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H3>auth_name</H3>
+
+
+
+<A NAME="ixAAX"></A>
+Get/set the current Authorization realm (the per directory
+configuration directive <TT>&quot;AuthName&quot;</TT>):
+<P>
+
+
+
+<PRE>
+  $auth_name = $r-&gt;auth_name();
+  $auth_name = $r-&gt;auth_name($new_auth_name);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixAAY"></A>
+The current request
+<DT>opt arg1: $new_auth_name ( string )<DD>
+
+
+<A NAME="ixAAZ"></A>
+If <TT>$new_auth_name</TT> is passed a new <TT>&quot;AuthName&quot;</TT> value is set
+<DT>ret: $ ( integer )<DD>
+
+
+<A NAME="ixABA"></A>
+The current value of <TT>&quot;AuthName&quot;</TT>
+<DT>since: 2.0.00<DD>
+<A NAME="ixABB"></A>
+</DL>
+<P>
+
+The <TT>&quot;AuthName&quot;</TT> directive creates protection realm within the server
+document space. To quote <FONT SIZE="-1">RFC</FONT> 1945 ``These realms allow the protected
+resources on a server to be partitioned into a set of protection
+spaces, each with its own authentication scheme and/or authorization
+database.'' The client uses the root <FONT SIZE="-1">URL</FONT> of the server to determine
+which authentication credentials to send with each <FONT SIZE="-1">HTTP</FONT> request. These
+credentials are tagged with the name of the authentication realm that
+created them.  Then during the authentication stage the server uses
+the current authentication realm, from <TT>&quot;$r-&gt;auth_name&quot;</TT>, to
+determine which set of credentials to authenticate.
+<A NAME="lbAK">&nbsp;</A>
+<H3>auth_type</H3>
+
+
+
+<A NAME="ixABC"></A>
+Get/set the type of authorization required for this request (the per
+directory configuration directive <TT>&quot;AuthType&quot;</TT>):
+<P>
+
+
+
+<PRE>
+  $auth_type = $r-&gt;auth_type();
+  $auth_type = $r-&gt;auth_type($new_auth_type);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABD"></A>
+The current request
+<DT>opt arg1: $new_auth_type ( string )<DD>
+
+
+<A NAME="ixABE"></A>
+If <TT>$new_auth_type</TT> is passed a new <TT>&quot;AuthType&quot;</TT> value is set
+<DT>ret: $ ( integer )<DD>
+
+
+<A NAME="ixABF"></A>
+The current value of <TT>&quot;AuthType&quot;</TT>
+<DT>since: 2.0.00<DD>
+<A NAME="ixABG"></A>
+</DL>
+<P>
+
+Normally <TT>&quot;AuthType&quot;</TT> would be set to <TT>&quot;Basic&quot;</TT> to use the basic
+authentication scheme defined in <FONT SIZE="-1">RFC</FONT> 1945, <I>Hypertext Transfer
+Protocol --- </I><FONT SIZE="-1"><I>HTTP/1</I></FONT><I>.0</I>. However, you could set to something else and
+implement your own authentication scheme.
+<A NAME="lbAL">&nbsp;</A>
+<H3>get_basic_auth_pw</H3>
+
+
+
+<A NAME="ixABH"></A>
+Get the password from the request headers
+<P>
+
+
+
+<PRE>
+  my ($rc, $passwd) = $r-&gt;get_basic_auth_pw();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABI"></A>
+The current request
+<DT>ret1: $rc ( Apache2::Const constant )<DD>
+
+
+<A NAME="ixABJ"></A>
+<TT>&quot;Apache2::Const::OK&quot;</TT> if the <TT>$passwd</TT> value is set (and assured a correct
+value in
+<TT>&quot;$r-&gt;user&quot;</TT>);
+otherwise it returns an error code, either
+<TT>&quot;Apache2::Const::HTTP_INTERNAL_SERVER_ERROR&quot;</TT> if things are really confused,
+<TT>&quot;Apache2::Const::HTTP_UNAUTHORIZED&quot;</TT> if no authentication at all seemed to be
+in use, or <TT>&quot;Apache2::Const::DECLINED&quot;</TT> if there was authentication, but it
+wasn't <TT>&quot;Basic&quot;</TT> (in which case, the caller should presumably decline
+as well).
+<DT>ret2: $ret (string)<DD>
+
+
+<A NAME="ixABK"></A>
+The password as set in the headers (decoded)
+<DT>since: 2.0.00<DD>
+<A NAME="ixABL"></A>
+</DL>
+<P>
+
+If <TT>&quot;AuthType&quot;</TT> is not set, this handler first sets it
+to <TT>&quot;Basic&quot;</TT>.
+<A NAME="lbAM">&nbsp;</A>
+<H3>get_remote_logname</H3>
+
+
+
+<A NAME="ixABM"></A>
+Retrieve the login name of the remote user (<FONT SIZE="-1">RFC1413</FONT>)
+<P>
+
+
+
+<PRE>
+  $remote_logname = $r-&gt;get_remote_logname();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABN"></A>
+The current request
+<DT>ret: $remote_logname ( string )<DD>
+
+
+<A NAME="ixABO"></A>
+The username of the user logged in to the client machine, or an empty
+string if it could not be determined via <FONT SIZE="-1">RFC1413</FONT>, which involves
+querying the client's identd or auth daemon.
+<DT>since: 2.0.00<DD>
+<A NAME="ixABP"></A>
+</DL>
+<P>
+
+Do not confuse this method with
+<TT>&quot;$r-&gt;user&quot;</TT>, which
+provides the username provided by the user during the server
+authentication.
+<A NAME="lbAN">&nbsp;</A>
+<H3>note_auth_failure</H3>
+
+
+
+<A NAME="ixABQ"></A>
+Setup the output headers so that the client knows how to authenticate
+itself the next time, if an authentication request failed.  This
+function works for both basic and digest authentication
+<P>
+
+
+
+<PRE>
+  $r-&gt;note_auth_failure();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABR"></A>
+The current request
+<DT>ret: no return value<DD>
+<A NAME="ixABS"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixABT"></A>
+
+</DL>
+<P>
+
+This method requires <TT>&quot;AuthType&quot;</TT> to be set to <TT>&quot;Basic&quot;</TT> or
+<TT>&quot;Digest&quot;</TT>. Depending on the setting it'll call either
+<TT>&quot;$r-&gt;note_basic_auth_failure&quot;</TT> or
+<TT>&quot;$r-&gt;note_digest_auth_failure&quot;</TT>.
+<A NAME="lbAO">&nbsp;</A>
+<H3>note_basic_auth_failure</H3>
+
+
+
+<A NAME="ixABU"></A>
+Setup the output headers so that the client knows how to authenticate
+itself the next time, if an authentication request failed.  This
+function works only for basic authentication
+<P>
+
+
+
+<PRE>
+  $r-&gt;note_basic_auth_failure();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABV"></A>
+The current request
+<DT>ret: no return value<DD>
+<A NAME="ixABW"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixABX"></A>
+
+</DL>
+<A NAME="lbAP">&nbsp;</A>
+<H3>note_digest_auth_failure</H3>
+
+
+
+<A NAME="ixABY"></A>
+Setup the output headers so that the client knows how to authenticate
+itself the next time, if an authentication request failed.  This
+function works only for digest authentication.
+<P>
+
+
+
+<PRE>
+  $r-&gt;note_digest_auth_failure();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixABZ"></A>
+The current request
+<DT>ret: no return value<DD>
+<A NAME="ixACA"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixACB"></A>
+
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H3>requires</H3>
+
+
+
+<A NAME="ixACC"></A>
+Retrieve information about all of the requires directives for this request
+<P>
+
+
+
+<PRE>
+  $requires = $r-&gt;requires
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixACD"></A>
+The current request
+<DT>ret: $requires ( <FONT SIZE="-1">ARRAY</FONT> ref )<DD>
+
+
+<A NAME="ixACE"></A>
+Returns an array reference of hash references, containing information
+related to the <TT>&quot;require&quot;</TT> directive.
+<DT>since: 2.0.00<DD>
+<A NAME="ixACF"></A>
+</DL>
+<P>
+
+This is normally used for access control.
+<P>
+
+For example if the configuration had the following require directives:
+<P>
+
+
+
+<PRE>
+    Require user  goo bar
+    Require group bar tar
+
+</PRE>
+
+
+<P>
+
+this method will return the following datastructure:
+<P>
+
+
+
+<PRE>
+  [
+    {
+      'method_mask' =&gt; -1,
+      'requirement' =&gt; 'user goo bar'
+    },
+    {
+      'method_mask' =&gt; -1,
+      'requirement' =&gt; 'group bar tar'
+    }
+  ];
+
+</PRE>
+
+
+<P>
+
+The <I>requirement</I> field is what was passed to the <TT>&quot;Require&quot;</TT>
+directive.  The <I>method_mask</I> field is a bitmask which can be
+modified by the <TT>&quot;Limit&quot;</TT> directive, but normally it can be safely
+ignored as it's mostly used internally. For example if the
+configuration was:
+<P>
+
+
+
+<PRE>
+    Require user goo bar
+    Require group bar tar
+    &lt;Limit POST&gt;
+       Require valid-user
+    &lt;/Limit&gt;
+
+</PRE>
+
+
+<P>
+
+and the request method was <TT>&quot;POST&quot;</TT>, <TT>&quot;$r-&gt;requires&quot;</TT> will return:
+<P>
+
+
+
+<PRE>
+  [
+    {
+      'method_mask' =&gt; -1,
+      'requirement' =&gt; 'user goo bar'
+    },
+    {
+      'method_mask' =&gt; -1,
+      'requirement' =&gt; 'group bar tar'
+    }
+    {
+      'method_mask' =&gt; 4,
+      'requirement' =&gt; 'valid-user'
+    }
+  ];
+
+</PRE>
+
+
+<P>
+
+But if the request method was <TT>&quot;GET&quot;</TT>, it will return only:
+<P>
+
+
+
+<PRE>
+  [
+    {
+      'method_mask' =&gt; -1,
+      'requirement' =&gt; 'user goo bar'
+    },
+    {
+      'method_mask' =&gt; -1,
+      'requirement' =&gt; 'group bar tar'
+    }
+  ];
+
+</PRE>
+
+
+<P>
+
+As you can see Apache gives you the requirements relevant for the
+current request, so the <I>method_mask</I> is irrelevant.
+<P>
+
+It is also a good time to remind that in the general case, access
+control directives should not be placed within a &lt;Limit&gt;
+section.  Refer to the Apache documentation for more information.
+<P>
+
+Using the same configuration and assuming that the request was of type
+<FONT SIZE="-1">POST</FONT>, the following code inside an Auth handler:
+<P>
+
+
+
+<PRE>
+  my %require =
+      map { my ($k, $v) = split /\s+/, $_-&gt;{requirement}, 2; ($k, $v||'') }
+      @{ $r-&gt;requires };
+
+</PRE>
+
+
+<P>
+
+will populate <TT>%require</TT> with the following pairs:
+<P>
+
+
+
+<PRE>
+  'group' =&gt; 'bar tar',
+  'user' =&gt; 'goo bar',
+  'valid-user' =&gt; '',
+
+</PRE>
+
+
+<A NAME="lbAR">&nbsp;</A>
+<H3>satisfies</H3>
+
+
+
+<A NAME="ixACG"></A>
+How the requires lines must be met. What's the applicable value of the
+<TT>&quot;Satisfy&quot;</TT> directive:
+<P>
+
+
+
+<PRE>
+  $satisfy = $r-&gt;satisfies();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixACH"></A>
+The current request
+<DT>ret: $satisfy ( integer )<DD>
+
+
+<A NAME="ixACI"></A>
+How the requirements must be met.  One of the <TT>&quot;Apache2::Const
+:satisfy constants&quot;</TT>:
+
+
+<P>
+
+
+<TT>&quot;Apache2::Const::SATISFY_ANY&quot;</TT>,
+<TT>&quot;Apache2::Const::SATISFY_ALL&quot;</TT>
+and
+<TT>&quot;Apache2::Const::SATISFY_NOSPEC&quot;</TT>.
+<DT>since: 2.0.00<DD>
+<A NAME="ixACJ"></A>
+</DL>
+<P>
+
+See the documentation for the <TT>&quot;Satisfy&quot;</TT> directive in the Apache
+documentation.
+<A NAME="lbAS">&nbsp;</A>
+<H3>some_auth_required</H3>
+
+
+
+<A NAME="ixACK"></A>
+Can be used within any handler to determine if any authentication is
+required for the current request:
+<P>
+
+
+
+<PRE>
+  $need_auth = $r-&gt;some_auth_required();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $r ( Apache2::RequestRec object )<DD>
+
+
+<A NAME="ixACL"></A>
+The current request
+<DT>ret: $need_auth ( boolean )<DD>
+
+
+<A NAME="ixACM"></A>
+<FONT SIZE="-1">TRUE</FONT> if authentication is required, <FONT SIZE="-1">FALSE</FONT> otherwise
+<DT>since: 2.0.00<DD>
+<A NAME="ixACN"></A>
+</DL>
+<A NAME="lbAT">&nbsp;</A>
+<H2>See Also</H2>
+
+<A NAME="ixACO"></A>
+mod_perl 2.0 documentation.
+<A NAME="lbAU">&nbsp;</A>
+<H2>Copyright</H2>
+
+<A NAME="ixACP"></A>
+mod_perl 2.0 and its core modules are copyrighted under
+The Apache Software License, Version 2.0.
+<A NAME="lbAV">&nbsp;</A>
+<H2>Authors</H2>
+
+<A NAME="ixACQ"></A>
+The mod_perl development team and numerous
+contributors.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">Synopsis</A><DD>
+<DT><A HREF="#lbAD">Description</A><DD>
+<DT><A HREF="#lbAE">API</A><DD>
+<DL>
+<DT><A HREF="#lbAF">allow_methods</A><DD>
+<DT><A HREF="#lbAG">allow_options</A><DD>
+<DT><A HREF="#lbAH">allow_overrides</A><DD>
+<DT><A HREF="#lbAI">allow_override_opts</A><DD>
+<DT><A HREF="#lbAJ">auth_name</A><DD>
+<DT><A HREF="#lbAK">auth_type</A><DD>
+<DT><A HREF="#lbAL">get_basic_auth_pw</A><DD>
+<DT><A HREF="#lbAM">get_remote_logname</A><DD>
+<DT><A HREF="#lbAN">note_auth_failure</A><DD>
+<DT><A HREF="#lbAO">note_basic_auth_failure</A><DD>
+<DT><A HREF="#lbAP">note_digest_auth_failure</A><DD>
+<DT><A HREF="#lbAQ">requires</A><DD>
+<DT><A HREF="#lbAR">satisfies</A><DD>
+<DT><A HREF="#lbAS">some_auth_required</A><DD>
+</DL>
+<DT><A HREF="#lbAT">See Also</A><DD>
+<DT><A HREF="#lbAU">Copyright</A><DD>
+<DT><A HREF="#lbAV">Authors</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of virt-image</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>virt-image</H1>
+Section: Virtual Machine Install Tools (5)<BR>Updated: 2011-07-28<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+virt-image - Format of the virtual image XML descriptor
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+<I><A HREF="/manpages/index.html?1+virt-image">virt-image</A></I>(1) relies on an <FONT SIZE="-1">XML</FONT> descriptor to create virtual machines from
+virtual machine images. In general, a virtual machine image consists of the
+<FONT SIZE="-1">XML</FONT> descriptor (usually in a file <I>image.xml</I>) and a number of files for
+the virtual machine's disks.
+<P>
+
+In the following explanation of the structure of the image descriptor,
+mandatory <FONT SIZE="-1">XML</FONT> elements are marked as <B>element</B>, whereas optional elements
+are marked as <I>element</I>.
+<P>
+
+All file names in the image descriptor are relative to the location of the
+descriptor itself. Generally, disk files are either kept in the same
+directory as the image descriptor, or in a subdirectory.
+<A NAME="lbAD">&nbsp;</A>
+<H2>HOST MATCHING</H2>
+
+<A NAME="ixAAD"></A>
+The image descriptor contains information on the requirements a guest has
+on the host platform through one or more the <I>/image/domain/boot</I>
+descriptors (see section ``<FONT SIZE="-1">BOOT</FONT>''). The image can only be used if at least
+one of the boot descriptors is suitable for the host platform; a boot
+descriptor is suitable if:
+<DL COMPACT>
+<DT>*<DD>
+The <FONT SIZE="-1">CPU</FONT> architecture of the boot descriptor, given by the
+<I>boot/guest/arch</I> element, is supported by the host
+<DT>*<DD>
+The host supports a guest with the features requested in the
+<I>boot/guest/features</I> element, such as providing an <FONT SIZE="-1">APIC</FONT>, or having <FONT SIZE="-1">ACPI</FONT>
+turned off
+</DL>
+<P>
+
+If a suitable boot descriptor is found, the guest is created and booted
+according to the information about booting the <FONT SIZE="-1">OS</FONT> from the <I>boot/os</I>
+element and with the disks specified in the <I>boot/drive</I> element. If more
+than one suitable boot descriptor is found, one of them is chosen based on
+a heuristic, generally preferring paravirtualized guests over full
+virtualized ones, though this is an implementation detail of the tool
+creating the virtual machine.
+<A NAME="lbAE">&nbsp;</A>
+<H2>STRUCTURE</H2>
+
+<A NAME="ixAAE"></A>
+The image descriptor consists of three sections, all contained in the
+toplevel <B>image</B> element:
+<DL COMPACT>
+<DT>General metadata about the image<DD>
+<A NAME="ixAAF"></A>
+A number of elements like <I>label</I>, <B>name</B>, and <I>description</I> that give
+some simple information about the image. The <B>name</B> must be a string
+suitable as a name for the virtual machine, the <I>label</I> is a short
+human-readable string suitable for display in graphical <FONT SIZE="-1">UI</FONT>'s, and the
+<I>description</I> should be a longer, free-form description of the purpose of
+the image. The <B>name</B> is mandatory.
+<DT>Virtual machine attributes<DD>
+<A NAME="ixAAG"></A>
+The <B>domain</B> element contains instructions on how to boot the image, and
+device attributes such as the number of virtual <FONT SIZE="-1">CPU</FONT>'s and the size of the
+memory. (see section ``<FONT SIZE="-1">DOMAIN</FONT>'')
+<DT>Storage layout<DD>
+<A NAME="ixAAH"></A>
+The <B>storage</B> element lists the files to back the virtual machine's disks
+and some information about their format and use. (see section ``<FONT SIZE="-1">STORAGE</FONT>'')
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>DOMAIN</H2>
+
+<A NAME="ixAAI"></A>
+The <B>domain</B> element contains one or more <B>boot</B> descriptors (see section
+``<FONT SIZE="-1">BOOT</FONT>'') and a <B>devices</B> element. The <B>Devices</B> element lists the
+recommended number of virtual <FONT SIZE="-1">CPU</FONT>'s in the <B>vcpu</B> element and the
+recommended amount of memory in kB in the <B>memory</B> element. It also
+indicates whether the virtual machine should have a network interface
+through the <I>interface</I> element and whether the virtual machine has a
+graphical interface through the <I>graphics</I> element.
+<A NAME="lbAG">&nbsp;</A>
+<H3><FONT SIZE="-1">BOOT</FONT></H3>
+
+<A NAME="ixAAJ"></A>
+Each <B>boot</B> descriptor details how the virtual machine should be started
+on a certain hypervisor. The <B>type</B> attribute of the <B>boot</B> element,
+which can either be <TT>&quot;xen&quot;</TT> or <TT>&quot;hvm&quot;</TT>, depending on whether the boot
+descriptor is for a paravirtualized Xen(tm) guest or a fully-virtualized
+guest.
+<P>
+
+The <B>boot</B> element contains three subelements:
+<DL COMPACT>
+<DT>The platform requirements of the guest<DD>
+<A NAME="ixAAK"></A>
+The platform requirements, contained in the <B>guest</B> element, consist of
+the <B>arch</B> element and the <I>features</I> element. The <B>arch</B> element
+indicates the <FONT SIZE="-1">CPU</FONT> architecture the guest expects, e.g. <TT>&quot;i686&quot;</TT>, <TT>&quot;x86_64&quot;</TT>,
+or <TT>&quot;ppc&quot;</TT>.
+
+
+<P>
+
+
+The <I>features</I> element indicates whether certain platform features should
+be on or off. Currently, the platform features are <I>pae</I>, <I>acpi</I>, and
+<I>apic</I>. They can be turned on or off by giving a <I>state</I> attribute of
+either <TT>&quot;on&quot;</TT> or <TT>&quot;off&quot;</TT>. When a feature is mentioned in the <I>features</I>
+element, it defaults to <TT>&quot;on&quot;</TT>.
+<DT>The details of booting the image's operating system<DD>
+<A NAME="ixAAL"></A>
+The <B>os</B> element for fully-virtualized <TT>&quot;hvm&quot;</TT> guests contains a <B>loader</B>
+element whose <B>dev</B> attribute indicates whether to boot off a hard disk
+(<TT>&quot;dev='hd'&quot;</TT>) or off a CD-ROM (<TT>&quot;dev='cdrom'&quot;</TT>)
+
+
+<P>
+
+
+For paravirtualized guests, the <B>os</B> element either contains a
+<TT>&quot;&lt;loader&gt;pygrub&lt;/loader&gt;&quot;</TT> element, indicating that the guest should be
+booted with <I>pygrub</I>, or <B>kernel</B>, <I>initrd</I> and <I>cmdline</I> elements. The
+contents of the <B>kernel</B> and <I>initrd</I> elements are the names of the
+kernel and initrd files, whereas the <I>cmdline</I> element contains the
+command line that should be passed to the kernel on boot.
+<DT>The mapping of disk files as devices into the guest<DD>
+<A NAME="ixAAM"></A>
+The mapping of disk files into the guest is performed by a list of <B>drive</B>
+elements inside the <B>boot</B> element. Each <B>drive</B> element references the
+name of a disk file from the ``<FONT SIZE="-1">STORAGE</FONT>'' section through its <B>disk</B>
+attribute and can optionally specify as what device that disk file should
+appear in the guest through its <I>target</I> attribute. If the <I>target</I> is
+omitted, device names are assigned in the order in which the <B>drive</B>
+elements appear, skipping already assigned devices.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>STORAGE</H2>
+
+<A NAME="ixAAN"></A>
+The <B>storage</B> element lists the disk image files that are part of the
+virtual machine image in a list of one or more <B>disk</B> elements. Each
+<B>disk</B> element can contain the following attributes:
+<DL COMPACT>
+<DT>*<DD>
+the <B>file</B> attribute giving the name of the disk file
+<DT>*<DD>
+an optional <I>id</I> attribute. The name given with that attribute is used to
+reference the disk from the <B>drive</B> element of a <B>boot</B> descriptor. If
+the <I>id</I> attribute is missing, it defaults to the <B>file</B> attribute.
+<DT>*<DD>
+the <B>use</B> attribute indicating whether the disk file is a <TT>&quot;system&quot;</TT>,
+<TT>&quot;user&quot;</TT>, or <TT>&quot;scratch&quot;</TT> disk. The <B>use</B> attribute differentiates disk files
+so that an update based on replacing disk files can replace <TT>&quot;system&quot;</TT>
+disks, but leave <TT>&quot;user&quot;</TT> disks untouched.
+
+
+<P>
+
+
+Generally, <TT>&quot;system&quot;</TT> disks contain application code, <TT>&quot;user&quot;</TT> disks contain
+the application's data, and <TT>&quot;scratch&quot;</TT> disks contain temporary state that
+can be erased between runs of the guest.
+
+
+<P>
+
+
+The virtual machine image must contain files for all <TT>&quot;system&quot;</TT> disks, and
+may contain files for the <TT>&quot;user&quot;</TT> and <TT>&quot;scratch&quot;</TT> disks. If the latter are
+not part of the image, they are initialized as empty files when a guest is
+created, with the size given by the <I>size</I> attribute.
+<DT>*<DD>
+the <I>size</I> attribute giving the size of the disk in <FONT SIZE="-1">MB</FONT>.
+<DT>*<DD>
+the <I>format</I> attribute giving the format of the disk file. Currently, this
+can be one of: <TT>&quot;raw&quot;</TT> <TT>&quot;iso&quot;</TT>, <TT>&quot;qcow&quot;</TT>, <TT>&quot;qcow2&quot;</TT>, or <TT>&quot;vmdk&quot;</TT>.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<A NAME="ixAAO"></A>
+The image descriptor below can be used to create a virtual machine running
+the System Rescue <FONT SIZE="-1">CD</FONT> (<TT>&quot;<A HREF="http://www.sysresccd.org/">http://www.sysresccd.org/</A>&quot;</TT>) Besides the descriptor,
+you only need the <FONT SIZE="-1">ISO</FONT> image from the System Rescue <FONT SIZE="-1">CD</FONT> website.
+<P>
+
+
+
+<PRE>
+    &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot;?&gt;
+    &lt;image&gt;
+      &lt;name&gt;sysresccd&lt;/name&gt;
+      &lt;domain&gt;
+        &lt;boot type=&quot;hvm&quot;&gt;
+          &lt;guest&gt;
+            &lt;arch&gt;i686&lt;/arch&gt;
+          &lt;/guest&gt;
+          &lt;os&gt;
+            &lt;loader dev=&quot;cdrom&quot;/&gt;
+          &lt;/os&gt;
+          &lt;drive disk=&quot;root.raw&quot; target=&quot;hda&quot;/&gt;
+          &lt;drive disk=&quot;sysresc&quot;/&gt;
+        &lt;/boot&gt;
+        &lt;devices&gt;
+          &lt;vcpu&gt;1&lt;/vcpu&gt;
+          &lt;memory&gt;262144&lt;/memory&gt;
+          &lt;interface/&gt;
+          &lt;graphics/&gt;
+        &lt;/devices&gt;
+      &lt;/domain&gt;
+      &lt;storage&gt;
+        &lt;disk file=&quot;root.raw&quot; use=&quot;scratch&quot; size=&quot;100&quot; format=&quot;raw&quot;/&gt;
+        &lt;disk id=&quot;sysresc&quot; file=&quot;isos/systemrescuecd.iso&quot;
+              use=&quot;system&quot; format=&quot;iso&quot;/&gt;
+      &lt;/storage&gt;
+    &lt;/image&gt;
+
+</PRE>
+
+
+<P>
+
+To create a virtual machine, save the above <FONT SIZE="-1">XML</FONT> in <I>image.xml</I> and run:
+<P>
+
+
+
+<PRE>
+    # virt-image --vnc image.xml
+
+</PRE>
+
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAP"></A>
+Written by David Lutterkort. See the <FONT SIZE="-1">AUTHORS</FONT> file in the source distribution
+for the complete list of credits.
+<A NAME="lbAK">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAQ"></A>
+Please see <TT>&quot;<A HREF="http://virt-manager.org/page/BugReporting">http://virt-manager.org/page/BugReporting</A>&quot;</TT>
+<A NAME="lbAL">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAR"></A>
+Copyright (C) 2006-2007 Red Hat, Inc, and various contributors.
+This is free software. You may redistribute copies of it under the terms
+of the <FONT SIZE="-1">GNU</FONT> General Public License <TT>&quot;<A HREF="http://www.gnu.org/licenses/gpl.html">http://www.gnu.org/licenses/gpl.html</A>&quot;</TT>.
+There is <FONT SIZE="-1">NO</FONT> <FONT SIZE="-1">WARRANTY</FONT>, to the extent permitted by law.
+<A NAME="lbAM">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAS"></A>
+<I><A HREF="/manpages/index.html?1+virt-image">virt-image</A></I>(1), <I><A HREF="http://localhost/cgi-bin/man/man2html?1+virt-install">virt-install</A></I>(1), the project website
+<TT>&quot;<A HREF="http://virt-manager.org">http://virt-manager.org</A>&quot;</TT>, the Relax-NG grammar for image <FONT SIZE="-1">XML</FONT> <TT>&quot;image.rng&quot;</TT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">HOST MATCHING</A><DD>
+<DT><A HREF="#lbAE">STRUCTURE</A><DD>
+<DT><A HREF="#lbAF">DOMAIN</A><DD>
+<DL>
+<DT><A HREF="#lbAG"><FONT SIZE="-1">BOOT</FONT></A><DD>
+</DL>
+<DT><A HREF="#lbAH">STORAGE</A><DD>
+<DT><A HREF="#lbAI">EXAMPLE</A><DD>
+<DT><A HREF="#lbAJ">AUTHOR</A><DD>
+<DT><A HREF="#lbAK">BUGS</A><DD>
+<DT><A HREF="#lbAL">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAM">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of PAM\&.CONF</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>PAM\&.CONF</H1>
+Section: Linux-PAM Manual (5)<BR>Updated: 03/02/2009<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pam.conf, pam.d - PAM configuration files
+<A NAME="lbAB">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<P>
+
+When a
+<I>PAM</I>
+aware privilege granting application is started, it activates its attachment to the PAM-API. This activation performs a number of tasks, the most important being the reading of the configuration file(s):
+FC/etc/pam.confF[]. Alternatively, this may be the contents of the
+FC/etc/pam.d/F[]
+directory. The presence of this directory will cause Linux-PAM to ignore
+FC/etc/pam.confF[].
+<P>
+
+These files list the
+<I>PAM</I>s that will do the authentication tasks required by this service, and the appropriate behavior of the PAM-API in the event that individual
+<I>PAM</I>s fail.
+<P>
+
+The syntax of the
+FC/etc/pam.confF[]
+configuration file is as follows. The file is made up of a list of rules, each rule is typically placed on a single line, but may be extended with an escaped end of line: `\&lt;LF&gt;'. Comments are preceded with `#' marks and extend to the next end of line.
+<P>
+
+The format of each rule is a space separated collection of tokens, the first three being case-insensitive:
+<P>
+
+<P>
+<B> service type control module-path module-arguments</B>
+<P>
+
+The syntax of files contained in the
+FC/etc/pam.d/F[]
+directory, are identical except for the absence of any
+<I>service</I>
+field. In this case, the
+<I>service</I>
+is the name of the file in the
+FC/etc/pam.d/F[]
+directory. This filename must be in lower case.
+<P>
+
+An important feature of
+<I>PAM</I>, is that a number of rules may be
+<I>stacked</I>
+to combine the services of a number of PAMs for a given authentication task.
+<P>
+
+The
+<I>service</I>
+is typically the familiar name of the corresponding application:
+<I>login</I>
+and
+<I>su</I>
+are good examples. The
+<I>service</I>-name,
+<I>other</I>, is reserved for giving
+<I>default</I>
+rules. Only lines that mention the current service (or in the absence of such, the
+<I>other</I>
+entries) will be associated with the given service-application.
+<P>
+
+The
+<I>type</I>
+is the management group that the rule corresponds to. It is used to specify which of the management groups the subsequent module is to be associated with. Valid entries are:
+<P>
+
+account
+<DL COMPACT><DT><DD>
+this module type performs non-authentication based account management. It is typically used to restrict/permit access to a service based on the time of day, currently available system resources (maximum number of users) or perhaps the location of the applicant user -- 'root' login only on the console.
+</DL>
+
+<P>
+
+auth
+<DL COMPACT><DT><DD>
+this module type provides two aspects of authenticating the user. Firstly, it establishes that the user is who they claim to be, by instructing the application to prompt the user for a password or other means of identification. Secondly, the module can grant group membership or other privileges through its credential granting properties.
+</DL>
+
+<P>
+
+password
+<DL COMPACT><DT><DD>
+this module type is required for updating the authentication token associated with the user. Typically, there is one module for each 'challenge/response' based authentication (auth) type.
+</DL>
+
+<P>
+
+session
+<DL COMPACT><DT><DD>
+this module type is associated with doing things that need to be done for the user before/after they can be given service. Such things include the logging of information concerning the opening/closing of some data exchange with a user, mounting directories, etc.
+</DL>
+
+<P>
+
+If the
+<I>type</I>
+value from the list above is prepended with a
+<I>-</I>
+character the PAM library will not log to the system log if it is not possible to load the module because it is missing in the system. This can be useful especially for modules which are not always installed on the system and are not required for correct authentication and authorization of the login session.
+<P>
+
+The third field,
+<I>control</I>, indicates the behavior of the PAM-API should the module fail to succeed in its authentication task. There are two types of syntax for this control field: the simple one has a single simple keyword; the more complicated one involves a square-bracketed selection of
+<I>value=action</I>
+pairs.
+<P>
+
+For the simple (historical) syntax valid
+<I>control</I>
+values are:
+<P>
+
+required
+<DL COMPACT><DT><DD>
+failure of such a PAM will ultimately lead to the PAM-API returning failure but only after the remaining
+<I>stacked</I>
+modules (for this
+<I>service</I>
+and
+<I>type</I>) have been invoked.
+</DL>
+
+<P>
+
+requisite
+<DL COMPACT><DT><DD>
+like
+<I>required</I>, however, in the case that such a module returns a failure, control is directly returned to the application. The return value is that associated with the first required or requisite module to fail. Note, this flag can be used to protect against the possibility of a user getting the opportunity to enter a password over an unsafe medium. It is conceivable that such behavior might inform an attacker of valid accounts on a system. This possibility should be weighed against the not insignificant concerns of exposing a sensitive password in a hostile environment.
+</DL>
+
+<P>
+
+sufficient
+<DL COMPACT><DT><DD>
+success of such a module is enough to satisfy the authentication requirements of the stack of modules (if a prior
+<I>required</I>
+module has failed the success of this one is
+<I>ignored</I>). A failure of this module is not deemed as fatal to satisfying the application that this type has succeeded. If the module succeeds the PAM framework returns success to the application immediately without trying any other modules.
+</DL>
+
+<P>
+
+optional
+<DL COMPACT><DT><DD>
+the success or failure of this module is only important if it is the only module in the stack associated with this
+<I>service</I>+<I>type</I>.
+</DL>
+
+<P>
+
+include
+<DL COMPACT><DT><DD>
+include all lines of given type from the configuration file specified as an argument to this control.
+</DL>
+
+<P>
+
+substack
+<DL COMPACT><DT><DD>
+include all lines of given type from the configuration file specified as an argument to this control. This differs from
+<I>include</I>
+in that evaluation of the
+<I>done</I>
+and
+<I>die</I>
+actions in a substack does not cause skipping the rest of the complete module stack, but only of the substack. Jumps in a substack also can not make evaluation jump out of it, and the whole substack is counted as one module when the jump is done in a parent stack. The
+<I>reset</I>
+action will reset the state of a module stack to the state it was in as of beginning of the substack evaluation.
+</DL>
+
+<P>
+
+For the more complicated syntax valid
+<I>control</I>
+values have the following form:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+
+<FONT SIZE="-1">
+</FONT><PRE>
+
+
+      [value1=action1 value2=action2 ...]
+    
+</PRE>
+
+
+<FONT SIZE="+1">
+</DL>
+
+
+
+
+<P>
+
+Where
+<I>valueN</I>
+corresponds to the return code from the function invoked in the module for which the line is defined. It is selected from one of these:
+<I>success</I>,
+<I>open_err</I>,
+<I>symbol_err</I>,
+<I>service_err</I>,
+<I>system_err</I>,
+<I>buf_err</I>,
+<I>perm_denied</I>,
+<I>auth_err</I>,
+<I>cred_insufficient</I>,
+<I>authinfo_unavail</I>,
+<I>user_unknown</I>,
+<I>maxtries</I>,
+<I>new_authtok_reqd</I>,
+<I>acct_expired</I>,
+<I>session_err</I>,
+<I>cred_unavail</I>,
+<I>cred_expired</I>,
+<I>cred_err</I>,
+<I>no_module_data</I>,
+<I>conv_err</I>,
+<I>authtok_err</I>,
+<I>authtok_recover_err</I>,
+<I>authtok_lock_busy</I>,
+<I>authtok_disable_aging</I>,
+<I>try_again</I>,
+<I>ignore</I>,
+<I>abort</I>,
+<I>authtok_expired</I>,
+<I>module_unknown</I>,
+<I>bad_item</I>,
+<I>conv_again</I>,
+<I>incomplete</I>, and
+<I>default</I>.
+<P>
+
+The last of these,
+<I>default</I>, implies 'all
+<I>valueN</I>'s not mentioned explicitly. Note, the full list of PAM errors is available in
+FC/usr/include/security/_pam_types.hF[]. The
+<I>actionN</I>
+can be: an unsigned integer,
+<I>n</I>, signifying an action of 'jump over the next
+<I>n</I>
+modules in the stack'; or take one of the following forms:
+<P>
+
+ignore
+<DL COMPACT><DT><DD>
+when used with a stack of modules, the module's return status will not contribute to the return code the application obtains.
+</DL>
+
+<P>
+
+bad
+<DL COMPACT><DT><DD>
+this action indicates that the return code should be thought of as indicative of the module failing. If this module is the first in the stack to fail, its status value will be used for that of the whole stack.
+</DL>
+
+<P>
+
+die
+<DL COMPACT><DT><DD>
+equivalent to bad with the side effect of terminating the module stack and PAM immediately returning to the application.
+</DL>
+
+<P>
+
+ok
+<DL COMPACT><DT><DD>
+this tells PAM that the administrator thinks this return code should contribute directly to the return code of the full stack of modules. In other words, if the former state of the stack would lead to a return of
+<I>PAM_SUCCESS</I>, the module's return code will override this value. Note, if the former state of the stack holds some value that is indicative of a modules failure, this 'ok' value will not be used to override that value.
+</DL>
+
+<P>
+
+done
+<DL COMPACT><DT><DD>
+equivalent to ok with the side effect of terminating the module stack and PAM immediately returning to the application.
+</DL>
+
+<P>
+
+reset
+<DL COMPACT><DT><DD>
+clear all memory of the state of the module stack and start again with the next stacked module.
+</DL>
+
+<P>
+
+Each of the four keywords: required; requisite; sufficient; and optional, have an equivalent expression in terms of the [...] syntax. They are as follows:
+<P>
+
+required
+<DL COMPACT><DT><DD>
+[success=ok new_authtok_reqd=ok ignore=ignore default=bad]
+</DL>
+
+<P>
+
+requisite
+<DL COMPACT><DT><DD>
+[success=ok new_authtok_reqd=ok ignore=ignore default=die]
+</DL>
+
+<P>
+
+sufficient
+<DL COMPACT><DT><DD>
+[success=done new_authtok_reqd=done default=ignore]
+</DL>
+
+<P>
+
+optional
+<DL COMPACT><DT><DD>
+[success=ok new_authtok_reqd=ok default=ignore]
+</DL>
+
+<P>
+
+<P>
+<I>module-path</I>
+is either the full filename of the PAM to be used by the application (it begins with a '/'), or a relative pathname from the default module location:
+FC/lib/security/F[]
+or
+FC/lib64/security/F[], depending on the architecture.
+<P>
+
+<P>
+<I>module-arguments</I>
+are a space separated list of tokens that can be used to modify the specific behavior of the given PAM. Such arguments will be documented for each individual module. Note, if you wish to include spaces in an argument, you should surround that argument with square brackets.
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+
+</FONT>
+<PRE>
+
+
+    squid auth required pam_mysql.so user=passwd_query passwd=mada \
+          db=eminence [query=select user_name from internet_service \
+          where user_name='%u' and password=PASSWORD('%p') and \
+        service='web_proxy']
+    
+</PRE>
+
+
+<FONT SIZE="+1">
+</DL>
+
+
+
+
+<P>
+
+When using this convention, you can include `[' characters inside the string, and if you wish to include a `]' character inside the string that will survive the argument parsing, you should use `\]'. In other words:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+
+</FONT>
+<PRE>
+
+
+    [..[..\]..]    --&gt;   ..[..]..
+    
+</PRE>
+
+
+<FONT SIZE="+1">
+</DL>
+
+
+
+
+<P>
+
+Any line in (one of) the configuration file(s), that is not formatted correctly, will generally tend (erring on the side of caution) to make the authentication process fail. A corresponding error is written to the system log files with a call to
+<B><A HREF="/manpages/index.html?3+syslog">syslog</A></B>(3).
+<P>
+
+More flexible than the single configuration file is it to configure libpam via the contents of the
+FC/etc/pam.d/F[]
+directory. In this case the directory is filled with files each of which has a filename equal to a service-name (in lower-case): it is the personal configuration file for the named service.
+<P>
+
+The syntax of each file in /etc/pam.d/ is similar to that of the
+FC/etc/pam.confF[]
+file and is made up of lines of the following form:
+<P>
+<DL COMPACT><DT><DD>
+
+
+
+
+</FONT>
+<PRE>
+
+
+type  control  module-path  module-arguments
+    
+</PRE>
+
+
+<FONT SIZE="+1">
+</DL>
+
+
+
+
+<P>
+
+The only difference being that the service-name is not present. The service-name is of course the name of the given configuration file. For example,
+FC/etc/pam.d/loginF[]
+contains the configuration for the
+<B>login</B>
+service.
+</FONT><A NAME="lbAC">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<P>
+
+<P>
+<B><A HREF="/manpages/index.html?3+pam">pam</A></B>(3),
+<B><A HREF="/manpages/index.html?8+PAM">PAM</A></B>(8),
+<B><A HREF="/manpages/index.html?3+pam_start">pam_start</A></B>(3)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAC">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:00 GMT, December 24, 2015
+</div></body>
+</HTML>

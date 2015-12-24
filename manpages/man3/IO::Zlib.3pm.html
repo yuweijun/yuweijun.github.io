@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of IO::Zlib</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>IO::Zlib</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+IO::Zlib - IO:: style interface to Compress::Zlib
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+With any version of Perl 5 you can use the basic <FONT SIZE="-1">OO</FONT> interface:
+<P>
+
+
+
+<PRE>
+    use IO::Zlib;
+
+    $fh = new IO::Zlib;
+    if ($fh-&gt;open(&quot;file.gz&quot;, &quot;rb&quot;)) {
+        print &lt;$fh&gt;;
+        $fh-&gt;close;
+    }
+
+    $fh = IO::Zlib-&gt;new(&quot;file.gz&quot;, &quot;wb9&quot;);
+    if (defined $fh) {
+        print $fh &quot;bar\n&quot;;
+        $fh-&gt;close;
+    }
+
+    $fh = IO::Zlib-&gt;new(&quot;file.gz&quot;, &quot;rb&quot;);
+    if (defined $fh) {
+        print &lt;$fh&gt;;
+        undef $fh;       # automatically closes the file
+    }
+
+</PRE>
+
+
+<P>
+
+With Perl 5.004 you can also use the <FONT SIZE="-1">TIEHANDLE</FONT> interface to access
+compressed files just like ordinary files:
+<P>
+
+
+
+<PRE>
+    use IO::Zlib;
+
+    tie *FILE, 'IO::Zlib', &quot;file.gz&quot;, &quot;wb&quot;;
+    print FILE &quot;line 1\nline2\n&quot;;
+
+    tie *FILE, 'IO::Zlib', &quot;file.gz&quot;, &quot;rb&quot;;
+    while (&lt;FILE&gt;) { print &quot;LINE: &quot;, $_ };
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<TT>&quot;IO::Zlib&quot;</TT> provides an <FONT SIZE="-1">IO::</FONT> style interface to Compress::Zlib and
+hence to gzip/zlib compressed files. It provides many of the same methods
+as the IO::Handle interface.
+<P>
+
+Starting from IO::Zlib version 1.02, IO::Zlib can also use an
+external <I>gzip</I> command.  The default behaviour is to try to use
+an external <I>gzip</I> if no <TT>&quot;Compress::Zlib&quot;</TT> can be loaded, unless
+explicitly disabled by
+<P>
+
+
+
+<PRE>
+    use IO::Zlib qw(:gzip_external 0);
+
+</PRE>
+
+
+<P>
+
+If explicitly enabled by
+<P>
+
+
+
+<PRE>
+    use IO::Zlib qw(:gzip_external 1);
+
+</PRE>
+
+
+<P>
+
+then the external <I>gzip</I> is used <B>instead</B> of <TT>&quot;Compress::Zlib&quot;</TT>.
+<A NAME="lbAE">&nbsp;</A>
+<H2>CONSTRUCTOR</H2>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT>new ( [<FONT SIZE="-1">ARGS</FONT>] )<DD>
+<A NAME="ixAAF"></A>
+Creates an <TT>&quot;IO::Zlib&quot;</TT> object. If it receives any parameters, they are
+passed to the method <TT>&quot;open&quot;</TT>; if the open fails, the object is destroyed.
+Otherwise, it is returned to the caller.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>OBJECT METHODS</H2>
+
+<A NAME="ixAAG"></A>
+<DL COMPACT>
+<DT>open ( <FONT SIZE="-1">FILENAME</FONT>, <FONT SIZE="-1">MODE</FONT> )<DD>
+<A NAME="ixAAH"></A>
+<TT>&quot;open&quot;</TT> takes two arguments. The first is the name of the file to open
+and the second is the open mode. The mode can be anything acceptable to
+Compress::Zlib and by extension anything acceptable to <I>zlib</I> (that
+basically means <FONT SIZE="-1">POSIX</FONT> <I>fopen()</I> style mode strings plus an optional number
+to indicate the compression level).
+<DT>opened<DD>
+<A NAME="ixAAI"></A>
+Returns true if the object currently refers to a opened file.
+<DT>close<DD>
+<A NAME="ixAAJ"></A>
+Close the file associated with the object and disassociate
+the file from the handle.
+Done automatically on destroy.
+<DT>getc<DD>
+<A NAME="ixAAK"></A>
+Return the next character from the file, or undef if none remain.
+<DT>getline<DD>
+<A NAME="ixAAL"></A>
+Return the next line from the file, or undef on end of string.
+Can safely be called in an array context.
+Currently ignores $/ ($INPUT_RECORD_SEPARATOR or <TT>$RS</TT> when English
+is in use) and treats lines as delimited by ``\n''.
+<DT>getlines<DD>
+<A NAME="ixAAM"></A>
+Get all remaining lines from the file.
+It will <I>croak()</I> if accidentally called in a scalar context.
+<DT>print ( <FONT SIZE="-1">ARGS</FONT>... )<DD>
+<A NAME="ixAAN"></A>
+Print <FONT SIZE="-1">ARGS</FONT> to the  file.
+<DT>read ( <FONT SIZE="-1">BUF</FONT>, <FONT SIZE="-1">NBYTES</FONT>, [<FONT SIZE="-1">OFFSET</FONT>] )<DD>
+<A NAME="ixAAO"></A>
+Read some bytes from the file.
+Returns the number of bytes actually read, 0 on end-of-file, undef on error.
+<DT>eof<DD>
+<A NAME="ixAAP"></A>
+Returns true if the handle is currently positioned at end of file?
+<DT>seek ( <FONT SIZE="-1">OFFSET</FONT>, <FONT SIZE="-1">WHENCE</FONT> )<DD>
+<A NAME="ixAAQ"></A>
+Seek to a given position in the stream.
+Not yet supported.
+<DT>tell<DD>
+<A NAME="ixAAR"></A>
+Return the current position in the stream, as a numeric offset.
+Not yet supported.
+<DT>setpos ( <FONT SIZE="-1">POS</FONT> )<DD>
+<A NAME="ixAAS"></A>
+Set the current position, using the opaque value returned by <TT>&quot;getpos()&quot;</TT>.
+Not yet supported.
+<DT>getpos ( <FONT SIZE="-1">POS</FONT> )<DD>
+<A NAME="ixAAT"></A>
+Return the current position in the string, as an opaque object.
+Not yet supported.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>USING THE EXTERNAL GZIP</H2>
+
+<A NAME="ixAAU"></A>
+If the external <I>gzip</I> is used, the following <TT>&quot;open&quot;</TT>s are used:
+<P>
+
+
+
+<PRE>
+    open(FH, &quot;gzip -dc $filename |&quot;)  # for read opens
+    open(FH, &quot; | gzip &gt; $filename&quot;)   # for write opens
+
+</PRE>
+
+
+<P>
+
+You can modify the 'commands' for example to hardwire
+an absolute path by e.g.
+<P>
+
+
+
+<PRE>
+    use IO::Zlib ':gzip_read_open'  =&gt; '/some/where/gunzip -c %s |';
+    use IO::Zlib ':gzip_write_open' =&gt; '| /some/where/gzip.exe &gt; %s';
+
+</PRE>
+
+
+<P>
+
+The <TT>%s</TT> is expanded to be the filename (<TT>&quot;sprintf&quot;</TT> is used, so be
+careful to escape any other <TT>&quot;%&quot;</TT> signs).  The 'commands' are checked
+for sanity - they must contain the <TT>%s</TT>, and the read open must end
+with the pipe sign, and the write open must begin with the pipe sign.
+<A NAME="lbAH">&nbsp;</A>
+<H2>CLASS METHODS</H2>
+
+<A NAME="ixAAV"></A>
+<DL COMPACT>
+<DT>has_Compress_Zlib<DD>
+<A NAME="ixAAW"></A>
+Returns true if <TT>&quot;Compress::Zlib&quot;</TT> is available.  Note that this does
+not mean that <TT>&quot;Compress::Zlib&quot;</TT> is being used: see ``gzip_external''
+and gzip_used.
+<DT>gzip_external<DD>
+<A NAME="ixAAX"></A>
+Undef if an external <I>gzip</I> <B>can</B> be used if <TT>&quot;Compress::Zlib&quot;</TT> is
+not available (see ``has_Compress_Zlib''), true if an external <I>gzip</I>
+is explicitly used, false if an external <I>gzip</I> must not be used.
+See ``gzip_used''.
+<DT>gzip_used<DD>
+<A NAME="ixAAY"></A>
+True if an external <I>gzip</I> is being used, false if not.
+<DT>gzip_read_open<DD>
+<A NAME="ixAAZ"></A>
+Return the 'command' being used for opening a file for reading using an
+external <I>gzip</I>.
+<DT>gzip_write_open<DD>
+<A NAME="ixABA"></A>
+Return the 'command' being used for opening a file for writing using an
+external <I>gzip</I>.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>DIAGNOSTICS</H2>
+
+<A NAME="ixABB"></A>
+<DL COMPACT>
+<DT>IO::Zlib::getlines: must be called in list context<DD>
+<A NAME="ixABC"></A>
+If you want read lines, you must read in list context.
+<DT>IO::Zlib::gzopen_external: mode '...' is illegal<DD>
+<A NAME="ixABD"></A>
+Use only modes 'rb' or 'wb' or /wb[1-9]/.
+<DT>IO::Zlib::import: '...' is illegal<DD>
+<A NAME="ixABE"></A>
+The known import symbols are the <TT>&quot;:gzip_external&quot;</TT>, <TT>&quot;:gzip_read_open&quot;</TT>,
+and <TT>&quot;:gzip_write_open&quot;</TT>.  Anything else is not recognized.
+<DT>IO::Zlib::import: ':gzip_external' requires an argument<DD>
+<A NAME="ixABF"></A>
+The <TT>&quot;:gzip_external&quot;</TT> requires one boolean argument.
+<DT>IO::Zlib::import: 'gzip_read_open' requires an argument<DD>
+<A NAME="ixABG"></A>
+The <TT>&quot;:gzip_external&quot;</TT> requires one string argument.
+<DT>IO::Zlib::import: 'gzip_read' '...' is illegal<DD>
+<A NAME="ixABH"></A>
+The <TT>&quot;:gzip_read_open&quot;</TT> argument must end with the pipe sign (|)
+and have the <TT>%s</TT> for the filename.  See ``<FONT SIZE="-1">USING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">EXTERNAL</FONT> <FONT SIZE="-1">GZIP</FONT>''.
+<DT>IO::Zlib::import: 'gzip_write_open' requires an argument<DD>
+<A NAME="ixABI"></A>
+The <TT>&quot;:gzip_external&quot;</TT> requires one string argument.
+<DT>IO::Zlib::import: 'gzip_write_open' '...' is illegal<DD>
+<A NAME="ixABJ"></A>
+The <TT>&quot;:gzip_write_open&quot;</TT> argument must begin with the pipe sign (|)
+and have the <TT>%s</TT> for the filename.  An output redirect (&gt;) is also
+often a good idea, depending on your operating system shell syntax.
+See ``<FONT SIZE="-1">USING</FONT> <FONT SIZE="-1">THE</FONT> <FONT SIZE="-1">EXTERNAL</FONT> <FONT SIZE="-1">GZIP</FONT>''.
+<DT>IO::Zlib::import: no Compress::Zlib and no external gzip<DD>
+<A NAME="ixABK"></A>
+Given that we failed to load <TT>&quot;Compress::Zlib&quot;</TT> and that the use of
+<BR>&nbsp;an&nbsp;external&nbsp;<I>gzip</I>&nbsp;was&nbsp;disabled,&nbsp;IO::Zlib&nbsp;has&nbsp;not&nbsp;much&nbsp;chance&nbsp;of&nbsp;working.
+<DT>IO::Zlib::open: needs a filename<DD>
+<A NAME="ixABL"></A>
+No filename, no open.
+<DT>IO::Zlib::READ: <FONT SIZE="-1">NBYTES</FONT> must be specified<DD>
+<A NAME="ixABM"></A>
+We must know how much to read.
+<DT>IO::Zlib::WRITE: too long <FONT SIZE="-1">LENGTH</FONT><DD>
+<A NAME="ixABN"></A>
+The <FONT SIZE="-1">LENGTH</FONT> must be less than or equal to the buffer size.
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABO"></A>
+perlfunc,
+``I/O Operators'' in perlop,
+IO::Handle,
+Compress::Zlib
+<A NAME="lbAK">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<A NAME="ixABP"></A>
+Created by Tom Hughes &lt;<I><A HREF="mailto:tom@compton.nu">tom@compton.nu</A></I>&gt;.
+<P>
+
+Support for external gzip added by Jarkko Hietaniemi &lt;<I><A HREF="mailto:jhi@iki.fi">jhi@iki.fi</A></I>&gt;.
+<A NAME="lbAL">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABQ"></A>
+Copyright (c) 1998-2004 Tom Hughes &lt;<I><A HREF="mailto:tom@compton.nu">tom@compton.nu</A></I>&gt;.
+All rights reserved. This program is free software; you can redistribute
+it and/or modify it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">CONSTRUCTOR</A><DD>
+<DT><A HREF="#lbAF">OBJECT METHODS</A><DD>
+<DT><A HREF="#lbAG">USING THE EXTERNAL GZIP</A><DD>
+<DT><A HREF="#lbAH">CLASS METHODS</A><DD>
+<DT><A HREF="#lbAI">DIAGNOSTICS</A><DD>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">HISTORY</A><DD>
+<DT><A HREF="#lbAL">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:30 GMT, December 24, 2015
+</div></body>
+</HTML>

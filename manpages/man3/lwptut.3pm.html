@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of lwptut</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>lwptut</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2009-06-15<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+lwptut -- An LWP Tutorial
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+<FONT SIZE="-1">LWP</FONT> (short for ``Library for <FONT SIZE="-1">WWW</FONT> in Perl'') is a very popular group of
+Perl modules for accessing data on the Web. Like most Perl
+module-distributions, each of <FONT SIZE="-1">LWP</FONT>'s component modules comes with
+documentation that is a complete reference to its interface. However,
+there are so many modules in <FONT SIZE="-1">LWP</FONT> that it's hard to know where to start
+looking for information on how to do even the simplest most common
+things.
+<P>
+
+Really introducing you to using <FONT SIZE="-1">LWP</FONT> would require a whole book --- a book
+that just happens to exist, called <I>Perl &amp; </I><FONT SIZE="-1"><I>LWP</I></FONT><I></I>. But this article
+should give you a taste of how you can go about some common tasks with
+<FONT SIZE="-1">LWP</FONT>.
+<A NAME="lbAD">&nbsp;</A>
+<H3>Getting documents with LWP::Simple</H3>
+
+<A NAME="ixAAD"></A>
+If you just want to get what's at a particular <FONT SIZE="-1">URL</FONT>, the simplest way
+to do it is LWP::Simple's functions.
+<P>
+
+In a Perl program, you can call its <TT>&quot;get($url)&quot;</TT> function.  It will try
+getting that <FONT SIZE="-1">URL</FONT>'s content.  If it works, then it'll return the
+content; but if there's some error, it'll return undef.
+<P>
+
+
+
+<PRE>
+  my $url = '<A HREF="http://freshair.npr.org/dayFA.cfm?todayDate=current';">http://freshair.npr.org/dayFA.cfm?todayDate=current';</A>
+    # Just an example: the URL for the most recent /Fresh Air/ show
+
+  use LWP::Simple;
+  my $content = get $url;
+  die &quot;Couldn't get $url&quot; unless defined $content;
+
+  # Then go do things with $content, like this:
+
+  if($content =~ m/jazz/i) {
+    print &quot;They're talking about jazz today on Fresh Air!\n&quot;;
+  }
+  else {
+    print &quot;Fresh Air is apparently jazzless today.\n&quot;;
+  }
+
+</PRE>
+
+
+<P>
+
+The handiest variant on <TT>&quot;get&quot;</TT> is <TT>&quot;getprint&quot;</TT>, which is useful in Perl
+one-liners.  If it can get the page whose <FONT SIZE="-1">URL</FONT> you provide, it sends it
+to <FONT SIZE="-1">STDOUT</FONT>; otherwise it complains to <FONT SIZE="-1">STDERR</FONT>.
+<P>
+
+
+
+<PRE>
+  % perl -MLWP::Simple -e &quot;getprint '<A HREF="http://cpan.org/RECENT'">http://cpan.org/RECENT'</A>&quot;
+
+</PRE>
+
+
+<P>
+
+That is the <FONT SIZE="-1">URL</FONT> of a plain text file that lists new files in <FONT SIZE="-1">CPAN</FONT> in
+the past two weeks.  You can easily make it part of a tidy little
+shell command, like this one that mails you the list of new
+<TT>&quot;Acme::&quot;</TT> modules:
+<P>
+
+
+
+<PRE>
+  % perl -MLWP::Simple -e &quot;getprint '<A HREF="http://cpan.org/RECENT'">http://cpan.org/RECENT'</A>&quot;  \
+     | grep &quot;/by-module/Acme&quot; | mail -s &quot;New Acme modules! Joy!&quot; $USER
+
+</PRE>
+
+
+<P>
+
+There are other useful functions in LWP::Simple, including one function
+for running a <FONT SIZE="-1">HEAD</FONT> request on a <FONT SIZE="-1">URL</FONT> (useful for checking links, or
+getting the last-revised time of a <FONT SIZE="-1">URL</FONT>), and two functions for
+saving/mirroring a <FONT SIZE="-1">URL</FONT> to a local file. See the LWP::Simple
+documentation for the full details, or chapter 2 of <I>Perl
+&amp; </I><FONT SIZE="-1"><I>LWP</I></FONT><I></I> for more examples.
+<A NAME="lbAE">&nbsp;</A>
+<H3>The Basics of the <FONT SIZE="-1">LWP</FONT> Class Model</H3>
+
+<A NAME="ixAAE"></A>
+LWP::Simple's functions are handy for simple cases, but its functions
+don't support cookies or authorization, don't support setting header
+lines in the <FONT SIZE="-1">HTTP</FONT> request, generally don't support reading header lines
+in the <FONT SIZE="-1">HTTP</FONT> response (notably the full <FONT SIZE="-1">HTTP</FONT> error message, in case of an
+error). To get at all those features, you'll have to use the full <FONT SIZE="-1">LWP</FONT>
+class model.
+<P>
+
+While <FONT SIZE="-1">LWP</FONT> consists of dozens of classes, the main two that you have to
+understand are LWP::UserAgent and HTTP::Response. LWP::UserAgent
+is a class for ``virtual browsers'' which you use for performing requests,
+and HTTP::Response is a class for the responses (or error messages)
+that you get back from those requests.
+<P>
+
+The basic idiom is <TT>&quot;$response = $browser-&gt;get($url)&quot;</TT>, or more fully
+illustrated:
+<P>
+
+
+
+<PRE>
+  # Early in your program:
+  
+  use LWP 5.64; # Loads all important LWP classes, and makes
+                #  sure your version is reasonably recent.
+
+  my $browser = LWP::UserAgent-&gt;new;
+  
+  ...
+  
+  # Then later, whenever you need to make a get request:
+  my $url = '<A HREF="http://freshair.npr.org/dayFA.cfm?todayDate=current';">http://freshair.npr.org/dayFA.cfm?todayDate=current';</A>
+  
+  my $response = $browser-&gt;get( $url );
+  die &quot;Can't get $url -- &quot;, $response-&gt;status_line
+   unless $response-&gt;is_success;
+
+  die &quot;Hey, I was expecting HTML, not &quot;, $response-&gt;content_type
+   unless $response-&gt;content_type eq 'text/html';
+     # or whatever content-type you're equipped to deal with
+
+  # Otherwise, process the content somehow:
+  
+  if($response-&gt;decoded_content =~ m/jazz/i) {
+    print &quot;They're talking about jazz today on Fresh Air!\n&quot;;
+  }
+  else {
+    print &quot;Fresh Air is apparently jazzless today.\n&quot;;
+  }
+
+</PRE>
+
+
+<P>
+
+There are two objects involved: <TT>$browser</TT>, which holds an object of
+class LWP::UserAgent, and then the <TT>$response</TT> object, which is of
+class HTTP::Response. You really need only one browser object per
+program; but every time you make a request, you get back a new
+HTTP::Response object, which will have some interesting attributes:
+<DL COMPACT>
+<DT>*<DD>
+A status code indicating
+success or failure
+(which you can test with <TT>&quot;$response-&gt;is_success&quot;</TT>).
+<DT>*<DD>
+An <FONT SIZE="-1">HTTP</FONT> status
+line that is hopefully informative if there's failure (which you can
+see with <TT>&quot;$response-&gt;status_line&quot;</TT>,
+returning something like ``404 Not Found'').
+<DT>*<DD>
+A <FONT SIZE="-1">MIME</FONT> content-type like ``text/html'', ``image/gif'',
+``application/xml'', etc., which you can see with 
+<TT>&quot;$response-&gt;content_type&quot;</TT>
+<DT>*<DD>
+The actual content of the response, in <TT>&quot;$response-&gt;decoded_content&quot;</TT>.
+If the response is <FONT SIZE="-1">HTML</FONT>, that's where the <FONT SIZE="-1">HTML</FONT> source will be; if
+it's a <FONT SIZE="-1">GIF</FONT>, then <TT>&quot;$response-&gt;decoded_content&quot;</TT> will be the binary
+<FONT SIZE="-1">GIF</FONT> data.
+<DT>*<DD>
+And dozens of other convenient and more specific methods that are
+documented in the docs for HTTP::Response, and its superclasses
+HTTP::Message and HTTP::Headers.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H3>Adding Other <FONT SIZE="-1">HTTP</FONT> Request Headers</H3>
+
+<A NAME="ixAAF"></A>
+The most commonly used syntax for requests is <TT>&quot;$response =
+$browser-&gt;get($url)&quot;</TT>, but in truth, you can add extra <FONT SIZE="-1">HTTP</FONT> header
+lines to the request by adding a list of key-value pairs after the <FONT SIZE="-1">URL</FONT>,
+like so:
+<P>
+
+
+
+<PRE>
+  $response = $browser-&gt;get( $url, $key1, $value1, $key2, $value2, ... );
+
+</PRE>
+
+
+<P>
+
+For example, here's how to send some more Netscape-like headers, in case
+you're dealing with a site that would otherwise reject your request:
+<P>
+
+
+
+<PRE>
+  my @ns_headers = (
+   'User-Agent' =&gt; 'Mozilla/4.76 [en] (Win98; U)',
+   'Accept' =&gt; 'image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */*',
+   'Accept-Charset' =&gt; 'iso-8859-1,*,utf-8',
+   'Accept-Language' =&gt; 'en-US',
+  );
+
+  ...
+  
+  $response = $browser-&gt;get($url, @ns_headers);
+
+</PRE>
+
+
+<P>
+
+If you weren't reusing that array, you could just go ahead and do this:
+<P>
+
+
+
+<PRE>
+  $response = $browser-&gt;get($url,
+   'User-Agent' =&gt; 'Mozilla/4.76 [en] (Win98; U)',
+   'Accept' =&gt; 'image/gif, image/x-xbitmap, image/jpeg, image/pjpeg, image/png, */*',
+   'Accept-Charset' =&gt; 'iso-8859-1,*,utf-8',
+   'Accept-Language' =&gt; 'en-US',
+  );
+
+</PRE>
+
+
+<P>
+
+If you were only ever changing the 'User-Agent' line, you could just change
+the <TT>$browser</TT> object's default line from ``libwww-perl/5.65'' (or the like)
+to whatever you like, using the LWP::UserAgent <TT>&quot;agent&quot;</TT> method:
+<P>
+
+
+
+<PRE>
+   $browser-&gt;agent('Mozilla/4.76 [en] (Win98; U)');
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>Enabling Cookies</H3>
+
+<A NAME="ixAAG"></A>
+A default LWP::UserAgent object acts like a browser with its cookies
+support turned off. There are various ways of turning it on, by setting
+its <TT>&quot;cookie_jar&quot;</TT> attribute. A ``cookie jar'' is an object representing
+a little database of all
+the <FONT SIZE="-1">HTTP</FONT> cookies that a browser can know about. It can correspond to a
+file on disk (the way Netscape uses its <I>cookies.txt</I> file), or it can
+be just an in-memory object that starts out empty, and whose collection of
+cookies will disappear once the program is finished running.
+<P>
+
+To give a browser an in-memory empty cookie jar, you set its <TT>&quot;cookie_jar&quot;</TT>
+attribute like so:
+<P>
+
+
+
+<PRE>
+  $browser-&gt;cookie_jar({});
+
+</PRE>
+
+
+<P>
+
+To give it a copy that will be read from a file on disk, and will be saved
+to it when the program is finished running, set the <TT>&quot;cookie_jar&quot;</TT> attribute
+like this:
+<P>
+
+
+
+<PRE>
+  use HTTP::Cookies;
+  $browser-&gt;cookie_jar( HTTP::Cookies-&gt;new(
+    'file' =&gt; '/some/where/cookies.lwp',
+        # where to read/write cookies
+    'autosave' =&gt; 1,
+        # save it to disk when done
+  ));
+
+</PRE>
+
+
+<P>
+
+That file will be an LWP-specific format. If you want to be access the
+cookies in your Netscape cookies file, you can use the
+HTTP::Cookies::Netscape class:
+<P>
+
+
+
+<PRE>
+  use HTTP::Cookies;
+    # yes, loads HTTP::Cookies::Netscape too
+  
+  $browser-&gt;cookie_jar( HTTP::Cookies::Netscape-&gt;new(
+    'file' =&gt; 'c:/Program Files/Netscape/Users/DIR-NAME-HERE/cookies.txt',
+        # where to read cookies
+  ));
+
+</PRE>
+
+
+<P>
+
+You could add an <TT>&quot;'autosave' =&gt; 1&quot;</TT> line as further above, but at
+time of writing, it's uncertain whether Netscape might discard some of
+the cookies you could be writing back to disk.
+<A NAME="lbAH">&nbsp;</A>
+<H3>Posting Form Data</H3>
+
+<A NAME="ixAAH"></A>
+Many <FONT SIZE="-1">HTML</FONT> forms send data to their server using an <FONT SIZE="-1">HTTP</FONT> <FONT SIZE="-1">POST</FONT> request, which
+you can send with this syntax:
+<P>
+
+
+
+<PRE>
+ $response = $browser-&gt;post( $url,
+   [
+     formkey1 =&gt; value1, 
+     formkey2 =&gt; value2, 
+     ...
+   ],
+ );
+
+</PRE>
+
+
+<P>
+
+Or if you need to send <FONT SIZE="-1">HTTP</FONT> headers:
+<P>
+
+
+
+<PRE>
+ $response = $browser-&gt;post( $url,
+   [
+     formkey1 =&gt; value1, 
+     formkey2 =&gt; value2, 
+     ...
+   ],
+   headerkey1 =&gt; value1, 
+   headerkey2 =&gt; value2, 
+ );
+
+</PRE>
+
+
+<P>
+
+For example, the following program makes a search request to AltaVista
+(by sending some form data via an <FONT SIZE="-1">HTTP</FONT> <FONT SIZE="-1">POST</FONT> request), and extracts from
+the <FONT SIZE="-1">HTML</FONT> the report of the number of matches:
+<P>
+
+
+
+<PRE>
+  use strict;
+  use warnings;
+  use LWP 5.64;
+  my $browser = LWP::UserAgent-&gt;new;
+  
+  my $word = 'tarragon';
+  
+  my $url = '<A HREF="http://www.altavista.com/sites/search/web';">http://www.altavista.com/sites/search/web';</A>
+  my $response = $browser-&gt;post( $url,
+    [ 'q' =&gt; $word,  # the Altavista query string
+      'pg' =&gt; 'q', 'avkw' =&gt; 'tgz', 'kl' =&gt; 'XX',
+    ]
+  );
+  die &quot;$url error: &quot;, $response-&gt;status_line
+   unless $response-&gt;is_success;
+  die &quot;Weird content type at $url -- &quot;, $response-&gt;content_type
+   unless $response-&gt;content_is_html;
+
+  if( $response-&gt;decoded_content =~ m{AltaVista found ([0-9,]+) results} ) {
+    # The substring will be like &quot;AltaVista found 2,345 results&quot;
+    print &quot;$word: $1\n&quot;;
+  }
+  else {
+    print &quot;Couldn't find the match-string in the response\n&quot;;
+  }
+
+</PRE>
+
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Sending <FONT SIZE="-1">GET</FONT> Form Data</H3>
+
+<A NAME="ixAAI"></A>
+Some <FONT SIZE="-1">HTML</FONT> forms convey their form data not by sending the data
+in an <FONT SIZE="-1">HTTP</FONT> <FONT SIZE="-1">POST</FONT> request, but by making a normal <FONT SIZE="-1">GET</FONT> request with
+the data stuck on the end of the <FONT SIZE="-1">URL</FONT>.  For example, if you went to
+<TT>&quot;imdb.com&quot;</TT> and ran a search on ``Blade Runner'', the <FONT SIZE="-1">URL</FONT> you'd see
+in your browser window would be:
+<P>
+
+
+
+<PRE>
+  <A HREF="http://us.imdb.com/Tsearch?title=Blade%20Runner">http://us.imdb.com/Tsearch?title=Blade%20Runner</A>&amp;restrict=Movies+and+TV
+
+</PRE>
+
+
+<P>
+
+To run the same search with <FONT SIZE="-1">LWP</FONT>, you'd use this idiom, which involves
+the <FONT SIZE="-1">URI</FONT> class:
+<P>
+
+
+
+<PRE>
+  use URI;
+  my $url = URI-&gt;new( '<A HREF="http://us.imdb.com/Tsearch'">http://us.imdb.com/Tsearch'</A> );
+    # makes an object representing the URL
+  
+  $url-&gt;query_form(  # And here the form data pairs:
+    'title'    =&gt; 'Blade Runner',
+    'restrict' =&gt; 'Movies and TV',
+  );
+  
+  my $response = $browser-&gt;get($url);
+
+</PRE>
+
+
+<P>
+
+See chapter 5 of <I>Perl &amp; </I><FONT SIZE="-1"><I>LWP</I></FONT><I></I> for a longer discussion of <FONT SIZE="-1">HTML</FONT> forms
+and of form data, and chapters 6 through 9 for a longer discussion of
+extracting data from <FONT SIZE="-1">HTML</FONT>.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Absolutizing URLs</H3>
+
+<A NAME="ixAAJ"></A>
+The <FONT SIZE="-1">URI</FONT> class that we just mentioned above provides all sorts of methods
+for accessing and modifying parts of URLs (such as asking sort of <FONT SIZE="-1">URL</FONT> it
+is with <TT>&quot;$url-&gt;scheme&quot;</TT>, and asking what host it refers to with <TT>&quot;$url-&gt;host&quot;</TT>, and so on, as described in the docs for the <FONT SIZE="-1">URI</FONT>
+class.  However, the methods of most immediate interest
+are the <TT>&quot;query_form&quot;</TT> method seen above, and now the <TT>&quot;new_abs&quot;</TT> method
+for taking a probably-relative <FONT SIZE="-1">URL</FONT> string (like ``../foo.html'') and getting
+back an absolute <FONT SIZE="-1">URL</FONT> (like ``<A HREF="http://www.perl.com/stuff/foo.html''),">http://www.perl.com/stuff/foo.html''),</A> as
+shown here:
+<P>
+
+
+
+<PRE>
+  use URI;
+  $abs = URI-&gt;new_abs($maybe_relative, $base);
+
+</PRE>
+
+
+<P>
+
+For example, consider this program that matches URLs in the <FONT SIZE="-1">HTML</FONT>
+list of new modules in <FONT SIZE="-1">CPAN:</FONT>
+<P>
+
+
+
+<PRE>
+  use strict;
+  use warnings;
+  use LWP;
+  my $browser = LWP::UserAgent-&gt;new;
+  
+  my $url = '<A HREF="http://www.cpan.org/RECENT.html';">http://www.cpan.org/RECENT.html';</A>
+  my $response = $browser-&gt;get($url);
+  die &quot;Can't get $url -- &quot;, $response-&gt;status_line
+   unless $response-&gt;is_success;
+  
+  my $html = $response-&gt;decoded_content;
+  while( $html =~ m/&lt;A HREF=\&quot;(.*?)\&quot;/g ) {
+    print &quot;$1\n&quot;;
+  }
+
+</PRE>
+
+
+<P>
+
+When run, it emits output that starts out something like this:
+<P>
+
+
+
+<PRE>
+  MIRRORING.FROM
+  RECENT
+  RECENT.html
+  authors/00whois.html
+  authors/01mailrc.txt.gz
+  authors/id/A/AA/AASSAD/CHECKSUMS
+  ...
+
+</PRE>
+
+
+<P>
+
+However, if you actually want to have those be absolute URLs, you
+can use the <FONT SIZE="-1">URI</FONT> module's <TT>&quot;new_abs&quot;</TT> method, by changing the <TT>&quot;while&quot;</TT>
+loop to this:
+<P>
+
+
+
+<PRE>
+  while( $html =~ m/&lt;A HREF=\&quot;(.*?)\&quot;/g ) {
+    print URI-&gt;new_abs( $1, $response-&gt;base ) ,&quot;\n&quot;;
+  }
+
+</PRE>
+
+
+<P>
+
+(The <TT>&quot;$response-&gt;base&quot;</TT> method from HTTP::Message
+is for returning what <FONT SIZE="-1">URL</FONT>
+should be used for resolving relative URLs --- it's usually just
+the same as the <FONT SIZE="-1">URL</FONT> that you requested.)
+<P>
+
+That program then emits nicely absolute URLs:
+<P>
+
+
+
+<PRE>
+  <A HREF="http://www.cpan.org/MIRRORING.FROM">http://www.cpan.org/MIRRORING.FROM</A>
+  <A HREF="http://www.cpan.org/RECENT">http://www.cpan.org/RECENT</A>
+  <A HREF="http://www.cpan.org/RECENT.html">http://www.cpan.org/RECENT.html</A>
+  <A HREF="http://www.cpan.org/authors/00whois.html">http://www.cpan.org/authors/00whois.html</A>
+  <A HREF="http://www.cpan.org/authors/01mailrc.txt.gz">http://www.cpan.org/authors/01mailrc.txt.gz</A>
+  <A HREF="http://www.cpan.org/authors/id/A/AA/AASSAD/CHECKSUMS">http://www.cpan.org/authors/id/A/AA/AASSAD/CHECKSUMS</A>
+  ...
+
+</PRE>
+
+
+<P>
+
+See chapter 4 of <I>Perl &amp; </I><FONT SIZE="-1"><I>LWP</I></FONT><I></I> for a longer discussion of <FONT SIZE="-1">URI</FONT> objects.
+<P>
+
+Of course, using a regexp to match hrefs is a bit simplistic, and for
+more robust programs, you'll probably want to use an HTML-parsing module
+like HTML::LinkExtor or HTML::TokeParser or even maybe
+HTML::TreeBuilder.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Other Browser Attributes</H3>
+
+<A NAME="ixAAK"></A>
+LWP::UserAgent objects have many attributes for controlling how they
+work.  Here are a few notable ones:
+<DL COMPACT>
+<DT>*<DD>
+<TT>&quot;$browser-&gt;timeout(15);&quot;</TT>
+
+
+<P>
+
+
+This sets this browser object to give up on requests that don't answer
+within 15 seconds.
+<DT>*<DD>
+<TT>&quot;$browser-&gt;protocols_allowed( [ 'http', 'gopher'] );&quot;</TT>
+
+
+<P>
+
+
+This sets this browser object to not speak any protocols other than <FONT SIZE="-1">HTTP</FONT>
+and gopher. If it tries accessing any other kind of <FONT SIZE="-1">URL</FONT> (like an ``ftp:''
+or ``mailto:'' or ``news:'' <FONT SIZE="-1">URL</FONT>), then it won't actually try connecting, but
+instead will immediately return an error code 500, with a message like
+``Access to 'ftp' URIs has been disabled''.
+<DT>*<DD>
+<TT>&quot;use LWP::ConnCache; $browser-&gt;conn_cache(LWP::ConnCache-&gt;new());&quot;</TT>
+
+
+<P>
+
+
+This tells the browser object to try using the <FONT SIZE="-1">HTTP/1</FONT>.1 ``Keep-Alive''
+feature, which speeds up requests by reusing the same socket connection
+for multiple requests to the same server.
+<DT>*<DD>
+<TT>&quot;$browser-&gt;agent( 'SomeName/1.23 (more info here maybe)' )&quot;</TT>
+
+
+<P>
+
+
+This changes how the browser object will identify itself in
+the default ``User-Agent'' line is its <FONT SIZE="-1">HTTP</FONT> requests.  By default,
+it'll send &quot;libwww-perl/<I>versionnumber</I>``, like
+''libwww-perl/5.65&quot;.  You can change that to something more descriptive
+like this:
+
+
+<P>
+
+
+
+
+<PRE>
+  $browser-&gt;agent( 'SomeName/3.14 (<A HREF="mailto:contact@robotplexus.int">contact@robotplexus.int</A>)' );
+
+</PRE>
+
+
+
+
+<P>
+
+
+Or if need be, you can go in disguise, like this:
+
+
+<P>
+
+
+
+
+<PRE>
+  $browser-&gt;agent( 'Mozilla/4.0 (compatible; MSIE 5.12; Mac_PowerPC)' );
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>&quot;push @{ $ua-&gt;requests_redirectable }, 'POST';&quot;</TT>
+
+
+<P>
+
+
+This tells this browser to obey redirection responses to <FONT SIZE="-1">POST</FONT> requests
+(like most modern interactive browsers), even though the <FONT SIZE="-1">HTTP</FONT> <FONT SIZE="-1">RFC</FONT> says
+that should not normally be done.
+</DL>
+<P>
+
+For more options and information, see the full documentation for
+LWP::UserAgent.
+<A NAME="lbAL">&nbsp;</A>
+<H3>Writing Polite Robots</H3>
+
+<A NAME="ixAAL"></A>
+If you want to make sure that your LWP-based program respects <I>robots.txt</I>
+files and doesn't make too many requests too fast, you can use the LWP::RobotUA
+class instead of the LWP::UserAgent class.
+<P>
+
+LWP::RobotUA class is just like LWP::UserAgent, and you can use it like so:
+<P>
+
+
+
+<PRE>
+  use LWP::RobotUA;
+  my $browser = LWP::RobotUA-&gt;new('YourSuperBot/1.34', '<A HREF="mailto:you@yoursite.com">you@yoursite.com</A>');
+    # Your bot's name and your email address
+
+  my $response = $browser-&gt;get($url);
+
+</PRE>
+
+
+<P>
+
+But HTTP::RobotUA adds these features:
+<DL COMPACT>
+<DT>*<DD>
+If the <I>robots.txt</I> on <TT>$url</TT>'s server forbids you from accessing
+<TT>$url</TT>, then the <TT>$browser</TT> object (assuming it's of class LWP::RobotUA)
+won't actually request it, but instead will give you back (in <TT>$response</TT>) a 403 error
+with a message ``Forbidden by robots.txt''.  That is, if you have this line:
+
+
+<P>
+
+
+
+
+<PRE>
+  die &quot;$url -- &quot;, $response-&gt;status_line, &quot;\nAborted&quot;
+   unless $response-&gt;is_success;
+
+</PRE>
+
+
+
+
+<P>
+
+
+then the program would die with an error message like this:
+
+
+<P>
+
+
+
+
+<PRE>
+  <A HREF="http://whatever.site.int/pith/x.html">http://whatever.site.int/pith/x.html</A> -- 403 Forbidden by robots.txt
+  Aborted at whateverprogram.pl line 1234
+
+</PRE>
+
+
+<DT>*<DD>
+If this <TT>$browser</TT> object sees that the last time it talked to
+<TT>$url</TT>'s server was too recently, then it will pause (via <TT>&quot;sleep&quot;</TT>) to
+avoid making too many requests too often. How long it will pause for, is
+by default one minute --- but you can control it with the <TT>&quot;$browser-&gt;delay( I&lt;minutes&gt; )&quot;</TT> attribute.
+
+
+<P>
+
+
+For example, this code:
+
+
+<P>
+
+
+
+
+<PRE>
+  $browser-&gt;delay( 7/60 );
+
+</PRE>
+
+
+
+
+<P>
+
+
+...means that this browser will pause when it needs to avoid talking to
+any given server more than once every 7 seconds.
+</DL>
+<P>
+
+For more options and information, see the full documentation for
+LWP::RobotUA.
+<A NAME="lbAM">&nbsp;</A>
+<H3>Using Proxies</H3>
+
+<A NAME="ixAAM"></A>
+In some cases, you will want to (or will have to) use proxies for
+accessing certain sites and/or using certain protocols. This is most
+commonly the case when your <FONT SIZE="-1">LWP</FONT> program is running (or could be running)
+on a machine that is behind a firewall.
+<P>
+
+To make a browser object use proxies that are defined in the usual
+environment variables (<TT>&quot;HTTP_PROXY&quot;</TT>, etc.), just call the <TT>&quot;env_proxy&quot;</TT>
+on a user-agent object before you go making any requests on it.
+Specifically:
+<P>
+
+
+
+<PRE>
+  use LWP::UserAgent;
+  my $browser = LWP::UserAgent-&gt;new;
+  
+  # And before you go making any requests:
+  $browser-&gt;env_proxy;
+
+</PRE>
+
+
+<P>
+
+For more information on proxy parameters, see the LWP::UserAgent
+documentation, specifically the <TT>&quot;proxy&quot;</TT>, <TT>&quot;env_proxy&quot;</TT>,
+and <TT>&quot;no_proxy&quot;</TT> methods.
+<A NAME="lbAN">&nbsp;</A>
+<H3><FONT SIZE="-1">HTTP</FONT> Authentication</H3>
+
+<A NAME="ixAAN"></A>
+Many web sites restrict access to documents by using ``<FONT SIZE="-1">HTTP</FONT>
+Authentication''. This isn't just any form of ``enter your password''
+restriction, but is a specific mechanism where the <FONT SIZE="-1">HTTP</FONT> server sends the
+browser an <FONT SIZE="-1">HTTP</FONT> code that says ``That document is part of a protected
+'realm', and you can access it only if you re-request it and add some
+special authorization headers to your request''.
+<P>
+
+For example, the Unicode.org admins stop email-harvesting bots from
+harvesting the contents of their mailing list archives, by protecting
+them with <FONT SIZE="-1">HTTP</FONT> Authentication, and then publicly stating the username
+and password (at <TT>&quot;<A HREF="http://www.unicode.org/mail-arch/">http://www.unicode.org/mail-arch/</A>&quot;</TT>) --- namely
+username ``unicode-ml'' and password ``unicode''.
+<P>
+
+For example, consider this <FONT SIZE="-1">URL</FONT>, which is part of the protected
+area of the web site:
+<P>
+
+
+
+<PRE>
+  <A HREF="http://www.unicode.org/mail-arch/unicode-ml/y2002-m08/0067.html">http://www.unicode.org/mail-arch/unicode-ml/y2002-m08/0067.html</A>
+
+</PRE>
+
+
+<P>
+
+If you access that with a browser, you'll get a prompt
+like 
+``Enter username and password for 'Unicode-MailList-Archives' at server
+'<A HREF="http://www.unicode.org">www.unicode.org</A>'''.
+<P>
+
+In <FONT SIZE="-1">LWP</FONT>, if you just request that <FONT SIZE="-1">URL</FONT>, like this:
+<P>
+
+
+
+<PRE>
+  use LWP;
+  my $browser = LWP::UserAgent-&gt;new;
+
+  my $url =
+   '<A HREF="http://www.unicode.org/mail-arch/unicode-ml/y2002-m08/0067.html';">http://www.unicode.org/mail-arch/unicode-ml/y2002-m08/0067.html';</A>
+  my $response = $browser-&gt;get($url);
+
+  die &quot;Error: &quot;, $response-&gt;header('WWW-Authenticate') || 'Error accessing',
+    #  ('WWW-Authenticate' is the realm-name)
+    &quot;\n &quot;, $response-&gt;status_line, &quot;\n at $url\n Aborting&quot;
+   unless $response-&gt;is_success;
+
+</PRE>
+
+
+<P>
+
+Then you'll get this error:
+<P>
+
+
+
+<PRE>
+  Error: Basic realm=&quot;Unicode-MailList-Archives&quot;
+   401 Authorization Required
+   at <A HREF="http://www.unicode.org/mail-arch/unicode-ml/y2002-m08/0067.html">http://www.unicode.org/mail-arch/unicode-ml/y2002-m08/0067.html</A>
+   Aborting at auth1.pl line 9.  [or wherever]
+
+</PRE>
+
+
+<P>
+
+...because the <TT>$browser</TT> doesn't know any the username and password
+for that realm (``Unicode-MailList-Archives'') at that host
+(``<A HREF="http://www.unicode.org">www.unicode.org</A>'').  The simplest way to let the browser know about this
+is to use the <TT>&quot;credentials&quot;</TT> method to let it know about a username and
+password that it can try using for that realm at that host.  The syntax is:
+<P>
+
+
+
+<PRE>
+  $browser-&gt;credentials(
+    'servername:portnumber',
+    'realm-name',
+   'username' =&gt; 'password'
+  );
+
+</PRE>
+
+
+<P>
+
+In most cases, the port number is 80, the default <FONT SIZE="-1">TCP/IP</FONT> port for <FONT SIZE="-1">HTTP</FONT>; and
+you usually call the <TT>&quot;credentials&quot;</TT> method before you make any requests.
+For example:
+<P>
+
+
+
+<PRE>
+  $browser-&gt;credentials(
+    'reports.mybazouki.com:80',
+    'web_server_usage_reports',
+    'plinky' =&gt; 'banjo123'
+  );
+
+</PRE>
+
+
+<P>
+
+So if we add the following to the program above, right after the <TT>&quot;$browser = LWP::UserAgent-&gt;new;&quot;</TT> line...
+<P>
+
+
+
+<PRE>
+  $browser-&gt;credentials(  # add this to our $browser 's &quot;key ring&quot;
+    '<A HREF="http://www.unicode.org">www.unicode.org</A>:80',
+    'Unicode-MailList-Archives',
+    'unicode-ml' =&gt; 'unicode'
+  );
+
+</PRE>
+
+
+<P>
+
+...then when we run it, the request succeeds, instead of causing the
+<TT>&quot;die&quot;</TT> to be called.
+<A NAME="lbAO">&nbsp;</A>
+<H3>Accessing <FONT SIZE="-1">HTTPS</FONT> URLs</H3>
+
+<A NAME="ixAAO"></A>
+When you access an <FONT SIZE="-1">HTTPS</FONT> <FONT SIZE="-1">URL</FONT>, it'll work for you just like an <FONT SIZE="-1">HTTP</FONT> <FONT SIZE="-1">URL</FONT>
+would --- if your <FONT SIZE="-1">LWP</FONT> installation has <FONT SIZE="-1">HTTPS</FONT> support (via an appropriate
+Secure Sockets Layer library).  For example:
+<P>
+
+
+
+<PRE>
+  use LWP;
+  my $url = '<A HREF="https://www.paypal.com/';">https://www.paypal.com/';</A>   # Yes, HTTPS!
+  my $browser = LWP::UserAgent-&gt;new;
+  my $response = $browser-&gt;get($url);
+  die &quot;Error at $url\n &quot;, $response-&gt;status_line, &quot;\n Aborting&quot;
+   unless $response-&gt;is_success;
+  print &quot;Whee, it worked!  I got that &quot;,
+   $response-&gt;content_type, &quot; document!\n&quot;;
+
+</PRE>
+
+
+<P>
+
+If your <FONT SIZE="-1">LWP</FONT> installation doesn't have <FONT SIZE="-1">HTTPS</FONT> support set up, then the
+response will be unsuccessful, and you'll get this error message:
+<P>
+
+
+
+<PRE>
+  Error at <A HREF="https://www.paypal.com/">https://www.paypal.com/</A>
+   501 Protocol scheme 'https' is not supported
+   Aborting at paypal.pl line 7.   [or whatever program and line]
+
+</PRE>
+
+
+<P>
+
+If your <FONT SIZE="-1">LWP</FONT> installation <I>does</I> have <FONT SIZE="-1">HTTPS</FONT> support installed, then the
+response should be successful, and you should be able to consult
+<TT>$response</TT> just like with any normal <FONT SIZE="-1">HTTP</FONT> response.
+<P>
+
+For information about installing <FONT SIZE="-1">HTTPS</FONT> support for your <FONT SIZE="-1">LWP</FONT>
+installation, see the helpful <I></I><FONT SIZE="-1"><I>README</I></FONT><I>.SSL</I> file that comes in the
+libwww-perl distribution.
+<A NAME="lbAP">&nbsp;</A>
+<H3>Getting Large Documents</H3>
+
+<A NAME="ixAAP"></A>
+When you're requesting a large (or at least potentially large) document,
+a problem with the normal way of using the request methods (like <TT>&quot;$response = $browser-&gt;get($url)&quot;</TT>) is that the response object in
+memory will have to hold the whole document --- <I>in memory</I>. If the
+response is a thirty megabyte file, this is likely to be quite an
+imposition on this process's memory usage.
+<P>
+
+A notable alternative is to have <FONT SIZE="-1">LWP</FONT> save the content to a file on disk,
+instead of saving it up in memory.  This is the syntax to use:
+<P>
+
+
+
+<PRE>
+  $response = $ua-&gt;get($url,
+                         ':content_file' =&gt; $filespec,
+                      );
+
+</PRE>
+
+
+<P>
+
+For example,
+<P>
+
+
+
+<PRE>
+  $response = $ua-&gt;get('<A HREF="http://search.cpan.org/',">http://search.cpan.org/',</A>
+                         ':content_file' =&gt; '/tmp/sco.html'
+                      );
+
+</PRE>
+
+
+<P>
+
+When you use this <TT>&quot;:content_file&quot;</TT> option, the <TT>$response</TT> will have
+all the normal header lines, but <TT>&quot;$response-&gt;content&quot;</TT> will be
+empty.
+<P>
+
+Note that this ``:content_file'' option isn't supported under older
+versions of <FONT SIZE="-1">LWP</FONT>, so you should consider adding <TT>&quot;use LWP 5.66;&quot;</TT> to check
+the <FONT SIZE="-1">LWP</FONT> version, if you think your program might run on systems with
+older versions.
+<P>
+
+If you need to be compatible with older <FONT SIZE="-1">LWP</FONT> versions, then use
+this syntax, which does the same thing:
+<P>
+
+
+
+<PRE>
+  use HTTP::Request::Common;
+  $response = $ua-&gt;request( GET($url), $filespec );
+
+</PRE>
+
+
+<A NAME="lbAQ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAQ"></A>
+Remember, this article is just the most rudimentary introduction to
+<FONT SIZE="-1">LWP</FONT> --- to learn more about <FONT SIZE="-1">LWP</FONT> and LWP-related tasks, you really
+must read from the following:
+<DL COMPACT>
+<DT>*<DD>
+LWP::Simple --- simple functions for getting/heading/mirroring URLs
+<DT>*<DD>
+<FONT SIZE="-1">LWP</FONT> --- overview of the libwww-perl modules
+<DT>*<DD>
+LWP::UserAgent --- the class for objects that represent ``virtual browsers''
+<DT>*<DD>
+HTTP::Response --- the class for objects that represent the response to
+a <FONT SIZE="-1">LWP</FONT> response, as in <TT>&quot;$response = $browser-&gt;get(...)&quot;</TT>
+<DT>*<DD>
+HTTP::Message and HTTP::Headers --- classes that provide more methods
+to HTTP::Response.
+<DT>*<DD>
+<FONT SIZE="-1">URI</FONT> --- class for objects that represent absolute or relative URLs
+<DT>*<DD>
+URI::Escape --- functions for URL-escaping and URL-unescaping strings
+(like turning ``this &amp; that'' to and from ``this%20%26%20that'').
+<DT>*<DD>
+HTML::Entities --- functions for HTML-escaping and HTML-unescaping strings
+(like turning ``C. &amp; E. Bronte.'' to and from ``C. &amp;amp; E. Bront&amp;euml;'')
+<DT>*<DD>
+HTML::TokeParser and HTML::TreeBuilder --- classes for parsing <FONT SIZE="-1">HTML</FONT>
+<DT>*<DD>
+HTML::LinkExtor --- class for finding links in <FONT SIZE="-1">HTML</FONT> documents
+<DT>*<DD>
+The book <I>Perl &amp; </I><FONT SIZE="-1"><I>LWP</I></FONT><I></I> by Sean M. Burke.  O'Reilly &amp; Associates, 2002.
+<FONT SIZE="-1">ISBN:</FONT> 0-596-00178-9.  <TT>&quot;<A HREF="http://www.oreilly.com/catalog/perllwp/">http://www.oreilly.com/catalog/perllwp/</A>&quot;</TT>
+</DL>
+<A NAME="lbAR">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixAAR"></A>
+Copyright 2002, Sean M. Burke.  You can redistribute this document and/or
+modify it, but only under the same terms as Perl itself.
+<A NAME="lbAS">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAS"></A>
+Sean M. Burke <TT>&quot;<A HREF="mailto:sburke@cpan.org">sburke@cpan.org</A>&quot;</TT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAD">Getting documents with LWP::Simple</A><DD>
+<DT><A HREF="#lbAE">The Basics of the <FONT SIZE="-1">LWP</FONT> Class Model</A><DD>
+<DT><A HREF="#lbAF">Adding Other <FONT SIZE="-1">HTTP</FONT> Request Headers</A><DD>
+<DT><A HREF="#lbAG">Enabling Cookies</A><DD>
+<DT><A HREF="#lbAH">Posting Form Data</A><DD>
+<DT><A HREF="#lbAI">Sending <FONT SIZE="-1">GET</FONT> Form Data</A><DD>
+<DT><A HREF="#lbAJ">Absolutizing URLs</A><DD>
+<DT><A HREF="#lbAK">Other Browser Attributes</A><DD>
+<DT><A HREF="#lbAL">Writing Polite Robots</A><DD>
+<DT><A HREF="#lbAM">Using Proxies</A><DD>
+<DT><A HREF="#lbAN"><FONT SIZE="-1">HTTP</FONT> Authentication</A><DD>
+<DT><A HREF="#lbAO">Accessing <FONT SIZE="-1">HTTPS</FONT> URLs</A><DD>
+<DT><A HREF="#lbAP">Getting Large Documents</A><DD>
+</DL>
+<DT><A HREF="#lbAQ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAR">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAS">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:34 GMT, December 24, 2015
+</div></body>
+</HTML>

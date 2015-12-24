@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SPU_CREATE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SPU_CREATE</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2005-09-28<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<P>
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+spu_create - create a new spu context
+<P>
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<PRE>
+<B>#include &lt;<A HREF="file:/usr/include/sys/types.h">sys/types.h</A>&gt;</B>
+<B>#include &lt;<A HREF="file:/usr/include/sys/spu.h">sys/spu.h</A>&gt;</B>
+
+<B>int spu_create(const char *</B><I>pathname</I><B>, int </B><I>flags</I><B>, mode_t </B><I>mode</I><B>);</B>
+</PRE>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The
+<B>spu_create</B>
+
+system call is used on PowerPC machines that implement the
+Cell Broadband Engine Architecture in order to access Synergistic
+Processor Units (SPUs). It creates a new logical context for an
+SPU in
+<I>pathname</I>
+
+and returns a handle to associated with it.
+<I>pathname</I>
+
+must point to a non-existing directory in the mount point of the
+SPU file system
+(<B>spufs</B>).
+
+When
+<I>spu_create</I>
+
+is successful, a directory gets created on
+<I>pathname</I>
+
+and it is populated with files.
+<P>
+The returned file handle can only be passed to
+<I><A HREF="/manpages/index.html?2+spu_run">spu_run</A></I>(2)
+
+or closed, other operations are not defined on it. When it is closed,
+all associated directory entries in
+<I>spufs</I>
+
+are removed. When the last file handle pointing either inside of the
+context directory or to this file descriptor is closed, the logical
+SPU context is destroyed.
+<P>
+The parameter
+<I>flags</I>
+
+can be zero or any bitwise or'd combination of the following constants:
+<DL COMPACT>
+<DT><B>SPU_RAWIO</B>
+
+<DD>
+Allow mapping of some of the hardware registers of the SPU into user
+space. This flag requires the 
+<I>CAP_SYS_RAWIO</I>
+
+capability, see
+<I><A HREF="/manpages/index.html?7+capabilities">capabilities</A></I>(7).
+
+</DL>
+<P>
+
+The
+<I>mode</I>
+
+parameter specifies the permissions used for creating the new
+directory in spufs.
+<I>mode</I>
+
+is modified with the user's
+<I><A HREF="/manpages/index.html?2+umask">umask</A></I>(2)
+
+value and then used for both the directory and the files
+contained in it. The file permissions mask out some more bits
+of
+<I>mode</I>
+
+because they typically support only read or write access. See
+<A HREF="/manpages/index.html?2+stat">stat</A><I>(2)</I>
+
+for a full list of the possible
+<I>mode</I>
+
+values.
+<P>
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+spu_create returns a new file descriptor. It may return -1 to
+indicate an error condition and set errno to one of the error
+codes listed below.
+<P>
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EACCESS</B>
+
+<DD>
+The current user does not have write access on the
+<B>spufs</B>
+
+mount point.
+<DT><B>EEXIST</B>
+
+<DD>
+An SPU context already exists at the given path name.
+<DT><B>EFAULT</B>
+
+<DD>
+<I>pathname</I>
+
+is not a valid string pointer in the current address space.
+<DT><B>EINVAL</B>
+
+<DD>
+<I>pathname</I>
+
+is not a directory in the
+<B>spufs</B>
+
+mount point.
+<DT><B>ELOOP</B>
+
+<DD>
+Too many symlinks were found while resolving
+<I>pathname</I>.
+
+<DT><B>EMFILE</B>
+
+<DD>
+The process has reached its maximum open file limit.
+<DT><B>ENAMETOOLONG</B>
+
+<DD>
+<I>pathname</I>
+
+was too long.
+<DT><B>ENFILE</B>
+
+<DD>
+The system has reached the global open file limit.
+<DT><B>ENOENT</B>
+
+<DD>
+Part of
+<I>pathname</I>
+
+could not be resolved.
+<DT><B>ENOMEM</B>
+
+<DD>
+The kernel could not allocate all resources required.
+<DT><B>ENOSPC</B>
+
+<DD>
+There are not enough SPU resources available to create
+a new context or the user specific limit for the number
+of SPU contexts has been reached.
+<DT><B>ENOSYS</B>
+
+<DD>
+the functionality is not provided by the current system, because
+either the hardware does not provide SPUs or the 
+<B>spufs</B>
+
+module is not loaded.
+<DT><B>ENOTDIR</B>
+
+<DD>
+A part of
+<I>pathname</I>
+
+is not a directory.
+</DL>
+<P>
+
+<P>
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+<I>spu_create</I>
+
+is meant to be used from libraries that implement a more abstract
+interface to SPUs, not to be used from regular applications.
+See <A HREF="http://www.bsc.es/projects/deepcomputing/linuxoncell/">http://www.bsc.es/projects/deepcomputing/linuxoncell/</A> for
+the recommended libraries.
+<P>
+<A NAME="lbAH">&nbsp;</A>
+<H2>FILES</H2>
+
+<I>pathname</I>
+
+must point to a location beneath the mount point of
+<B>spufs</B>.
+
+By convention, it gets mounted in
+<B>/spu</B>.
+
+<P>
+<A NAME="lbAI">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+This call is Linux specific and only implemented by the ppc64
+architecture. Programs using this system call are not portable.
+<P>
+<A NAME="lbAJ">&nbsp;</A>
+<H2>BUGS</H2>
+
+The code does not yet fully implement all features lined out here.
+<P>
+<A NAME="lbAK">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Arnd Bergmann &lt;<A HREF="mailto:arndb@de.ibm.com">arndb@de.ibm.com</A>&gt;
+<A NAME="lbAL">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?7+capabilities">capabilities</A></B>(7),
+
+<B><A HREF="/manpages/index.html?2+close">close</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+spu_run">spu_run</A></B>(2),
+
+<B><A HREF="/manpages/index.html?7+spufs">spufs</A></B>(7)
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">FILES</A><DD>
+<DT><A HREF="#lbAI">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAJ">BUGS</A><DD>
+<DT><A HREF="#lbAK">AUTHOR</A><DD>
+<DT><A HREF="#lbAL">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:05 GMT, December 24, 2015
+</div></body>
+</HTML>

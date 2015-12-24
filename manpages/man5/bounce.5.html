@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of BOUNCE</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>BOUNCE</H1>
+Section: File Formats (5)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+bounce
+-
+Postfix bounce message template format
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+
+<PRE>
+<B>bounce_template_file = /etc/postfix/bounce.cf</B>
+
+<B>postconf -b</B> [<I>template_file</I>]
+</PRE><A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+
+
+The Postfix <B><A HREF="/manpages/index.html?8+bounce">bounce</A></B>(8) server produces delivery status
+notification (DSN) messages for undeliverable mail, delayed
+mail, successful delivery or address verification requests.
+<P>
+By default, these notifications are generated from built-in
+templates with message headers and message text. Sites can
+override the built-in information by specifying a bounce
+template file with the <B>bounce_template_file</B> configuration
+parameter.
+<P>
+This document describes the general procedure to create a
+bounce template file, followed by the specific details of
+bounce template formats.
+<A NAME="lbAE">&nbsp;</A>
+<H2>GENERAL PROCEDURE</H2>
+
+
+<PRE>
+</PRE>
+
+To create a customized bounce template file, create a
+temporary
+copy of the file <B>/usr/share/doc/postfix-2.6.6/bounce.cf.default</B> and
+edit the temporary file.
+<P>
+To preview the results of $<I>name</I> expansions in the
+template text, use the command
+<P>
+<PRE>
+    <B>postconf -b</B> <I>temporary_file</I>
+</PRE>
+
+<P>
+Errors in the template will be reported to the standard
+error stream and to the syslog daemon.
+<P>
+While previewing the text, be sure to pay particular attention
+to the expansion of time value parameters that appear in
+the delayed mail notification text.
+<P>
+Once the result is satisfactory, copy the template to the
+Postfix configuration directory and specify in main.cf
+something like:
+<P>
+<PRE>
+/etc/postfix/main.cf:
+    bounce_template_file = /etc/postfix/bounce.cf
+</PRE>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>TEMPLATE FILE FORMAT</H2>
+
+
+<PRE>
+</PRE>
+
+The template file can specify templates for failed mail,
+delayed mail, successful delivery or for address verification.
+These templates are named <B>failure_template</B>,
+<B>delay_template</B>, <B>success_template</B> and
+<B>verify_template</B>, respectively.  You can but do not
+have to specify all four templates in a bounce template
+file.
+<P>
+Each template starts with &quot;<I>template_name</I><B> = &lt;&lt;EOF</B>&quot;
+and ends with a line that contains the word &quot;<B>EOF</B>&quot;
+only. You can change the word EOF, but you can't enclose
+it in quotes as with the shell or with Perl (<I>template_name</I><B>
+= &lt;&lt;'EOF'</B>). Here is an example:
+<P>
+<PRE>
+    # The failure template is used for undeliverable mail.
+
+    failure_template = &lt;&lt;EOF
+    Charset: us-ascii
+    From: MAILER-DAEMON (Mail Delivery System)
+    Subject: Undelivered Mail Returned to Sender
+    Postmaster-Subject: Postmaster Copy: Undelivered Mail
+
+    This is the mail system at host $myhostname.
+
+    I'm sorry to have to inform you that your message could not
+    be delivered to one or more recipients. It's attached below.
+
+    For further assistance, please send mail to postmaster.
+
+    If you do so, please include this problem report. You can
+    delete your own text from the attached returned message.
+
+                       The mail system
+    EOF
+</PRE>
+
+<P>
+
+The usage and specification of bounce templates is
+subject to the following restrictions:
+<DL COMPACT>
+<DT>*<DD>
+No special meaning is given to the backslash character or
+to leading whitespace; these are always taken literally.
+<DT>*<DD>
+Inside the &lt;&lt; context, the &quot;$&quot; character is special. To
+produce a &quot;$&quot; character as output, specify &quot;$$&quot;.
+<DT>*<DD>
+Outside the &lt;&lt; context, lines beginning with &quot;#&quot; are ignored,
+as are empty lines, and lines consisting of whitespace only.
+</DL>
+<P>
+
+Examples of all templates can be found in the file
+<B>bounce.cf.default</B> in the Postfix configuration
+directory.
+<A NAME="lbAG">&nbsp;</A>
+<H2>TEMPLATE HEADER FORMAT</H2>
+
+
+<PRE>
+</PRE>
+
+The first portion of a bounce template consists of optional
+template headers.  Some become message headers in the
+delivery status notification; some control the formatting
+of that notification. Headers not specified in a template
+will be left at their default value.
+<P>
+The following headers are supported:
+<DL COMPACT>
+<DT><B>Charset:</B><DD>
+The MIME character set of the template message text.  See
+the &quot;TEMPLATE MESSAGE TEXT FORMAT&quot; description below.
+<DT><B>From:</B><DD>
+The sender address in the message header of the delivery
+status notification.
+<DT><B>Subject:</B><DD>
+The subject in the message header of the delivery status
+notification that is returned to the sender.
+<DT><B>Postmaster-Subject:</B><DD>
+The subject that will be used in Postmaster copies of
+undeliverable or delayed mail notifications. These copies
+are sent under control of the notify_classes configuration
+parameter.
+</DL>
+<P>
+
+The usage and specification of template message headers is
+subject to the following restrictions:
+<DL COMPACT>
+<DT>*<DD>
+Template message header names can be specified in upper
+case, lower case or mixed case. Postfix always produces
+bounce message header labels of the form &quot;<B>From:</B>&quot; and
+&quot;<B>Subject:</B>&quot;.
+<DT>*<DD>
+Template message headers must not span multiple lines.
+<DT>*<DD>
+Template message headers do not support $parameter expansions.
+<DT>*<DD>
+Template message headers must contain ASCII characters only,
+and must not contain ASCII null characters.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>TEMPLATE MESSAGE TEXT FORMAT</H2>
+
+
+<PRE>
+</PRE>
+
+The second portion of a bounce template consists of message
+text. As the above example shows, template message text may
+contain main.cf $parameters. Besides the parameters that are
+defined in main.cf, the following parameters are treated
+specially depending on the suffix that is appended to their
+name.
+<DL COMPACT>
+<DT><B>delay_warning_time_</B><I>suffix</I><DD>
+Expands into the value of the <B>delay_warning_time</B>
+parameter, expressed in the time unit specified by
+<I>suffix</I>, which is one of <B>seconds</B>, <B>minutes</B>,
+<B>hours, days</B>, or <B>weeks</B>.
+<DT><B>maximal_queue_lifetime_</B><I>suffix</I><DD>
+Expands into the value of the <B>maximal_queue_lifetime</B>
+parameter, expressed in the time unit specified by
+<I>suffix</I>.  See above under <B>delay_warning_time</B> for
+possible <I>suffix</I> values.
+</DL>
+<P>
+
+The usage and specification of template message text is
+subject to the following restrictions:
+<DL COMPACT>
+<DT>*<DD>
+The template message text is not sent in Postmaster copies
+of delivery status notifications.
+<DT>*<DD>
+If the template message text contains non-ASCII characters,
+Postfix requires that the <B>Charset:</B> template header
+is updated.  Specify an appropriate superset of US-ASCII.
+A superset is needed because Postfix appends ASCII text
+after the message template when it sends a delivery status
+notification.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+
+<PRE>
+<A HREF="/manpages/index.html?8+bounce">bounce</A>(8), Postfix delivery status notifications
+<A HREF="/manpages/index.html?5+postconf">postconf</A>(5), configuration parameters
+</PRE><A NAME="lbAJ">&nbsp;</A>
+<H2>LICENSE</H2>
+
+
+<PRE>
+</PRE>
+
+The Secure Mailer license must be distributed with this software.
+<A NAME="lbAK">&nbsp;</A>
+<H2>HISTORY</H2>
+
+
+<PRE>
+</PRE>
+
+The Postfix bounce template format was originally developed by
+Nicolas Riendeau.
+<A NAME="lbAL">&nbsp;</A>
+<H2>AUTHOR(S)</H2>
+
+
+<PRE>
+Wietse Venema
+IBM T.J. Watson Research
+P.O. Box 704
+Yorktown Heights, NY 10598, USA
+
+</PRE>
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">GENERAL PROCEDURE</A><DD>
+<DT><A HREF="#lbAF">TEMPLATE FILE FORMAT</A><DD>
+<DT><A HREF="#lbAG">TEMPLATE HEADER FORMAT</A><DD>
+<DT><A HREF="#lbAH">TEMPLATE MESSAGE TEXT FORMAT</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">LICENSE</A><DD>
+<DT><A HREF="#lbAK">HISTORY</A><DD>
+<DT><A HREF="#lbAL">AUTHOR(S)</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:59 GMT, December 24, 2015
+</div></body>
+</HTML>

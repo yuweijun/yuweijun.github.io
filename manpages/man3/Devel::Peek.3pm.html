@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Devel::Peek</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Devel::Peek</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-04-14<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Devel::Peek - A data debugging tool for the XS programmer
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+        use Devel::Peek;
+        Dump( $a );
+        Dump( $a, 5 );
+        DumpArray( 5, $a, $b, ... );
+        mstat &quot;Point 5&quot;;
+
+        use Devel::Peek ':opd=st';
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Devel::Peek contains functions which allows raw Perl datatypes to be
+manipulated from a Perl script.  This is used by those who do <FONT SIZE="-1">XS</FONT> programming
+to check that the data they are sending from C to Perl looks as they think
+it should look.  The trick, then, is to know what the raw datatype is
+supposed to look like when it gets to Perl.  This document offers some tips
+and hints to describe good and bad raw data.
+<P>
+
+It is very possible that this document will fall far short of being useful
+to the casual reader.  The reader is expected to understand the material in
+the first few sections of perlguts.
+<P>
+
+Devel::Peek supplies a <TT>&quot;Dump()&quot;</TT> function which can dump a raw Perl
+datatype, and <TT>&quot;mstat(&quot;marker&quot;)&quot;</TT> function to report on memory usage
+(if perl is compiled with corresponding option).  The function
+<I>DeadCode()</I> provides statistics on the data ``frozen'' into inactive
+<TT>&quot;CV&quot;</TT>.  Devel::Peek also supplies <TT>&quot;SvREFCNT()&quot;</TT>, <TT>&quot;SvREFCNT_inc()&quot;</TT>, and
+<TT>&quot;SvREFCNT_dec()&quot;</TT> which can query, increment, and decrement reference
+counts on SVs.  This document will take a passive, and safe, approach
+to data debugging and for that it will describe only the <TT>&quot;Dump()&quot;</TT>
+function.
+<P>
+
+Function <TT>&quot;DumpArray()&quot;</TT> allows dumping of multiple values (useful when you
+need to analyze returns of functions).
+<P>
+
+The global variable <TT>$Devel::Peek::pv_limit</TT> can be set to limit the
+number of character printed in various string values.  Setting it to 0
+means no limit.
+<P>
+
+If <TT>&quot;use Devel::Peek&quot;</TT> directive has a <TT>&quot;:opd=FLAGS&quot;</TT> argument,
+this switches on debugging of opcode dispatch.  <TT>&quot;FLAGS&quot;</TT> should be a
+combination of <TT>&quot;s&quot;</TT>, <TT>&quot;t&quot;</TT>, and <TT>&quot;P&quot;</TT> (see <B>-D</B> flags in perlrun).
+<TT>&quot;:opd&quot;</TT> is a shortcut for <TT>&quot;:opd=st&quot;</TT>.
+<A NAME="lbAE">&nbsp;</A>
+<H3>Runtime debugging</H3>
+
+<A NAME="ixAAE"></A>
+<TT>&quot;CvGV($cv)&quot;</TT> return one of the globs associated to a subroutine reference <TT>$cv</TT>.
+<P>
+
+<I>debug_flags()</I> returns a string representation of <TT>$^D</TT> (similar to
+what is allowed for <B>-D</B> flag).  When called with a numeric argument,
+sets $^D to the corresponding value.  When called with an argument of
+the form <TT>&quot;flags-flags&quot;</TT>, set on/off bits of <TT>$^D</TT> corresponding to
+letters before/after <TT>&quot;-&quot;</TT>.  (The returned value is for <TT>$^D</TT> before
+the modification.)
+<P>
+
+<I>runops_debug()</I> returns true if the current <I>opcode dispatcher</I> is the
+debugging one.  When called with an argument, switches to debugging or
+non-debugging dispatcher depending on the argument (active for
+newly-entered subs/etc only).  (The returned value is for the dispatcher before the modification.)
+<A NAME="lbAF">&nbsp;</A>
+<H3>Memory footprint debugging</H3>
+
+<A NAME="ixAAF"></A>
+When perl is compiled with support for memory footprint debugging
+(default with Perl's <I>malloc()</I>), Devel::Peek provides an access to this <FONT SIZE="-1">API</FONT>.
+<P>
+
+Use <I>mstat()</I> function to emit a memory state statistic to the terminal.
+For more information on the format of output of <I>mstat()</I> see
+&quot;Using <TT>$ENV{PERL_DEBUG_MSTATS}</TT>&quot; in perldebguts.
+<P>
+
+Three additional functions allow access to this statistic from Perl.
+First, use <TT>&quot;mstats_fillhash(%hash)&quot;</TT> to get the information contained
+in the output of <I>mstat()</I> into <TT>%hash</TT>. The field of this hash are
+<P>
+
+
+
+<PRE>
+  minbucket nbuckets sbrk_good sbrk_slack sbrked_remains sbrks start_slack
+  topbucket topbucket_ev topbucket_odd total total_chain total_sbrk totfree
+
+</PRE>
+
+
+<P>
+
+Two additional fields <TT>&quot;free&quot;</TT>, <TT>&quot;used&quot;</TT> contain array references which
+provide per-bucket count of free and used chunks.  Two other fields
+<TT>&quot;mem_size&quot;</TT>, <TT>&quot;available_size&quot;</TT> contain array references which provide
+the information about the allocated size and usable size of chunks in
+each bucket.  Again, see &quot;Using <TT>$ENV{PERL_DEBUG_MSTATS}</TT>&quot; in perldebguts
+for details.
+<P>
+
+Keep in mind that only the first several ``odd-numbered'' buckets are
+used, so the information on size of the ``odd-numbered'' buckets which are
+not used is probably meaningless.
+<P>
+
+The information in
+<P>
+
+
+
+<PRE>
+ mem_size available_size minbucket nbuckets
+
+</PRE>
+
+
+<P>
+
+is the property of a particular build of perl, and does not depend on
+the current process.  If you do not provide the optional argument to
+the functions <I>mstats_fillhash()</I>, <I>fill_mstats()</I>, <I>mstats2hash()</I>, then
+the information in fields <TT>&quot;mem_size&quot;</TT>, <TT>&quot;available_size&quot;</TT> is not
+updated.
+<P>
+
+<TT>&quot;fill_mstats($buf)&quot;</TT> is a much cheaper call (both speedwise and
+memory-wise) which collects the statistic into <TT>$buf</TT> in
+machine-readable form.  At a later moment you may need to call
+<TT>&quot;mstats2hash($buf, %hash)&quot;</TT> to use this information to fill <TT>%hash</TT>.
+<P>
+
+All three APIs <TT>&quot;fill_mstats($buf)&quot;</TT>, <TT>&quot;mstats_fillhash(%hash)&quot;</TT>, and
+<TT>&quot;mstats2hash($buf, %hash)&quot;</TT> are designed to allocate no memory if used
+<I>the second time</I> on the same <TT>$buf</TT> and/or <TT>%hash</TT>.
+<P>
+
+So, if you want to collect memory info in a cycle, you may call
+<P>
+
+
+
+<PRE>
+  $#buf = 999;
+  fill_mstats($_) for @buf;
+  mstats_fillhash(%report, 1);          # Static info too
+
+  foreach (@buf) {
+    # Do something...
+    fill_mstats $_;                     # Collect statistic
+  }
+  foreach (@buf) {
+    mstats2hash($_, %report);           # Preserve static info
+    # Do something with %report
+  }
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+<A NAME="ixAAG"></A>
+The following examples don't attempt to show everything as that would be a
+monumental task, and, frankly, we don't want this manpage to be an internals
+document for Perl.  The examples do demonstrate some basics of the raw Perl
+datatypes, and should suffice to get most determined people on their way.
+There are no guidewires or safety nets, nor blazed trails, so be prepared to
+travel alone from this point and on and, if at all possible, don't fall into
+the quicksand (it's bad for business).
+<P>
+
+Oh, one final bit of advice: take perlguts with you.  When you return we
+expect to see it well-thumbed.
+<A NAME="lbAH">&nbsp;</A>
+<H3>A simple scalar string</H3>
+
+<A NAME="ixAAH"></A>
+Let's begin by looking a simple scalar which is holding a string.
+<P>
+
+
+
+<PRE>
+        use Devel::Peek;
+        $a = &quot;hello&quot;;
+        Dump $a;
+
+</PRE>
+
+
+<P>
+
+The output:
+<P>
+
+
+
+<PRE>
+        SV = PVIV(0xbc288)
+          REFCNT = 1
+          FLAGS = (POK,pPOK)
+          IV = 0
+          PV = 0xb2048 &quot;hello&quot;\0
+          CUR = 5
+          LEN = 6
+
+</PRE>
+
+
+<P>
+
+This says <TT>$a</TT> is an <FONT SIZE="-1">SV</FONT>, a scalar.  The scalar is a <FONT SIZE="-1">PVIV</FONT>, a string.
+Its reference count is 1.  It has the <TT>&quot;POK&quot;</TT> flag set, meaning its
+current <FONT SIZE="-1">PV</FONT> field is valid.  Because <FONT SIZE="-1">POK</FONT> is set we look at the <FONT SIZE="-1">PV</FONT> item
+to see what is in the scalar.  The \0 at the end indicate that this
+<FONT SIZE="-1">PV</FONT> is properly NUL-terminated.
+If the <FONT SIZE="-1">FLAGS</FONT> had been <FONT SIZE="-1">IOK</FONT> we would look
+at the <FONT SIZE="-1">IV</FONT> item.  <FONT SIZE="-1">CUR</FONT> indicates the number of characters in the <FONT SIZE="-1">PV</FONT>.
+<FONT SIZE="-1">LEN</FONT> indicates the number of bytes requested for the <FONT SIZE="-1">PV</FONT> (one more than
+<FONT SIZE="-1">CUR</FONT>, in this case, because <FONT SIZE="-1">LEN</FONT> includes an extra byte for the
+end-of-string marker).
+<A NAME="lbAI">&nbsp;</A>
+<H3>A simple scalar number</H3>
+
+<A NAME="ixAAI"></A>
+If the scalar contains a number the raw <FONT SIZE="-1">SV</FONT> will be leaner.
+<P>
+
+
+
+<PRE>
+        use Devel::Peek;
+        $a = 42;
+        Dump $a;
+
+</PRE>
+
+
+<P>
+
+The output:
+<P>
+
+
+
+<PRE>
+        SV = IV(0xbc818)
+          REFCNT = 1
+          FLAGS = (IOK,pIOK)
+          IV = 42
+
+</PRE>
+
+
+<P>
+
+This says <TT>$a</TT> is an <FONT SIZE="-1">SV</FONT>, a scalar.  The scalar is an <FONT SIZE="-1">IV</FONT>, a number.  Its
+reference count is 1.  It has the <TT>&quot;IOK&quot;</TT> flag set, meaning it is currently
+being evaluated as a number.  Because <FONT SIZE="-1">IOK</FONT> is set we look at the <FONT SIZE="-1">IV</FONT> item to
+see what is in the scalar.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>A simple scalar with an extra reference</H3>
+
+<A NAME="ixAAJ"></A>
+If the scalar from the previous example had an extra reference:
+<P>
+
+
+
+<PRE>
+        use Devel::Peek;
+        $a = 42;
+        $b = \$a;
+        Dump $a;
+
+</PRE>
+
+
+<P>
+
+The output:
+<P>
+
+
+
+<PRE>
+        SV = IV(0xbe860)
+          REFCNT = 2
+          FLAGS = (IOK,pIOK)
+          IV = 42
+
+</PRE>
+
+
+<P>
+
+Notice that this example differs from the previous example only in its
+reference count.  Compare this to the next example, where we dump <TT>$b</TT>
+instead of <TT>$a</TT>.
+<A NAME="lbAK">&nbsp;</A>
+<H3>A reference to a simple scalar</H3>
+
+<A NAME="ixAAK"></A>
+This shows what a reference looks like when it references a simple scalar.
+<P>
+
+
+
+<PRE>
+        use Devel::Peek;
+        $a = 42;
+        $b = \$a;
+        Dump $b;
+
+</PRE>
+
+
+<P>
+
+The output:
+<P>
+
+
+
+<PRE>
+        SV = RV(0xf041c)
+          REFCNT = 1
+          FLAGS = (ROK)
+          RV = 0xbab08
+        SV = IV(0xbe860)
+          REFCNT = 2
+          FLAGS = (IOK,pIOK)
+          IV = 42
+
+</PRE>
+
+
+<P>
+
+Starting from the top, this says <TT>$b</TT> is an <FONT SIZE="-1">SV</FONT>.  The scalar is an <FONT SIZE="-1">RV</FONT>, a
+reference.  It has the <TT>&quot;ROK&quot;</TT> flag set, meaning it is a reference.  Because
+<FONT SIZE="-1">ROK</FONT> is set we have an <FONT SIZE="-1">RV</FONT> item rather than an <FONT SIZE="-1">IV</FONT> or <FONT SIZE="-1">PV</FONT>.  Notice that Dump
+follows the reference and shows us what <TT>$b</TT> was referencing.  We see the
+same <TT>$a</TT> that we found in the previous example.
+<P>
+
+Note that the value of <TT>&quot;RV&quot;</TT> coincides with the numbers we see when we
+stringify <TT>$b</TT>. The addresses inside <FONT SIZE="-1"><I>RV</I></FONT><I>()</I> and <FONT SIZE="-1"><I>IV</I></FONT><I>()</I> are addresses of
+<TT>&quot;X***&quot;</TT> structure which holds the current state of an <TT>&quot;SV&quot;</TT>. This
+address may change during lifetime of an <FONT SIZE="-1">SV</FONT>.
+<A NAME="lbAL">&nbsp;</A>
+<H3>A reference to an array</H3>
+
+<A NAME="ixAAL"></A>
+This shows what a reference to an array looks like.
+<P>
+
+
+
+<PRE>
+        use Devel::Peek;
+        $a = [42];
+        Dump $a;
+
+</PRE>
+
+
+<P>
+
+The output:
+<P>
+
+
+
+<PRE>
+        SV = RV(0xf041c)
+          REFCNT = 1
+          FLAGS = (ROK)
+          RV = 0xb2850
+        SV = PVAV(0xbd448)
+          REFCNT = 1
+          FLAGS = ()
+          IV = 0
+          NV = 0
+          ARRAY = 0xb2048
+          ALLOC = 0xb2048
+          FILL = 0
+          MAX = 0
+          ARYLEN = 0x0
+          FLAGS = (REAL)
+        Elt No. 0 0xb5658
+        SV = IV(0xbe860)
+          REFCNT = 1
+          FLAGS = (IOK,pIOK)
+          IV = 42
+
+</PRE>
+
+
+<P>
+
+This says <TT>$a</TT> is an <FONT SIZE="-1">SV</FONT> and that it is an <FONT SIZE="-1">RV</FONT>.  That <FONT SIZE="-1">RV</FONT> points to
+another <FONT SIZE="-1">SV</FONT> which is a <FONT SIZE="-1">PVAV</FONT>, an array.  The array has one element,
+element zero, which is another <FONT SIZE="-1">SV</FONT>. The field <TT>&quot;FILL&quot;</TT> above indicates
+the last element in the array, similar to <TT>&quot;$#$a&quot;</TT>.
+<P>
+
+If <TT>$a</TT> pointed to an array of two elements then we would see the
+following.
+<P>
+
+
+
+<PRE>
+        use Devel::Peek 'Dump';
+        $a = [42,24];
+        Dump $a;
+
+</PRE>
+
+
+<P>
+
+The output:
+<P>
+
+
+
+<PRE>
+        SV = RV(0xf041c)
+          REFCNT = 1
+          FLAGS = (ROK)
+          RV = 0xb2850
+        SV = PVAV(0xbd448)
+          REFCNT = 1
+          FLAGS = ()
+          IV = 0
+          NV = 0
+          ARRAY = 0xb2048
+          ALLOC = 0xb2048
+          FILL = 0
+          MAX = 0
+          ARYLEN = 0x0
+          FLAGS = (REAL)
+        Elt No. 0  0xb5658
+        SV = IV(0xbe860)
+          REFCNT = 1
+          FLAGS = (IOK,pIOK)
+          IV = 42
+        Elt No. 1  0xb5680
+        SV = IV(0xbe818)
+          REFCNT = 1
+          FLAGS = (IOK,pIOK)
+          IV = 24
+
+</PRE>
+
+
+<P>
+
+Note that <TT>&quot;Dump&quot;</TT> will not report <I>all</I> the elements in the array,
+only several first (depending on how deep it already went into the
+report tree).
+<A NAME="lbAM">&nbsp;</A>
+<H3>A reference to a hash</H3>
+
+<A NAME="ixAAM"></A>
+The following shows the raw form of a reference to a hash.
+<P>
+
+
+
+<PRE>
+        use Devel::Peek;
+        $a = {hello=&gt;42};
+        Dump $a;
+
+</PRE>
+
+
+<P>
+
+The output:
+<P>
+
+
+
+<PRE>
+        SV = RV(0x8177858) at 0x816a618
+          REFCNT = 1
+          FLAGS = (ROK)
+          RV = 0x814fc10
+          SV = PVHV(0x8167768) at 0x814fc10
+            REFCNT = 1
+            FLAGS = (SHAREKEYS)
+            IV = 1
+            NV = 0
+            ARRAY = 0x816c5b8  (0:7, 1:1)
+            hash quality = 100.0%
+            KEYS = 1
+            FILL = 1
+            MAX = 7
+            RITER = -1
+            EITER = 0x0
+            Elt &quot;hello&quot; HASH = 0xc8fd181b
+            SV = IV(0x816c030) at 0x814fcf4
+              REFCNT = 1
+              FLAGS = (IOK,pIOK)
+              IV = 42
+
+</PRE>
+
+
+<P>
+
+This shows <TT>$a</TT> is a reference pointing to an <FONT SIZE="-1">SV</FONT>.  That <FONT SIZE="-1">SV</FONT> is a <FONT SIZE="-1">PVHV</FONT>, a
+hash. Fields <FONT SIZE="-1">RITER</FONT> and <FONT SIZE="-1">EITER</FONT> are used by <TT>&quot;each&quot;</TT>.
+<P>
+
+The ``quality'' of a hash is defined as the total number of comparisons needed
+to access every element once, relative to the expected number needed for a
+random hash. The value can go over 100%.
+<P>
+
+The total number of comparisons is equal to the sum of the squares of the
+number of entries in each bucket.  For a random hash of <TT>&quot;&lt;n&quot;</TT>&gt; keys into
+<TT>&quot;&lt;k&quot;</TT>&gt; buckets, the expected value is:
+<P>
+
+
+
+<PRE>
+                n + n(n-1)/2k
+
+</PRE>
+
+
+<A NAME="lbAN">&nbsp;</A>
+<H3>Dumping a large array or hash</H3>
+
+<A NAME="ixAAN"></A>
+The <TT>&quot;Dump()&quot;</TT> function, by default, dumps up to 4 elements from a
+toplevel array or hash.  This number can be increased by supplying a
+second argument to the function.
+<P>
+
+
+
+<PRE>
+        use Devel::Peek;
+        $a = [10,11,12,13,14];
+        Dump $a;
+
+</PRE>
+
+
+<P>
+
+Notice that <TT>&quot;Dump()&quot;</TT> prints only elements 10 through 13 in the above code.
+The following code will print all of the elements.
+<P>
+
+
+
+<PRE>
+        use Devel::Peek 'Dump';
+        $a = [10,11,12,13,14];
+        Dump $a, 5;
+
+</PRE>
+
+
+<A NAME="lbAO">&nbsp;</A>
+<H3>A reference to an <FONT SIZE="-1">SV</FONT> which holds a C pointer</H3>
+
+<A NAME="ixAAO"></A>
+This is what you really need to know as an <FONT SIZE="-1">XS</FONT> programmer, of course.  When
+an <FONT SIZE="-1">XSUB</FONT> returns a pointer to a C structure that pointer is stored in an <FONT SIZE="-1">SV</FONT>
+and a reference to that <FONT SIZE="-1">SV</FONT> is placed on the <FONT SIZE="-1">XSUB</FONT> stack.  So the output from
+an <FONT SIZE="-1">XSUB</FONT> which uses something like the T_PTROBJ map might look something like
+this:
+<P>
+
+
+
+<PRE>
+        SV = RV(0xf381c)
+          REFCNT = 1
+          FLAGS = (ROK)
+          RV = 0xb8ad8
+        SV = PVMG(0xbb3c8)
+          REFCNT = 1
+          FLAGS = (OBJECT,IOK,pIOK)
+          IV = 729160
+          NV = 0
+          PV = 0
+          STASH = 0xc1d10       &quot;CookBookB::Opaque&quot;
+
+</PRE>
+
+
+<P>
+
+This shows that we have an <FONT SIZE="-1">SV</FONT> which is an <FONT SIZE="-1">RV</FONT>.  That <FONT SIZE="-1">RV</FONT> points at another
+<FONT SIZE="-1">SV</FONT>.  In this case that second <FONT SIZE="-1">SV</FONT> is a <FONT SIZE="-1">PVMG</FONT>, a blessed scalar.  Because it is
+blessed it has the <TT>&quot;OBJECT&quot;</TT> flag set.  Note that an <FONT SIZE="-1">SV</FONT> which holds a C
+pointer also has the <TT>&quot;IOK&quot;</TT> flag set.  The <TT>&quot;STASH&quot;</TT> is set to the package
+name which this <FONT SIZE="-1">SV</FONT> was blessed into.
+<P>
+
+The output from an <FONT SIZE="-1">XSUB</FONT> which uses something like the T_PTRREF map, which
+doesn't bless the object, might look something like this:
+<P>
+
+
+
+<PRE>
+        SV = RV(0xf381c)
+          REFCNT = 1
+          FLAGS = (ROK)
+          RV = 0xb8ad8
+        SV = PVMG(0xbb3c8)
+          REFCNT = 1
+          FLAGS = (IOK,pIOK)
+          IV = 729160
+          NV = 0
+          PV = 0
+
+</PRE>
+
+
+<A NAME="lbAP">&nbsp;</A>
+<H3>A reference to a subroutine</H3>
+
+<A NAME="ixAAP"></A>
+Looks like this:
+<P>
+
+
+
+<PRE>
+        SV = RV(0x798ec)
+          REFCNT = 1
+          FLAGS = (TEMP,ROK)
+          RV = 0x1d453c
+        SV = PVCV(0x1c768c)
+          REFCNT = 2
+          FLAGS = ()
+          IV = 0
+          NV = 0
+          COMP_STASH = 0x31068  &quot;main&quot;
+          START = 0xb20e0
+          ROOT = 0xbece0
+          XSUB = 0x0
+          XSUBANY = 0
+          GVGV::GV = 0x1d44e8   &quot;MY&quot; :: &quot;top_targets&quot;
+          FILE = &quot;(eval 5)&quot;
+          DEPTH = 0
+          PADLIST = 0x1c9338
+
+</PRE>
+
+
+<P>
+
+This shows that
+<DL COMPACT>
+<DT>*<DD>
+the subroutine is not an <FONT SIZE="-1">XSUB</FONT> (since <TT>&quot;START&quot;</TT> and <TT>&quot;ROOT&quot;</TT> are
+non-zero, and <TT>&quot;XSUB&quot;</TT> is zero);
+<DT>*<DD>
+that it was compiled in the package <TT>&quot;main&quot;</TT>;
+<DT>*<DD>
+under the name <TT>&quot;MY::top_targets&quot;</TT>;
+<DT>*<DD>
+inside a 5th eval in the program;
+<DT>*<DD>
+it is not currently executed (see <TT>&quot;DEPTH&quot;</TT>);
+<DT>*<DD>
+it has no prototype (<TT>&quot;PROTOTYPE&quot;</TT> field is missing).
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H2>EXPORTS</H2>
+
+<A NAME="ixAAQ"></A>
+<TT>&quot;Dump&quot;</TT>, <TT>&quot;mstat&quot;</TT>, <TT>&quot;DeadCode&quot;</TT>, <TT>&quot;DumpArray&quot;</TT>, <TT>&quot;DumpWithOP&quot;</TT> and
+<TT>&quot;DumpProg&quot;</TT>, <TT>&quot;fill_mstats&quot;</TT>, <TT>&quot;mstats_fillhash&quot;</TT>, <TT>&quot;mstats2hash&quot;</TT> by
+default. Additionally available <TT>&quot;SvREFCNT&quot;</TT>, <TT>&quot;SvREFCNT_inc&quot;</TT> and
+<TT>&quot;SvREFCNT_dec&quot;</TT>.
+<A NAME="lbAR">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixAAR"></A>
+Readers have been known to skip important parts of perlguts, causing much
+frustration for all.
+<A NAME="lbAS">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAS"></A>
+Ilya Zakharevich<TT>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</TT><A HREF="mailto:ilya@math.ohio-state.edu">ilya@math.ohio-state.edu</A><BR>
+<P>
+
+Copyright (c) 1995-98 Ilya Zakharevich. All rights reserved.
+This program is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<P>
+
+Author of this software makes no claim whatsoever about suitability,
+reliability, edability, editability or usability of this product, and
+should not be kept liable for any damage resulting from the use of
+it. If you can use it, you are in luck, if not, I should not be kept
+responsible. Keep a handy copy of your backup tape at hand.
+<A NAME="lbAT">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAT"></A>
+perlguts, and perlguts, again.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Runtime debugging</A><DD>
+<DT><A HREF="#lbAF">Memory footprint debugging</A><DD>
+</DL>
+<DT><A HREF="#lbAG">EXAMPLES</A><DD>
+<DL>
+<DT><A HREF="#lbAH">A simple scalar string</A><DD>
+<DT><A HREF="#lbAI">A simple scalar number</A><DD>
+<DT><A HREF="#lbAJ">A simple scalar with an extra reference</A><DD>
+<DT><A HREF="#lbAK">A reference to a simple scalar</A><DD>
+<DT><A HREF="#lbAL">A reference to an array</A><DD>
+<DT><A HREF="#lbAM">A reference to a hash</A><DD>
+<DT><A HREF="#lbAN">Dumping a large array or hash</A><DD>
+<DT><A HREF="#lbAO">A reference to an <FONT SIZE="-1">SV</FONT> which holds a C pointer</A><DD>
+<DT><A HREF="#lbAP">A reference to a subroutine</A><DD>
+</DL>
+<DT><A HREF="#lbAQ">EXPORTS</A><DD>
+<DT><A HREF="#lbAR">BUGS</A><DD>
+<DT><A HREF="#lbAS">AUTHOR</A><DD>
+<DT><A HREF="#lbAT">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:23 GMT, December 24, 2015
+</div></body>
+</HTML>

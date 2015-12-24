@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of ipa-getkeytab</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>ipa-getkeytab</H1>
+Section: FreeIPA Manual Pages (1)<BR>Updated: Oct 10 2007<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+ipa-getkeytab - Get a keytab for a Kerberos principal
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+ipa-getkeytab <B>-s</B> <I>ipaserver</I> <B>-p</B> <I>principal-name</I> <B>-k</B> <I>keytab-file</I> [ <B>-e</B> encryption-types ] [ <B>-q</B> ] [ <B>-D</B>|<B>--binddn</B> <I>BINDDN</I> ] [ <B>-w|--bindpw</B> ] [ <B>-P</B>|<B>--password</B> <I>PASSWORD</I> ]
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+Retrieves a Kerberos <I>keytab</I>.
+<P>
+Kerberos keytabs are used for services (like sshd) to
+perform Kerberos authentication. A keytab is a file
+with one or more secrets (or keys) for a Kerberos
+principal.
+<P>
+A Kerberos service principal is a Kerberos identity
+that can be used for authentication. Service principals
+contain the name of the service, the hostname of the
+server, and the realm name. For example, the following
+is an example principal for an ldap server:
+<P>
+<BR>&nbsp;&nbsp;&nbsp;ldap/<A HREF="mailto:foo.example.com@EXAMPLE.COM">foo.example.com@EXAMPLE.COM</A>
+<P>
+When using ipa-getkeytab the realm name is already
+provided, so the principal name is just the service
+name and hostname (ldap/foo.example.com from the
+example above).
+<P>
+<B>WARNING:</B> retrieving the keytab resets the secret for the Kerberos principal.
+This renders all other keytabs for that principal invalid.
+<P>
+This is used during IPA client enrollement to retrieve a host service principal and store it in /etc/krb5.keytab. It is possible to retrieve the keytab without Kerberos credentials if the host was pre-created with a one-time password. The keytab can be retrieved by binding as the host and authenticating with this one-time password. The <B>-D|--binddn</B> and <B>-w|--bindpw</B> options are used for this authentication.
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><B>-s ipaserver</B><DD>
+The IPA server to retrieve the keytab from (FQDN).
+<DT><B>-p principal-name</B><DD>
+The non-realm part of the full principal name.
+<DT><B>-k keytab-file</B><DD>
+The keytab file where to append the new key (will be
+created if it does not exist).
+<DT><B>-e encryption-types</B><DD>
+The list of encryption types to use to generate keys.
+ipa-getkeytab will use local client defaults if not provided.
+Valid values depend on the Kerberos library version and configuration.
+Common values are:
+aes256-cts
+aes128-cts
+des3-hmac-sha1
+arcfour-hmac
+des-hmac-sha1
+des-cbc-md5
+des-cbc-crc
+<DT><B>-q</B><DD>
+Quiet mode. Only errors are displayed.
+<DT><B>--permitted-enctypes</B><DD>
+This options returns a description of the permitted encryption types, like this:
+Supported encryption types:
+AES-256 CTS mode with 96-bit SHA-1 HMAC
+AES-128 CTS mode with 96-bit SHA-1 HMAC
+Triple DES cbc mode with HMAC/sha1
+ArcFour with HMAC/md5
+DES cbc mode with CRC-32
+DES cbc mode with RSA-MD5
+DES cbc mode with RSA-MD4
+<DT><B>-P, --password</B><DD>
+Use this password for the key instead of one randomly generated.
+<DT><B>-D, --binddn</B><DD>
+The LDAP DN to bind as when retrieving a keytab without Kerberos credentials. Generally used with the <B>-w</B> option.
+<DT><B>-w, --bindpw</B><DD>
+The LDAP password to use when not binding with Kerberos.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>EXAMPLES</H2>
+
+Add and retrieve a keytab for the NFS service principal on
+the host foo.example.com and save it in the file /tmp/nfs.keytab and retrieve just the des-cbc-crc key.
+<P>
+<BR>&nbsp;&nbsp;&nbsp;#&nbsp;ipa-getkeytab&nbsp;-s&nbsp;ipaserver.example.com&nbsp;-p&nbsp;nfs/foo.example.com&nbsp;-k&nbsp;/tmp/nfs.keytab&nbsp;-e&nbsp;des-cbc-crc
+<P>
+Add and retrieve a keytab for the ldap service principal on
+the host foo.example.com and save it in the file /tmp/ldap.keytab.
+<P>
+<BR>&nbsp;&nbsp;&nbsp;#&nbsp;ipa-getkeytab&nbsp;-s&nbsp;ipaserver.example.com&nbsp;-p&nbsp;ldap/foo.example.com&nbsp;-k&nbsp;/tmp/ldap.keytab
+<P>
+Retrieve a keytab using LDAP credentials (this will typically be done by <B><A HREF="/manpages/index.html?1+ipa-join">ipa-join</A>(1)</B> when enrolling a client using the <B><A HREF="http://localhost/cgi-bin/man/man2html?1+ipa-client-install">ipa-client-install</A>(1)</B> command:
+<P>
+<BR>&nbsp;&nbsp;&nbsp;#&nbsp;ipa-getkeytab&nbsp;-s&nbsp;ipaserver.example.com&nbsp;-p&nbsp;host/foo.example.com&nbsp;-k&nbsp;/etc/krb5.keytab&nbsp;-D&nbsp;fqdn=foo.example.com,cn=computers,cn=accounts,dc=example,dc=com&nbsp;-w&nbsp;password
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXIT STATUS</H2>
+
+The exit status is 0 on success, nonzero on error.
+<P>
+0 Success
+<P>
+1 Kerberos context initialization failed
+<P>
+2 Incorrect usage
+<P>
+3 Out of memory
+<P>
+4 Invalid service principal name
+<P>
+5 No Kerberos credentials cache
+<P>
+6 No Kerberos principal and no bind DN and password
+<P>
+7 Failed to open keytab
+<P>
+8 Failed to create key material
+<P>
+9 Setting keytab failed
+<P>
+10 Bind password required when using a bind DN
+<P>
+11 Failed to add key to keytab
+<P>
+12 Failed to close keytab
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">EXAMPLES</A><DD>
+<DT><A HREF="#lbAG">EXIT STATUS</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:29:05 GMT, December 24, 2015
+</div></body>
+</HTML>

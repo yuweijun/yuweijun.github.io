@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Net::POP3</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Net::POP3</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Net::POP3 - Post Office Protocol 3 Client class (RFC1939)
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Net::POP3;
+
+    # Constructors
+    $pop = Net::POP3-&gt;new('pop3host');
+    $pop = Net::POP3-&gt;new('pop3host', Timeout =&gt; 60);
+
+    if ($pop-&gt;login($username, $password) &gt; 0) {
+      my $msgnums = $pop-&gt;list; # hashref of msgnum =&gt; size
+      foreach my $msgnum (keys %$msgnums) {
+        my $msg = $pop-&gt;get($msgnum);
+        print @$msg;
+        $pop-&gt;delete($msgnum);
+      }
+    }
+
+    $pop-&gt;quit;
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+This module implements a client interface to the <FONT SIZE="-1">POP3</FONT> protocol, enabling
+a perl5 application to talk to <FONT SIZE="-1">POP3</FONT> servers. This documentation assumes
+that you are familiar with the <FONT SIZE="-1">POP3</FONT> protocol described in <FONT SIZE="-1">RFC1939</FONT>.
+<P>
+
+A new Net::POP3 object must be created with the <I>new</I> method. Once
+this has been done, all <FONT SIZE="-1">POP3</FONT> commands are accessed via method calls
+on the object.
+<A NAME="lbAE">&nbsp;</A>
+<H2>CONSTRUCTOR</H2>
+
+<A NAME="ixAAE"></A>
+<DL COMPACT>
+<DT>new ( [ <FONT SIZE="-1">HOST</FONT> ] [, <FONT SIZE="-1">OPTIONS</FONT> ] 0<DD>
+<A NAME="ixAAF"></A>
+This is the constructor for a new Net::POP3 object. <TT>&quot;HOST&quot;</TT> is the
+name of the remote host to which an <FONT SIZE="-1">POP3</FONT> connection is required.
+
+
+<P>
+
+
+<TT>&quot;HOST&quot;</TT> is optional. If <TT>&quot;HOST&quot;</TT> is not given then it may instead be
+passed as the <TT>&quot;Host&quot;</TT> option described below. If neither is given then
+the <TT>&quot;POP3_Hosts&quot;</TT> specified in <TT>&quot;Net::Config&quot;</TT> will be used.
+
+
+<P>
+
+
+<TT>&quot;OPTIONS&quot;</TT> are passed in a hash like fashion, using key and value pairs.
+Possible options are:
+
+
+<P>
+
+
+<B>Host</B> - <FONT SIZE="-1">POP3</FONT> host to connect to. It may be a single scalar, as defined for
+the <TT>&quot;PeerAddr&quot;</TT> option in IO::Socket::INET, or a reference to
+an array with hosts to try in turn. The ``host'' method will return the value
+which was used to connect to the host.
+
+
+<P>
+
+
+<B>ResvPort</B> - If given then the socket for the <TT>&quot;Net::POP3&quot;</TT> object
+will be bound to the local port given using <TT>&quot;bind&quot;</TT> when the socket is
+created.
+
+
+<P>
+
+
+<B>Timeout</B> - Maximum time, in seconds, to wait for a response from the
+<FONT SIZE="-1">POP3</FONT> server (default: 120)
+
+
+<P>
+
+
+<B>Debug</B> - Enable debugging information
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAG"></A>
+Unless otherwise stated all methods return either a <I>true</I> or <I>false</I>
+value, with <I>true</I> meaning that the operation was a success. When a method
+states that it returns a value, failure will be returned as <I>undef</I> or an
+empty list.
+<DL COMPACT>
+<DT>auth ( <FONT SIZE="-1">USERNAME</FONT>, <FONT SIZE="-1">PASSWORD</FONT> )<DD>
+<A NAME="ixAAH"></A>
+Attempt <FONT SIZE="-1">SASL</FONT> authentication.
+<DT>user ( <FONT SIZE="-1">USER</FONT> )<DD>
+<A NAME="ixAAI"></A>
+Send the <FONT SIZE="-1">USER</FONT> command.
+<DT>pass ( <FONT SIZE="-1">PASS</FONT> )<DD>
+<A NAME="ixAAJ"></A>
+Send the <FONT SIZE="-1">PASS</FONT> command. Returns the number of messages in the mailbox.
+<DT>login ( [ <FONT SIZE="-1">USER</FONT> [, <FONT SIZE="-1">PASS</FONT> ]] )<DD>
+<A NAME="ixAAK"></A>
+Send both the <FONT SIZE="-1">USER</FONT> and <FONT SIZE="-1">PASS</FONT> commands. If <TT>&quot;PASS&quot;</TT> is not given the
+<TT>&quot;Net::POP3&quot;</TT> uses <TT>&quot;Net::Netrc&quot;</TT> to lookup the password using the host
+and username. If the username is not specified then the current user name
+will be used.
+
+
+<P>
+
+
+Returns the number of messages in the mailbox. However if there are no
+messages on the server the string <TT>&quot;0E0&quot;</TT> will be returned. This is
+will give a true value in a boolean context, but zero in a numeric context.
+
+
+<P>
+
+
+If there was an error authenticating the user then <I>undef</I> will be returned.
+<DT>apop ( [ <FONT SIZE="-1">USER</FONT> [, <FONT SIZE="-1">PASS</FONT> ]] )<DD>
+<A NAME="ixAAL"></A>
+Authenticate with the server identifying as <TT>&quot;USER&quot;</TT> with password <TT>&quot;PASS&quot;</TT>.
+Similar to ``login'', but the password is not sent in clear text.
+
+
+<P>
+
+
+To use this method you must have the Digest::MD5 or the <FONT SIZE="-1">MD5</FONT> module installed,
+otherwise this method will return <I>undef</I>.
+<DT>banner ()<DD>
+<A NAME="ixAAM"></A>
+Return the sever's connection banner
+<DT>capa ()<DD>
+<A NAME="ixAAN"></A>
+Return a reference to a hash of the capabilities of the server.  <FONT SIZE="-1">APOP</FONT>
+is added as a pseudo capability.  Note that I've been unable to
+find a list of the standard capability values, and some appear to
+be multi-word and some are not.  We make an attempt at intelligently
+parsing them, but it may not be correct.
+<DT>capabilities ()<DD>
+<A NAME="ixAAO"></A>
+Just like capa, but only uses a cache from the last time we asked
+the server, so as to avoid asking more than once.
+<DT>top ( <FONT SIZE="-1">MSGNUM</FONT> [, <FONT SIZE="-1">NUMLINES</FONT> ] )<DD>
+<A NAME="ixAAP"></A>
+Get the header and the first <TT>&quot;NUMLINES&quot;</TT> of the body for the message
+<TT>&quot;MSGNUM&quot;</TT>. Returns a reference to an array which contains the lines of text
+read from the server.
+<DT>list ( [ <FONT SIZE="-1">MSGNUM</FONT> ] )<DD>
+<A NAME="ixAAQ"></A>
+If called with an argument the <TT>&quot;list&quot;</TT> returns the size of the message
+in octets.
+
+
+<P>
+
+
+If called without arguments a reference to a hash is returned. The
+keys will be the <TT>&quot;MSGNUM&quot;</TT>'s of all undeleted messages and the values will
+be their size in octets.
+<DT>get ( <FONT SIZE="-1">MSGNUM</FONT> [, <FONT SIZE="-1">FH</FONT> ] )<DD>
+<A NAME="ixAAR"></A>
+Get the message <TT>&quot;MSGNUM&quot;</TT> from the remote mailbox. If <TT>&quot;FH&quot;</TT> is not given
+then get returns a reference to an array which contains the lines of
+text read from the server. If <TT>&quot;FH&quot;</TT> is given then the lines returned
+from the server are printed to the filehandle <TT>&quot;FH&quot;</TT>.
+<DT>getfh ( <FONT SIZE="-1">MSGNUM</FONT> )<DD>
+<A NAME="ixAAS"></A>
+As per <I>get()</I>, but returns a tied filehandle.  Reading from this
+filehandle returns the requested message.  The filehandle will return
+<FONT SIZE="-1">EOF</FONT> at the end of the message and should not be reused.
+<DT>last ()<DD>
+<A NAME="ixAAT"></A>
+Returns the highest <TT>&quot;MSGNUM&quot;</TT> of all the messages accessed.
+<DT>popstat ()<DD>
+<A NAME="ixAAU"></A>
+Returns a list of two elements. These are the number of undeleted
+elements and the size of the mbox in octets.
+<DT>ping ( <FONT SIZE="-1">USER</FONT> )<DD>
+<A NAME="ixAAV"></A>
+Returns a list of two elements. These are the number of new messages
+and the total number of messages for <TT>&quot;USER&quot;</TT>.
+<DT>uidl ( [ <FONT SIZE="-1">MSGNUM</FONT> ] )<DD>
+<A NAME="ixAAW"></A>
+Returns a unique identifier for <TT>&quot;MSGNUM&quot;</TT> if given. If <TT>&quot;MSGNUM&quot;</TT> is not
+given <TT>&quot;uidl&quot;</TT> returns a reference to a hash where the keys are the
+message numbers and the values are the unique identifiers.
+<DT>delete ( <FONT SIZE="-1">MSGNUM</FONT> )<DD>
+<A NAME="ixAAX"></A>
+Mark message <TT>&quot;MSGNUM&quot;</TT> to be deleted from the remote mailbox. All messages
+that are marked to be deleted will be removed from the remote mailbox
+when the server connection closed.
+<DT>reset ()<DD>
+<A NAME="ixAAY"></A>
+Reset the status of the remote <FONT SIZE="-1">POP3</FONT> server. This includes resetting the
+status of all messages to not be deleted.
+<DT>quit ()<DD>
+<A NAME="ixAAZ"></A>
+Quit and close the connection to the remote <FONT SIZE="-1">POP3</FONT> server. Any messages marked
+as deleted will be deleted from the remote mailbox.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>NOTES</H2>
+
+<A NAME="ixABA"></A>
+If a <TT>&quot;Net::POP3&quot;</TT> object goes out of scope before <TT>&quot;quit&quot;</TT> method is called
+then the <TT>&quot;reset&quot;</TT> method will called before the connection is closed. This
+means that any messages marked to be deleted will not be.
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABB"></A>
+Net::Netrc,
+Net::Cmd
+<A NAME="lbAI">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABC"></A>
+Graham Barr &lt;<A HREF="mailto:gbarr@pobox.com">gbarr@pobox.com</A>&gt;
+<A NAME="lbAJ">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABD"></A>
+Copyright (c) 1995-2003 Graham Barr. All rights reserved.
+This program is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">CONSTRUCTOR</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DT><A HREF="#lbAG">NOTES</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+<DT><A HREF="#lbAI">AUTHOR</A><DD>
+<DT><A HREF="#lbAJ">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:35 GMT, December 24, 2015
+</div></body>
+</HTML>

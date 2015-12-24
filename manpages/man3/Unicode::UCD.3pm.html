@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Unicode::UCD</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Unicode::UCD</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-06-27<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Unicode::UCD - Unicode character database
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Unicode::UCD 'charinfo';
+    my $charinfo   = charinfo($codepoint);
+
+    use Unicode::UCD 'casefold';
+    my $casefold = casefold(0xFB00);
+
+    use Unicode::UCD 'casespec';
+    my $casespec = casespec(0xFB00);
+
+    use Unicode::UCD 'charblock';
+    my $charblock  = charblock($codepoint);
+
+    use Unicode::UCD 'charscript';
+    my $charscript = charscript($codepoint);
+
+    use Unicode::UCD 'charblocks';
+    my $charblocks = charblocks();
+
+    use Unicode::UCD 'charscripts';
+    my $charscripts = charscripts();
+
+    use Unicode::UCD qw(charscript charinrange);
+    my $range = charscript($script);
+    print &quot;looks like $script\n&quot; if charinrange($range, $codepoint);
+
+    use Unicode::UCD qw(general_categories bidi_types);
+    my $categories = general_categories();
+    my $types = bidi_types();
+
+    use Unicode::UCD 'compexcl';
+    my $compexcl = compexcl($codepoint);
+
+    use Unicode::UCD 'namedseq';
+    my $namedseq = namedseq($named_sequence_name);
+
+    my $unicode_version = Unicode::UCD::UnicodeVersion();
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+The Unicode::UCD module offers a series of functions that
+provide a simple interface to the Unicode
+Character Database.
+<A NAME="lbAE">&nbsp;</A>
+<H3>code point argument</H3>
+
+<A NAME="ixAAE"></A>
+Some of the functions are called with a <I>code point argument</I>, which is either
+a decimal or a hexadecimal scalar designating a Unicode code point, or <TT>&quot;U+&quot;</TT>
+followed by hexadecimals designating a Unicode code point.  In other words, if
+you want a code point to be interpreted as a hexadecimal number, you must
+prefix it with either <TT>&quot;0x&quot;</TT> or <TT>&quot;U+&quot;</TT>, because a string like e.g. <TT>123</TT> will be
+interpreted as a decimal code point.  Also note that Unicode is <B>not</B> limited
+to 16 bits (the number of Unicode code points is open-ended, in theory
+unlimited): you may have more than 4 hexdigits.
+<A NAME="lbAF">&nbsp;</A>
+<H3><B></B>charinfo()<B></B></H3>
+
+<A NAME="ixAAF"></A>
+
+
+<PRE>
+    use Unicode::UCD 'charinfo';
+
+    my $charinfo = charinfo(0x41);
+
+</PRE>
+
+
+<P>
+
+This returns information about the input ``code point argument''
+as a reference to a hash of fields as defined by the Unicode
+standard.  If the ``code point argument'' is not assigned in the standard
+(i.e., has the general category <TT>&quot;Cn&quot;</TT> meaning <TT>&quot;Unassigned&quot;</TT>)
+or is a non-character (meaning it is guaranteed to never be assigned in
+the standard),
+<B>undef</B> is returned.
+<P>
+
+Fields that aren't applicable to the particular code point argument exist in the
+returned hash, and are empty.
+<P>
+
+The keys in the hash with the meanings of their values are:
+<DL COMPACT>
+<DT><B>code</B><DD>
+<A NAME="ixAAG"></A>
+the input ``code point argument'' expressed in hexadecimal, with leading zeros
+added if necessary to make it contain at least four hexdigits
+<DT><B>name</B><DD>
+<A NAME="ixAAH"></A>
+name of <I>code</I>, all <FONT SIZE="-1">IN</FONT> <FONT SIZE="-1">UPPER</FONT> <FONT SIZE="-1">CASE</FONT>.
+Some control-type code points do not have names.
+This field will be empty for <TT>&quot;Surrogate&quot;</TT> and <TT>&quot;Private Use&quot;</TT> code points,
+and for the others without a name,
+it will contain a description enclosed in angle brackets, like
+<TT>&quot;&lt;control&gt;&quot;</TT>.
+<DT><B>category</B><DD>
+<A NAME="ixAAI"></A>
+The short name of the general category of <I>code</I>.
+This will match one of the keys in the hash returned by ``<I>general_categories()</I>''.
+<DT><B>combining</B><DD>
+<A NAME="ixAAJ"></A>
+the combining class number for <I>code</I> used in the Canonical Ordering Algorithm.
+For Unicode 5.1, this is described in Section 3.11 <TT>&quot;Canonical Ordering Behavior&quot;</TT>
+available at
+&lt;<A HREF="http://www.unicode.org/versions/Unicode5.1.0/">http://www.unicode.org/versions/Unicode5.1.0/</A>&gt;
+<DT><B>bidi</B><DD>
+<A NAME="ixAAK"></A>
+bidirectional type of <I>code</I>.
+This will match one of the keys in the hash returned by ``<I>bidi_types()</I>''.
+<DT><B>decomposition</B><DD>
+<A NAME="ixAAL"></A>
+is empty if <I>code</I> has no decomposition; or is one or more codes
+(separated by spaces) that taken in order represent a decomposition for
+<I>code</I>.  Each has at least four hexdigits.
+The codes may be preceded by a word enclosed in angle brackets then a space,
+like <TT>&quot;&lt;compat&gt; &quot;</TT>, giving the type of decomposition
+<DT><B>decimal</B><DD>
+<A NAME="ixAAM"></A>
+if <I>code</I> is a decimal digit this is its integer numeric value
+<DT><B>digit</B><DD>
+<A NAME="ixAAN"></A>
+if <I>code</I> represents a whole number, this is its integer numeric value
+<DT><B>numeric</B><DD>
+<A NAME="ixAAO"></A>
+if <I>code</I> represents a whole or rational number, this is its numeric value.
+Rational values are expressed as a string like <TT>&quot;1/4&quot;</TT>.
+<DT><B>mirrored</B><DD>
+<A NAME="ixAAP"></A>
+<TT>&quot;Y&quot;</TT> or <TT>&quot;N&quot;</TT> designating if <I>code</I> is mirrored in bidirectional text
+<DT><B>unicode10</B><DD>
+<A NAME="ixAAQ"></A>
+name of <I>code</I> in the Unicode 1.0 standard if one
+existed for this code point and is different from the current name
+<DT><B>comment</B><DD>
+<A NAME="ixAAR"></A>
+<FONT SIZE="-1">ISO</FONT> 10646 comment field.
+It appears in parentheses in the <FONT SIZE="-1">ISO</FONT> 10646 names list,
+or contains an asterisk to indicate there is
+a note for this code point in Annex P of that standard.
+<DT><B>upper</B><DD>
+<A NAME="ixAAS"></A>
+is empty if there is no single code point uppercase mapping for <I>code</I>;
+otherwise it is that mapping expressed as at least four hexdigits.
+(``<I>casespec()</I>'' should be used in addition to <B></B>charinfo()<B></B>
+for case mappings when the calling program can cope with multiple code point
+mappings.)
+<DT><B>lower</B><DD>
+<A NAME="ixAAT"></A>
+is empty if there is no single code point lowercase mapping for <I>code</I>;
+otherwise it is that mapping expressed as at least four hexdigits.
+(``<I>casespec()</I>'' should be used in addition to <B></B>charinfo()<B></B>
+for case mappings when the calling program can cope with multiple code point
+mappings.)
+<DT><B>title</B><DD>
+<A NAME="ixAAU"></A>
+is empty if there is no single code point titlecase mapping for <I>code</I>;
+otherwise it is that mapping expressed as at least four hexdigits.
+(``<I>casespec()</I>'' should be used in addition to <B></B>charinfo()<B></B>
+for case mappings when the calling program can cope with multiple code point
+mappings.)
+<DT><B>block</B><DD>
+<A NAME="ixAAV"></A>
+block <I>code</I> belongs to (used in \p{In...}).
+See ``Blocks versus Scripts''.
+<DT><B>script</B><DD>
+<A NAME="ixAAW"></A>
+script <I>code</I> belongs to.
+See ``Blocks versus Scripts''.
+</DL>
+<P>
+
+Note that you cannot do (de)composition and casing based solely on the
+<I>decomposition</I>, <I>combining</I>, <I>lower</I>, <I>upper</I>, and <I>title</I> fields;
+you will need also the ``<I>compexcl()</I>'', and ``<I>casespec()</I>'' functions.
+<A NAME="lbAG">&nbsp;</A>
+<H3><B></B>charblock()<B></B></H3>
+
+<A NAME="ixAAX"></A>
+
+
+<PRE>
+    use Unicode::UCD 'charblock';
+
+    my $charblock = charblock(0x41);
+    my $charblock = charblock(1234);
+    my $charblock = charblock(0x263a);
+    my $charblock = charblock(&quot;U+263a&quot;);
+
+    my $range     = charblock('Armenian');
+
+</PRE>
+
+
+<P>
+
+With a ``code point argument'' <I>charblock()</I> returns the <I>block</I> the code point
+belongs to, e.g.  <TT>&quot;Basic Latin&quot;</TT>.
+If the code point is unassigned, this returns the block it would belong to if
+it were assigned (which it may in future versions of the Unicode Standard).
+<P>
+
+See also ``Blocks versus Scripts''.
+<P>
+
+If supplied with an argument that can't be a code point, <I>charblock()</I> tries
+to do the opposite and interpret the argument as a code point block. The
+return value is a <I>range</I>: an anonymous list of lists that contain
+<I>start-of-range</I>, <I>end-of-range</I> code point pairs. You can test whether
+a code point is in a range using the ``<I>charinrange()</I>'' function. If the
+argument is not a known code point block, <B>undef</B> is returned.
+<A NAME="lbAH">&nbsp;</A>
+<H3><B></B>charscript()<B></B></H3>
+
+<A NAME="ixAAY"></A>
+
+
+<PRE>
+    use Unicode::UCD 'charscript';
+
+    my $charscript = charscript(0x41);
+    my $charscript = charscript(1234);
+    my $charscript = charscript(&quot;U+263a&quot;);
+
+    my $range      = charscript('Thai');
+
+</PRE>
+
+
+<P>
+
+With a ``code point argument'' <I>charscript()</I> returns the <I>script</I> the
+code point belongs to, e.g.  <TT>&quot;Latin&quot;</TT>, <TT>&quot;Greek&quot;</TT>, <TT>&quot;Han&quot;</TT>.
+If the code point is unassigned, it returns <B>undef</B>
+<P>
+
+If supplied with an argument that can't be a code point, <I>charscript()</I> tries
+to do the opposite and interpret the argument as a code point script. The
+return value is a <I>range</I>: an anonymous list of lists that contain
+<I>start-of-range</I>, <I>end-of-range</I> code point pairs. You can test whether a
+code point is in a range using the ``<I>charinrange()</I>'' function. If the
+argument is not a known code point script, <B>undef</B> is returned.
+<P>
+
+See also ``Blocks versus Scripts''.
+<A NAME="lbAI">&nbsp;</A>
+<H3><B></B>charblocks()<B></B></H3>
+
+<A NAME="ixAAZ"></A>
+
+
+<PRE>
+    use Unicode::UCD 'charblocks';
+
+    my $charblocks = charblocks();
+
+</PRE>
+
+
+<P>
+
+<I>charblocks()</I> returns a reference to a hash with the known block names
+as the keys, and the code point ranges (see ``<I>charblock()</I>'') as the values.
+<P>
+
+See also ``Blocks versus Scripts''.
+<A NAME="lbAJ">&nbsp;</A>
+<H3><B></B>charscripts()<B></B></H3>
+
+<A NAME="ixABA"></A>
+
+
+<PRE>
+    use Unicode::UCD 'charscripts';
+
+    my $charscripts = charscripts();
+
+</PRE>
+
+
+<P>
+
+<I>charscripts()</I> returns a reference to a hash with the known script
+names as the keys, and the code point ranges (see ``<I>charscript()</I>'') as
+the values.
+<P>
+
+See also ``Blocks versus Scripts''.
+<A NAME="lbAK">&nbsp;</A>
+<H3><B></B>charinrange()<B></B></H3>
+
+<A NAME="ixABB"></A>
+In addition to using the <TT>&quot;\p{In...}&quot;</TT> and <TT>&quot;\P{In...}&quot;</TT> constructs, you
+can also test whether a code point is in the <I>range</I> as returned by
+``<I>charblock()</I>'' and ``<I>charscript()</I>'' or as the values of the hash returned
+by ``<I>charblocks()</I>'' and ``<I>charscripts()</I>'' by using <I>charinrange()</I>:
+<P>
+
+
+
+<PRE>
+    use Unicode::UCD qw(charscript charinrange);
+
+    $range = charscript('Hiragana');
+    print &quot;looks like hiragana\n&quot; if charinrange($range, $codepoint);
+
+</PRE>
+
+
+<A NAME="lbAL">&nbsp;</A>
+<H3><B></B>general_categories()<B></B></H3>
+
+<A NAME="ixABC"></A>
+
+
+<PRE>
+    use Unicode::UCD 'general_categories';
+
+    my $categories = general_categories();
+
+</PRE>
+
+
+<P>
+
+This returns a reference to a hash which has short
+general category names (such as <TT>&quot;Lu&quot;</TT>, <TT>&quot;Nd&quot;</TT>, <TT>&quot;Zs&quot;</TT>, <TT>&quot;S&quot;</TT>) as keys and long
+names (such as <TT>&quot;UppercaseLetter&quot;</TT>, <TT>&quot;DecimalNumber&quot;</TT>, <TT>&quot;SpaceSeparator&quot;</TT>,
+<TT>&quot;Symbol&quot;</TT>) as values.  The hash is reversible in case you need to go
+from the long names to the short names.  The general category is the
+one returned from
+``<I>charinfo()</I>'' under the <TT>&quot;category&quot;</TT> key.
+<A NAME="lbAM">&nbsp;</A>
+<H3><B></B>bidi_types()<B></B></H3>
+
+<A NAME="ixABD"></A>
+
+
+<PRE>
+    use Unicode::UCD 'bidi_types';
+
+    my $categories = bidi_types();
+
+</PRE>
+
+
+<P>
+
+This returns a reference to a hash which has the short
+bidi (bidirectional) type names (such as <TT>&quot;L&quot;</TT>, <TT>&quot;R&quot;</TT>) as keys and long
+names (such as <TT>&quot;Left-to-Right&quot;</TT>, <TT>&quot;Right-to-Left&quot;</TT>) as values.  The
+hash is reversible in case you need to go from the long names to the
+short names.  The bidi type is the one returned from
+``<I>charinfo()</I>''
+under the <TT>&quot;bidi&quot;</TT> key.  For the exact meaning of the various bidi classes
+the Unicode <FONT SIZE="-1">TR9</FONT> is recommended reading:
+&lt;<A HREF="http://www.unicode.org/reports/tr9/">http://www.unicode.org/reports/tr9/</A>&gt;
+(as of Unicode 5.0.0)
+<A NAME="lbAN">&nbsp;</A>
+<H3><B></B>compexcl()<B></B></H3>
+
+<A NAME="ixABE"></A>
+
+
+<PRE>
+    use Unicode::UCD 'compexcl';
+
+    my $compexcl = compexcl(0x09dc);
+
+</PRE>
+
+
+<P>
+
+This returns <B>true</B> if the
+``code point argument'' should not be produced by composition normalization,
+<B></B><FONT SIZE="-1"><B>AND</B></FONT><B></B> if that fact is not otherwise determinable from the Unicode data base.
+It currently does not return <B>true</B> if the code point has a decomposition
+consisting of another single code point, nor if its decomposition starts
+with a code point whose combining class is non-zero.  Code points that meet
+either of these conditions should also not be produced by composition
+normalization.
+<P>
+
+It returns <B>false</B> otherwise.
+<A NAME="lbAO">&nbsp;</A>
+<H3><B></B>casefold()<B></B></H3>
+
+<A NAME="ixABF"></A>
+
+
+<PRE>
+    use Unicode::UCD 'casefold';
+
+    my $casefold = casefold(0xDF);
+    if (defined $casefold) {
+        my @full_fold_hex = split / /, $casefold-&gt;{'full'};
+        my $full_fold_string =
+                    join &quot;&quot;, map {chr(hex($_))} @full_fold_hex;
+        my @turkic_fold_hex =
+                        split / /, ($casefold-&gt;{'turkic'} ne &quot;&quot;)
+                                        ? $casefold-&gt;{'turkic'}
+                                        : $casefold-&gt;{'full'};
+        my $turkic_fold_string =
+                        join &quot;&quot;, map {chr(hex($_))} @turkic_fold_hex;
+    }
+    if (defined $casefold &amp;&amp; $casefold-&gt;{'simple'} ne &quot;&quot;) {
+        my $simple_fold_hex = $casefold-&gt;{'simple'};
+        my $simple_fold_string = chr(hex($simple_fold_hex));
+    }
+
+</PRE>
+
+
+<P>
+
+This returns the (almost) locale-independent case folding of the
+character specified by the ``code point argument''.
+<P>
+
+If there is no case folding for that code point, <B>undef</B> is returned.
+<P>
+
+If there is a case folding for that code point, a reference to a hash
+with the following fields is returned:
+<DL COMPACT>
+<DT><B>code</B><DD>
+<A NAME="ixABG"></A>
+the input ``code point argument'' expressed in hexadecimal, with leading zeros
+added if necessary to make it contain at least four hexdigits
+<DT><B>full</B><DD>
+<A NAME="ixABH"></A>
+one or more codes (separated by spaces) that taken in order give the
+code points for the case folding for <I>code</I>.
+Each has at least four hexdigits.
+<DT><B>simple</B><DD>
+<A NAME="ixABI"></A>
+is empty, or is exactly one code with at least four hexdigits which can be used
+as an alternative case folding when the calling program cannot cope with the
+fold being a sequence of multiple code points.  If <I>full</I> is just one code
+point, then <I>simple</I> equals <I>full</I>.  If there is no single code point folding
+defined for <I>code</I>, then <I>simple</I> is the empty string.  Otherwise, it is an
+inferior, but still better-than-nothing alternative folding to <I>full</I>.
+<DT><B>mapping</B><DD>
+<A NAME="ixABJ"></A>
+is the same as <I>simple</I> if <I>simple</I> is not empty, and it is the same as <I>full</I>
+otherwise.  It can be considered to be the simplest possible folding for
+<I>code</I>.  It is defined primarily for backwards compatibility.
+<DT><B>status</B><DD>
+<A NAME="ixABK"></A>
+is <TT>&quot;C&quot;</TT> (for <TT>&quot;common&quot;</TT>) if the best possible fold is a single code point
+(<I>simple</I> equals <I>full</I> equals <I>mapping</I>).  It is <TT>&quot;S&quot;</TT> if there are distinct
+folds, <I>simple</I> and <I>full</I> (<I>mapping</I> equals <I>simple</I>).  And it is <TT>&quot;F&quot;</TT> if
+there only a <I>full</I> fold (<I>mapping</I> equals <I>full</I>; <I>simple</I> is empty).  Note
+that this
+describes the contents of <I>mapping</I>.  It is defined primarily for backwards
+compatibility.
+
+
+<P>
+
+
+On versions 3.1 and earlier of Unicode, <I>status</I> can also be
+<TT>&quot;I&quot;</TT> which is the same as <TT>&quot;C&quot;</TT> but is a special case for dotted uppercase I and
+dotless lowercase i:
+<DL COMPACT><DT><DD>
+<DL COMPACT>
+<DT><B>*</B><DD>
+<A NAME="ixABL"></A>
+If you use this <TT>&quot;I&quot;</TT> mapping, the result is case-insensitive,
+but dotless and dotted I's are not distinguished
+<DT><B>*</B><DD>
+<A NAME="ixABM"></A>
+If you exclude this <TT>&quot;I&quot;</TT> mapping, the result is not fully case-insensitive, but
+dotless and dotted I's are distinguished
+</DL>
+</DL>
+
+<DL COMPACT><DT><DD>
+</DL>
+
+<DT><B>turkic</B><DD>
+<A NAME="ixABN"></A>
+contains any special folding for Turkic languages.  For versions of Unicode
+starting with 3.2, this field is empty unless <I>code</I> has a different folding
+in Turkic languages, in which case it is one or more codes (separated by
+spaces) that taken in order give the code points for the case folding for
+<I>code</I> in those languages.
+Each code has at least four hexdigits.
+Note that this folding does not maintain canonical equivalence without
+additional processing.
+
+
+<P>
+
+
+For versions of Unicode 3.1 and earlier, this field is empty unless there is a
+special folding for Turkic languages, in which case <I>status</I> is <TT>&quot;I&quot;</TT>, and
+<I>mapping</I>, <I>full</I>, <I>simple</I>, and <I>turkic</I> are all equal.
+</DL>
+<P>
+
+Programs that want complete generality and the best folding results should use
+the folding contained in the <I>full</I> field.  But note that the fold for some
+code points will be a sequence of multiple code points.
+<P>
+
+Programs that can't cope with the fold mapping being multiple code points can
+use the folding contained in the <I>simple</I> field, with the loss of some
+generality.  In Unicode 5.1, about 7% of the defined foldings have no single
+code point folding.
+<P>
+
+The <I>mapping</I> and <I>status</I> fields are provided for backwards compatibility for
+existing programs.  They contain the same values as in previous versions of
+this function.
+<P>
+
+Locale is not completely independent.  The <I>turkic</I> field contains results to
+use when the locale is a Turkic language.
+<P>
+
+For more information about case mappings see
+&lt;<A HREF="http://www.unicode.org/unicode/reports/tr21">http://www.unicode.org/unicode/reports/tr21</A>&gt;
+<A NAME="lbAP">&nbsp;</A>
+<H3><B></B>casespec()<B></B></H3>
+
+<A NAME="ixABO"></A>
+
+
+<PRE>
+    use Unicode::UCD 'casespec';
+
+    my $casespec = casespec(0xFB00);
+
+</PRE>
+
+
+<P>
+
+This returns the potentially locale-dependent case mappings of the ``code point
+argument''.  The mappings may be longer than a single code point (which the basic
+Unicode case mappings as returned by ``<I>charinfo()</I>'' never are).
+<P>
+
+If there are no case mappings for the ``code point argument'', or if all three
+possible mappings (<I>lower</I>, <I>title</I> and <I>upper</I>) result in single code
+points and are locale independent and unconditional, <B>undef</B> is returned
+(which means that the case mappings, if any, for the code point are those
+returned by ``<I>charinfo()</I>'').
+<P>
+
+Otherwise, a reference to a hash giving the mappings (or a reference to a hash
+of such hashes, explained below) is returned with the following keys and their
+meanings:
+<P>
+
+The keys in the bottom layer hash with the meanings of their values are:
+<DL COMPACT>
+<DT><B>code</B><DD>
+<A NAME="ixABP"></A>
+the input ``code point argument'' expressed in hexadecimal, with leading zeros
+added if necessary to make it contain at least four hexdigits
+<DT><B>lower</B><DD>
+<A NAME="ixABQ"></A>
+one or more codes (separated by spaces) that taken in order give the
+code points for the lower case of <I>code</I>.
+Each has at least four hexdigits.
+<DT><B>title</B><DD>
+<A NAME="ixABR"></A>
+one or more codes (separated by spaces) that taken in order give the
+code points for the title case of <I>code</I>.
+Each has at least four hexdigits.
+<DT><B>lower</B><DD>
+<A NAME="ixABS"></A>
+one or more codes (separated by spaces) that taken in order give the
+code points for the upper case of <I>code</I>.
+Each has at least four hexdigits.
+<DT><B>condition</B><DD>
+<A NAME="ixABT"></A>
+the conditions for the mappings to be valid.
+If <B>undef</B>, the mappings are always valid.
+When defined, this field is a list of conditions,
+all of which must be true for the mappings to be valid.
+The list consists of one or more
+<I>locales</I> (see below)
+and/or <I>contexts</I> (explained in the next paragraph),
+separated by spaces.
+(Other than as used to separate elements, spaces are to be ignored.)
+Case distinctions in the condition list are not significant.
+Conditions preceded by ``<FONT SIZE="-1">NON_</FONT>'' represent the negation of the condition.
+
+
+<P>
+
+
+A <I>context</I> is one of those defined in the Unicode standard.
+For Unicode 5.1, they are defined in Section 3.13 <TT>&quot;Default Case Operations&quot;</TT>
+available at
+&lt;<A HREF="http://www.unicode.org/versions/Unicode5.1.0/">http://www.unicode.org/versions/Unicode5.1.0/</A>&gt;.
+These are for context-sensitive casing.
+</DL>
+<P>
+
+The hash described above is returned for locale-independent casing, where
+at least one of the mappings has length longer than one.  If <B>undef</B> is 
+returned, the code point may have mappings, but if so, all are length one,
+and are returned by ``<I>charinfo()</I>''.
+Note that when this function does return a value, it will be for the complete
+set of mappings for a code point, even those whose length is one.
+<P>
+
+If there are additional casing rules that apply only in certain locales,
+an additional key for each will be defined in the returned hash.  Each such key
+will be its locale name, defined as a 2-letter <FONT SIZE="-1">ISO</FONT> 3166 country code, possibly
+followed by a ``_'' and a 2-letter <FONT SIZE="-1">ISO</FONT> language code (possibly followed by a ``_''
+and a variant code).  You can find the lists of all possible locales, see
+Locale::Country and Locale::Language.
+(In Unicode 5.1, the only locales returned by this function
+are <TT>&quot;lt&quot;</TT>, <TT>&quot;tr&quot;</TT>, and <TT>&quot;az&quot;</TT>.)
+<P>
+
+Each locale key is a reference to a hash that has the form above, and gives
+the casing rules for that particular locale, which take precedence over the
+locale-independent ones when in that locale.
+<P>
+
+If the only casing for a code point is locale-dependent, then the returned
+hash will not have any of the base keys, like <TT>&quot;code&quot;</TT>, <TT>&quot;upper&quot;</TT>, etc., but
+will contain only locale keys.
+<P>
+
+For more information about case mappings see
+&lt;<A HREF="http://www.unicode.org/unicode/reports/tr21/">http://www.unicode.org/unicode/reports/tr21/</A>&gt;
+<A NAME="lbAQ">&nbsp;</A>
+<H3><B></B>namedseq()<B></B></H3>
+
+<A NAME="ixABU"></A>
+
+
+<PRE>
+    use Unicode::UCD 'namedseq';
+
+    my $namedseq = namedseq(&quot;KATAKANA LETTER AINU P&quot;);
+    my @namedseq = namedseq(&quot;KATAKANA LETTER AINU P&quot;);
+    my %namedseq = namedseq();
+
+</PRE>
+
+
+<P>
+
+If used with a single argument in a scalar context, returns the string
+consisting of the code points of the named sequence, or <B>undef</B> if no
+named sequence by that name exists.  If used with a single argument in
+a list context, it returns the list of the ordinals of the code points.  If used
+with no
+arguments in a list context, returns a hash with the names of the
+named sequences as the keys and the named sequences as strings as
+the values.  Otherwise, it returns <B>undef</B> or an empty list depending
+on the context.
+<P>
+
+This function only operates on officially approved (not provisional) named
+sequences.
+<A NAME="lbAR">&nbsp;</A>
+<H3>Unicode::UCD::UnicodeVersion</H3>
+
+<A NAME="ixABV"></A>
+This returns the version of the Unicode Character Database, in other words, the
+version of the Unicode standard the database implements.  The version is a
+string of numbers delimited by dots (<TT>'.'</TT>).
+<A NAME="lbAS">&nbsp;</A>
+<H3><B>Blocks versus Scripts</B></H3>
+
+<A NAME="ixABW"></A>
+The difference between a block and a script is that scripts are closer
+to the linguistic notion of a set of code points required to present
+languages, while block is more of an artifact of the Unicode code point
+numbering and separation into blocks of (mostly) 256 code points.
+<P>
+
+For example the Latin <B>script</B> is spread over several <B>blocks</B>, such
+as <TT>&quot;Basic Latin&quot;</TT>, <TT>&quot;Latin 1 Supplement&quot;</TT>, <TT>&quot;Latin Extended-A&quot;</TT>, and
+<TT>&quot;Latin Extended-B&quot;</TT>.  On the other hand, the Latin script does not
+contain all the characters of the <TT>&quot;Basic Latin&quot;</TT> block (also known as
+<FONT SIZE="-1">ASCII</FONT>): it includes only the letters, and not, for example, the digits
+or the punctuation.
+<P>
+
+For blocks see &lt;<A HREF="http://www.unicode.org/Public/UNIDATA/Blocks.txt">http://www.unicode.org/Public/UNIDATA/Blocks.txt</A>&gt;
+<P>
+
+For scripts see <FONT SIZE="-1">UTR</FONT> #24: &lt;<A HREF="http://www.unicode.org/unicode/reports/tr24/">http://www.unicode.org/unicode/reports/tr24/</A>&gt;
+<A NAME="lbAT">&nbsp;</A>
+<H3><B>Matching Scripts and Blocks</B></H3>
+
+<A NAME="ixABX"></A>
+Scripts are matched with the regular-expression construct
+<TT>&quot;\p{...}&quot;</TT> (e.g. <TT>&quot;\p{Tibetan}&quot;</TT> matches characters of the Tibetan script),
+while <TT>&quot;\p{In...}&quot;</TT> is used for blocks (e.g. <TT>&quot;\p{InTibetan}&quot;</TT> matches
+any of the 256 code points in the Tibetan block).
+<A NAME="lbAU">&nbsp;</A>
+<H3>Implementation Note</H3>
+
+<A NAME="ixABY"></A>
+The first use of <I>charinfo()</I> opens a read-only filehandle to the Unicode
+Character Database (the database is included in the Perl distribution).
+The filehandle is then kept open for further queries.  In other words,
+if you are wondering where one of your filehandles went, that's where.
+<A NAME="lbAV">&nbsp;</A>
+<H2>BUGS</H2>
+
+<A NAME="ixABZ"></A>
+Does not yet support <FONT SIZE="-1">EBCDIC</FONT> platforms.
+<P>
+
+``<I>compexcl()</I>'' should give a complete list of excluded code points.
+<A NAME="lbAW">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixACA"></A>
+Jarkko Hietaniemi
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DL>
+<DT><A HREF="#lbAE">code point argument</A><DD>
+<DT><A HREF="#lbAF"><B></B>charinfo()<B></B></A><DD>
+<DT><A HREF="#lbAG"><B></B>charblock()<B></B></A><DD>
+<DT><A HREF="#lbAH"><B></B>charscript()<B></B></A><DD>
+<DT><A HREF="#lbAI"><B></B>charblocks()<B></B></A><DD>
+<DT><A HREF="#lbAJ"><B></B>charscripts()<B></B></A><DD>
+<DT><A HREF="#lbAK"><B></B>charinrange()<B></B></A><DD>
+<DT><A HREF="#lbAL"><B></B>general_categories()<B></B></A><DD>
+<DT><A HREF="#lbAM"><B></B>bidi_types()<B></B></A><DD>
+<DT><A HREF="#lbAN"><B></B>compexcl()<B></B></A><DD>
+<DT><A HREF="#lbAO"><B></B>casefold()<B></B></A><DD>
+<DT><A HREF="#lbAP"><B></B>casespec()<B></B></A><DD>
+<DT><A HREF="#lbAQ"><B></B>namedseq()<B></B></A><DD>
+<DT><A HREF="#lbAR">Unicode::UCD::UnicodeVersion</A><DD>
+<DT><A HREF="#lbAS"><B>Blocks versus Scripts</B></A><DD>
+<DT><A HREF="#lbAT"><B>Matching Scripts and Blocks</B></A><DD>
+<DT><A HREF="#lbAU">Implementation Note</A><DD>
+</DL>
+<DT><A HREF="#lbAV">BUGS</A><DD>
+<DT><A HREF="#lbAW">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:44 GMT, December 24, 2015
+</div></body>
+</HTML>

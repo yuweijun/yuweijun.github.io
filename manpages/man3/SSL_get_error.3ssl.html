@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of SSL_get_error</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>SSL_get_error</H1>
+Section: OpenSSL (3)<BR>Updated: 2005-03-30<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+SSL_get_error - obtain result code for TLS/SSL I/O operation
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ #include &lt;<A HREF="file:/usr/include/openssl/ssl.h">openssl/ssl.h</A>&gt;
+
+ int SSL_get_error(const SSL *ssl, int ret);
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+<I>SSL_get_error()</I> returns a result code (suitable for the C ``switch''
+statement) for a preceding call to <I>SSL_connect()</I>, <I>SSL_accept()</I>, <I>SSL_do_handshake()</I>,
+<I>SSL_read()</I>, <I>SSL_peek()</I>, or <I>SSL_write()</I> on <B>ssl</B>.  The value returned by
+that <FONT SIZE="-1">TLS/SSL</FONT> I/O function must be passed to <I>SSL_get_error()</I> in parameter
+<B>ret</B>.
+<P>
+
+In addition to <B>ssl</B> and <B>ret</B>, <I>SSL_get_error()</I> inspects the
+current thread's OpenSSL error queue.  Thus, <I>SSL_get_error()</I> must be
+used in the same thread that performed the <FONT SIZE="-1">TLS/SSL</FONT> I/O operation, and no
+other OpenSSL function calls should appear in between.  The current
+thread's error queue must be empty before the <FONT SIZE="-1">TLS/SSL</FONT> I/O operation is
+attempted, or <I>SSL_get_error()</I> will not work reliably.
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUES</H2>
+
+<A NAME="ixAAE"></A>
+The following return values can currently occur:
+<DL COMPACT>
+<DT><FONT SIZE="-1">SSL_ERROR_NONE</FONT><DD>
+<A NAME="ixAAF"></A>
+The <FONT SIZE="-1">TLS/SSL</FONT> I/O operation completed.  This result code is returned
+if and only if <B>ret &gt; 0</B>.
+<DT><FONT SIZE="-1">SSL_ERROR_ZERO_RETURN</FONT><DD>
+<A NAME="ixAAG"></A>
+The <FONT SIZE="-1">TLS/SSL</FONT> connection has been closed.  If the protocol version is <FONT SIZE="-1">SSL</FONT> 3.0
+or <FONT SIZE="-1">TLS</FONT> 1.0, this result code is returned only if a closure
+alert has occurred in the protocol, i.e. if the connection has been
+closed cleanly. Note that in this case <B></B><FONT SIZE="-1"><B>SSL_ERROR_ZERO_RETURN</B></FONT><B></B>
+does not necessarily indicate that the underlying transport
+has been closed.
+<DT><FONT SIZE="-1">SSL_ERROR_WANT_READ</FONT>, <FONT SIZE="-1">SSL_ERROR_WANT_WRITE</FONT><DD>
+<A NAME="ixAAH"></A>
+The operation did not complete; the same <FONT SIZE="-1">TLS/SSL</FONT> I/O function should be
+called again later.  If, by then, the underlying <B></B><FONT SIZE="-1"><B>BIO</B></FONT><B></B> has data
+available for reading (if the result code is <B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_READ</B></FONT><B></B>)
+or allows writing data (<B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_WRITE</B></FONT><B></B>), then some <FONT SIZE="-1">TLS/SSL</FONT>
+protocol progress will take place, i.e. at least part of an <FONT SIZE="-1">TLS/SSL</FONT>
+record will be read or written.  Note that the retry may again lead to
+a <B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_READ</B></FONT><B></B> or <B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_WRITE</B></FONT><B></B> condition.
+There is no fixed upper limit for the number of iterations that
+may be necessary until progress becomes visible at application
+protocol level.
+
+
+<P>
+
+
+For socket <B></B><FONT SIZE="-1"><B>BIO</B></FONT><B></B>s (e.g. when <I>SSL_set_fd()</I> was used), <I>select()</I> or
+<I>poll()</I> on the underlying socket can be used to find out when the
+<FONT SIZE="-1">TLS/SSL</FONT> I/O function should be retried.
+
+
+<P>
+
+
+Caveat: Any <FONT SIZE="-1">TLS/SSL</FONT> I/O function can lead to either of
+<B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_READ</B></FONT><B></B> and <B></B><FONT SIZE="-1"><B>SSL_ERROR_WANT_WRITE</B></FONT><B></B>.  In particular,
+<I>SSL_read()</I> or <I>SSL_peek()</I> may want to write data and <I>SSL_write()</I> may want
+to read data.  This is mainly because <FONT SIZE="-1">TLS/SSL</FONT> handshakes may occur at any
+time during the protocol (initiated by either the client or the server);
+<I>SSL_read()</I>, <I>SSL_peek()</I>, and <I>SSL_write()</I> will handle any pending handshakes.
+<DT><FONT SIZE="-1">SSL_ERROR_WANT_CONNECT</FONT>, <FONT SIZE="-1">SSL_ERROR_WANT_ACCEPT</FONT><DD>
+<A NAME="ixAAI"></A>
+The operation did not complete; the same <FONT SIZE="-1">TLS/SSL</FONT> I/O function should be
+called again later. The underlying <FONT SIZE="-1">BIO</FONT> was not connected yet to the peer
+and the call would block in <I>connect()</I>/<I>accept()</I>. The <FONT SIZE="-1">SSL</FONT> function should be
+called again when the connection is established. These messages can only
+appear with a <I>BIO_s_connect()</I> or <I>BIO_s_accept()</I> <FONT SIZE="-1">BIO</FONT>, respectively.
+In order to find out, when the connection has been successfully established,
+on many platforms <I>select()</I> or <I>poll()</I> for writing on the socket file descriptor
+can be used.
+<DT><FONT SIZE="-1">SSL_ERROR_WANT_X509_LOOKUP</FONT><DD>
+<A NAME="ixAAJ"></A>
+The operation did not complete because an application callback set by
+<I>SSL_CTX_set_client_cert_cb()</I> has asked to be called again.
+The <FONT SIZE="-1">TLS/SSL</FONT> I/O function should be called again later.
+Details depend on the application.
+<DT><FONT SIZE="-1">SSL_ERROR_SYSCALL</FONT><DD>
+<A NAME="ixAAK"></A>
+Some I/O error occurred.  The OpenSSL error queue may contain more
+information on the error.  If the error queue is empty
+(i.e. <I>ERR_get_error()</I> returns 0), <B>ret</B> can be used to find out more
+about the error: If <B>ret == 0</B>, an <FONT SIZE="-1">EOF</FONT> was observed that violates
+the protocol.  If <B>ret == -1</B>, the underlying <B></B><FONT SIZE="-1"><B>BIO</B></FONT><B></B> reported an
+I/O error (for socket I/O on Unix systems, consult <B>errno</B> for details).
+<DT><FONT SIZE="-1">SSL_ERROR_SSL</FONT><DD>
+<A NAME="ixAAL"></A>
+A failure in the <FONT SIZE="-1">SSL</FONT> library occurred, usually a protocol error.  The
+OpenSSL error queue contains more information on the error.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAM"></A>
+<I><A HREF="/manpages/index.html?3+ssl">ssl</A></I>(3), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+err">err</A></I>(3)
+<A NAME="lbAG">&nbsp;</A>
+<H2>HISTORY</H2>
+
+<A NAME="ixAAN"></A>
+<I>SSL_get_error()</I> was added in SSLeay 0.8.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUES</A><DD>
+<DT><A HREF="#lbAF">SEE ALSO</A><DD>
+<DT><A HREF="#lbAG">HISTORY</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:41 GMT, December 24, 2015
+</div></body>
+</HTML>

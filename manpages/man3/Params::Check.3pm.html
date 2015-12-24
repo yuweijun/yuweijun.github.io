@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Params::Check</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Params::Check</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Params::Check - A generic input parsing/checking mechanism.
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+    use Params::Check qw[check allow last_error];
+
+    sub fill_personal_info {
+        my %hash = @_;
+        my $x;
+
+        my $tmpl = {
+            firstname   =&gt; { required   =&gt; 1, defined =&gt; 1 },
+            lastname    =&gt; { required   =&gt; 1, store =&gt; \$x },
+            gender      =&gt; { required   =&gt; 1,
+                             allow      =&gt; [qr/M/i, qr/F/i],
+                           },
+            married     =&gt; { allow      =&gt; [0,1] },
+            age         =&gt; { default    =&gt; 21,
+                             allow      =&gt; qr/^\d+$/,
+                           },
+
+            phone       =&gt; { allow =&gt; [ sub { return 1 if /$valid_re/ },
+                                        '1-800-PERL' ]
+                           },
+            id_list     =&gt; { default        =&gt; [],
+                             strict_type    =&gt; 1
+                           },
+            employer    =&gt; { default =&gt; 'NSA', no_override =&gt; 1 },
+        };
+
+        ### check() returns a hashref of parsed args on success ###
+        my $parsed_args = check( $tmpl, \%hash, $VERBOSE )
+                            or die qw[Could not parse arguments!];
+
+        ... other code here ...
+    }
+
+    my $ok = allow( $colour, [qw|blue green yellow|] );
+
+    my $error = Params::Check::last_error();
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+Params::Check is a generic input parsing/checking mechanism.
+<P>
+
+It allows you to validate input via a template. The only requirement
+is that the arguments must be named.
+<P>
+
+Params::Check can do the following things for you:
+<DL COMPACT>
+<DT>*<DD>
+Convert all keys to lowercase
+<DT>*<DD>
+Check if all required arguments have been provided
+<DT>*<DD>
+Set arguments that have not been provided to the default
+<DT>*<DD>
+Weed out arguments that are not supported and warn about them to the
+user
+<DT>*<DD>
+Validate the arguments given by the user based on strings, regexes,
+lists or even subroutines
+<DT>*<DD>
+Enforce type integrity if required
+</DL>
+<P>
+
+Most of Params::Check's power comes from its template, which we'll
+discuss below:
+<A NAME="lbAE">&nbsp;</A>
+<H2>Template</H2>
+
+<A NAME="ixAAE"></A>
+As you can see in the synopsis, based on your template, the arguments
+provided will be validated.
+<P>
+
+The template can take a different set of rules per key that is used.
+<P>
+
+The following rules are available:
+<DL COMPACT>
+<DT>default<DD>
+<A NAME="ixAAF"></A>
+This is the default value if none was provided by the user.
+This is also the type <TT>&quot;strict_type&quot;</TT> will look at when checking type
+integrity (see below).
+<DT>required<DD>
+<A NAME="ixAAG"></A>
+A boolean flag that indicates if this argument was a required
+argument. If marked as required and not provided, <I>check()</I> will fail.
+<DT>strict_type<DD>
+<A NAME="ixAAH"></A>
+This does a <TT>&quot;ref()&quot;</TT> check on the argument provided. The <TT>&quot;ref&quot;</TT> of the
+argument must be the same as the <TT>&quot;ref&quot;</TT> of the default value for this
+check to pass.
+
+
+<P>
+
+
+This is very useful if you insist on taking an array reference as
+argument for example.
+<DT>defined<DD>
+<A NAME="ixAAI"></A>
+If this template key is true, enforces that if this key is provided by
+user input, its value is <TT>&quot;defined&quot;</TT>. This just means that the user is
+not allowed to pass <TT>&quot;undef&quot;</TT> as a value for this key and is equivalent
+to:
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;allow&nbsp;=&gt;&nbsp;sub&nbsp;{&nbsp;defined&nbsp;<TT>$_</TT>[0]&nbsp;&amp;&amp;&nbsp;<FONT SIZE="-1">OTHER</FONT>&nbsp;<FONT SIZE="-1">TESTS</FONT>&nbsp;}
+<DT>no_override<DD>
+<A NAME="ixAAJ"></A>
+This allows you to specify <TT>&quot;constants&quot;</TT> in your template. ie, they
+keys that are not allowed to be altered by the user. It pretty much
+allows you to keep all your <TT>&quot;configurable&quot;</TT> data in one place; the
+<TT>&quot;Params::Check&quot;</TT> template.
+<DT>store<DD>
+<A NAME="ixAAK"></A>
+This allows you to pass a reference to a scalar, in which the data
+will be stored:
+
+
+<P>
+
+
+
+
+<PRE>
+    my $x;
+    my $args = check(foo =&gt; { default =&gt; 1, store =&gt; \$x }, $input);
+
+</PRE>
+
+
+
+
+<P>
+
+
+This is basically shorthand for saying:
+
+
+<P>
+
+
+
+
+<PRE>
+    my $args = check( { foo =&gt; { default =&gt; 1 }, $input );
+    my $x    = $args-&gt;{foo};
+
+</PRE>
+
+
+
+
+<P>
+
+
+You can alter the global variable <TT>$Params::Check::NO_DUPLICATES</TT> to
+control whether the <TT>&quot;store&quot;</TT>'d key will still be present in your
+result set. See the ``Global Variables'' section below.
+<DT>allow<DD>
+<A NAME="ixAAL"></A>
+A set of criteria used to validate a particular piece of data if it
+has to adhere to particular rules.
+
+
+<P>
+
+
+See the <TT>&quot;allow()&quot;</TT> function for details.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>Functions</H2>
+
+<A NAME="ixAAM"></A>
+<A NAME="lbAG">&nbsp;</A>
+<H3>check( \%tmpl, \%args, [$verbose] );</H3>
+
+<A NAME="ixAAN"></A>
+This function is not exported by default, so you'll have to ask for it
+via:
+<P>
+
+
+
+<PRE>
+    use Params::Check qw[check];
+
+</PRE>
+
+
+<P>
+
+or use its fully qualified name instead.
+<P>
+
+<TT>&quot;check&quot;</TT> takes a list of arguments, as follows:
+<DL COMPACT>
+<DT>Template<DD>
+<A NAME="ixAAO"></A>
+This is a hashreference which contains a template as explained in the
+<TT>&quot;SYNOPSIS&quot;</TT> and <TT>&quot;Template&quot;</TT> section.
+<DT>Arguments<DD>
+<A NAME="ixAAP"></A>
+This is a reference to a hash of named arguments which need checking.
+<DT>Verbose<DD>
+<A NAME="ixAAQ"></A>
+A boolean to indicate whether <TT>&quot;check&quot;</TT> should be verbose and warn
+about what went wrong in a check or not.
+
+
+<P>
+
+
+You can enable this program wide by setting the package variable
+<TT>$Params::Check::VERBOSE</TT> to a true value. For details, see the
+section on <TT>&quot;Global Variables&quot;</TT> below.
+</DL>
+<P>
+
+<TT>&quot;check&quot;</TT> will return when it fails, or a hashref with lowercase
+keys of parsed arguments when it succeeds.
+<P>
+
+So a typical call to check would look like this:
+<P>
+
+
+
+<PRE>
+    my $parsed = check( \%template, \%arguments, $VERBOSE )
+                    or warn q[Arguments could not be parsed!];
+
+</PRE>
+
+
+<P>
+
+A lot of the behaviour of <TT>&quot;check()&quot;</TT> can be altered by setting
+package variables. See the section on <TT>&quot;Global Variables&quot;</TT> for details
+on this.
+<A NAME="lbAH">&nbsp;</A>
+<H3>allow( $test_me, \@criteria );</H3>
+
+
+
+<A NAME="ixAAR"></A>
+The function that handles the <TT>&quot;allow&quot;</TT> key in the template is also
+available for independent use.
+<P>
+
+The function takes as first argument a key to test against, and
+as second argument any form of criteria that are also allowed by
+the <TT>&quot;allow&quot;</TT> key in the template.
+<P>
+
+You can use the following types of values for allow:
+<DL COMPACT>
+<DT>string<DD>
+<A NAME="ixAAS"></A>
+The provided argument <FONT SIZE="-1">MUST</FONT> be equal to the string for the validation
+to pass.
+<DT>regexp<DD>
+<A NAME="ixAAT"></A>
+The provided argument <FONT SIZE="-1">MUST</FONT> match the regular expression for the
+validation to pass.
+<DT>subroutine<DD>
+<A NAME="ixAAU"></A>
+The provided subroutine <FONT SIZE="-1">MUST</FONT> return true in order for the validation
+to pass and the argument accepted.
+
+
+<P>
+
+
+(This is particularly useful for more complicated data).
+<DT>array ref<DD>
+<A NAME="ixAAV"></A>
+The provided argument <FONT SIZE="-1">MUST</FONT> equal one of the elements of the array
+ref for the validation to pass. An array ref can hold all the above
+values.
+</DL>
+<P>
+
+It returns true if the key matched the criteria, or false otherwise.
+<A NAME="lbAI">&nbsp;</A>
+<H3><I>last_error()</I></H3>
+
+<A NAME="ixAAW"></A>
+Returns a string containing all warnings and errors reported during
+the last time <TT>&quot;check&quot;</TT> was called.
+<P>
+
+This is useful if you want to report then some other way than
+<TT>&quot;carp&quot;</TT>'ing when the verbose flag is on.
+<P>
+
+It is exported upon request.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>Global Variables</H2>
+
+<A NAME="ixAAX"></A>
+The behaviour of Params::Check can be altered by changing the
+following global variables:
+<A NAME="lbAK">&nbsp;</A>
+<H3>$Params::Check::VERBOSE</H3>
+
+
+
+<A NAME="ixAAY"></A>
+This controls whether Params::Check will issue warnings and
+explanations as to why certain things may have failed.
+If you set it to 0, Params::Check will not output any warnings.
+<P>
+
+The default is 1 when warnings are enabled, 0 otherwise;
+<A NAME="lbAL">&nbsp;</A>
+<H3>$Params::Check::STRICT_TYPE</H3>
+
+
+
+<A NAME="ixAAZ"></A>
+This works like the <TT>&quot;strict_type&quot;</TT> option you can pass to <TT>&quot;check&quot;</TT>,
+which will turn on <TT>&quot;strict_type&quot;</TT> globally for all calls to <TT>&quot;check&quot;</TT>.
+<P>
+
+The default is 0;
+<A NAME="lbAM">&nbsp;</A>
+<H3>$Params::Check::ALLOW_UNKNOWN</H3>
+
+
+
+<A NAME="ixABA"></A>
+If you set this flag, unknown options will still be present in the
+return value, rather than filtered out. This is useful if your
+subroutine is only interested in a few arguments, and wants to pass
+the rest on blindly to perhaps another subroutine.
+<P>
+
+The default is 0;
+<A NAME="lbAN">&nbsp;</A>
+<H3>$Params::Check::STRIP_LEADING_DASHES</H3>
+
+
+
+<A NAME="ixABB"></A>
+If you set this flag, all keys passed in the following manner:
+<P>
+
+
+
+<PRE>
+    function( -key =&gt; 'val' );
+
+</PRE>
+
+
+<P>
+
+will have their leading dashes stripped.
+<A NAME="lbAO">&nbsp;</A>
+<H3>$Params::Check::NO_DUPLICATES</H3>
+
+
+
+<A NAME="ixABC"></A>
+If set to true, all keys in the template that are marked as to be
+stored in a scalar, will also be removed from the result set.
+<P>
+
+Default is false, meaning that when you use <TT>&quot;store&quot;</TT> as a template
+key, <TT>&quot;check&quot;</TT> will put it both in the scalar you supplied, as well as
+in the hashref it returns.
+<A NAME="lbAP">&nbsp;</A>
+<H3>$Params::Check::PRESERVE_CASE</H3>
+
+
+
+<A NAME="ixABD"></A>
+If set to true, Params::Check will no longer convert all keys from
+the user input to lowercase, but instead expect them to be in the
+case the template provided. This is useful when you want to use
+similar keys with different casing in your templates.
+<P>
+
+Understand that this removes the case-insensitivy feature of this
+module.
+<P>
+
+Default is 0;
+<A NAME="lbAQ">&nbsp;</A>
+<H3>$Params::Check::ONLY_ALLOW_DEFINED</H3>
+
+
+
+<A NAME="ixABE"></A>
+If set to true, Params::Check will require all values passed to be
+<TT>&quot;defined&quot;</TT>. If you wish to enable this on a 'per key' basis, use the
+template option <TT>&quot;defined&quot;</TT> instead.
+<P>
+
+Default is 0;
+<A NAME="lbAR">&nbsp;</A>
+<H3>$Params::Check::SANITY_CHECK_TEMPLATE</H3>
+
+
+
+<A NAME="ixABF"></A>
+If set to true, Params::Check will sanity check templates, validating
+for errors and unknown keys. Although very useful for debugging, this
+can be somewhat slow in hot-code and large loops.
+<P>
+
+To disable this check, set this variable to <TT>&quot;false&quot;</TT>.
+<P>
+
+Default is 1;
+<A NAME="lbAS">&nbsp;</A>
+<H3>$Params::Check::WARNINGS_FATAL</H3>
+
+
+
+<A NAME="ixABG"></A>
+If set to true, Params::Check will <TT>&quot;croak&quot;</TT> when an error during 
+template validation occurs, rather than return <TT>&quot;false&quot;</TT>.
+<P>
+
+Default is 0;
+<A NAME="lbAT">&nbsp;</A>
+<H3>$Params::Check::CALLER_DEPTH</H3>
+
+
+
+<A NAME="ixABH"></A>
+This global modifies the argument given to <TT>&quot;caller()&quot;</TT> by
+<TT>&quot;Params::Check::check()&quot;</TT> and is useful if you have a custom wrapper
+function around <TT>&quot;Params::Check::check()&quot;</TT>. The value must be an
+integer, indicating the number of wrapper functions inserted between
+the real function call and <TT>&quot;Params::Check::check()&quot;</TT>.
+<P>
+
+Example wrapper function, using a custom stacktrace:
+<P>
+
+
+
+<PRE>
+    sub check {
+        my ($template, $args_in) = @_;
+
+        local $Params::Check::WARNINGS_FATAL = 1;
+        local $Params::Check::CALLER_DEPTH = $Params::Check::CALLER_DEPTH + 1;
+        my $args_out = Params::Check::check($template, $args_in);
+
+        my_stacktrace(Params::Check::last_error) unless $args_out;
+
+        return $args_out;
+    }
+
+</PRE>
+
+
+<P>
+
+Default is 0;
+<A NAME="lbAU">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABI"></A>
+This module by
+Jos Boumans &lt;<A HREF="mailto:kane@cpan.org">kane@cpan.org</A>&gt;.
+<A NAME="lbAV">&nbsp;</A>
+<H2>Acknowledgements</H2>
+
+<A NAME="ixABJ"></A>
+Thanks to Richard Soderberg for his performance improvements.
+<A NAME="lbAW">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABK"></A>
+This module is
+copyright (c) 2003,2004 Jos Boumans &lt;<A HREF="mailto:kane@cpan.org">kane@cpan.org</A>&gt;.
+All rights reserved.
+<P>
+
+This library is free software;
+you may redistribute and/or modify it under the same
+terms as Perl itself.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">Template</A><DD>
+<DT><A HREF="#lbAF">Functions</A><DD>
+<DL>
+<DT><A HREF="#lbAG">check( \%tmpl, \%args, [$verbose] );</A><DD>
+<DT><A HREF="#lbAH">allow( $test_me, \@criteria );</A><DD>
+<DT><A HREF="#lbAI"><I>last_error()</I></A><DD>
+</DL>
+<DT><A HREF="#lbAJ">Global Variables</A><DD>
+<DL>
+<DT><A HREF="#lbAK">$Params::Check::VERBOSE</A><DD>
+<DT><A HREF="#lbAL">$Params::Check::STRICT_TYPE</A><DD>
+<DT><A HREF="#lbAM">$Params::Check::ALLOW_UNKNOWN</A><DD>
+<DT><A HREF="#lbAN">$Params::Check::STRIP_LEADING_DASHES</A><DD>
+<DT><A HREF="#lbAO">$Params::Check::NO_DUPLICATES</A><DD>
+<DT><A HREF="#lbAP">$Params::Check::PRESERVE_CASE</A><DD>
+<DT><A HREF="#lbAQ">$Params::Check::ONLY_ALLOW_DEFINED</A><DD>
+<DT><A HREF="#lbAR">$Params::Check::SANITY_CHECK_TEMPLATE</A><DD>
+<DT><A HREF="#lbAS">$Params::Check::WARNINGS_FATAL</A><DD>
+<DT><A HREF="#lbAT">$Params::Check::CALLER_DEPTH</A><DD>
+</DL>
+<DT><A HREF="#lbAU">AUTHOR</A><DD>
+<DT><A HREF="#lbAV">Acknowledgements</A><DD>
+<DT><A HREF="#lbAW">COPYRIGHT</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:35 GMT, December 24, 2015
+</div></body>
+</HTML>

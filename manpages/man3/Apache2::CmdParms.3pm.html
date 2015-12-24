@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of docs::api::Apache2::CmdParms</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>docs::api::Apache2::CmdParms</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2008-04-17<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Apache2::CmdParms - Perl API for Apache command parameters object
+<A NAME="lbAC">&nbsp;</A>
+<H2>Synopsis</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  use Apache2::CmdParms ();
+  use Apache2::Module ();
+  use Apache2::Const -compile =&gt; qw(NOT_IN_LOCATION);
+  
+  my @directives = (
+    {
+      name =&gt; 'MyDirective',
+      cmd_data =&gt; 'some extra data',
+    },
+  );
+  
+  Apache2::Module::add(__PACKAGE__, \@directives);
+  
+  sub MyDirective {
+      my ($self, $parms, $args) = @_;
+  
+      # push config
+      $parms-&gt;add_config(['ServerTokens off']);
+  
+      # this command's command object
+      $cmd = $parms-&gt;cmd;
+  
+      # check the current command's context
+      $error = $parms-&gt;check_cmd_context(Apache2::Const::NOT_IN_LOCATION);
+  
+      # this command's context
+      $context = $parms-&gt;context;
+  
+      # this command's directive object
+      $directive = $parms-&gt;directive;
+  
+      # the extra information passed thru cmd_data to
+      # Apache2::Module::add()
+      $info = $parms-&gt;info;
+  
+      # which methods are &lt;Limit&gt;ed ?
+      $is_limited = $parms-&gt;method_is_limited('GET');
+  
+      # which allow-override bits are set
+      $override = $parms-&gt;override;
+  
+      # which Options are allowed by AllowOverride (since Apache 2.2)
+      $override = $parms-&gt;override_opts;
+  
+      # the path this command is being invoked in
+      $path = $parms-&gt;path;
+  
+      # this command's pool
+      $p = $parms-&gt;pool;
+  
+      # this command's configuration time pool
+      $p = $parms-&gt;temp_pool;
+  }
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>Description</H2>
+
+<A NAME="ixAAD"></A>
+<TT>&quot;Apache2::CmdParms&quot;</TT> provides the Perl <FONT SIZE="-1">API</FONT> for Apache command
+parameters object.
+<A NAME="lbAE">&nbsp;</A>
+<H2>API</H2>
+
+<A NAME="ixAAE"></A>
+<TT>&quot;Apache2::CmdParms&quot;</TT> provides the following functions and/or methods:
+<A NAME="lbAF">&nbsp;</A>
+<H3>add_config</H3>
+
+
+
+<A NAME="ixAAF"></A>
+Dynamically add Apache configuration at request processing runtime:
+<P>
+
+
+
+<PRE>
+  $parms-&gt;add_config($lines);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixAAG"></A>
+
+<DT>arg1: $lines (<FONT SIZE="-1">ARRAY</FONT> ref)<DD>
+
+
+<A NAME="ixAAH"></A>
+
+An <FONT SIZE="-1">ARRAY</FONT> reference containing configuration lines per element, without
+the new line terminators.
+<DT>ret: no return value<DD>
+<A NAME="ixAAI"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAJ"></A>
+
+</DL>
+<P>
+
+See also:
+<TT>&quot;$s-&gt;add_config&quot;</TT>,
+<TT>&quot;$r-&gt;add_config&quot;</TT>
+<A NAME="lbAG">&nbsp;</A>
+<H3>check_cmd_context</H3>
+
+
+
+<A NAME="ixAAK"></A>
+Check the current command against a context bitmask of forbidden contexts.
+<P>
+
+
+
+<PRE>
+  $error = $parms-&gt;check_cmd_context($check);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixAAL"></A>
+
+<DT>arg1: $check ( Apache2::Const :context constant )<DD>
+
+
+<A NAME="ixAAM"></A>
+
+the context to check against.
+<DT>ret: $error ( string / undef )<DD>
+
+
+<A NAME="ixAAN"></A>
+If the context is forbidden, this method returns a textual description
+of why it was forbidden. If the context is permitted, this method returns
+<TT>&quot;undef&quot;</TT>.
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAO"></A>
+</DL>
+<P>
+
+For example here is how to check whether a command is allowed in the
+<TT>&quot;&lt;Location&gt;&quot;</TT> container:
+<P>
+
+
+
+<PRE>
+  use Apache2::Const -compile qw(NOT_IN_LOCATION);
+  if (my $error = $parms-&gt;check_cmd_context(Apache2::Const::NOT_IN_LOCATION)) {
+      die &quot;directive ... not allowed in &lt;Location&gt; context&quot;
+  }
+
+</PRE>
+
+
+<A NAME="lbAH">&nbsp;</A>
+<H3>cmd</H3>
+
+
+
+<A NAME="ixAAP"></A>
+This module's command information
+<P>
+
+
+
+<PRE>
+  $cmd = $parms-&gt;cmd();
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixAAQ"></A>
+
+<DT>ret: $cmd ( Apache2::Command object )<DD>
+
+
+<A NAME="ixAAR"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAS"></A>
+
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3>directive</H3>
+
+
+
+<A NAME="ixAAT"></A>
+This command's directive object in the configuration tree
+<P>
+
+
+
+<PRE>
+  $directive = $parms-&gt;directive;
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixAAU"></A>
+
+<DT>ret: $directive ( Apache2::Directive object )<DD>
+
+
+<A NAME="ixAAV"></A>
+
+The current directive node in the configuration tree
+<DT>since: 2.0.00<DD>
+<A NAME="ixAAW"></A>
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3>info</H3>
+
+
+
+<A NAME="ixAAX"></A>
+The extra information passed through <TT>&quot;cmd_data&quot;</TT> in
+<TT>&quot;Apache2::Module::add()&quot;</TT>.
+<P>
+
+
+
+<PRE>
+  $info = $parms-&gt;info;
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixAAY"></A>
+
+<DT>ret: $info ( string )<DD>
+
+
+<A NAME="ixAAZ"></A>
+
+The string passed in <TT>&quot;cmd_data&quot;</TT>
+<DT>since: 2.0.00<DD>
+<A NAME="ixABA"></A>
+</DL>
+<P>
+
+For example here is how to pass arbitrary information to a directive
+subroutine:
+<P>
+
+
+
+<PRE>
+  my @directives = (
+    {
+      name =&gt; 'MyDirective1',
+      func =&gt; \&amp;MyDirective,
+      cmd_data =&gt; 'One',
+    },
+    {
+      name =&gt; 'MyDirective2',
+      func =&gt; \&amp;MyDirective,
+      cmd_data =&gt; 'Two',
+    },
+  );
+  Apache2::Module::add(__PACKAGE__, \@directives);
+  
+  sub MyDirective {
+    my ($self, $parms, $args) = @_;
+    my $info = $parms-&gt;info;
+  }
+
+</PRE>
+
+
+<P>
+
+In this example <TT>$info</TT> will either be <TT>'One'</TT> or <TT>'Two'</TT> depending
+on whether the directive was called as <I>MyDirective1</I> or
+<I>MyDirective2</I>.
+<A NAME="lbAK">&nbsp;</A>
+<H3>method_is_limited</H3>
+
+
+
+<A NAME="ixABB"></A>
+Discover if a method is &lt;Limit&gt;ed in the current scope
+<P>
+
+
+
+<PRE>
+  $is_limited = $parms-&gt;method_is_limited($method);
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixABC"></A>
+
+<DT>arg1: $method (string)<DD>
+
+
+<A NAME="ixABD"></A>
+
+The name of the method to check for
+<DT>ret: $is_limited ( boolean )<DD>
+
+
+<A NAME="ixABE"></A>
+
+<DT>since: 2.0.00<DD>
+<A NAME="ixABF"></A>
+
+</DL>
+<P>
+
+For example, to check if the <TT>&quot;GET&quot;</TT> method is being
+<TT>&quot;&lt;Limit&gt;&quot;</TT>ed in the current scope, do:
+<P>
+
+
+
+<PRE>
+  if ($parms-&gt;method_is_limited('GET') {
+      die &quot;...&quot;;
+  }
+
+</PRE>
+
+
+<A NAME="lbAL">&nbsp;</A>
+<H3>override</H3>
+
+
+
+<A NAME="ixABG"></A>
+Which allow-override bits are set (<TT>&quot;AllowOverride&quot;</TT> directive)
+<P>
+
+
+
+<PRE>
+  $override = $parms-&gt;override;
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixABH"></A>
+
+<DT>ret: $override ( bitmask )<DD>
+
+
+<A NAME="ixABI"></A>
+
+the allow-override bits bitmask, which can be tested against
+<TT>&quot;Apache2::Const :override
+constants&quot;</TT>.
+<DT>since: 2.0.00<DD>
+<A NAME="ixABJ"></A>
+</DL>
+<P>
+
+For example to check that the <TT>&quot;AllowOverride&quot;</TT>'s <TT>&quot;AuthConfig&quot;</TT> and
+<TT>&quot;FileInfo&quot;</TT> options are enabled for this command, do:
+<P>
+
+
+
+<PRE>
+  use Apache2::Const -compile qw(:override);
+  $wanted = Apache2::Const::OR_AUTHCFG | Apache2::Const::OR_FILEINFO;
+  $masked = $parms-&gt;override &amp; $wanted;
+  unless ($wanted == $masked) {
+      die &quot;...&quot;;
+  }
+
+</PRE>
+
+
+<A NAME="lbAM">&nbsp;</A>
+<H3>override_opts</H3>
+
+
+
+<A NAME="ixABK"></A>
+Which options are allowed to be overridden by <TT>&quot;.htaccess&quot;</TT> files. This is
+set by <TT>&quot;AllowOverride Options=...&quot;</TT>.
+<P>
+
+
+
+<PRE>
+  $override_opts = $parms-&gt;override_opts;
+
+</PRE>
+
+
+<P>
+
+Enabling single options was introduced with Apache 2.2. For Apache 2.0 this
+function simply returns a bitmask with all options allowed.
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixABL"></A>
+
+<DT>ret: $override_opts ( bitmask )<DD>
+
+
+<A NAME="ixABM"></A>
+
+the bitmask, which can be tested against
+<TT>&quot;Apache2::Const :options
+constants&quot;</TT>.
+<DT>since: 2.0.3<DD>
+<A NAME="ixABN"></A>
+</DL>
+<A NAME="lbAN">&nbsp;</A>
+<H3>path</H3>
+
+
+
+<A NAME="ixABO"></A>
+The current pathname/location/match of the block this command is in
+<P>
+
+
+
+<PRE>
+  $path = $parms-&gt;path;
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixABP"></A>
+
+<DT>ret: $path ( string / undef )<DD>
+
+
+<A NAME="ixABQ"></A>
+
+If configuring for a block like &lt;Location&gt;,
+&lt;LocationMatch&gt;, &lt;Directory&gt;, etc., the pathname part
+of that directive. Otherwise, <TT>&quot;undef&quot;</TT> is returned.
+<DT>since: 2.0.00<DD>
+<A NAME="ixABR"></A>
+</DL>
+<P>
+
+For example for a container block:
+<P>
+
+
+
+<PRE>
+  &lt;Location /foo&gt;
+  ...
+  &lt;/Location&gt;
+
+</PRE>
+
+
+<P>
+
+<I>'/foo'</I> will be returned.
+<A NAME="lbAO">&nbsp;</A>
+<H3>pool</H3>
+
+
+
+<A NAME="ixABS"></A>
+Pool associated with this command
+<P>
+
+
+
+<PRE>
+  $p = $parms-&gt;pool;
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixABT"></A>
+
+<DT>ret: $p ( APR::Pool object )<DD>
+
+
+<A NAME="ixABU"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixABV"></A>
+
+</DL>
+<A NAME="lbAP">&nbsp;</A>
+<H3>server</H3>
+
+
+
+<A NAME="ixABW"></A>
+The (vhost) server this command was defined in <I>httpd.conf</I>
+<P>
+
+
+
+<PRE>
+  $s = $parms-&gt;server;
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixABX"></A>
+
+<DT>ret: $s ( Apache2::Server object )<DD>
+
+
+<A NAME="ixABY"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixABZ"></A>
+
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H3>temp_pool</H3>
+
+
+
+<A NAME="ixACA"></A>
+Pool for scratch memory; persists during configuration, but destroyed
+before the first request is served.
+<P>
+
+
+
+<PRE>
+  $temp_pool = $parms-&gt;temp_pool;
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixACB"></A>
+
+<DT>ret: $temp_pool ( APR::Pool object )<DD>
+
+
+<A NAME="ixACC"></A>
+<DT>since: 2.0.00<DD>
+<A NAME="ixACD"></A>
+
+</DL>
+<P>
+
+Most likely you shouldn't use this pool object, unless you know what
+you are doing. Use <TT>&quot;$parms-&gt;pool&quot;</TT> instead.
+<A NAME="lbAR">&nbsp;</A>
+<H2>Unsupported API</H2>
+
+<A NAME="ixACE"></A>
+<TT>&quot;Apache2::CmdParms&quot;</TT> also provides auto-generated Perl interface for
+a few other methods which aren't tested at the moment and therefore
+their <FONT SIZE="-1">API</FONT> is a subject to change. These methods will be finalized
+later as a need arises. If you want to rely on any of the following
+methods please contact the the mod_perl development mailing
+list so we can help each other take the steps necessary
+to shift the method to an officially supported <FONT SIZE="-1">API</FONT>.
+<A NAME="lbAS">&nbsp;</A>
+<H3>context</H3>
+
+
+
+<A NAME="ixACF"></A>
+Get context containing pointers to modules' per-dir
+config structures.
+<P>
+
+
+
+<PRE>
+  $context = $parms-&gt;context;
+
+</PRE>
+
+
+<DL COMPACT>
+<DT>obj: $parms ( Apache2::CmdParms object )<DD>
+
+
+<A NAME="ixACG"></A>
+
+<DT>ret: $newval ( Apache2::ConfVector object )<DD>
+
+
+<A NAME="ixACH"></A>
+
+Returns the commands' per-dir config structures
+<DT>since: 2.0.00<DD>
+<A NAME="ixACI"></A>
+</DL>
+<A NAME="lbAT">&nbsp;</A>
+<H2>See Also</H2>
+
+<A NAME="ixACJ"></A>
+mod_perl 2.0 documentation.
+<A NAME="lbAU">&nbsp;</A>
+<H2>Copyright</H2>
+
+<A NAME="ixACK"></A>
+mod_perl 2.0 and its core modules are copyrighted under
+The Apache Software License, Version 2.0.
+<A NAME="lbAV">&nbsp;</A>
+<H2>Authors</H2>
+
+<A NAME="ixACL"></A>
+The mod_perl development team and numerous
+contributors.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">Synopsis</A><DD>
+<DT><A HREF="#lbAD">Description</A><DD>
+<DT><A HREF="#lbAE">API</A><DD>
+<DL>
+<DT><A HREF="#lbAF">add_config</A><DD>
+<DT><A HREF="#lbAG">check_cmd_context</A><DD>
+<DT><A HREF="#lbAH">cmd</A><DD>
+<DT><A HREF="#lbAI">directive</A><DD>
+<DT><A HREF="#lbAJ">info</A><DD>
+<DT><A HREF="#lbAK">method_is_limited</A><DD>
+<DT><A HREF="#lbAL">override</A><DD>
+<DT><A HREF="#lbAM">override_opts</A><DD>
+<DT><A HREF="#lbAN">path</A><DD>
+<DT><A HREF="#lbAO">pool</A><DD>
+<DT><A HREF="#lbAP">server</A><DD>
+<DT><A HREF="#lbAQ">temp_pool</A><DD>
+</DL>
+<DT><A HREF="#lbAR">Unsupported API</A><DD>
+<DL>
+<DT><A HREF="#lbAS">context</A><DD>
+</DL>
+<DT><A HREF="#lbAT">See Also</A><DD>
+<DT><A HREF="#lbAU">Copyright</A><DD>
+<DT><A HREF="#lbAV">Authors</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:11 GMT, December 24, 2015
+</div></body>
+</HTML>

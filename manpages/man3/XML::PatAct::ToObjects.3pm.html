@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of XML::PatAct::ToObjects</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>XML::PatAct::ToObjects</H1>
+Section: User Contributed Perl Documentation (3)<BR>Updated: 2003-10-21<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+XML::PatAct::ToObjects - An action module for creating Perl objects
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+ use XML::PatAct::ToObjects;
+
+ my $patterns = [ PATTERN =&gt; [ OPTIONS ],
+                  PATTERN =&gt; &quot;PERL-CODE&quot;,
+                  ... ];
+
+ my $matcher = XML::PatAct::ToObjects-&gt;new( Patterns =&gt; $patterns,
+                                            Matcher =&gt; $matcher,
+                                            CopyId =&gt; 1,
+                                            CopyAttributes =&gt; 1 );
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+XML::PatAct::ToObjects is a PerlSAX handler for applying
+pattern-action lists to <FONT SIZE="-1">XML</FONT> parses or trees.  XML::PatAct::ToObjects
+creates Perl objects of the types and contents of the action items you
+define.
+<P>
+
+New XML::PatAct::ToObject instances are creating by calling `<I>new()</I>'.
+Parameters can be passed as a list of key, value pairs or a hash.
+`<I>new()</I>' requires the Patterns and Matcher parameters, the rest are
+optional:
+<DL COMPACT>
+<DT>Patterns<DD>
+<A NAME="ixAAE"></A>
+The pattern-action list to apply.
+<DT>Matcher<DD>
+<A NAME="ixAAF"></A>
+An instance of the pattern or query matching module.
+<DT>CopyId<DD>
+<A NAME="ixAAG"></A>
+Causes the `<FONT SIZE="-1">ID</FONT>' attribute, if any, in a source <FONT SIZE="-1">XML</FONT> element to be
+copied to an `<FONT SIZE="-1">ID</FONT>' attribute in newly created objects.  Note that IDs
+may be lost of no pattern matches that element or an object is not
+created (<TT>&quot;-make&quot;</TT>) for that element.
+<DT>CopyAttributes<DD>
+<A NAME="ixAAH"></A>
+Causes all attributes of the element to be copied to the newly created
+objects.
+</DL>
+<P>
+
+Each action can either be a list of options defined below or a string
+containing a fragment of Perl code.  If the action is a string of Perl
+code then simple then some simple substitutions are made as described
+further below.
+<P>
+
+Options that can be used in an action item containing an option-list:
+<DL COMPACT>
+<DT><B>-holder</B><DD>
+<A NAME="ixAAI"></A>
+Ignore this element, but continue processing it's children (compare to
+<B>-ignore</B>).  <TT>&quot;-pcdata&quot;</TT> may be used with this option.
+<DT><B>-ignore</B><DD>
+<A NAME="ixAAJ"></A>
+Ignore (discard) this element and it's children (compare to <B>-holder</B>).
+<DT><B>-pcdata</B><DD>
+<A NAME="ixAAK"></A>
+Character data in this element should be copied to the <TT>&quot;Contents&quot;</TT>
+field.
+<DT><B>-make</B> <I></I><FONT SIZE="-1"><I>PACKAGE</I></FONT><I></I><DD>
+<A NAME="ixAAL"></A>
+Create an object blessed into <I></I><FONT SIZE="-1"><I>PACKAGE</I></FONT><I></I>, and continue processing this
+element and it's children.  <I></I><FONT SIZE="-1"><I>PACKAGE</I></FONT><I></I> may be the type `<TT>&quot;HASH&quot;</TT>' to
+simply create an anonyous hash.
+<DT><B>-args</B> <I></I><FONT SIZE="-1"><I>ARGUMENTS</I></FONT><I></I><DD>
+<A NAME="ixAAM"></A>
+Use <I></I><FONT SIZE="-1"><I>ARGUMENTS</I></FONT><I></I> in creating the object specified by <B>-make</B>.  This
+is commonly used to copy element attributes into fields in the newly
+created object.  For example:
+
+
+<P>
+
+
+
+
+<PRE>
+  -make =&gt; 'HASH', -args =&gt; 'URL =&gt; %{href}'
+
+</PRE>
+
+
+
+
+<P>
+
+
+would copy the `<TT>&quot;href&quot;</TT>' attribute in an element to the `<TT>&quot;URL&quot;</TT>' field
+of the newly created hash.
+<DT><B>-field</B> <I></I><FONT SIZE="-1"><I>FIELD</I></FONT><I></I><DD>
+<A NAME="ixAAN"></A>
+Store this element, object, or children of this element in the parent
+object's field named by <I></I><FONT SIZE="-1"><I>FIELD</I></FONT><I></I>.
+<DT><B>-push-field</B> <I></I><FONT SIZE="-1"><I>FIELD</I></FONT><I></I><DD>
+<A NAME="ixAAO"></A>
+Similar to <B>-field</B>, except that <I></I><FONT SIZE="-1"><I>FIELD</I></FONT><I></I> is an array and the
+contents are pushed onto that array.
+<DT><B>-value</B> <I></I><FONT SIZE="-1"><I>VALUE</I></FONT><I></I><DD>
+<A NAME="ixAAP"></A>
+Use <I></I><FONT SIZE="-1"><I>VALUE</I></FONT><I></I> as a literal value to store in <I></I><FONT SIZE="-1"><I>FIELD</I></FONT><I></I>, otherwise
+ignoring this element and it's children.  Only valid with <B>-field</B> or
+<B>-push-field</B>.  `<TT>&quot;%{</TT>ATTRIBUTE<TT>}&quot;</TT>' notation can be used to
+substitute the value of an attribute into the literal value.
+<DT><B>-as-string</B><DD>
+<A NAME="ixAAQ"></A>
+Convert the contents of this element to a string (as in
+<TT>&quot;XML::Grove::AsString&quot;</TT>) and store in <I></I><FONT SIZE="-1"><I>FIELD</I></FONT><I></I>.  Only valid with
+<B>-field</B> or <B>-push-field</B>.
+<DT><B>-grove</B><DD>
+<A NAME="ixAAR"></A>
+Copy this element to <I></I><FONT SIZE="-1"><I>FIELD</I></FONT><I></I> without further processing.  The element
+can then be processed later as the Perl objects are manipulated.  Only
+valid with <B>-field</B> or <B>-push-field</B>.  If ToObjects is used with
+PerlSAX, this will use XML::Grove::Builder to build the grove element.
+<DT><B>-grove-contents</B><DD>
+<A NAME="ixAAS"></A>
+Used with <B>-make</B>, <B>-grove-contents</B> creates an object but then
+takes all of the content of that element and stores it in Contents.
+</DL>
+<P>
+
+If an action item is a string, that string is treated as a fragment of
+Perl code.  The following simple substitutions are performed on the
+fragment to provide easy access to the information being converted:
+<DL COMPACT>
+<DT><B>@ELEM@</B><DD>
+
+
+<A NAME="ixAAT"></A>
+The object that caused this action to be called.  If ToObjects is used
+with PerlSAX this will be a hash with the element name and attributes,
+with XML::Grove this will be the element object, with Data::Grove it
+will be the matching object, and with <FONT SIZE="-1">XML::DOM</FONT> it will be an
+XML::DOM::Element.
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>EXAMPLE</H2>
+
+<A NAME="ixAAU"></A>
+The example pattern-action list below will convert the following <FONT SIZE="-1">XML</FONT>
+representing a Database schema:
+<P>
+
+
+
+<PRE>
+    &lt;schema&gt;
+      &lt;table&gt;
+        &lt;name&gt;MyTable&lt;/name&gt;
+        &lt;summary&gt;A short summary&lt;/summary&gt;
+        &lt;description&gt;A long description that may
+          contain a subset of HTML&lt;/description&gt;
+        &lt;column&gt;
+          &lt;name&gt;MyColumn1&lt;/name&gt;
+          &lt;summary&gt;A short summary&lt;/summary&gt;
+          &lt;description&gt;A long description&lt;/description&gt;
+          &lt;unique/&gt;
+          &lt;non-null/&gt;
+          &lt;default&gt;42&lt;/default&gt;
+        &lt;/column&gt;
+      &lt;/table&gt;
+    &lt;/schema&gt;
+
+</PRE>
+
+
+<P>
+
+into Perl objects looking like:
+<P>
+
+
+
+<PRE>
+    [
+      { Name =&gt; &quot;MyTable&quot;,
+        Summary =&gt; &quot;A short summary&quot;,
+        Description =&gt; $grove_object,
+        Columns =&gt; [
+          { Name =&gt; &quot;MyColumn1&quot;,
+            Summary =&gt; &quot;A short summary&quot;,
+            Description =&gt; $grove_object,
+            Unique =&gt; 1,
+            NonNull =&gt; 1,
+            Default =&gt; 42
+          }
+        ]
+      }
+    ]
+
+</PRE>
+
+
+<P>
+
+Here is a Perl script and pattern-action list that will perform the
+conversion using the simple name matching pattern module
+XML::PatAct::MatchName.  The script accepts a Schema <FONT SIZE="-1">XML</FONT> file as an
+argument (<TT>$ARGV[0]</TT>) to the script.  This script creates a grove as
+one of it's objects, so it requires the XML::Grove module.
+<P>
+
+
+
+<PRE>
+    use XML::Parser::PerlSAX;
+    use XML::PatAct::MatchName;
+    use XML::PatAct::ToObjects;
+
+    my $patterns = [
+      'schema'      =&gt; [ qw{ -holder                                  } ],
+      'table'       =&gt; [ qw{ -make Schema::Table                      } ],
+      'name'        =&gt; [ qw{ -field Name -as-string                   } ],
+      'summary'     =&gt; [ qw{ -field Summary -as-string                } ],
+      'description' =&gt; [ qw{ -field Description -grove                } ],
+      'column'      =&gt; [ qw{ -make Schema::Column -push-field Columns } ],
+      'unique'      =&gt; [ qw{ -field Unique -value 1                   } ],
+      'non-null'    =&gt; [ qw{ -field NonNull -value 1                  } ],
+      'default'     =&gt; [ qw{ -field Default -as-string                } ],
+    ];
+
+    my $matcher = XML::PatAct::MatchName-&gt;new( Patterns =&gt; $patterns );
+    my $handler = XML::PatAct::ToObjects-&gt;new( Patterns =&gt; $patterns,
+                                               Matcher =&gt; $matcher);
+
+    my $parser = XML::Parser::PerlSAX-&gt;new( Handler =&gt; $handler );
+    my $schema = $parser-&gt;parse(Source =&gt; { SystemId =&gt; $ARGV[0] } );
+
+</PRE>
+
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>TODO</H2>
+
+<A NAME="ixAAV"></A>
+<DL COMPACT>
+<DT>*<DD>
+It'd be nice if patterns could be applied even in <B>-as-string</B> and
+<B>-grove</B>.
+<DT>*<DD>
+Implement Perl code actions.
+<DT>*<DD>
+<B>-as-xml</B> to write <FONT SIZE="-1">XML</FONT> into the field.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixAAW"></A>
+Ken MacLeod, <A HREF="mailto:ken@bitsko.slc.ut.us">ken@bitsko.slc.ut.us</A>
+<A NAME="lbAH">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAX"></A>
+<I><A HREF="/manpages/index.html?1+perl">perl</A></I>(1), <I><A HREF="http://localhost/cgi-bin/man/man2html?3+Data::Grove">Data::Grove</A></I>(3)
+<P>
+
+``Using PatAct Modules'' and ``Creating PatAct Modules'' in libxml-perl.
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">EXAMPLE</A><DD>
+<DT><A HREF="#lbAF">TODO</A><DD>
+<DT><A HREF="#lbAG">AUTHOR</A><DD>
+<DT><A HREF="#lbAH">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:46 GMT, December 24, 2015
+</div></body>
+</HTML>

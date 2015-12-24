@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Module::Build::Cookbook</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Module::Build::Cookbook</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2012-06-22<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Module::Build::Cookbook - Examples of Module::Build Usage
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAC"></A>
+<TT>&quot;Module::Build&quot;</TT> isn't conceptually very complicated, but examples are
+always helpful.  The following recipes should help developers and/or
+installers put together the pieces from the other parts of the
+documentation.
+<A NAME="lbAD">&nbsp;</A>
+<H2>BASIC RECIPES</H2>
+
+<A NAME="ixAAD"></A>
+<A NAME="lbAE">&nbsp;</A>
+<H3>Installing modules that use Module::Build</H3>
+
+<A NAME="ixAAE"></A>
+In most cases, you can just issue the following commands:
+<P>
+
+
+
+<PRE>
+  perl Build.PL
+  ./Build
+  ./Build test
+  ./Build install
+
+</PRE>
+
+
+<P>
+
+There's nothing complicated here - first you're running a script
+called <I>Build.PL</I>, then you're running a (newly-generated) script
+called <I>Build</I> and passing it various arguments.
+<P>
+
+The exact commands may vary a bit depending on how you invoke perl
+scripts on your system.  For instance, if you have multiple versions
+of perl installed, you can install to one particular perl's library
+directories like so:
+<P>
+
+
+
+<PRE>
+  /usr/bin/perl5.8.1 Build.PL
+  ./Build
+  ./Build test
+  ./Build install
+
+</PRE>
+
+
+<P>
+
+If you're on Windows where the current directory is always searched
+first for scripts, you'll probably do something like this:
+<P>
+
+
+
+<PRE>
+  perl Build.PL
+  Build
+  Build test
+  Build install
+
+</PRE>
+
+
+<P>
+
+On the old Mac <FONT SIZE="-1">OS</FONT> (version 9 or lower) using MacPerl, you can
+double-click on the <I>Build.PL</I> script to create the <I>Build</I> script,
+then double-click on the <I>Build</I> script to run its <TT>&quot;build&quot;</TT>, <TT>&quot;test&quot;</TT>,
+and <TT>&quot;install&quot;</TT> actions.
+<P>
+
+The <I>Build</I> script knows what perl was used to run <I>Build.PL</I>, so
+you don't need to re-invoke the <I>Build</I> script with the complete perl
+path each time.  If you invoke it with the <I>wrong</I> perl path, you'll
+get a warning or a fatal error.
+<A NAME="lbAF">&nbsp;</A>
+<H3>Modifying Config.pm values</H3>
+
+<A NAME="ixAAF"></A>
+<TT>&quot;Module::Build&quot;</TT> relies heavily on various values from perl's
+<TT>&quot;Config.pm&quot;</TT> to do its work.  For example, default installation paths
+are given by <TT>&quot;installsitelib&quot;</TT> and <TT>&quot;installvendorman3dir&quot;</TT> and
+friends, C linker &amp; compiler settings are given by <TT>&quot;ld&quot;</TT>,
+<TT>&quot;lddlflags&quot;</TT>, <TT>&quot;cc&quot;</TT>, <TT>&quot;ccflags&quot;</TT>, and so on.  <I>If you're pretty sure
+you know what you're doing</I>, you can tell <TT>&quot;Module::Build&quot;</TT> to pretend
+there are different values in <I>Config.pm</I> than what's really there,
+by passing arguments for the <TT>&quot;--config&quot;</TT> parameter on the command
+line:
+<P>
+
+
+
+<PRE>
+  perl Build.PL --config cc=gcc --config ld=gcc
+
+</PRE>
+
+
+<P>
+
+Inside the <TT>&quot;Build.PL&quot;</TT> script the same thing can be accomplished by
+passing values for the <TT>&quot;config&quot;</TT> parameter to <TT>&quot;new()&quot;</TT>:
+<P>
+
+
+
+<PRE>
+ my $build = Module::Build-&gt;new
+   (
+    ...
+    config =&gt; { cc =&gt; 'gcc', ld =&gt; 'gcc' },
+    ...
+   );
+
+</PRE>
+
+
+<P>
+
+In custom build code, the same thing can be accomplished by calling
+the ``config'' in Module::Build method:
+<P>
+
+
+
+<PRE>
+ $build-&gt;config( cc =&gt; 'gcc' );     # Set
+ $build-&gt;config( ld =&gt; 'gcc' );     # Set
+ ...
+ my $linker = $build-&gt;config('ld'); # Get
+
+</PRE>
+
+
+<A NAME="lbAG">&nbsp;</A>
+<H3>Installing modules using the programmatic interface</H3>
+
+<A NAME="ixAAG"></A>
+If you need to build, test, and/or install modules from within some
+other perl code (as opposed to having the user type installation
+commands at the shell), you can use the programmatic interface.
+Create a Module::Build object (or an object of a custom Module::Build
+subclass) and then invoke its <TT>&quot;dispatch()&quot;</TT> method to run various
+actions.
+<P>
+
+
+
+<PRE>
+  my $build = Module::Build-&gt;new
+    (
+     module_name =&gt; 'Foo::Bar',
+     license     =&gt; 'perl',
+     requires    =&gt; { 'Some::Module'   =&gt; '1.23' },
+    );
+  $build-&gt;dispatch('build');
+  $build-&gt;dispatch('test', verbose =&gt; 1);
+  $build-&gt;dispatch('install');
+
+</PRE>
+
+
+<P>
+
+The first argument to <TT>&quot;dispatch()&quot;</TT> is the name of the action, and any
+following arguments are named parameters.
+<P>
+
+This is the interface we use to test Module::Build itself in the
+regression tests.
+<A NAME="lbAH">&nbsp;</A>
+<H3>Installing to a temporary directory</H3>
+
+<A NAME="ixAAH"></A>
+To create packages for package managers like RedHat's <TT>&quot;rpm&quot;</TT> or
+Debian's <TT>&quot;deb&quot;</TT>, you may need to install to a temporary directory
+first and then create the package from that temporary installation.
+To do this, specify the <TT>&quot;destdir&quot;</TT> parameter to the <TT>&quot;install&quot;</TT> action:
+<P>
+
+
+
+<PRE>
+  ./Build install --destdir /tmp/my-package-1.003
+
+</PRE>
+
+
+<P>
+
+This essentially just prepends all the installation paths with the
+<I>/tmp/my-package-1.003</I> directory.
+<A NAME="lbAI">&nbsp;</A>
+<H3>Installing to a non-standard directory</H3>
+
+<A NAME="ixAAI"></A>
+To install to a non-standard directory (for example, if you don't have
+permission to install in the system-wide directories), you can use the
+<TT>&quot;install_base&quot;</TT> or <TT>&quot;prefix&quot;</TT> parameters:
+<P>
+
+
+
+<PRE>
+  ./Build install --install_base /foo/bar
+
+</PRE>
+
+
+<P>
+
+See ``<FONT SIZE="-1">INSTALL</FONT> <FONT SIZE="-1">PATHS</FONT>'' in Module::Build for a much more complete
+discussion of how installation paths are determined.
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Installing in the same location as ExtUtils::MakeMaker</H3>
+
+<A NAME="ixAAJ"></A>
+With the introduction of <TT>&quot;--prefix&quot;</TT> in Module::Build 0.28 and
+<TT>&quot;INSTALL_BASE&quot;</TT> in <TT>&quot;ExtUtils::MakeMaker&quot;</TT> 6.31 its easy to get them both
+to install to the same locations.
+<P>
+
+First, ensure you have at least version 0.28 of Module::Build
+installed and 6.31 of <TT>&quot;ExtUtils::MakeMaker&quot;</TT>.  Prior versions have
+differing (and in some cases quite strange) installation behaviors.
+<P>
+
+The following installation flags are equivalent between
+<TT>&quot;ExtUtils::MakeMaker&quot;</TT> and <TT>&quot;Module::Build&quot;</TT>.
+<P>
+
+
+
+<PRE>
+    MakeMaker             Module::Build
+    PREFIX=...            --prefix ...
+    INSTALL_BASE=...      --install_base ...
+    DESTDIR=...           --destdir ...
+    LIB=...               --install_path lib=...
+    INSTALLDIRS=...       --installdirs ...
+    INSTALLDIRS=perl      --installdirs core
+    UNINST=...            --uninst ...
+    INC=...               --extra_compiler_flags ...
+    POLLUTE=1             --extra_compiler_flags -DPERL_POLLUTE
+
+</PRE>
+
+
+<P>
+
+For example, if you are currently installing <TT>&quot;MakeMaker&quot;</TT> modules with
+this command:
+<P>
+
+
+
+<PRE>
+    perl Makefile.PL PREFIX=~
+    make test
+    make install UNINST=1
+
+</PRE>
+
+
+<P>
+
+You can install into the same location with Module::Build using this:
+<P>
+
+
+
+<PRE>
+    perl Build.PL --prefix ~
+    ./Build test
+    ./Build install --uninst 1
+
+</PRE>
+
+
+<P>
+
+<I></I>&quot;prefix&quot;<I> vs </I>&quot;install_base&quot;<I></I>
+<A NAME="ixAAK"></A>
+<P>
+
+The behavior of <TT>&quot;prefix&quot;</TT> is complicated and depends on
+how your Perl is configured.  The resulting installation locations
+will vary from machine to machine and even different installations of
+Perl on the same machine.  Because of this, it's difficult to document
+where <TT>&quot;prefix&quot;</TT> will place your modules.
+<P>
+
+In contrast, <TT>&quot;install_base&quot;</TT> has predictable, easy to explain
+installation locations.  Now that <TT>&quot;Module::Build&quot;</TT> and <TT>&quot;MakeMaker&quot;</TT> both
+have <TT>&quot;install_base&quot;</TT> there is little reason to use <TT>&quot;prefix&quot;</TT> other
+than to preserve your existing installation locations.  If you are
+starting a fresh Perl installation we encourage you to use
+<TT>&quot;install_base&quot;</TT>.  If you have an existing installation installed via
+<TT>&quot;prefix&quot;</TT>, consider moving it to an installation structure matching
+<TT>&quot;install_base&quot;</TT> and using that instead.
+<A NAME="lbAK">&nbsp;</A>
+<H3>Running a single test file</H3>
+
+<A NAME="ixAAL"></A>
+<TT>&quot;Module::Build&quot;</TT> supports running a single test, which enables you to
+track down errors more quickly.  Use the following format:
+<P>
+
+
+
+<PRE>
+  ./Build test --test_files t/mytest.t
+
+</PRE>
+
+
+<P>
+
+In addition, you may want to run the test in verbose mode to get more
+informative output:
+<P>
+
+
+
+<PRE>
+  ./Build test --test_files t/mytest.t --verbose 1
+
+</PRE>
+
+
+<P>
+
+I run this so frequently that I define the following shell alias:
+<P>
+
+
+
+<PRE>
+  alias t './Build test --verbose 1 --test_files'
+
+</PRE>
+
+
+<P>
+
+So then I can just execute <TT>&quot;t t/mytest.t&quot;</TT> to run a single test.
+<A NAME="lbAL">&nbsp;</A>
+<H2>ADVANCED RECIPES</H2>
+
+<A NAME="ixAAM"></A>
+<A NAME="lbAM">&nbsp;</A>
+<H3>Making a <FONT SIZE="-1">CPAN</FONT>.pm-compatible distribution</H3>
+
+<A NAME="ixAAN"></A>
+New versions of <FONT SIZE="-1">CPAN</FONT>.pm understand how to use a <I>Build.PL</I> script,
+but old versions don't.  If authors want to help users who have old
+versions, some form of <I>Makefile.PL</I> should be supplied.  The easiest
+way to accomplish this is to use the <TT>&quot;create_makefile_pl&quot;</TT> parameter to
+<TT>&quot;Module::Build-&gt;new()&quot;</TT> in the <TT>&quot;Build.PL&quot;</TT> script, which can
+create various flavors of <I>Makefile.PL</I> during the <TT>&quot;dist&quot;</TT> action.
+<P>
+
+As a best practice, we recommend using the ``traditional'' style of
+<I>Makefile.PL</I> unless your distribution has needs that can't be
+accomplished that way.
+<P>
+
+The <TT>&quot;Module::Build::Compat&quot;</TT> module, which is part of
+<TT>&quot;Module::Build&quot;</TT>'s distribution, is responsible for creating these
+<I>Makefile.PL</I>s.  Please see Module::Build::Compat for the details.
+<A NAME="lbAN">&nbsp;</A>
+<H3>Changing the order of the build process</H3>
+
+<A NAME="ixAAO"></A>
+The <TT>&quot;build_elements&quot;</TT> property specifies the steps <TT>&quot;Module::Build&quot;</TT>
+will take when building a distribution.  To change the build order,
+change the order of the entries in that property:
+<P>
+
+
+
+<PRE>
+  # Process pod files first
+  my @e = @{$build-&gt;build_elements};
+  my ($i) = grep {$e[$_] eq 'pod'} 0..$#e;
+  unshift @e, splice @e, $i, 1;
+
+</PRE>
+
+
+<P>
+
+Currently, <TT>&quot;build_elements&quot;</TT> has the following default value:
+<P>
+
+
+
+<PRE>
+  [qw( PL support pm xs pod script )]
+
+</PRE>
+
+
+<P>
+
+Do take care when altering this property, since there may be
+non-obvious (and non-documented!) ordering dependencies in the
+<TT>&quot;Module::Build&quot;</TT> code.
+<A NAME="lbAO">&nbsp;</A>
+<H3>Adding new file types to the build process</H3>
+
+<A NAME="ixAAP"></A>
+Sometimes you might have extra types of files that you want to install
+alongside the standard types like <I>.pm</I> and <I>.pod</I> files.  For
+instance, you might have a <I>Bar.dat</I> file containing some data
+related to the <TT>&quot;Foo::Bar&quot;</TT> module and you'd like for it to end up as
+<I>Foo/Bar.dat</I> somewhere in perl's <TT>@INC</TT> path so <TT>&quot;Foo::Bar&quot;</TT> can
+access it easily at runtime.  The following code from a sample
+<TT>&quot;Build.PL&quot;</TT> file demonstrates how to accomplish this:
+<P>
+
+
+
+<PRE>
+  use Module::Build;
+  my $build = Module::Build-&gt;new
+    (
+     module_name =&gt; 'Foo::Bar',
+     ...other stuff here...
+    );
+  $build-&gt;add_build_element('dat');
+  $build-&gt;create_build_script;
+
+</PRE>
+
+
+<P>
+
+This will find all <I>.dat</I> files in the <I>lib/</I> directory, copy them
+to the <I>blib/lib/</I> directory during the <TT>&quot;build&quot;</TT> action, and install
+them during the <TT>&quot;install&quot;</TT> action.
+<P>
+
+If your extra files aren't located in the <TT>&quot;lib/&quot;</TT> directory in your
+distribution, you can explicitly say where they are, just as you'd do
+with <I>.pm</I> or <I>.pod</I> files:
+<P>
+
+
+
+<PRE>
+  use Module::Build;
+  my $build = new Module::Build
+    (
+     module_name =&gt; 'Foo::Bar',
+     dat_files =&gt; {'some/dir/Bar.dat' =&gt; 'lib/Foo/Bar.dat'},
+     ...other stuff here...
+    );
+  $build-&gt;add_build_element('dat');
+  $build-&gt;create_build_script;
+
+</PRE>
+
+
+<P>
+
+If your extra files actually need to be created on the user's machine,
+or if they need some other kind of special processing, you'll probably
+want to subclass <TT>&quot;Module::Build&quot;</TT> and create a special method to
+process them, named <TT>&quot;process_${kind}_files()&quot;</TT>:
+<P>
+
+
+
+<PRE>
+  use Module::Build;
+  my $class = Module::Build-&gt;subclass(code =&gt; &lt;&lt;'EOF');
+    sub process_dat_files {
+      my $self = shift;
+      ... locate and process *.dat files,
+      ... and create something in blib/lib/
+    }
+  EOF
+  my $build = $class-&gt;new
+    (
+     module_name =&gt; 'Foo::Bar',
+     ...other stuff here...
+    );
+  $build-&gt;add_build_element('dat');
+  $build-&gt;create_build_script;
+
+</PRE>
+
+
+<P>
+
+If your extra files don't go in <I>lib/</I> but in some other place, see
+``Adding new elements to the install process'' for how to actually
+get them installed.
+<P>
+
+Please note that these examples use some capabilities of Module::Build
+that first appeared in version 0.26.  Before that it could
+still be done, but the simple cases took a bit more work.
+<A NAME="lbAP">&nbsp;</A>
+<H3>Adding new elements to the install process</H3>
+
+<A NAME="ixAAQ"></A>
+By default, Module::Build creates seven subdirectories of the <I>blib</I>
+directory during the build process: <I>lib</I>, <I>arch</I>, <I>bin</I>,
+<I>script</I>, <I>bindoc</I>, <I>libdoc</I>, and <I>html</I> (some of these may be
+missing or empty if there's nothing to go in them).  Anything copied
+to these directories during the build will eventually be installed
+during the <TT>&quot;install&quot;</TT> action (see ``<FONT SIZE="-1">INSTALL</FONT> <FONT SIZE="-1">PATHS</FONT>'' in Module::Build.
+<P>
+
+If you need to create a new custom type of installable element, e.g. <TT>&quot;conf&quot;</TT>,
+then you need to tell Module::Build where things in <I>blib/conf/</I>
+should be installed.  To do this, use the <TT>&quot;install_path&quot;</TT> parameter to
+the <TT>&quot;new()&quot;</TT> method:
+<P>
+
+
+
+<PRE>
+  my $build = Module::Build-&gt;new
+    (
+     ...other stuff here...
+     install_path =&gt; { conf =&gt; $installation_path }
+    );
+
+</PRE>
+
+
+<P>
+
+Or you can call the <TT>&quot;install_path()&quot;</TT> method later:
+<P>
+
+
+
+<PRE>
+  $build-&gt;install_path(conf =&gt; $installation_path);
+
+</PRE>
+
+
+<P>
+
+The user may also specify the path on the command line:
+<P>
+
+
+
+<PRE>
+  perl Build.PL --install_path conf=/foo/path/etc
+
+</PRE>
+
+
+<P>
+
+The important part, though, is that <I>somehow</I> the install path needs
+to be set, or else nothing in the <I>blib/conf/</I> directory will get
+installed, and a runtime error during the <TT>&quot;install&quot;</TT> action will
+result.
+<P>
+
+See also ``Adding new file types to the build process'' for how to
+create the stuff in <I>blib/conf/</I> in the first place.
+<A NAME="lbAQ">&nbsp;</A>
+<H2>EXAMPLES ON CPAN</H2>
+
+<A NAME="ixAAR"></A>
+Several distributions on <FONT SIZE="-1">CPAN</FONT> are making good use of various features
+of Module::Build.  They can serve as real-world examples for others.
+<A NAME="lbAR">&nbsp;</A>
+<H3>SVN-Notify-Mirror</H3>
+
+<A NAME="ixAAS"></A>
+&lt;<A HREF="http://search.cpan.org/~jpeacock/SVN-Notify-Mirror/">http://search.cpan.org/~jpeacock/SVN-Notify-Mirror/</A>&gt;
+<P>
+
+John Peacock, author of the <TT>&quot;SVN-Notify-Mirror&quot;</TT> distribution, says:
+<DL COMPACT>
+<DT>1. Using auto_features, I check to see whether two optional modules are available - SVN::Notify::Config and Net::SSH;<DD>
+
+
+<A NAME="ixAAT"></A>
+
+<DT>2. If the S::N::Config module is loaded, I automatically generate test files for it during Build (using the PL_files property).<DD>
+
+
+<A NAME="ixAAU"></A>
+<DT>3. If the ssh_feature is available, I ask if the user wishes to perform the ssh tests (since it requires a little preliminary setup);<DD>
+
+
+<A NAME="ixAAV"></A>
+<DT>4. Only if the user has ssh_feature and answers yes to the testing, do I generate a test file.<DD>
+
+
+<A NAME="ixAAW"></A>
+
+I'm sure I could not have handled this complexity with <FONT SIZE="-1">EU::MM</FONT>, but it
+was very easy to do with M::B.
+</DL>
+<A NAME="lbAS">&nbsp;</A>
+<H3>Modifying an action</H3>
+
+<A NAME="ixAAX"></A>
+Sometimes you might need an to have an action, say <TT>&quot;./Build install&quot;</TT>,
+do something unusual.  For instance, you might need to change the
+ownership of a file or do something else peculiar to your application.
+<P>
+
+You can subclass <TT>&quot;Module::Build&quot;</TT> on the fly using the <TT>&quot;subclass()&quot;</TT>
+method and override the methods that perform the actions.  You may
+need to read through <TT>&quot;Module::Build::Authoring&quot;</TT> and
+<TT>&quot;Module::Build::API&quot;</TT> to find the methods you want to override.  All
+``action'' methods are implemented by a method called ``<FONT SIZE="-1">ACTION_</FONT>'' followed
+by the action's name, so here's an example of how it would work for
+the <TT>&quot;install&quot;</TT> action:
+<P>
+
+
+
+<PRE>
+  # Build.PL
+  use Module::Build;
+  my $class = Module::Build-&gt;subclass(
+      class =&gt; &quot;Module::Build::Custom&quot;,
+      code =&gt; &lt;&lt;'SUBCLASS' );
+
+  sub ACTION_install {
+      my $self = shift;
+      # YOUR CODE HERE
+      $self-&gt;SUPER::ACTION_install;
+  }
+  SUBCLASS
+
+  $class-&gt;new(
+      module_name =&gt; 'Your::Module',
+      # rest of the usual Module::Build parameters
+  )-&gt;create_build_script;
+
+</PRE>
+
+
+<A NAME="lbAT">&nbsp;</A>
+<H3>Adding an action</H3>
+
+<A NAME="ixAAY"></A>
+You can add a new <TT>&quot;./Build&quot;</TT> action simply by writing the method for
+it in your subclass.  Use <TT>&quot;depends_on&quot;</TT> to declare that another action
+must have been run before your action.
+<P>
+
+For example, let's say you wanted to be able to write <TT>&quot;./Build
+commit&quot;</TT> to test your code and commit it to Subversion.
+<P>
+
+
+
+<PRE>
+  # Build.PL
+  use Module::Build;
+  my $class = Module::Build-&gt;subclass(
+      class =&gt; &quot;Module::Build::Custom&quot;,
+      code =&gt; &lt;&lt;'SUBCLASS' );
+
+  sub ACTION_commit {
+      my $self = shift;
+
+      $self-&gt;depends_on(&quot;test&quot;);
+      $self-&gt;do_system(qw(svn commit));
+  }
+  SUBCLASS
+
+</PRE>
+
+
+<A NAME="lbAU">&nbsp;</A>
+<H3>Bundling Module::Build</H3>
+
+<A NAME="ixAAZ"></A>
+Note: This section probably needs an update as the technology improves
+(see contrib/bundle.pl in the distribution).
+<P>
+
+Suppose you want to use some new-ish features of Module::Build,
+e.g. newer than the version of Module::Build your users are likely to
+already have installed on their systems.  The first thing you should
+do is set <TT>&quot;configure_requires&quot;</TT> to your minimum version of
+Module::Build.  See Module::Build::Authoring.
+<P>
+
+But not every build system honors <TT>&quot;configure_requires&quot;</TT> yet.  Here's
+how you can ship a copy of Module::Build, but still use a newer
+installed version to take advantage of any bug fixes and upgrades.
+<P>
+
+First, install Module::Build into <I>Your-Project/inc/Module-Build</I>.
+<FONT SIZE="-1">CPAN</FONT> will not index anything in the <I>inc</I> directory so this copy will
+not show up in <FONT SIZE="-1">CPAN</FONT> searches.
+<P>
+
+
+
+<PRE>
+    cd Module-Build
+    perl Build.PL --install_base /path/to/Your-Project/inc/Module-Build
+    ./Build test
+    ./Build install
+
+</PRE>
+
+
+<P>
+
+You should now have all the Module::Build .pm files in
+<I>Your-Project/inc/Module-Build/lib/perl5</I>.
+<P>
+
+Next, add this to the top of your <I>Build.PL</I>.
+<P>
+
+
+
+<PRE>
+    my $Bundled_MB = 0.30;  # or whatever version it was.
+
+    # Find out what version of Module::Build is installed or fail quietly.
+    # This should be cross-platform.
+    my $Installed_MB = 
+        `$^X -e &quot;eval q{require Module::Build; print Module::Build-&gt;VERSION} or exit 1&quot;;
+
+    # some operating systems put a newline at the end of every print.
+    chomp $Installed_MB;
+
+    $Installed_MB = 0 if $?;
+
+    # Use our bundled copy of Module::Build if it's newer than the installed.
+    unshift @INC, &quot;inc/Module-Build/lib/perl5&quot; if $Bundled_MB &gt; $Installed_MB;
+
+    require Module::Build;
+
+</PRE>
+
+
+<P>
+
+And write the rest of your <I>Build.PL</I> normally.  Module::Build will
+remember your change to <TT>@INC</TT> and use it when you run <I>./Build</I>.
+<P>
+
+In the future, we hope to provide a more automated solution for this
+scenario; see <TT>&quot;inc/latest.pm&quot;</TT> in the Module::Build distribution for
+one indication of the direction we're moving.
+<A NAME="lbAV">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABA"></A>
+Ken Williams &lt;<A HREF="mailto:kwilliams@cpan.org">kwilliams@cpan.org</A>&gt;
+<A NAME="lbAW">&nbsp;</A>
+<H2>COPYRIGHT</H2>
+
+<A NAME="ixABB"></A>
+Copyright (c) 2001-2008 Ken Williams.  All rights reserved.
+<P>
+
+This library is free software; you can redistribute it and/or
+modify it under the same terms as Perl itself.
+<A NAME="lbAX">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixABC"></A>
+<I><A HREF="/manpages/index.html?1+perl">perl</A></I>(1), <A HREF="http://localhost/cgi-bin/man/man2html?3+Module::Build">Module::Build</A>(3), <A HREF="http://localhost/cgi-bin/man/man2html?3+Module::Build::Authoring">Module::Build::Authoring</A>(3),
+<A HREF="/manpages/index.html?3+Module::Build::API">Module::Build::API</A>(3)
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">BASIC RECIPES</A><DD>
+<DL>
+<DT><A HREF="#lbAE">Installing modules that use Module::Build</A><DD>
+<DT><A HREF="#lbAF">Modifying Config.pm values</A><DD>
+<DT><A HREF="#lbAG">Installing modules using the programmatic interface</A><DD>
+<DT><A HREF="#lbAH">Installing to a temporary directory</A><DD>
+<DT><A HREF="#lbAI">Installing to a non-standard directory</A><DD>
+<DT><A HREF="#lbAJ">Installing in the same location as ExtUtils::MakeMaker</A><DD>
+<DT><A HREF="#lbAK">Running a single test file</A><DD>
+</DL>
+<DT><A HREF="#lbAL">ADVANCED RECIPES</A><DD>
+<DL>
+<DT><A HREF="#lbAM">Making a <FONT SIZE="-1">CPAN</FONT>.pm-compatible distribution</A><DD>
+<DT><A HREF="#lbAN">Changing the order of the build process</A><DD>
+<DT><A HREF="#lbAO">Adding new file types to the build process</A><DD>
+<DT><A HREF="#lbAP">Adding new elements to the install process</A><DD>
+</DL>
+<DT><A HREF="#lbAQ">EXAMPLES ON CPAN</A><DD>
+<DL>
+<DT><A HREF="#lbAR">SVN-Notify-Mirror</A><DD>
+<DT><A HREF="#lbAS">Modifying an action</A><DD>
+<DT><A HREF="#lbAT">Adding an action</A><DD>
+<DT><A HREF="#lbAU">Bundling Module::Build</A><DD>
+</DL>
+<DT><A HREF="#lbAV">AUTHOR</A><DD>
+<DT><A HREF="#lbAW">COPYRIGHT</A><DD>
+<DT><A HREF="#lbAX">SEE ALSO</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:34 GMT, December 24, 2015
+</div></body>
+</HTML>

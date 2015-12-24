@@ -1,0 +1,2050 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of Locale::Maketext</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>Locale::Maketext</H1>
+Section: Perl Programmers Reference Guide (3pm)<BR>Updated: 2009-02-12<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+
+
+
+
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+Locale::Maketext - framework for localization
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<A NAME="ixAAC"></A>
+
+
+<PRE>
+  package MyProgram;
+  use strict;
+  use MyProgram::L10N;
+   # ...which inherits from Locale::Maketext
+  my $lh = MyProgram::L10N-&gt;get_handle() || die &quot;What language?&quot;;
+  ...
+  # And then any messages your program emits, like:
+  warn $lh-&gt;maketext( &quot;Can't open file [_1]: [_2]\n&quot;, $f, $! );
+  ...
+
+</PRE>
+
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<A NAME="ixAAD"></A>
+It is a common feature of applications (whether run directly,
+or via the Web) for them to be ``localized'' --- i.e., for them
+to a present an English interface to an English-speaker, a German
+interface to a German-speaker, and so on for all languages it's
+programmed with.  Locale::Maketext
+is a framework for software localization; it provides you with the
+tools for organizing and accessing the bits of text and text-processing
+code that you need for producing localized applications.
+<P>
+
+In order to make sense of Maketext and how all its
+components fit together, you should probably
+go read Locale::Maketext::TPJ13, and
+<I>then</I> read the following documentation.
+<P>
+
+You may also want to read over the source for <TT>&quot;File::Findgrep&quot;</TT>
+and its constituent modules --- they are a complete (if small)
+example application that uses Maketext.
+<A NAME="lbAE">&nbsp;</A>
+<H2>QUICK OVERVIEW</H2>
+
+<A NAME="ixAAE"></A>
+The basic design of Locale::Maketext is object-oriented, and
+Locale::Maketext is an abstract base class, from which you
+derive a ``project class''.
+The project class (with a name like ``TkBocciBall::Localize'',
+which you then use in your module) is in turn the base class
+for all the ``language classes'' for your project
+(with names ``TkBocciBall::Localize::it'', 
+``TkBocciBall::Localize::en'',
+``TkBocciBall::Localize::fr'', etc.).
+<P>
+
+A language class is
+a class containing a lexicon of phrases as class data,
+and possibly also some methods that are of use in interpreting
+phrases in the lexicon, or otherwise dealing with text in that
+language.
+<P>
+
+An object belonging to a language class is called a ``language
+handle''; it's typically a flyweight object.
+<P>
+
+The normal course of action is to call:
+<P>
+
+
+
+<PRE>
+  use TkBocciBall::Localize;  # the localization project class
+  $lh = TkBocciBall::Localize-&gt;get_handle();
+   # Depending on the user's locale, etc., this will
+   # make a language handle from among the classes available,
+   # and any defaults that you declare.
+  die &quot;Couldn't make a language handle??&quot; unless $lh;
+
+</PRE>
+
+
+<P>
+
+From then on, you use the <TT>&quot;maketext&quot;</TT> function to access
+entries in whatever lexicon(s) belong to the language handle
+you got.  So, this:
+<P>
+
+
+
+<PRE>
+  print $lh-&gt;maketext(&quot;You won!&quot;), &quot;\n&quot;;
+
+</PRE>
+
+
+<P>
+
+...emits the right text for this language.  If the object
+in <TT>$lh</TT> belongs to class ``TkBocciBall::Localize::fr'' and
+<TT>%TkBocciBall::Localize::fr::Lexicon</TT> contains <TT>&quot;(&quot;You won!&quot;
+=&gt; &quot;Tu as gagne!&quot;)&quot;</TT>, then the above
+code happily tells the user ``Tu as gagne!''.
+<A NAME="lbAF">&nbsp;</A>
+<H2>METHODS</H2>
+
+<A NAME="ixAAF"></A>
+Locale::Maketext offers a variety of methods, which fall
+into three categories:
+<DL COMPACT>
+<DT>*<DD>
+Methods to do with constructing language handles.
+<DT>*<DD>
+<TT>&quot;maketext&quot;</TT> and other methods to do with accessing <TT>%Lexicon</TT> data
+for a given language handle.
+<DT>*<DD>
+Methods that you may find it handy to use, from routines of
+yours that you put in <TT>%Lexicon</TT> entries.
+</DL>
+<P>
+
+These are covered in the following section.
+<A NAME="lbAG">&nbsp;</A>
+<H3>Construction Methods</H3>
+
+<A NAME="ixAAG"></A>
+These are to do with constructing a language handle:
+<DL COMPACT>
+<DT>*<DD>
+<TT>$lh</TT> = YourProjClass-&gt;get_handle( ...langtags... ) || die ``lg-handle?'';
+
+
+<P>
+
+
+This tries loading classes based on the language-tags you give (like
+<TT>&quot;(&quot;en-US&quot;, &quot;sk&quot;, &quot;kon&quot;, &quot;es-MX&quot;, &quot;ja&quot;, &quot;i-klingon&quot;)&quot;</TT>, and for the first class
+that succeeds, returns YourProjClass::<I>language</I>-&gt;<I>new()</I>.
+
+
+<P>
+
+
+If it runs thru the entire given list of language-tags, and finds no classes
+for those exact terms, it then tries ``superordinate'' language classes.
+So if no ``en-US'' class (i.e., YourProjClass::en_us)
+was found, nor classes for anything else in that list, we then try
+its superordinate, ``en'' (i.e., YourProjClass::en), and so on thru 
+the other language-tags in the given list: ``es''.
+(The other language-tags in our example list: 
+happen to have no superordinates.)
+
+
+<P>
+
+
+If none of those language-tags leads to loadable classes, we then
+try classes derived from YourProjClass-&gt;<I>fallback_languages()</I> and
+then if nothing comes of that, we use classes named by
+YourProjClass-&gt;<I>fallback_language_classes()</I>.  Then in the (probably
+quite unlikely) event that that fails, we just return undef.
+<DT>*<DD>
+<TT>$lh</TT> = YourProjClass-&gt;get_handle<B>()</B> || die ``lg-handle?'';
+
+
+<P>
+
+
+When <TT>&quot;get_handle&quot;</TT> is called with an empty parameter list, magic happens:
+
+
+<P>
+
+
+If <TT>&quot;get_handle&quot;</TT> senses that it's running in program that was
+invoked as a <FONT SIZE="-1">CGI</FONT>, then it tries to get language-tags out of the
+environment variable ``<FONT SIZE="-1">HTTP_ACCEPT_LANGUAGE</FONT>'', and it pretends that
+those were the languages passed as parameters to <TT>&quot;get_handle&quot;</TT>.
+
+
+<P>
+
+
+Otherwise (i.e., if not a <FONT SIZE="-1">CGI</FONT>), this tries various OS-specific ways
+to get the language-tags for the current locale/language, and then
+pretends that those were the value(s) passed to <TT>&quot;get_handle&quot;</TT>.
+
+
+<P>
+
+
+Currently this OS-specific stuff consists of looking in the environment
+variables ``<FONT SIZE="-1">LANG</FONT>'' and ``<FONT SIZE="-1">LANGUAGE</FONT>''; and on MSWin machines (where those
+variables are typically unused), this also tries using
+the module Win32::Locale to get a language-tag for whatever language/locale
+is currently selected in the ``Regional Settings'' (or ``International''?)
+Control Panel.  I welcome further
+suggestions for making this do the Right Thing under other operating
+systems that support localization.
+
+
+<P>
+
+
+If you're using localization in an application that keeps a configuration
+file, you might consider something like this in your project class:
+
+
+<P>
+
+
+
+
+<PRE>
+  sub get_handle_via_config {
+    my $class = $_[0];
+    my $chosen_language = $Config_settings{'language'};
+    my $lh;
+    if($chosen_language) {
+      $lh = $class-&gt;get_handle($chosen_language)
+       || die &quot;No language handle for \&quot;$chosen_language\&quot; or the like&quot;;
+    } else {
+      # Config file missing, maybe?
+      $lh = $class-&gt;get_handle()
+       || die &quot;Can't get a language handle&quot;;
+    }
+    return $lh;
+  }
+
+</PRE>
+
+
+<DT>*<DD>
+<TT>$lh</TT> = YourProjClass::langname-&gt;<I>new()</I>;
+
+
+<P>
+
+
+This constructs a language handle.  You usually <B>don't</B> call this
+directly, but instead let <TT>&quot;get_handle&quot;</TT> find a language class to <TT>&quot;use&quot;</TT>
+and to then call -&gt;new on.
+<DT>*<DD>
+<TT>$lh</TT>-&gt;<I>init()</I>;
+
+
+<P>
+
+
+This is called by -&gt;new to initialize newly-constructed language handles.
+If you define an init method in your class, remember that it's usually
+considered a good idea to call <TT>$lh</TT>-&gt;SUPER::init in it (presumably at the
+beginning), so that all classes get a chance to initialize a new object
+however they see fit.
+<DT>*<DD>
+YourProjClass-&gt;<I>fallback_languages()</I>
+
+
+<P>
+
+
+<TT>&quot;get_handle&quot;</TT> appends the return value of this to the end of
+whatever list of languages you pass <TT>&quot;get_handle&quot;</TT>.  Unless
+you override this method, your project class
+will inherit Locale::Maketext's <TT>&quot;fallback_languages&quot;</TT>, which
+currently returns <TT>&quot;('i-default', 'en', 'en-US')&quot;</TT>.
+(``i-default'' is defined in <FONT SIZE="-1">RFC</FONT> 2277).
+
+
+<P>
+
+
+This method (by having it return the name
+of a language-tag that has an existing language class)
+can be used for making sure that
+<TT>&quot;get_handle&quot;</TT> will always manage to construct a language
+handle (assuming your language classes are in an appropriate
+<TT>@INC</TT> directory).  Or you can use the next method:
+<DT>*<DD>
+YourProjClass-&gt;<I>fallback_language_classes()</I>
+
+
+<P>
+
+
+<TT>&quot;get_handle&quot;</TT> appends the return value of this to the end
+of the list of classes it will try using.  Unless
+you override this method, your project class
+will inherit Locale::Maketext's <TT>&quot;fallback_language_classes&quot;</TT>,
+which currently returns an empty list, <TT>&quot;()&quot;</TT>.
+By setting this to some value (namely, the name of a loadable
+language class), you can be sure that
+<TT>&quot;get_handle&quot;</TT> will always manage to construct a language
+handle.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H3>The maketext Method</H3>
+
+
+
+<A NAME="ixAAH"></A>
+This is the most important method in Locale::Maketext:
+<P>
+
+
+
+<PRE>
+    $text = $lh-&gt;maketext(I&lt;key&gt;, ...parameters for this phrase...);
+
+</PRE>
+
+
+<P>
+
+This looks in the <TT>%Lexicon</TT> of the language handle
+<TT>$lh</TT> and all its superclasses, looking
+for an entry whose key is the string <I>key</I>.  Assuming such
+an entry is found, various things then happen, depending on the
+value found:
+<P>
+
+If the value is a scalarref, the scalar is dereferenced and returned
+(and any parameters are ignored).
+<P>
+
+If the value is a coderef, we return &amp;$value($lh, ...parameters...).
+<P>
+
+If the value is a string that <I>doesn't</I> look like it's in Bracket Notation,
+we return it (after replacing it with a scalarref, in its <TT>%Lexicon</TT>).
+<P>
+
+If the value <I>does</I> look like it's in Bracket Notation, then we compile
+it into a sub, replace the string in the <TT>%Lexicon</TT> with the new coderef,
+and then we return &amp;$new_sub($lh, ...parameters...).
+<P>
+
+Bracket Notation is discussed in a later section.  Note
+that trying to compile a string into Bracket Notation can throw
+an exception if the string is not syntactically valid (say, by not
+balancing brackets right.)
+<P>
+
+Also, calling &amp;$coderef($lh, ...parameters...) can throw any sort of
+exception (if, say, code in that sub tries to divide by zero).  But
+a very common exception occurs when you have Bracket
+Notation text that says to call a method ``foo'', but there is no such
+method.  (E.g., &quot;You have [qua<B>tn</B>,_1,ball].&quot; will throw an exception
+on trying to call <TT>$lh</TT>-&gt;qua<B>tn</B>($_[1],'ball') --- you presumably meant
+``quant''.)  <TT>&quot;maketext&quot;</TT> catches these exceptions, but only to make the
+error message more readable, at which point it rethrows the exception.
+<P>
+
+An exception <I>may</I> be thrown if <I>key</I> is not found in any
+of <TT>$lh</TT>'s <TT>%Lexicon</TT> hashes.  What happens if a key is not found,
+is discussed in a later section, ``Controlling Lookup Failure''.
+<P>
+
+Note that you might find it useful in some cases to override
+the <TT>&quot;maketext&quot;</TT> method with an ``after method'', if you want to
+translate encodings, or even scripts:
+<P>
+
+
+
+<PRE>
+    package YrProj::zh_cn; # Chinese with PRC-style glyphs
+    use base ('YrProj::zh_tw');  # Taiwan-style
+    sub maketext {
+      my $self = shift(@_);
+      my $value = $self-&gt;maketext(@_);
+      return Chineeze::taiwan2mainland($value);
+    }
+
+</PRE>
+
+
+<P>
+
+Or you may want to override it with something that traps
+any exceptions, if that's critical to your program:
+<P>
+
+
+
+<PRE>
+  sub maketext {
+    my($lh, @stuff) = @_;
+    my $out;
+    eval { $out = $lh-&gt;SUPER::maketext(@stuff) };
+    return $out unless $@;
+    ...otherwise deal with the exception...
+  }
+
+</PRE>
+
+
+<P>
+
+Other than those two situations, I don't imagine that
+it's useful to override the <TT>&quot;maketext&quot;</TT> method.  (If
+you run into a situation where it is useful, I'd be
+interested in hearing about it.)
+<DL COMPACT>
+<DT>$lh-&gt;fail_with <I>or</I> $lh-&gt;fail_with(<I></I><FONT SIZE="-1"><I>PARAM</I></FONT><I></I>)<DD>
+
+
+<A NAME="ixAAI"></A>
+
+<DT>$lh-&gt;failure_handler_auto<DD>
+
+
+<A NAME="ixAAJ"></A>
+
+These two methods are discussed in the section ``Controlling
+Lookup Failure''.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H3>Utility Methods</H3>
+
+<A NAME="ixAAK"></A>
+These are methods that you may find it handy to use, generally
+from <TT>%Lexicon</TT> routines of yours (whether expressed as
+Bracket Notation or not).
+<DL COMPACT>
+<DT>$language-&gt;quant($number, $singular)<DD>
+
+
+<A NAME="ixAAL"></A>
+
+<DT>$language-&gt;quant($number, $singular, $plural)<DD>
+
+
+<A NAME="ixAAM"></A>
+<DT>$language-&gt;quant($number, $singular, $plural, $negative)<DD>
+
+
+<A NAME="ixAAN"></A>
+
+This is generally meant to be called from inside Bracket Notation
+(which is discussed later), as in
+
+
+<P>
+
+
+
+
+<PRE>
+     &quot;Your search matched [quant,_1,document]!&quot;
+
+</PRE>
+
+
+
+
+<P>
+
+
+It's for <I>quantifying</I> a noun (i.e., saying how much of it there is,
+while giving the correct form of it).  The behavior of this method is
+handy for English and a few other Western European languages, and you
+should override it for languages where it's not suitable.  You can feel
+free to read the source, but the current implementation is basically
+as this pseudocode describes:
+
+
+<P>
+
+
+
+
+<PRE>
+     if $number is 0 and there's a $negative,
+        return $negative;
+     elsif $number is 1,
+        return &quot;1 $singular&quot;;
+     elsif there's a $plural,
+        return &quot;$number $plural&quot;;
+     else
+        return &quot;$number &quot; . $singular . &quot;s&quot;;
+     #
+     # ...except that we actually call numf to
+     #  stringify $number before returning it.
+
+</PRE>
+
+
+
+
+<P>
+
+
+So for English (with Bracket Notation)
+<TT>&quot;...[quant,_1,file]...&quot;</TT> is fine (for 0 it returns ``0 files'',
+for 1 it returns ``1 file'', and for more it returns ``2 files'', etc.)
+
+
+<P>
+
+
+But for ``directory'', you'd want <TT>&quot;[quant,_1,directory,directories]&quot;</TT>
+so that our elementary <TT>&quot;quant&quot;</TT> method doesn't think that the
+plural of ``directory'' is ``directorys''.  And you might find that the
+output may sound better if you specify a negative form, as in:
+
+
+<P>
+
+
+
+
+<PRE>
+     &quot;[quant,_1,file,files,No files] matched your query.\n&quot;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Remember to keep in mind verb agreement (or adjectives too, in
+other languages), as in:
+
+
+<P>
+
+
+
+
+<PRE>
+     &quot;[quant,_1,document] were matched.\n&quot;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Because if _1 is one, you get &quot;1 document <B>were</B> matched&quot;.
+An acceptable hack here is to do something like this:
+
+
+<P>
+
+
+
+
+<PRE>
+     &quot;[quant,_1,document was, documents were] matched.\n&quot;
+
+</PRE>
+
+
+<DT>$language-&gt;numf($number)<DD>
+
+
+<A NAME="ixAAO"></A>
+This returns the given number formatted nicely according to
+this language's conventions.  Maketext's default method is
+mostly to just take the normal string form of the number
+(applying sprintf ``%G'' for only very large numbers), and then
+to add commas as necessary.  (Except that
+we apply <TT>&quot;tr/,./.,/&quot;</TT> if <TT>$language</TT>-&gt;{'numf_comma'} is true;
+that's a bit of a hack that's useful for languages that express
+two million as ``2.000.000'' and not as ``2,000,000'').
+
+
+<P>
+
+
+If you want anything fancier, consider overriding this with something
+that uses Number::Format, or does something else
+entirely.
+
+
+<P>
+
+
+Note that numf is called by quant for stringifying all quantifying
+numbers.
+<DT>$language-&gt;sprintf($format, @items)<DD>
+
+
+<A NAME="ixAAP"></A>
+This is just a wrapper around Perl's normal <TT>&quot;sprintf&quot;</TT> function.
+It's provided so that you can use ``sprintf'' in Bracket Notation:
+
+
+<P>
+
+
+
+
+<PRE>
+     &quot;Couldn't access datanode [sprintf,%10x=~[%s~],_1,_2]!\n&quot;
+
+</PRE>
+
+
+
+
+<P>
+
+
+returning...
+
+
+<P>
+
+
+
+
+<PRE>
+     Couldn't access datanode      Stuff=[thangamabob]!
+
+</PRE>
+
+
+<DT>$language-&gt;<I>language_tag()</I><DD>
+
+
+<A NAME="ixAAQ"></A>
+Currently this just takes the last bit of <TT>&quot;ref($language)&quot;</TT>, turns
+underscores to dashes, and returns it.  So if <TT>$language</TT> is
+an object of class Hee::HOO::Haw::en_us, <TT>$language</TT>-&gt;<I>language_tag()</I>
+returns ``en-us''.  (Yes, the usual representation for that language
+tag is ``en-US'', but case is <I>never</I> considered meaningful in
+language-tag comparison.)
+
+
+<P>
+
+
+You may override this as you like; Maketext doesn't use it for
+anything.
+<DT>$language-&gt;<I>encoding()</I><DD>
+
+
+<A NAME="ixAAR"></A>
+Currently this isn't used for anything, but it's provided
+(with default value of
+<TT>&quot;(ref($language) &amp;&amp; $language-&gt;{'encoding'})) or &quot;iso-8859-1&quot;&quot;</TT>
+) as a sort of suggestion that it may be useful/necessary to
+associate encodings with your language handles (whether on a
+per-class or even per-handle basis.)
+</DL>
+<A NAME="lbAJ">&nbsp;</A>
+<H3>Language Handle Attributes and Internals</H3>
+
+<A NAME="ixAAS"></A>
+A language handle is a flyweight object --- i.e., it doesn't (necessarily)
+carry any data of interest, other than just being a member of
+whatever class it belongs to.
+<P>
+
+A language handle is implemented as a blessed hash.  Subclasses of yours
+can store whatever data you want in the hash.  Currently the only hash
+entry used by any crucial Maketext method is ``fail'', so feel free to
+use anything else as you like.
+<P>
+
+<B>Remember: Don't be afraid to read the Maketext source if there's
+any point on which this documentation is unclear.</B>  This documentation
+is vastly longer than the module source itself.
+<A NAME="lbAK">&nbsp;</A>
+<H2>LANGUAGE CLASS HIERARCHIES</H2>
+
+<A NAME="ixAAT"></A>
+These are Locale::Maketext's assumptions about the class
+hierarchy formed by all your language classes:
+<DL COMPACT>
+<DT>*<DD>
+You must have a project base class, which you load, and
+which you then use as the first argument in
+the call to YourProjClass-&gt;get_handle(...).  It should derive
+(whether directly or indirectly) from Locale::Maketext.
+It <B>doesn't matter</B> how you name this class, although assuming this
+is the localization component of your Super Mega Program,
+good names for your project class might be
+SuperMegaProgram::Localization, SuperMegaProgram::L10N,
+SuperMegaProgram::I18N, SuperMegaProgram::International,
+or even SuperMegaProgram::Languages or SuperMegaProgram::Messages.
+<DT>*<DD>
+Language classes are what YourProjClass-&gt;get_handle will try to load.
+It will look for them by taking each language-tag (<B>skipping</B> it
+if it doesn't look like a language-tag or locale-tag!), turning it to
+all lowercase, turning dashes to underscores, and appending it
+to YourProjClass . ``::''.  So this:
+
+
+<P>
+
+
+
+
+<PRE>
+  $lh = YourProjClass-&gt;get_handle(
+    'en-US', 'fr', 'kon', 'i-klingon', 'i-klingon-romanized'
+  );
+
+</PRE>
+
+
+
+
+<P>
+
+
+will try loading the classes 
+YourProjClass::en_us (note lowercase!), YourProjClass::fr, 
+YourProjClass::kon,
+YourProjClass::i_klingon
+and YourProjClass::i_klingon_romanized.  (And it'll stop at the
+first one that actually loads.)
+<DT>*<DD>
+I assume that each language class derives (directly or indirectly)
+from your project class, and also defines its <TT>@ISA</TT>, its <TT>%Lexicon</TT>,
+or both.  But I anticipate no dire consequences if these assumptions
+do not hold.
+<DT>*<DD>
+Language classes may derive from other language classes (although they
+should have &quot;use <I>Thatclassname</I>`` or ''use base qw(<I>...classes...</I>)&quot;).
+They may derive from the project
+class.  They may derive from some other class altogether.  Or via
+multiple inheritance, it may derive from any mixture of these.
+<DT>*<DD>
+I foresee no problems with having multiple inheritance in
+your hierarchy of language classes.  (As usual, however, Perl will
+complain bitterly if you have a cycle in the hierarchy: i.e., if
+any class is its own ancestor.)
+</DL>
+<A NAME="lbAL">&nbsp;</A>
+<H2>ENTRIES IN EACH LEXICON</H2>
+
+<A NAME="ixAAU"></A>
+A typical <TT>%Lexicon</TT> entry is meant to signify a phrase,
+taking some number (0 or more) of parameters.  An entry
+is meant to be accessed by via
+a string <I>key</I> in <TT>$lh</TT>-&gt;maketext(<I>key</I>, ...parameters...),
+which should return a string that is generally meant for
+be used for ``output'' to the user --- regardless of whether
+this actually means printing to <FONT SIZE="-1">STDOUT</FONT>, writing to a file,
+or putting into a <FONT SIZE="-1">GUI</FONT> widget.
+<P>
+
+While the key must be a string value (since that's a basic
+restriction that Perl places on hash keys), the value in
+the lexicon can currently be of several types:
+a defined scalar, scalarref, or coderef.  The use of these is
+explained above, in the section 'The ``maketext'' Method', and
+Bracket Notation for strings is discussed in the next section.
+<P>
+
+While you can use arbitrary unique IDs for lexicon keys
+(like ``_min_larger_max_error''), it is often
+useful for if an entry's key is itself a valid value, like
+this example error message:
+<P>
+
+
+
+<PRE>
+  &quot;Minimum ([_1]) is larger than maximum ([_2])!\n&quot;,
+
+</PRE>
+
+
+<P>
+
+Compare this code that uses an arbitrary <FONT SIZE="-1">ID</FONT>...
+<P>
+
+
+
+<PRE>
+  die $lh-&gt;maketext( &quot;_min_larger_max_error&quot;, $min, $max )
+   if $min &gt; $max;
+
+</PRE>
+
+
+<P>
+
+...to this code that uses a key-as-value:
+<P>
+
+
+
+<PRE>
+  die $lh-&gt;maketext(
+   &quot;Minimum ([_1]) is larger than maximum ([_2])!\n&quot;,
+   $min, $max
+  ) if $min &gt; $max;
+
+</PRE>
+
+
+<P>
+
+The second is, in short, more readable.  In particular, it's obvious
+that the number of parameters you're feeding to that phrase (two) is
+the number of parameters that it <I>wants</I> to be fed.  (Since you see
+_1 and a _2 being used in the key there.)
+<P>
+
+Also, once a project is otherwise
+complete and you start to localize it, you can scrape together
+all the various keys you use, and pass it to a translator; and then
+the translator's work will go faster if what he's presented is this:
+<P>
+
+
+
+<PRE>
+ &quot;Minimum ([_1]) is larger than maximum ([_2])!\n&quot;,
+  =&gt; &quot;&quot;,   # fill in something here, Jacques!
+
+</PRE>
+
+
+<P>
+
+rather than this more cryptic mess:
+<P>
+
+
+
+<PRE>
+ &quot;_min_larger_max_error&quot;
+  =&gt; &quot;&quot;,   # fill in something here, Jacques
+
+</PRE>
+
+
+<P>
+
+I think that keys as lexicon values makes the completed lexicon
+entries more readable:
+<P>
+
+
+
+<PRE>
+ &quot;Minimum ([_1]) is larger than maximum ([_2])!\n&quot;,
+  =&gt; &quot;Le minimum ([_1]) est plus grand que le maximum ([_2])!\n&quot;,
+
+</PRE>
+
+
+<P>
+
+Also, having valid values as keys becomes very useful if you set
+up an _AUTO lexicon.  _AUTO lexicons are discussed in a later
+section.
+<P>
+
+I almost always use keys that are themselves
+valid lexicon values.  One notable exception is when the value is
+quite long.  For example, to get the screenful of data that
+a command-line program might return when given an unknown switch,
+I often just use a brief, self-explanatory key such as ``_USAGE_MESSAGE''.  At that point I then go
+and immediately to define that lexicon entry in the
+ProjectClass::L10N::en lexicon (since English is always my ``project
+language''):
+<P>
+
+
+
+<PRE>
+  '_USAGE_MESSAGE' =&gt; &lt;&lt;'EOSTUFF',
+  ...long long message...
+  EOSTUFF
+
+</PRE>
+
+
+<P>
+
+and then I can use it as:
+<P>
+
+
+
+<PRE>
+  getopt('oDI', \%opts) or die $lh-&gt;maketext('_USAGE_MESSAGE');
+
+</PRE>
+
+
+<P>
+
+Incidentally,
+note that each class's <TT>%Lexicon</TT> inherits-and-extends
+the lexicons in its superclasses.  This is not because these are
+special hashes <I>per se</I>, but because you access them via the
+<TT>&quot;maketext&quot;</TT> method, which looks for entries across all the
+<TT>%Lexicon</TT> hashes in a language class <I>and</I> all its ancestor classes.
+(This is because the idea of ``class data'' isn't directly implemented
+in Perl, but is instead left to individual class-systems to implement
+as they see fit..)
+<P>
+
+Note that you may have things stored in a lexicon
+besides just phrases for output:  for example, if your program
+takes input from the keyboard, asking a ``(Y/N)'' question,
+you probably need to know what the equivalent of ``Y[es]/N[o]'' is
+in whatever language.  You probably also need to know what
+the equivalents of the answers ``y'' and ``n'' are.  You can
+store that information in the lexicon (say, under the keys
+``~answer_y'' and ``~answer_n'', and the long forms as
+``~answer_yes'' and ``~answer_no'', where ``~'' is just an ad-hoc
+character meant to indicate to programmers/translators that
+these are not phrases for output).
+<P>
+
+Or instead of storing this in the language class's lexicon,
+you can (and, in some cases, really should) represent the same bit
+of knowledge as code in a method in the language class.  (That
+leaves a tidy distinction between the lexicon as the things we
+know how to <I>say</I>, and the rest of the things in the lexicon class
+as things that we know how to <I>do</I>.)  Consider
+this example of a processor for responses to French ``oui/non''
+questions:
+<P>
+
+
+
+<PRE>
+  sub y_or_n {
+    return undef unless defined $_[1] and length $_[1];
+    my $answer = lc $_[1];  # smash case
+    return 1 if $answer eq 'o' or $answer eq 'oui';
+    return 0 if $answer eq 'n' or $answer eq 'non';
+    return undef;
+  }
+
+</PRE>
+
+
+<P>
+
+...which you'd then call in a construct like this:
+<P>
+
+
+
+<PRE>
+  my $response;
+  until(defined $response) {
+    print $lh-&gt;maketext(&quot;Open the pod bay door (y/n)? &quot;);
+    $response = $lh-&gt;y_or_n( get_input_from_keyboard_somehow() );
+  }
+  if($response) { $pod_bay_door-&gt;open()         }
+  else          { $pod_bay_door-&gt;leave_closed() }
+
+</PRE>
+
+
+<P>
+
+Other data worth storing in a lexicon might be things like
+filenames for language-targetted resources:
+<P>
+
+
+
+<PRE>
+  ...
+  &quot;_main_splash_png&quot;
+    =&gt; &quot;/styles/en_us/main_splash.png&quot;,
+  &quot;_main_splash_imagemap&quot;
+    =&gt; &quot;/styles/en_us/main_splash.incl&quot;,
+  &quot;_general_graphics_path&quot;
+    =&gt; &quot;/styles/en_us/&quot;,
+  &quot;_alert_sound&quot;
+    =&gt; &quot;/styles/en_us/hey_there.wav&quot;,
+  &quot;_forward_icon&quot;
+   =&gt; &quot;left_arrow.png&quot;,
+  &quot;_backward_icon&quot;
+   =&gt; &quot;right_arrow.png&quot;,
+  # In some other languages, left equals
+  #  BACKwards, and right is FOREwards.
+  ...
+
+</PRE>
+
+
+<P>
+
+You might want to do the same thing for expressing key bindings
+or the like (since hardwiring ``q'' as the binding for the function
+that quits a screen/menu/program is useful only if your language
+happens to associate ``q'' with ``quit''!)
+<A NAME="lbAM">&nbsp;</A>
+<H2>BRACKET NOTATION</H2>
+
+<A NAME="ixAAV"></A>
+Bracket Notation is a crucial feature of Locale::Maketext.  I mean
+Bracket Notation to provide a replacement for the use of sprintf formatting.
+Everything you do with Bracket Notation could be done with a sub block,
+but bracket notation is meant to be much more concise.
+<P>
+
+Bracket Notation is a like a miniature ``template'' system (in the sense
+of Text::Template, not in the sense of C<FONT SIZE="-2">++</FONT> templates),
+where normal text is passed thru basically as is, but text in special
+regions is specially interpreted.  In Bracket Notation, you use square brackets (``[...]''),
+not curly braces (``{...}'') to note sections that are specially interpreted.
+<P>
+
+For example, here all the areas that are taken literally are underlined with
+a ``^'', and all the in-bracket special regions are underlined with an X:
+<P>
+
+
+
+<PRE>
+  &quot;Minimum ([_1]) is larger than maximum ([_2])!\n&quot;,
+   ^^^^^^^^^ XX ^^^^^^^^^^^^^^^^^^^^^^^^^^ XX ^^^^
+
+</PRE>
+
+
+<P>
+
+When that string is compiled from bracket notation into a real Perl sub,
+it's basically turned into:
+<P>
+
+
+
+<PRE>
+  sub {
+    my $lh = $_[0];
+    my @params = @_;
+    return join '',
+      &quot;Minimum (&quot;,
+      ...some code here...
+      &quot;) is larger than maximum (&quot;,
+      ...some code here...
+      &quot;)!\n&quot;,
+  }
+  # to be called by $lh-&gt;maketext(KEY, params...)
+
+</PRE>
+
+
+<P>
+
+In other words, text outside bracket groups is turned into string
+literals.  Text in brackets is rather more complex, and currently follows
+these rules:
+<DL COMPACT>
+<DT>*<DD>
+Bracket groups that are empty, or which consist only of whitespace,
+are ignored.  (Examples: ``[]'', ``[    ]'', or a [ and a ] with returns
+and/or tabs and/or spaces between them.
+
+
+<P>
+
+
+Otherwise, each group is taken to be a comma-separated group of items,
+and each item is interpreted as follows:
+<DT>*<DD>
+An item that is &quot;_<I>digits</I>`` or ''_-<I>digits</I>&quot; is interpreted as
+<TT>$_</TT>[<I>value</I>].  I.e., ``_1'' becomes with <TT>$_</TT>[1], and ``_-3'' is interpreted
+as <TT>$_</TT>[-3] (in which case <TT>@_</TT> should have at least three elements in it).
+Note that <TT>$_</TT>[0] is the language handle, and is typically not named
+directly.
+<DT>*<DD>
+An item ``_*'' is interpreted to mean ``all of <TT>@_</TT> except <TT>$_</TT>[0]''.
+I.e., <TT>@_[1..$#_]</TT>.  Note that this is an empty list in the case
+of calls like <TT>$lh</TT>-&gt;maketext(<I>key</I>) where there are no
+parameters (except <TT>$_</TT>[0], the language handle).
+<DT>*<DD>
+Otherwise, each item is interpreted as a string literal.
+</DL>
+<P>
+
+The group as a whole is interpreted as follows:
+<DL COMPACT>
+<DT>*<DD>
+If the first item in a bracket group looks like a method name,
+then that group is interpreted like this:
+
+
+<P>
+
+
+
+
+<PRE>
+  $lh-&gt;that_method_name(
+    ...rest of items in this group...
+  ),
+
+</PRE>
+
+
+<DT>*<DD>
+If the first item in a bracket group is ``*'', it's taken as shorthand
+for the so commonly called ``quant'' method.  Similarly, if the first
+item in a bracket group is ``#'', it's taken to be shorthand for
+``numf''.
+<DT>*<DD>
+If the first item in a bracket group is the empty-string, or ``_*''
+or &quot;_<I>digits</I>`` or ''_-<I>digits</I>&quot;, then that group is interpreted
+as just the interpolation of all its items:
+
+
+<P>
+
+
+
+
+<PRE>
+  join('',
+    ...rest of items in this group...
+  ),
+
+</PRE>
+
+
+
+
+<P>
+
+
+Examples:  ``[_1]'' and ``[,_1]'', which are synonymous; and
+&quot;<TT>&quot;[,ID-(,_4,-,_2,)]&quot;</TT>&quot;, which compiles as
+<TT>&quot;join &quot;&quot;, &quot;ID-(&quot;, $_[4], &quot;-&quot;, $_[2], &quot;)&quot;&quot;</TT>.
+<DT>*<DD>
+Otherwise this bracket group is invalid.  For example, in the group
+``[!@#,whatever]'', the first item <TT>&quot;!@#&quot;</TT> is neither the empty-string,
+&quot;_<I>number</I>``, ''_-<I>number</I>``, ''_*&quot;, nor a valid method name; and so
+Locale::Maketext will throw an exception of you try compiling an
+expression containing this bracket group.
+</DL>
+<P>
+
+Note, incidentally, that items in each group are comma-separated,
+not <TT>&quot;/\s*,\s*/&quot;</TT>-separated.  That is, you might expect that this
+bracket group:
+<P>
+
+
+
+<PRE>
+  &quot;Hoohah [foo, _1 , bar ,baz]!&quot;
+
+</PRE>
+
+
+<P>
+
+would compile to this:
+<P>
+
+
+
+<PRE>
+  sub {
+    my $lh = $_[0];
+    return join '',
+      &quot;Hoohah &quot;,
+      $lh-&gt;foo( $_[1], &quot;bar&quot;, &quot;baz&quot;),
+      &quot;!&quot;,
+  }
+
+</PRE>
+
+
+<P>
+
+But it actually compiles as this:
+<P>
+
+
+
+<PRE>
+  sub {
+    my $lh = $_[0];
+    return join '',
+      &quot;Hoohah &quot;,
+      $lh-&gt;foo(&quot; _1 &quot;, &quot; bar &quot;, &quot;baz&quot;),  # note the &lt;space&gt; in &quot; bar &quot;
+      &quot;!&quot;,
+  }
+
+</PRE>
+
+
+<P>
+
+In the notation discussed so far, the characters ``['' and ``]'' are given
+special meaning, for opening and closing bracket groups, and ``,'' has
+a special meaning inside bracket groups, where it separates items in the
+group.  This begs the question of how you'd express a literal ``['' or
+``]'' in a Bracket Notation string, and how you'd express a literal
+comma inside a bracket group.  For this purpose I've adopted ``~'' (tilde)
+as an escape character:  ``~['' means a literal '[' character anywhere
+in Bracket Notation (i.e., regardless of whether you're in a bracket
+group or not), and ditto for ``~]'' meaning a literal ']', and ``~,'' meaning
+a literal comma.  (Altho ``,'' means a literal comma outside of
+bracket groups --- it's only inside bracket groups that commas are special.)
+<P>
+
+And on the off chance you need a literal tilde in a bracket expression,
+you get it with ``~~''.
+<P>
+
+Currently, an unescaped ``~'' before a character
+other than a bracket or a comma is taken to mean just a ``~'' and that
+character.  I.e., ``~X'' means the same as ``~~X'' --- i.e., one literal tilde,
+and then one literal ``X''.  However, by using ``~X'', you are assuming that
+no future version of Maketext will use ``~X'' as a magic escape sequence.
+In practice this is not a great problem, since first off you can just
+write ``~~X'' and not worry about it; second off, I doubt I'll add lots
+of new magic characters to bracket notation; and third off, you
+aren't likely to want literal ``~'' characters in your messages anyway,
+since it's not a character with wide use in natural language text.
+<P>
+
+Brackets must be balanced --- every openbracket must have
+one matching closebracket, and vice versa.  So these are all <B>invalid</B>:
+<P>
+
+
+
+<PRE>
+  &quot;I ate [quant,_1,rhubarb pie.&quot;
+  &quot;I ate [quant,_1,rhubarb pie[.&quot;
+  &quot;I ate quant,_1,rhubarb pie].&quot;
+  &quot;I ate quant,_1,rhubarb pie[.&quot;
+
+</PRE>
+
+
+<P>
+
+Currently, bracket groups do not nest.  That is, you <B>cannot</B> say:
+<P>
+
+
+
+<PRE>
+  &quot;Foo [bar,baz,[quux,quuux]]\n&quot;;
+
+</PRE>
+
+
+<P>
+
+If you need a notation that's that powerful, use normal Perl:
+<P>
+
+
+
+<PRE>
+  %Lexicon = (
+    ...
+    &quot;some_key&quot; =&gt; sub {
+      my $lh = $_[0];
+      join '',
+        &quot;Foo &quot;,
+        $lh-&gt;bar('baz', $lh-&gt;quux('quuux')),
+        &quot;\n&quot;,
+    },
+    ...
+  );
+
+</PRE>
+
+
+<P>
+
+Or write the ``bar'' method so you don't need to pass it the
+output from calling quux.
+<P>
+
+I do not anticipate that you will need (or particularly want)
+to nest bracket groups, but you are welcome to email me with
+convincing (real-life) arguments to the contrary.
+<A NAME="lbAN">&nbsp;</A>
+<H2>AUTO LEXICONS</H2>
+
+<A NAME="ixAAW"></A>
+If maketext goes to look in an individual <TT>%Lexicon</TT> for an entry
+for <I>key</I> (where <I>key</I> does not start with an underscore), and
+sees none, <B>but does see</B> an entry of ``_AUTO'' =&gt; <I>some_true_value</I>,
+then we actually define <TT>$Lexicon</TT>{<I>key</I>} = <I>key</I> right then and there,
+and then use that value as if it had been there all
+along.  This happens before we even look in any superclass <TT>%Lexicons</TT>!
+<P>
+
+(This is meant to be somewhat like the <FONT SIZE="-1">AUTOLOAD</FONT> mechanism in
+Perl's function call system --- or, looked at another way,
+like the AutoLoader module.)
+<P>
+
+I can picture all sorts of circumstances where you just
+do not want lookup to be able to fail (since failing
+normally means that maketext throws a <TT>&quot;die&quot;</TT>, although
+see the next section for greater control over that).  But
+here's one circumstance where _AUTO lexicons are meant to
+be <I>especially</I> useful:
+<P>
+
+As you're writing an application, you decide as you go what messages
+you need to emit.  Normally you'd go to write this:
+<P>
+
+
+
+<PRE>
+  if(-e $filename) {
+    go_process_file($filename)
+  } else {
+    print qq{Couldn't find file &quot;$filename&quot;!\n};
+  }
+
+</PRE>
+
+
+<P>
+
+but since you anticipate localizing this, you write:
+<P>
+
+
+
+<PRE>
+  use ThisProject::I18N;
+  my $lh = ThisProject::I18N-&gt;get_handle();
+   # For the moment, assume that things are set up so
+   # that we load class ThisProject::I18N::en
+   # and that that's the class that $lh belongs to.
+  ...
+  if(-e $filename) {
+    go_process_file($filename)
+  } else {
+    print $lh-&gt;maketext(
+      qq{Couldn't find file &quot;[_1]&quot;!\n}, $filename
+    );
+  }
+
+</PRE>
+
+
+<P>
+
+Now, right after you've just written the above lines, you'd
+normally have to go open the file 
+ThisProject/I18N/en.pm, and immediately add an entry:
+<P>
+
+
+
+<PRE>
+  &quot;Couldn't find file \&quot;[_1]\&quot;!\n&quot;
+  =&gt; &quot;Couldn't find file \&quot;[_1]\&quot;!\n&quot;,
+
+</PRE>
+
+
+<P>
+
+But I consider that somewhat of a distraction from the work
+of getting the main code working --- to say nothing of the fact
+that I often have to play with the program a few times before
+I can decide exactly what wording I want in the messages (which
+in this case would require me to go changing three lines of code:
+the call to maketext with that key, and then the two lines in
+ThisProject/I18N/en.pm).
+<P>
+
+However, if you set ``_AUTO =&gt; 1'' in the <TT>%Lexicon</TT> in,
+ThisProject/I18N/en.pm (assuming that English (en) is
+the language that all your programmers will be using for this
+project's internal message keys), then you don't ever have to
+go adding lines like this
+<P>
+
+
+
+<PRE>
+  &quot;Couldn't find file \&quot;[_1]\&quot;!\n&quot;
+  =&gt; &quot;Couldn't find file \&quot;[_1]\&quot;!\n&quot;,
+
+</PRE>
+
+
+<P>
+
+to ThisProject/I18N/en.pm, because if _AUTO is true there,
+then just looking for an entry with the key ``Couldn't find
+file \''[_1]\``!\n'' in that lexicon will cause it to be added,
+with that value!
+<P>
+
+Note that the reason that keys that start with ``_''
+are immune to _AUTO isn't anything generally magical about
+the underscore character --- I just wanted a way to have most
+lexicon keys be autoable, except for possibly a few, and I
+arbitrarily decided to use a leading underscore as a signal
+to distinguish those few.
+<A NAME="lbAO">&nbsp;</A>
+<H2>CONTROLLING LOOKUP FAILURE</H2>
+
+<A NAME="ixAAX"></A>
+If you call <TT>$lh</TT>-&gt;maketext(<I>key</I>, ...parameters...),
+and there's no entry <I>key</I> in <TT>$lh</TT>'s class's <TT>%Lexicon</TT>, nor
+in the superclass <TT>%Lexicon</TT> hash, <I>and</I> if we can't auto-make
+<I>key</I> (because either it starts with a ``_'', or because none
+of its lexicons have <TT>&quot;_AUTO =&gt; 1,&quot;</TT>), then we have
+failed to find a normal way to maketext <I>key</I>.  What then
+happens in these failure conditions, depends on the <TT>$lh</TT> object's
+``fail'' attribute.
+<P>
+
+If the language handle has no ``fail'' attribute, maketext
+will simply throw an exception (i.e., it calls <TT>&quot;die&quot;</TT>, mentioning
+the <I>key</I> whose lookup failed, and naming the line number where
+the calling <TT>$lh</TT>-&gt;maketext(<I>key</I>,...) was.
+<P>
+
+If the language handle has a ``fail'' attribute whose value is a
+coderef, then <TT>$lh</TT>-&gt;maketext(<I>key</I>,...params...) gives up and calls:
+<P>
+
+
+
+<PRE>
+  return $that_subref-&gt;($lh, $key, @params);
+
+</PRE>
+
+
+<P>
+
+Otherwise, the ``fail'' attribute's value should be a string denoting
+a method name, so that <TT>$lh</TT>-&gt;maketext(<I>key</I>,...params...) can
+give up with:
+<P>
+
+
+
+<PRE>
+  return $lh-&gt;$that_method_name($phrase, @params);
+
+</PRE>
+
+
+<P>
+
+The ``fail'' attribute can be accessed with the <TT>&quot;fail_with&quot;</TT> method:
+<P>
+
+
+
+<PRE>
+  # Set to a coderef:
+  $lh-&gt;fail_with( \&amp;failure_handler );
+
+  # Set to a method name:
+  $lh-&gt;fail_with( 'failure_method' );
+  
+  # Set to nothing (i.e., so failure throws a plain exception)
+  $lh-&gt;fail_with( undef );
+  
+  # Get the current value
+  $handler = $lh-&gt;fail_with();
+
+</PRE>
+
+
+<P>
+
+Now, as to what you may want to do with these handlers:  Maybe you'd
+want to log what key failed for what class, and then die.  Maybe
+you don't like <TT>&quot;die&quot;</TT> and instead you want to send the error message
+to <FONT SIZE="-1">STDOUT</FONT> (or wherever) and then merely <TT>&quot;exit()&quot;</TT>.
+<P>
+
+Or maybe you don't want to <TT>&quot;die&quot;</TT> at all!  Maybe you could use a
+handler like this:
+<P>
+
+
+
+<PRE>
+  # Make all lookups fall back onto an English value,
+  #  but only after we log it for later fingerpointing.
+  my $lh_backup = ThisProject-&gt;get_handle('en');
+  open(LEX_FAIL_LOG, &quot;&gt;&gt;wherever/lex.log&quot;) || die &quot;GNAARGH $!&quot;;
+  sub lex_fail {
+    my($failing_lh, $key, $params) = @_;
+    print LEX_FAIL_LOG scalar(localtime), &quot;\t&quot;,
+       ref($failing_lh), &quot;\t&quot;, $key, &quot;\n&quot;;
+    return $lh_backup-&gt;maketext($key,@params);
+  }
+
+</PRE>
+
+
+<P>
+
+Some users have expressed that they think this whole mechanism of
+having a ``fail'' attribute at all, seems a rather pointless complication.
+But I want Locale::Maketext to be usable for software projects of <I>any</I>
+scale and type; and different software projects have different ideas
+of what the right thing is to do in failure conditions.  I could simply
+say that failure always throws an exception, and that if you want to be
+careful, you'll just have to wrap every call to <TT>$lh</TT>-&gt;maketext in an
+eval&nbsp;{&nbsp;}.  However, I want programmers to reserve the right (via
+the ``fail'' attribute) to treat lookup failure as something other than
+an exception of the same level of severity as a config file being
+unreadable, or some essential resource being inaccessible.
+<P>
+
+One possibly useful value for the ``fail'' attribute is the method name
+``failure_handler_auto''.  This is a method defined in the class
+Locale::Maketext itself.  You set it with:
+<P>
+
+
+
+<PRE>
+  $lh-&gt;fail_with('failure_handler_auto');
+
+</PRE>
+
+
+<P>
+
+Then when you call <TT>$lh</TT>-&gt;maketext(<I>key</I>, ...parameters...) and
+there's no <I>key</I> in any of those lexicons, maketext gives up with
+<P>
+
+
+
+<PRE>
+  return $lh-&gt;failure_handler_auto($key, @params);
+
+</PRE>
+
+
+<P>
+
+But failure_handler_auto, instead of dying or anything, compiles
+<TT>$key</TT>, caching it in
+<P>
+
+
+
+<PRE>
+    $lh-&gt;{'failure_lex'}{$key} = $complied
+
+</PRE>
+
+
+<P>
+
+and then calls the compiled value, and returns that.  (I.e., if
+<TT>$key</TT> looks like bracket notation, <TT>$compiled</TT> is a sub, and we return
+&amp;{$compiled}(@params); but if <TT>$key</TT> is just a plain string, we just
+return that.)
+<P>
+
+The effect of using ``failure_auto_handler''
+is like an <FONT SIZE="-1">AUTO</FONT> lexicon, except that it 1) compiles <TT>$key</TT> even if
+it starts with ``_'', and 2) you have a record in the new hashref
+<TT>$lh</TT>-&gt;{'failure_lex'} of all the keys that have failed for
+this object.  This should avoid your program dying --- as long
+as your keys aren't actually invalid as bracket code, and as
+long as they don't try calling methods that don't exist.
+<P>
+
+``failure_auto_handler'' may not be exactly what you want, but I
+hope it at least shows you that maketext failure can be mitigated
+in any number of very flexible ways.  If you can formalize exactly
+what you want, you should be able to express that as a failure
+handler.  You can even make it default for every object of a given
+class, by setting it in that class's init:
+<P>
+
+
+
+<PRE>
+  sub init {
+    my $lh = $_[0];  # a newborn handle
+    $lh-&gt;SUPER::init();
+    $lh-&gt;fail_with('my_clever_failure_handler');
+    return;
+  }
+  sub my_clever_failure_handler {
+    ...you clever things here...
+  }
+
+</PRE>
+
+
+<A NAME="lbAP">&nbsp;</A>
+<H2>HOW TO USE MAKETEXT</H2>
+
+<A NAME="ixAAY"></A>
+Here is a brief checklist on how to use Maketext to localize
+applications:
+<DL COMPACT>
+<DT>*<DD>
+Decide what system you'll use for lexicon keys.  If you insist,
+you can use opaque IDs (if you're nostalgic for <TT>&quot;catgets&quot;</TT>),
+but I have better suggestions in the
+section ``Entries in Each Lexicon'', above.  Assuming you opt for
+meaningful keys that double as values (like ``Minimum ([_1]) is
+larger than maximum ([_2])!\n''), you'll have to settle on what
+language those should be in.  For the sake of argument, I'll
+call this English, specifically American English, ``en-US''.
+<DT>*<DD>
+Create a class for your localization project.  This is
+the name of the class that you'll use in the idiom:
+
+
+<P>
+
+
+
+
+<PRE>
+  use Projname::L10N;
+  my $lh = Projname::L10N-&gt;get_handle(...) || die &quot;Language?&quot;;
+
+</PRE>
+
+
+
+
+<P>
+
+
+Assuming you call your class Projname::L10N, create a class
+consisting minimally of:
+
+
+<P>
+
+
+
+
+<PRE>
+  package Projname::L10N;
+  use base qw(Locale::Maketext);
+  ...any methods you might want all your languages to share...
+  
+  # And, assuming you want the base class to be an _AUTO lexicon,
+  # as is discussed a few sections up:
+  
+  1;
+
+</PRE>
+
+
+<DT>*<DD>
+Create a class for the language your internal keys are in.  Name
+the class after the language-tag for that language, in lowercase,
+with dashes changed to underscores.  Assuming your project's first
+language is <FONT SIZE="-1">US</FONT> English, you should call this Projname::L10N::en_us.
+It should consist minimally of:
+
+
+<P>
+
+
+
+
+<PRE>
+  package Projname::L10N::en_us;
+  use base qw(Projname::L10N);
+  %Lexicon = (
+    '_AUTO' =&gt; 1,
+  );
+  1;
+
+</PRE>
+
+
+
+
+<P>
+
+
+(For the rest of this section, I'll assume that this ``first
+language class'' of Projname::L10N::en_us has
+_AUTO lexicon.)
+<DT>*<DD>
+Go and write your program.  Everywhere in your program where 
+you would say:
+
+
+<P>
+
+
+
+
+<PRE>
+  print &quot;Foobar $thing stuff\n&quot;;
+
+</PRE>
+
+
+
+
+<P>
+
+
+instead do it thru maketext, using no variable interpolation in
+the key:
+
+
+<P>
+
+
+
+
+<PRE>
+  print $lh-&gt;maketext(&quot;Foobar [_1] stuff\n&quot;, $thing);
+
+</PRE>
+
+
+
+
+<P>
+
+
+If you get tired of constantly saying <TT>&quot;print $lh-&gt;maketext&quot;</TT>,
+consider making a functional wrapper for it, like so:
+
+
+<P>
+
+
+
+
+<PRE>
+  use Projname::L10N;
+  use vars qw($lh);
+  $lh = Projname::L10N-&gt;get_handle(...) || die &quot;Language?&quot;;
+  sub pmt (@) { print( $lh-&gt;maketext(@_)) }
+   # &quot;pmt&quot; is short for &quot;Print MakeText&quot;
+  $Carp::Verbose = 1;
+   # so if maketext fails, we see made the call to pmt
+
+</PRE>
+
+
+
+
+<P>
+
+
+Besides whole phrases meant for output, anything language-dependent
+should be put into the class Projname::L10N::en_us,
+whether as methods, or as lexicon entries --- this is discussed
+in the section ``Entries in Each Lexicon'', above.
+<DT>*<DD>
+Once the program is otherwise done, and once its localization for
+the first language works right (via the data and methods in
+Projname::L10N::en_us), you can get together the data for translation.
+If your first language lexicon isn't an _AUTO lexicon, then you already
+have all the messages explicitly in the lexicon (or else you'd be
+getting exceptions thrown when you call <TT>$lh</TT>-&gt;maketext to get
+messages that aren't in there).  But if you were (advisedly) lazy and are
+using an _AUTO lexicon, then you've got to make a list of all the phrases
+that you've so far been letting _AUTO generate for you.  There are very
+many ways to assemble such a list.  The most straightforward is to simply
+grep the source for every occurrence of ``maketext'' (or calls
+to wrappers around it, like the above <TT>&quot;pmt&quot;</TT> function), and to log the
+following phrase.
+<DT>*<DD>
+You may at this point want to consider whether your base class 
+(Projname::L10N), from which all lexicons inherit from (Projname::L10N::en,
+Projname::L10N::es, etc.), should be an _AUTO lexicon.  It may be true
+that in theory, all needed messages will be in each language class;
+but in the presumably unlikely or ``impossible'' case of lookup failure,
+you should consider whether your program should throw an exception,
+emit text in English (or whatever your project's first language is),
+or some more complex solution as described in the section
+``Controlling Lookup Failure'', above.
+<DT>*<DD>
+Submit all messages/phrases/etc. to translators.
+
+
+<P>
+
+
+(You may, in fact, want to start with localizing to <I>one</I> other language
+at first, if you're not sure that you've properly abstracted the
+language-dependent parts of your code.)
+
+
+<P>
+
+
+Translators may request clarification of the situation in which a
+particular phrase is found.  For example, in English we are entirely happy
+saying &quot;<I>n</I> files found``, regardless of whether we mean ''I looked for files,
+and found <I>n</I> of them`` or the rather distinct situation of ''I looked for
+something else (like lines in files), and along the way I saw <I>n</I>
+files.``  This may involve rethinking things that you thought quite clear:
+should ''Edit`` on a toolbar be a noun (''editing``) or a verb (''to edit``)?  Is
+there already a conventionalized way to express that menu option, separate
+from the target language's normal word for ''to edit&quot;?
+
+
+<P>
+
+
+In all cases where the very common phenomenon of quantification
+(saying &quot;<I>N</I> files&quot;, for <B>any</B> value of N)
+is involved, each translator should make clear what dependencies the
+number causes in the sentence.  In many cases, dependency is
+limited to words adjacent to the number, in places where you might
+expect them (&quot;I found the-?PLURAL <I>N</I>
+empty-?PLURAL directory-?PLURAL``), but in some cases there are
+unexpected dependencies (''I found-?PLURAL ...``!) as well as long-distance
+dependencies ''The <I>N</I> directory-?PLURAL could not be deleted-?PLURAL&quot;!).
+
+
+<P>
+
+
+Remind the translators to consider the case where N is 0:
+``0 files found'' isn't exactly natural-sounding in any language, but it
+may be unacceptable in many --- or it may condition special
+kinds of agreement (similar to English ``I didN'T find <FONT SIZE="-1">ANY</FONT> files'').
+
+
+<P>
+
+
+Remember to ask your translators about numeral formatting in their
+language, so that you can override the <TT>&quot;numf&quot;</TT> method as
+appropriate.  Typical variables in number formatting are:  what to
+use as a decimal point (comma? period?); what to use as a thousands
+separator (space? nonbreaking space? comma? period? small
+middot? prime? apostrophe?); and even whether the so-called ``thousands
+separator'' is actually for every third digit --- I've heard reports of
+two hundred thousand being expressible as ``2,00,000'' for some Indian
+(Subcontinental) languages, besides the less surprising ``200&nbsp;000'',
+``200.000'', ``200,000'', and ``200'000''.  Also, using a set of numeral
+glyphs other than the usual <FONT SIZE="-1">ASCII</FONT> ``0''-``9'' might be appreciated, as via
+<TT>&quot;tr/0-9/\x{0966}-\x{096F}/&quot;</TT> for getting digits in Devanagari script
+(for Hindi, Konkani, others).
+
+
+<P>
+
+
+The basic <TT>&quot;quant&quot;</TT> method that Locale::Maketext provides should be
+good for many languages.  For some languages, it might be useful
+to modify it (or its constituent <TT>&quot;numerate&quot;</TT> method)
+to take a plural form in the two-argument call to <TT>&quot;quant&quot;</TT>
+(as in ``[quant,_1,files]'') if
+it's all-around easier to infer the singular form from the plural, than
+to infer the plural form from the singular.
+
+
+<P>
+
+
+But for other languages (as is discussed at length
+in Locale::Maketext::TPJ13), simple
+<TT>&quot;quant&quot;</TT>/<TT>&quot;numerify&quot;</TT> is not enough.  For the particularly problematic
+Slavic languages, what you may need is a method which you provide
+with the number, the citation form of the noun to quantify, and
+the case and gender that the sentence's syntax projects onto that
+noun slot.  The method would then be responsible for determining
+what grammatical number that numeral projects onto its noun phrase,
+and what case and gender it may override the normal case and gender
+with; and then it would look up the noun in a lexicon providing
+all needed inflected forms.
+<DT>*<DD>
+You may also wish to discuss with the translators the question of
+how to relate different subforms of the same language tag,
+considering how this reacts with <TT>&quot;get_handle&quot;</TT>'s treatment of
+these.  For example, if a user accepts interfaces in ``en, fr'', and
+you have interfaces available in ``en-US'' and ``fr'', what should
+they get?  You may wish to resolve this by establishing that ``en''
+and ``en-US'' are effectively synonymous, by having one class
+zero-derive from the other.
+
+
+<P>
+
+
+For some languages this issue may never come up (Danish is rarely
+expressed as ``da-DK'', but instead is just ``da'').  And for other
+languages, the whole concept of a ``generic'' form may verge on
+being uselessly vague, particularly for interfaces involving voice
+media in forms of Arabic or Chinese.
+<DT>*<DD>
+Once you've localized your program/site/etc. for all desired
+languages, be sure to show the result (whether live, or via
+screenshots) to the translators.  Once they approve, make every
+effort to have it then checked by at least one other speaker of
+that language.  This holds true even when (or especially when) the
+translation is done by one of your own programmers.  Some
+kinds of systems may be harder to find testers for than others,
+depending on the amount of domain-specific jargon and concepts
+involved --- it's easier to find people who can tell you whether
+they approve of your translation for ``delete this message'' in an
+email-via-Web interface, than to find people who can give you
+an informed opinion on your translation for ``attribute value''
+in an <FONT SIZE="-1">XML</FONT> query tool's interface.
+</DL>
+<A NAME="lbAQ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A NAME="ixAAZ"></A>
+I recommend reading all of these:
+<P>
+
+Locale::Maketext::TPJ13 --- my <I>The Perl
+Journal</I> article about Maketext.  It explains many important concepts
+underlying Locale::Maketext's design, and some insight into why
+Maketext is better than the plain old approach of having 
+message catalogs that are just databases of sprintf formats.
+<P>
+
+File::Findgrep is a sample application/module
+that uses Locale::Maketext to localize its messages.  For a larger
+internationalized system, see also Apache::MP3.
+<P>
+
+I18N::LangTags.
+<P>
+
+Win32::Locale.
+<P>
+
+<FONT SIZE="-1">RFC</FONT> 3066, <I>Tags for the Identification of Languages</I>,
+as at <A HREF="http://sunsite.dk/RFC/rfc/rfc3066.html">http://sunsite.dk/RFC/rfc/rfc3066.html</A>
+<P>
+
+<FONT SIZE="-1">RFC</FONT> 2277, <I></I><FONT SIZE="-1"><I>IETF</I></FONT><I> Policy on Character Sets and Languages</I>
+is at <A HREF="http://sunsite.dk/RFC/rfc/rfc2277.html">http://sunsite.dk/RFC/rfc/rfc2277.html</A> --- much of it is
+just things of interest to protocol designers, but it explains
+some basic concepts, like the distinction between locales and
+language-tags.
+<P>
+
+The manual for <FONT SIZE="-1">GNU</FONT> <TT>&quot;gettext&quot;</TT>.  The gettext dist is available in
+<TT>&quot;<A HREF="ftp://prep.ai.mit.edu/pub/gnu/">ftp://prep.ai.mit.edu/pub/gnu/</A>&quot;</TT> --- get
+a recent gettext tarball and look in its ``doc/'' directory, there's
+an easily browsable <FONT SIZE="-1">HTML</FONT> version in there.  The
+gettext documentation asks lots of questions worth thinking
+about, even if some of their answers are sometimes wonky,
+particularly where they start talking about pluralization.
+<P>
+
+The Locale/Maketext.pm source.  Obverse that the module is much
+shorter than its documentation!
+<A NAME="lbAR">&nbsp;</A>
+<H2>COPYRIGHT AND DISCLAIMER</H2>
+
+<A NAME="ixABA"></A>
+Copyright (c) 1999-2004 Sean M. Burke.  All rights reserved.
+<P>
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself.
+<P>
+
+This program is distributed in the hope that it will be useful, but
+without any warranty; without even the implied warranty of
+merchantability or fitness for a particular purpose.
+<A NAME="lbAS">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+<A NAME="ixABB"></A>
+Sean M. Burke <TT>&quot;<A HREF="mailto:sburke@cpan.org">sburke@cpan.org</A>&quot;</TT>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">QUICK OVERVIEW</A><DD>
+<DT><A HREF="#lbAF">METHODS</A><DD>
+<DL>
+<DT><A HREF="#lbAG">Construction Methods</A><DD>
+<DT><A HREF="#lbAH">The maketext Method</A><DD>
+<DT><A HREF="#lbAI">Utility Methods</A><DD>
+<DT><A HREF="#lbAJ">Language Handle Attributes and Internals</A><DD>
+</DL>
+<DT><A HREF="#lbAK">LANGUAGE CLASS HIERARCHIES</A><DD>
+<DT><A HREF="#lbAL">ENTRIES IN EACH LEXICON</A><DD>
+<DT><A HREF="#lbAM">BRACKET NOTATION</A><DD>
+<DT><A HREF="#lbAN">AUTO LEXICONS</A><DD>
+<DT><A HREF="#lbAO">CONTROLLING LOOKUP FAILURE</A><DD>
+<DT><A HREF="#lbAP">HOW TO USE MAKETEXT</A><DD>
+<DT><A HREF="#lbAQ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAR">COPYRIGHT AND DISCLAIMER</A><DD>
+<DT><A HREF="#lbAS">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:32 GMT, December 24, 2015
+</div></body>
+</HTML>

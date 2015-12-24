@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of UNAME</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>UNAME</H1>
+Section: Linux Programmer's Manual (2)<BR>Updated: 2008-12-03<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+uname - get name and information about current kernel
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>#include &lt;<A HREF="file:/usr/include/sys/utsname.h">sys/utsname.h</A>&gt;</B>
+
+<P>
+<B>int uname(struct utsname *</B><I>buf</I><B>);</B>
+
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+<B>uname</B>()
+
+returns system information in the structure pointed to by
+<I>buf</I>.
+
+The
+<I>utsname</I>
+
+struct is defined in
+<I>&lt;<A HREF="file:/usr/include/sys/utsname.h">sys/utsname.h</A>&gt;</I>:
+
+
+<PRE>
+
+struct utsname {
+    char sysname[];    /* Operating system name (e.g., &quot;Linux&quot;) */
+    char nodename[];   /* Name within &quot;some implementation-defined
+                          network&quot; */
+    char release[];    /* OS release (e.g., &quot;2.6.28&quot;) */
+    char version[];    /* OS version */
+    char machine[];    /* Hardware identifier */
+#ifdef _GNU_SOURCE
+    char domainname[]; /* NIS or YP domain name */
+#endif
+};
+
+</PRE>
+
+
+The length of the arrays in a
+<I>struct utsname</I>
+
+is unspecified (see NOTES);
+the fields are terminated by a null byte (aq\0aq).
+<A NAME="lbAE">&nbsp;</A>
+<H2>RETURN VALUE</H2>
+
+On success, zero is returned.
+On error, -1 is returned, and
+<I>errno</I>
+
+is set appropriately.
+<A NAME="lbAF">&nbsp;</A>
+<H2>ERRORS</H2>
+
+<DL COMPACT>
+<DT><B>EFAULT</B>
+
+<DD>
+<I>buf</I>
+
+is not valid.
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>CONFORMING TO</H2>
+
+SVr4, POSIX.1-2001.
+There is no
+<B>uname</B>()
+
+call in 4.3BSD.
+<P>
+
+The
+<I>domainname</I>
+
+member (the NIS or YP domain name) is a GNU extension.
+<A NAME="lbAH">&nbsp;</A>
+<H2>NOTES</H2>
+
+This is a system call, and the operating system presumably knows
+its name, release and version.
+It also knows what hardware it runs on.
+So, four of the fields of the struct are meaningful.
+On the other hand, the field <I>nodename</I> is meaningless:
+it gives the name of the present machine in some undefined
+network, but typically machines are in more than one network
+and have several names.
+Moreover, the kernel has no way of knowing
+about such things, so it has to be told what to answer here.
+The same holds for the additional <I>domainname</I> field.
+<P>
+
+To this end Linux uses the system calls
+<B><A HREF="/manpages/index.html?2+sethostname">sethostname</A></B>(2)
+
+and
+<B><A HREF="/manpages/index.html?2+setdomainname">setdomainname</A></B>(2).
+
+Note that there is no standard that says that the hostname set by
+<B><A HREF="/manpages/index.html?2+sethostname">sethostname</A></B>(2)
+
+is the same string as the <I>nodename</I> field of the struct returned by
+<B>uname</B>()
+
+(indeed, some systems allow a 256-byte hostname and an 8-byte nodename),
+but this is true on Linux.
+The same holds for
+<B><A HREF="/manpages/index.html?2+setdomainname">setdomainname</A></B>(2)
+
+and the <I>domainname</I> field.
+<P>
+
+The length of the fields in the struct varies.
+Some operating systems
+or libraries use a hardcoded 9 or 33 or 65 or 257.
+Other systems use
+<B>SYS_NMLN</B>
+
+or
+<B>_SYS_NMLN</B>
+
+or
+<B>UTSLEN</B>
+
+or
+<B>_UTSNAME_LENGTH</B>.
+
+Clearly, it is a bad
+idea to use any of these constants; just use sizeof(...).
+Often 257 is chosen in order to have room for an internet hostname.
+<P>
+
+Part of the utsname information is also accessible via
+<I>/proc/sys/kernel/</I>{<I>ostype</I>,
+
+<I>hostname</I>,
+
+<I>osrelease</I>,
+
+<I>version</I>,
+
+<I>domainname</I>}.
+
+<A NAME="lbAI">&nbsp;</A>
+<H3>Underlying kernel interface</H3>
+
+<P>
+
+Over time, increases in the size of the
+<I>utsname</I>
+
+structure have led to three successive versions of
+<B>uname</B>():
+
+<I>sys_olduname</I>()
+
+(slot
+<I>__NR_oldolduname</I>),
+
+<I>sys_uname</I>()
+
+(slot
+<I>__NR_olduname</I>),
+
+and
+<I>sys_newuname</I>()
+
+(slot
+<I>__NR_uname)</I>.
+
+The first one
+
+used length 9 for all fields;
+the second
+
+used 65;
+the third also uses 65 but adds the <I>domainname</I> field.
+The glibc
+<B>uname</B>()
+
+wrapper function hides these details from applications,
+invoking the most recent version of the system call provided by the kernel.
+<A NAME="lbAJ">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<B><A HREF="/manpages/index.html?1+uname">uname</A></B>(1),
+
+<B><A HREF="/manpages/index.html?2+getdomainname">getdomainname</A></B>(2),
+
+<B><A HREF="/manpages/index.html?2+gethostname">gethostname</A></B>(2)
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>COLOPHON</H2>
+
+This page is part of release 3.22 of the Linux
+<I>man-pages</I>
+
+project.
+A description of the project,
+and information about reporting bugs,
+can be found at
+<A HREF="http://www.kernel.org/doc/man-pages/.">http://www.kernel.org/doc/man-pages/.</A>
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">RETURN VALUE</A><DD>
+<DT><A HREF="#lbAF">ERRORS</A><DD>
+<DT><A HREF="#lbAG">CONFORMING TO</A><DD>
+<DT><A HREF="#lbAH">NOTES</A><DD>
+<DL>
+<DT><A HREF="#lbAI">Underlying kernel interface</A><DD>
+</DL>
+<DT><A HREF="#lbAJ">SEE ALSO</A><DD>
+<DT><A HREF="#lbAK">COLOPHON</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:05 GMT, December 24, 2015
+</div></body>
+</HTML>

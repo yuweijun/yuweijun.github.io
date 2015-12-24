@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of USERHELPER</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>USERHELPER</H1>
+Section: Maintenance Commands (8)<BR>Updated: January 8 2008<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+userhelper - A helper interface to PAM.
+<A NAME="lbAC">&nbsp;</A>
+<H2>SYNOPSIS</H2>
+
+<B>userhelper</B>
+
+[&nbsp;-t&nbsp;] [&nbsp;-w&nbsp;prog&nbsp;args&nbsp;] [&nbsp;-c&nbsp;] [&nbsp;-f&nbsp;full-name&nbsp;] [&nbsp;-o&nbsp;office&nbsp;] [&nbsp;-p&nbsp;office-phone&nbsp;] [&nbsp;-h&nbsp;home-phone&nbsp;] [&nbsp;-s&nbsp;shell&nbsp;] [&nbsp;username ]
+<P>
+<A NAME="lbAD">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+NOTE this program is NOT intended to be run interactively.  If you
+want to change this information on the command line use
+<I><A HREF="/manpages/index.html?1+passwd">passwd</A></I>(1),
+
+<I><A HREF="/manpages/index.html?1+chfn">chfn</A></I>(1),
+
+or
+<I><A HREF="/manpages/index.html?1+chsh">chsh</A></I>(1).
+
+<P>
+
+This program provides a basic interface to change a user's password, gecos
+information, and shell.  The main difference between this program and
+its traditional equivalents is that prompts are written to standard out
+to make it easy for a GUI wrapper to interface to it as a child process.
+<P>
+
+The output is in the form of:
+<DL COMPACT>
+<DT>&lt;number&gt; &lt;string&gt;<DD>
+</DL>
+<P>
+
+Where the number is the type of prompt returned from libpam, and the
+string is the prompt to give the user.
+<P>
+
+The prompt numbers are as follows:
+<DL COMPACT>
+<DT>1<DD>
+Prompt with visible input.
+<DT>2<DD>
+Prompt with invisible input.
+<DT>3<DD>
+Suggested answer for the current prompt.
+<DT>4<DD>
+Informational message.
+<DT>5<DD>
+Error message.
+<DT>6<DD>
+Count of messages sent in this block so far.
+<DT>7<DD>
+The name of the service being used.
+<DT>8<DD>
+Whether or not the command will be executed as the user if authentication fails.
+<DT>9<DD>
+The name of the user being authenticated.
+<P>
+</DL>
+<A NAME="lbAE">&nbsp;</A>
+<H2>OPTIONS</H2>
+
+<DL COMPACT>
+<DT><I>-t</I>
+
+<DD>
+Use text mode authentication instead of the numbered message types
+just described; only used with -w.
+<DT><I>-w</I>
+
+<DD>
+Specify a program name to be run and arguments to be passed to it.  userhelper
+will look in the file /etc/security/console.apps/<I>programname</I>
+for the name of a user to authenticate, the path of the binary to be run, and
+other settings described below.
+userhelper will then attempt to authenticate the user using PAM,
+specifying <I>programname</I> as the PAM service name.  If authentication
+succeeds, the binary will be run with superuser privileges.  If the
+configuration file specifies that PAM session management should be
+performed, userhelper will also open a PAM session before starting the
+program, and close the session when the program terminates.  If authentication
+fails, userhelper can be configured run the program with the user's privileges
+instead.
+<DT><I>-c </I>
+
+<DD>
+Change the current user's password.  Note that this option cannot be
+used with any of the other options.  This is due to the limitation in
+the interface to libpam.
+<DT><I>-f</I>
+
+<DD>
+Specify a new Full Name.
+<DT><I>-o</I>
+
+<DD>
+Specify a new Office.
+<DT><I>-p</I>
+
+<DD>
+Specify a new Office Phone.
+<DT><I>-h</I>
+
+<DD>
+Specify a new Home Phone.
+<DT><I>-s</I>
+
+<DD>
+Specify a new shell.
+</DL>
+<A NAME="lbAF">&nbsp;</A>
+<H2>WRAPPER CONFIGURATION</H2>
+
+The wrapper configuration file used with <I>-w</I> contains variable assignments
+and file inclusions.
+<P>
+A file inclusion line has the following form:
+<DL COMPACT><DT><DD>
+<B>. </B><I>path</I>
+
+</DL>
+
+(that is a dot and a space, followed by <I>path</I>).
+If
+<I>path</I>
+
+is relative, it is interpreted relative to the directory containing the current
+file.
+The file inclusion line is interpreted by inserting contents of
+<I>path</I>
+
+to the current file.
+Nested file inclusions are possible,
+recursive file inclusion results in undefined behavior.
+<P>
+A variable assignment line has the following form:
+<DL COMPACT><DT><DD>
+<I>name</I><B>=</B><I>value</I>
+</DL>
+
+No additional white space is allowed.
+If
+<I>value</I>
+
+is surrounded by a matching pair of
+<B></B>
+
+or
+<B>'</B>
+
+quotes, the quotes are removed;
+otherwise, the
+<B>\</B>
+
+characters are removed, except that
+<B>\\</B>
+
+is replaced by a single <B>\</B>.
+<P>
+The following variables are recognized:
+<DL COMPACT>
+<DT><I>USER</I>
+
+<DD>
+The name of the user userhelper should attempt to authenticate the invoking
+user as.  Typically this is <I>root</I>.  The special value <I>&lt;user&gt;</I> (which
+is also the default) indicates that userhelper should authenticate the invoking
+user. 
+<P>
+The special value <I>&lt;none&gt;</I> indicates that access should be denied;
+when used in conjunction with UGROUPS, members of the given groups can
+authenticate but all others are given an Insufficient Rights message.
+<DT><I>UGROUPS</I>
+
+<DD>
+A comma-separated list of groups whose members will be authenticated as if
+USER were set to the special value <I>&lt;user&gt;</I>. If the invoking user is not
+a member of one of these groups, the name defined in USER will be used as
+normal. For example, setting UGROUPS to <I>wheel</I> and USER to <I>root</I>
+allows members of <I>wheel</I> (traditionally used for administrative
+privileges) to authenticate with their own credentials and requires
+other users to provide the root password.
+<DT><I>PROGRAM</I>
+
+<DD>
+The name of the binary to execute if authentication succeeds.  This should
+always be specified as an absolute path.  If not specified, userhelper will
+attempt to run /sbin/<I>programname</I> first, and failing that, it will attempt
+to run /usr/sbin/<I>programname</I>.
+<DT><I>SESSION</I>
+
+<DD>
+Specifies whether or not userhelper should perform PAM session management
+when running the program.  Typically this is needed if the PAM configuration
+uses a module such as <I>pam_xauth.so</I> to forward X11 authentication tokens
+for use by the program.
+Valid values are <I>yes</I> and <I>no</I>, with the default being <I>no</I>.
+<DT><I>KEEP_ENV_VARS</I>
+
+<DD>
+A comma-separated list of names of environment variables that should be kept
+in the environment of the wrapped program.
+The environment is cleared by default
+and only a few selected variables are kept in the environment
+if they do not contain any potentially dangerous substrings.
+<DT><I>RETRY</I>
+
+<DD>
+Specifies the number of times userhelper should attempt to authenticate the
+user if the initial attempt fails.  The default value is 2, which causes
+userhelper to attempt to authenticate the user a total of 3 times.
+<DT><I>FALLBACK</I>
+
+<DD>
+Specifies whether or not the specified binary should be run with the invoking
+user's privileges if authentication fails.  This option is useful for running
+applications which gain additional abilities when run with superuser privileges,
+but which are still useful when run without them.
+<DT><I>NOXOPTION</I>
+
+<DD>
+The name of an option which, if passed to userhelper as an argument for the
+program it will run, will cause userhelper to behave as if the <I>-t</I> flag
+had been passed to it.
+<DT><I>GUI</I>
+
+<DD>
+Specifies whether or not userhelper should use consolehelper to present
+graphical dialog boxes when prompting the user for information.  This is
+the inverse of the <I>-t</I> option.
+Valid values are <I>yes</I> and <I>no</I>, with the default being <I>yes</I>.
+<DT><I>BANNER</I>
+
+<DD>
+Specifies specific text which userhelper should present to the user when
+userhelper prompts for information.  The default is a generic message based
+on the PAM service name.
+<DT><I>BANNER_DOMAIN</I>
+
+<DD>
+Specifies the text domain in which translations of the banner are stored.  This
+setting is deprecated in favor of the
+<I>DOMAIN</I>
+
+setting.
+<DT><I>DOMAIN</I>
+
+<DD>
+Specifies the text domain in which translations of strings are stored.  If this
+setting is specified, it overrides any setting for
+<I>BANNER_DOMAIN</I>
+
+which may also be set.
+<DT><I>STARTUP_NOTIFICATION_NAME</I>
+
+<DD>
+Specifies the startup notification name used for startup notification.
+<DT><I>STARTUP_NOTIFICATION_DESCRIPTION</I>
+
+<DD>
+Specifies the startup notification name used for startup notification.
+<DT><I>STARTUP_NOTIFICATION_WORKSPACE</I>
+
+<DD>
+Specifies the startup notification workspace used for startup notification.
+<DT><I>STARTUP_NOTIFICATION_WMCLASS</I>
+
+<DD>
+Specifies the startup notification binary wmclass used for startup notification.
+<DT><I>STARTUP_NOTIFICATION_BINARY_NAME</I>
+
+<DD>
+Specifies the startup notification binary name used for startup notification.
+<DT><I>STARTUP_NOTIFICATION_ICON_NAME</I>
+
+<DD>
+Specifies the startup notification icon name used for startup notification.
+<P>
+</DL>
+<A NAME="lbAG">&nbsp;</A>
+<H2>EXIT STATUS</H2>
+
+A non-zero exit status indicates an error occurred.  Those errors are:
+<DL COMPACT>
+<DT>1<DD>
+The authentication passwords was incorrect.
+<DT>2<DD>
+One or more of the GECOS fields is invalid.  This occurs when there is
+a colon supplied in one of the fields.
+<DT>3<DD>
+Password resetting error.
+<DT>4<DD>
+Some system files are locked.
+<DT>5<DD>
+User unknown.
+<DT>6<DD>
+Insufficient rights.
+<DT>7<DD>
+Invalid call to this program.
+<DT>8<DD>
+The shell provided is not valid (i.e., does not exist in /etc/shells).
+<DT>9<DD>
+Ran out of memory.
+<DT>10<DD>
+Could not find the program.
+<DT>11<DD>
+exec failed even though program exists.
+<DT>12<DD>
+the user canceled the operation.
+<DT>255<DD>
+Unknown error.
+</DL>
+<A NAME="lbAH">&nbsp;</A>
+<H2>FILES</H2>
+
+<DL COMPACT>
+<DT><I>/etc/passwd</I>
+
+<DD>
+The gecos and shell information is stored in this file.
+<DT><I>/etc/shells</I>
+
+<DD>
+This file is checked to see if the new shell supplied is valid.
+<DT><I>/etc/security/console.apps/prog</I>
+
+<DD>
+This file contains the values which will be used for the variables when
+userhelper is used with the <I>-w</I> flag.
+<DT><I>/etc/pam.d/prog</I>
+
+<DD>
+This file contains the PAM configuration used when userhelper is used with
+the <I>-w</I> flag.
+</DL>
+<A NAME="lbAI">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<I><A HREF="/manpages/index.html?1+userpasswd">userpasswd</A></I>(1),
+
+<I><A HREF="/manpages/index.html?1+userinfo">userinfo</A></I>(1),
+
+<I><A HREF="/manpages/index.html?8+consolehelper">consolehelper</A></I>(8),
+
+<I><A HREF="/manpages/index.html?1+chfn">chfn</A></I>(1),
+
+<I><A HREF="/manpages/index.html?1+chsh">chsh</A></I>(1),
+
+<I><A HREF="/manpages/index.html?5+passwd">passwd</A></I>(5)
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+Otto Hammersmith &lt;<A HREF="mailto:otto@redhat.com">otto@redhat.com</A>&gt;
+<BR>
+
+Michael K. Johnson &lt;<A HREF="mailto:johnsonm@redhat.com">johnsonm@redhat.com</A>&gt;
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">SYNOPSIS</A><DD>
+<DT><A HREF="#lbAD">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAE">OPTIONS</A><DD>
+<DT><A HREF="#lbAF">WRAPPER CONFIGURATION</A><DD>
+<DT><A HREF="#lbAG">EXIT STATUS</A><DD>
+<DT><A HREF="#lbAH">FILES</A><DD>
+<DT><A HREF="#lbAI">SEE ALSO</A><DD>
+<DT><A HREF="#lbAJ">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:34:31 GMT, December 24, 2015
+</div></body>
+</HTML>

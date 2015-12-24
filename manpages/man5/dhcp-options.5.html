@@ -1,0 +1,3162 @@
+<!DOCTYPE html>
+
+<HTML><head><TITLE>Manpage of dhcpd-options</TITLE>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/css/main.css" type="text/css">
+</head>
+<body>
+ <header class="site-header">
+ <div class="wrap"> <div class="site-title"><a href="/manpages/index.html">linux man pages</a></div>
+ <div class="site-description">{"type":"programming"}</div>
+ </div>
+ </header>
+ <div class="page-content">
+<H1>dhcpd-options</H1>
+Section: File Formats (5)<BR><A HREF="#index">Index</A>
+<A HREF="/manpages/index.html">Return to Main Contents</A><HR>
+
+<A NAME="lbAB">&nbsp;</A>
+<H2>NAME</H2>
+
+dhcp-options - Dynamic Host Configuration Protocol options
+<A NAME="lbAC">&nbsp;</A>
+<H2>DESCRIPTION</H2>
+
+The Dynamic Host Configuration protocol allows the client to receive
+<B>options</B>
+
+from the DHCP server describing the network configuration and various
+services that are available on the network.   When configuring
+<B><A HREF="/manpages/index.html?8+dhcpd">dhcpd</A>(8)</B>
+
+or
+<B><A HREF="/manpages/index.html?8+dhclient">dhclient</A>(8) ,</B>
+
+options must often be declared.   The syntax for declaring options,
+and the names and formats of the options that can be declared, are
+documented here.
+<A NAME="lbAD">&nbsp;</A>
+<H2>REFERENCE: OPTION STATEMENTS</H2>
+
+<P>
+
+DHCP <I>option</I> statements always start with the <I>option</I>
+keyword, followed by an option name, followed by option data.  The
+option names and data formats are described below.   It is not
+necessary to exhaustively specify all DHCP options - only those
+options which are needed by clients must be specified.
+<P>
+
+Option data comes in a variety of formats, as defined below:
+<P>
+
+The
+<B>ip-address</B>
+
+data type can be entered either as an explicit IP
+address (e.g., 239.254.197.10) or as a domain name (e.g.,
+haagen.isc.org).  When entering a domain name, be sure that that
+domain name resolves to a single IP address.
+<P>
+
+The
+<B>ip6-address</B>
+
+data specifies an IPv6 address, like ::1 or 3ffe:bbbb:aaaa:aaaa::1.
+<P>
+
+The
+<B>int32</B>
+
+data type specifies a signed 32-bit integer.   The 
+<B>uint32</B>
+
+data type specifies an unsigned 32-bit integer.   The 
+<B>int16</B>
+
+and
+<B>uint16</B>
+
+data types specify signed and unsigned 16-bit integers.   The 
+<B>int8</B>
+
+and
+<B>uint8</B>
+
+data types specify signed and unsigned 8-bit integers.
+Unsigned 8-bit integers are also sometimes referred to as octets.
+<P>
+
+The
+<B>text</B>
+
+data type specifies an NVT ASCII string, which must be
+enclosed in double quotes - for example, to specify a root-path
+option, the syntax would be
+<PRE>
+
+option root-path &quot;10.0.1.4:/var/tmp/rootfs&quot;;
+</PRE>
+
+<P>
+
+The
+<B>domain-name</B>
+
+data type specifies a domain name, which must not be
+enclosed in double quotes.   This data type is not used for any
+existing DHCP options.   The domain name is stored just as if it were
+a text option.
+<P>
+
+The
+<B>domain-list</B>
+
+data type specifies a list of domain names, enclosed in double quotes and
+separated by commas (&quot;example.com&quot;, &quot;foo.example.com&quot;).
+<P>
+
+The
+<B>flag</B>
+
+data type specifies a boolean value.   Booleans can be either true or
+false (or on or off, if that makes more sense to you).
+<P>
+
+The
+<B>string</B>
+
+data type specifies either an NVT ASCII string
+enclosed in double quotes, or a series of octets specified in
+hexadecimal, separated by colons.   For example:
+<PRE>
+
+  option dhcp-client-identifier &quot;CLIENT-FOO&quot;;
+or
+  option dhcp-client-identifier 43:4c:49:45:54:2d:46:4f:4f;
+</PRE>
+
+<P>
+
+The
+<B>destination-descriptor</B>
+
+describe the IP subnet number and subnet mask
+of a particular destination using a compact encoding. This encoding
+consists of one octet describing the width of the subnet mask,
+followed by all the significant octets of the subnet number.
+The following table contains some examples of how various subnet
+number/mask combinations can be encoded:
+<PRE>
+
+Subnet number   Subnet mask      Destination descriptor
+0               0                0
+10.0.0.0        255.0.0.0        8.10
+10.0.0.0        255.255.255.0    24.10.0.0
+10.17.0.0       255.255.0.0      16.10.17
+10.27.129.0     255.255.255.0    24.10.27.129
+10.229.0.128    255.255.255.128  25.10.229.0.128
+10.198.122.47   255.255.255.255  32.10.198.122.47
+</PRE>
+
+<A NAME="lbAE">&nbsp;</A>
+<H2>SETTING OPTION VALUES USING EXPRESSIONS</H2>
+
+Sometimes it's helpful to be able to set the value of a DHCP option
+based on some value that the client has sent.   To do this, you can
+use expression evaluation.   The 
+<B><A HREF="/manpages/index.html?5+dhcp-eval">dhcp-eval</A>(5)</B>
+
+manual page describes how to write expressions.   To assign the result
+of an evaluation to an option, define the option as follows:
+<PRE>
+
+  <B>option </B><I>my-option </I><B>= </B><I>expression </I><B>;</B>
+</PRE>
+
+<P>
+
+For example:
+<PRE>
+
+  option hostname = binary-to-ascii (16, 8, &quot;-&quot;,
+                                     substring (hardware, 1, 6));
+</PRE>
+
+<A NAME="lbAF">&nbsp;</A>
+<H2>STANDARD DHCPV4 OPTIONS</H2>
+
+The documentation for the various options mentioned below is taken
+from the latest IETF draft document on DHCP options.  Options not
+listed below may not yet be implemented, but it is possible to use
+such options by defining them in the configuration file.  Please see
+the DEFINING NEW OPTIONS heading later in this document for more
+information.
+<P>
+
+Some of the options documented here are automatically generated by
+the DHCP server or by clients, and cannot be configured by the user.
+The value of such an option can be used in the configuration file of
+the receiving DHCP protocol agent (server or client), for example in
+conditional expressions. However, the value of the option cannot be
+used in the configuration file of the sending agent, because the value
+is determined only <I>after</I> the configuration file has been
+processed. In the following documentation, such options will be shown
+as &quot;not user configurable&quot;
+<P>
+
+The standard options are:
+<P>
+
+<B>option all-subnets-local</B> <I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies whether or not the client may assume that all
+subnets of the IP network to which the client is connected use the
+same MTU as the subnet of that network to which the client is
+directly connected.  A value of true indicates that all subnets share
+the same MTU.  A value of false means that the client should assume that
+some subnets of the directly connected network may have smaller MTUs.
+</DL>
+
+<P>
+
+<B>option arp-cache-timeout</B> <I>uint32</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the timeout in seconds for ARP cache entries.
+</DL>
+
+<P>
+
+<B>option bcms-controller-address</B> <I>ip-address</I> [<B>,</B>
+
+<I>ip-address</I>... ]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+This option configures a list of IPv4 addresses for use as Broadcast and
+Multicast Controller Servers (&quot;BCMS&quot;).
+</DL>
+
+<P>
+
+<B>option bcms-controller-names</B> <I>domain-list</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option contains the domain names of local Broadcast and
+Multicast Controller Servers (&quot;BCMS&quot;) controllers which the client
+may use.
+</DL>
+
+<P>
+
+<B>option bootfile-name</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option is used to identify a bootstrap file.  If supported by the
+client, it should have the same effect as the <B>filename</B>
+declaration.  BOOTP clients are unlikely to support this option.  Some
+DHCP clients will support it, and others actually require it.
+</DL>
+
+<P>
+
+<B>option boot-size</B> <I>uint16</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the length in 512-octet blocks of the default
+boot image for the client.
+</DL>
+
+<P>
+
+<B>option broadcast-address</B> <I>ip-address</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the broadcast address in use on the client's
+subnet.  Legal values for broadcast addresses are specified in
+section 3.2.1.3 of STD 3 (RFC1122).
+</DL>
+
+<P>
+
+<B>option cookie-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The cookie server option specifies a list of RFC 865 cookie
+servers available to the client.  Servers should be listed in order
+of preference.
+</DL>
+
+<P>
+
+<B>option default-ip-ttl</B> <I>uint8;</I>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the default time-to-live that the client should
+use on outgoing datagrams.
+</DL>
+
+<P>
+
+<B>option default-tcp-ttl</B> <I>uint8</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the default TTL that the client should use when
+sending TCP segments.  The minimum value is 1.
+</DL>
+
+<P>
+
+<B>option default-url</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The format and meaning of this option is not described in any standards
+document, but is claimed to be in use by Apple Computer.  It is not known
+what clients may reasonably do if supplied with this option.  Use at your
+own risk.
+</DL>
+
+<P>
+
+<B>option dhcp-client-identifier</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option can be used to specify a DHCP client identifier in a
+host declaration, so that dhcpd can find the host record by matching
+against the client identifier.
+<P>
+
+Please be aware that some DHCP clients, when configured with client
+identifiers that are ASCII text, will prepend a zero to the ASCII
+text.   So you may need to write:
+<PRE>
+
+        option dhcp-client-identifier &quot;\0foo&quot;;
+
+rather than:
+
+        option dhcp-client-identifier &quot;foo&quot;;
+</PRE>
+
+</DL>
+
+<P>
+
+<B>option dhcp-lease-time</B> <I>uint32</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option is used in a client request (DHCPDISCOVER or DHCPREQUEST)
+to allow the client to request a lease time for the IP address.  In a
+server reply (DHCPOFFER), a DHCP server uses this option to specify
+the lease time it is willing to offer.                                    
+<P>
+
+This option is not directly user configurable in the server; refer to the
+<I>max-lease-time</I> and <I>default-lease-time</I> server options in
+<B><A HREF="/manpages/index.html?5+dhcpd.conf">dhcpd.conf</A>(5).</B>
+
+</DL>
+
+<P>
+
+<B>option dhcp-max-message-size</B> <I>uint16</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option, when sent by the client, specifies the maximum size of
+any response that the server sends to the client.   When specified on
+the server, if the client did not send a dhcp-max-message-size option,
+the size specified on the server is used.   This works for BOOTP as
+well as DHCP responses.
+</DL>
+
+<P>
+
+<B>option dhcp-message</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option is used by a DHCP server to provide an error message to a
+DHCP client in a DHCPNAK message in the event of a failure. A client
+may use this option in a DHCPDECLINE message to indicate why the
+client declined the offered parameters.
+<P>
+
+This option is not user configurable.
+</DL>
+
+<P>
+
+<B>option dhcp-message-type</B> <I>uint8</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option, sent by both client and server, specifies the type of DHCP
+message contained in the DHCP packet. Possible values (taken directly from
+RFC2132) are:
+<P>
+
+<PRE>
+             1     DHCPDISCOVER
+             2     DHCPOFFER
+             3     DHCPREQUEST
+             4     DHCPDECLINE
+             5     DHCPACK
+             6     DHCPNAK
+             7     DHCPRELEASE
+             8     DHCPINFORM               
+</PRE>
+
+<P>
+
+This option is not user configurable.
+<P>
+
+</DL>
+
+<B>option dhcp-option-overload</B> <I>uint8</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option is used to indicate that the DHCP 'sname' or 'file'
+fields are being overloaded by using them to carry DHCP options. A
+DHCP server inserts this option if the returned parameters will
+exceed the usual space allotted for options.
+<P>
+
+If this option is present, the client interprets the specified
+additional fields after it concludes interpretation of the standard
+option fields.
+<P>
+
+Legal values for this option are:
+<P>
+
+<PRE>
+             1     the 'file' field is used to hold options
+             2     the 'sname' field is used to hold options
+             3     both fields are used to hold options                        
+</PRE>
+
+<P>
+
+This option is not user configurable.
+<P>
+
+</DL>
+
+<P>
+
+<B>option dhcp-parameter-request-list</B> <I>uint16</I> [<B>,</B>
+
+<I>uint16</I>... ]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+This option, when sent by the client, specifies which options the
+client wishes the server to return.   Normally, in the ISC DHCP
+client, this is done using the <I>request</I> statement.   If this
+option is not specified by the client, the DHCP server will normally
+return every option that is valid in scope and that fits into the
+reply.   When this option is specified on the server, the server
+returns the specified options.   This can be used to force a client to
+take options that it hasn't requested, and it can also be used to
+tailor the response of the DHCP server for clients that may need a
+more limited set of options than those the server would normally
+return.
+</DL>
+
+<P>
+
+<B>option dhcp-rebinding-time</B> <I>uint32</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the number of seconds from the time a client gets
+an address until the client transitions to the REBINDING state.
+<P>
+
+This option is not user configurable.
+<P>
+
+</DL>
+
+<P>
+
+<B>option dhcp-renewal-time</B> <I>uint32</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the number of seconds from the time a client gets
+an address until the client transitions to the RENEWING state.
+<P>
+
+This option is not user configurable.
+<P>
+
+</DL>
+
+<P>
+
+<B>option dhcp-requested-address</B> <I>ip-address</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option is used by the client in a DHCPDISCOVER to
+request that a particular IP address be assigned.                 
+<P>
+
+This option is not user configurable.
+<P>
+
+</DL>
+
+<P>
+
+<B>option dhcp-server-identifier</B> <I>ip-address</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option is used in DHCPOFFER and DHCPREQUEST messages, and may
+optionally be included in the DHCPACK and DHCPNAK messages.  DHCP
+servers include this option in the DHCPOFFER in order to allow the
+client to distinguish between lease offers.  DHCP clients use the
+contents of the 'server identifier' field as the destination address
+for any DHCP messages unicast to the DHCP server.  DHCP clients also
+indicate which of several lease offers is being accepted by including
+this option in a DHCPREQUEST message.
+<P>
+
+The value of this option is the IP address of the server.
+<P>
+
+This option is not directly user configurable. See the 
+<I>server-identifier</I> server option in
+<B></B><I><A HREF="/manpages/index.html?5+dhcpd.conf">dhcpd.conf</A>(5).</I>
+
+<P>
+
+</DL>
+
+<P>
+
+<B>option domain-name</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the domain name that client should use when
+resolving hostnames via the Domain Name System.
+</DL>
+
+<P>
+
+<B>option domain-name-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The domain-name-servers option specifies a list of Domain Name System
+(STD 13, RFC 1035) name servers available to the client.  Servers
+should be listed in order of preference.
+</DL>
+
+<P>
+
+<B>option domain-search</B> <I>domain-list</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The domain-search option specifies a 'search list' of Domain Names to be
+used by the client to locate not-fully-qualified domain names.  The difference
+between this option and historic use of the domain-name option for the same
+ends is that this option is encoded in RFC1035 compressed labels on the wire.
+For example:
+<PRE>
+
+  option domain-search &quot;example.com&quot;, &quot;sales.example.com&quot;,
+                       &quot;eng.example.com&quot;;
+</PRE>
+
+</DL>
+
+<P>
+
+<B>option extensions-path</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the name of a file containing additional options
+to be interpreted according to the DHCP option format as specified in
+RFC2132.
+</DL>
+
+<P>
+
+<B>option finger-server</B> <I>ip-address</I> [<B>,</B>
+
+<I>ip-address</I>... ]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The Finger server option specifies a list of Finger servers available
+to the client.  Servers should be listed in order of preference.
+</DL>
+
+<P>
+
+<B>option font-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies a list of X Window System Font servers available
+to the client. Servers should be listed in order of preference.
+</DL>
+
+<P>
+
+<B>option host-name</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the name of the client.  The name may or may
+not be qualified with the local domain name (it is preferable to use
+the domain-name option to specify the domain name).  See RFC 1035 for
+character set restrictions.  This option is only honored by
+<B><A HREF="/manpages/index.html?8+dhclient-script">dhclient-script</A>(8)</B>
+
+if the hostname for the client machine is not set.
+</DL>
+
+<P>
+
+<B>option ieee802-3-encapsulation</B> <I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies whether or not the client should use Ethernet
+Version 2 (RFC 894) or IEEE 802.3 (RFC 1042) encapsulation if the
+interface is an Ethernet.  A value of false indicates that the client
+should use RFC 894 encapsulation.  A value of true means that the client
+should use RFC 1042 encapsulation.
+</DL>
+
+<P>
+
+<B>option ien116-name-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+];
+<DL COMPACT><DT><DD>
+<P>
+
+The ien116-name-servers option specifies a list of IEN 116 name servers
+available to the client.  Servers should be listed in order of
+preference.
+</DL>
+
+<P>
+
+<B>option impress-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The impress-server option specifies a list of Imagen Impress servers
+available to the client.  Servers should be listed in order of
+preference.
+</DL>
+
+<P>
+
+<B>option interface-mtu</B> <I>uint16</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the MTU to use on this interface.   The minimum
+legal value for the MTU is 68.
+</DL>
+
+<P>
+
+<B>option ip-forwarding</B> <I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies whether the client should configure its IP
+layer for packet forwarding.  A value of false means disable IP
+forwarding, and a value of true means enable IP forwarding.
+</DL>
+
+<P>
+
+<B>option irc-server</B> <I>ip-address</I> [<B>,</B>
+
+<I>ip-address</I>... ]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The IRC server option specifies a list of IRC servers available
+to the client.  Servers should be listed in order of preference.
+</DL>
+
+<P>
+
+<B>option log-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The log-server option specifies a list of MIT-LCS UDP log servers
+available to the client.  Servers should be listed in order of
+preference.
+</DL>
+
+<P>
+
+<B>option lpr-servers</B> <I>ip-address </I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The LPR server option specifies a list of RFC 1179 line printer
+servers available to the client.  Servers should be listed in order
+of preference.
+</DL>
+
+<P>
+
+<B>option mask-supplier</B> <I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies whether or not the client should respond to
+subnet mask requests using ICMP.  A value of false indicates that the
+client should not respond.  A value of true means that the client should
+respond.
+</DL>
+
+<P>
+
+<B>option max-dgram-reassembly</B> <I>uint16</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the maximum size datagram that the client
+should be prepared to reassemble.  The minimum legal value is
+576.
+</DL>
+
+<P>
+
+<B>option merit-dump</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the path-name of a file to which the client's
+core image should be dumped in the event the client crashes.  The
+path is formatted as a character string consisting of characters from
+the NVT ASCII character set.
+</DL>
+
+<P>
+
+<B>option mobile-ip-home-agent</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>... ]<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies a list of IP addresses indicating mobile IP
+home agents available to the client.  Agents should be listed in
+order of preference, although normally there will be only one such
+agent.
+</DL>
+
+<P>
+
+<B>option nds-context</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The nds-context option specifies the name of the initial Netware
+Directory Service for an NDS client.
+</DL>
+
+<P>
+
+<B>option nds-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>... ]<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The nds-servers option specifies a list of IP addresses of NDS servers.
+</DL>
+
+<P>
+
+<B>option nds-tree-name</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The nds-tree-name option specifies NDS tree name that the NDS client
+should use.
+</DL>
+
+<P>
+
+<B>option netbios-dd-server</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The NetBIOS datagram distribution server (NBDD) option specifies a
+list of RFC 1001/1002 NBDD servers listed in order of preference.
+</DL>
+
+<P>
+
+<B>option netbios-name-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...]<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The NetBIOS name server (NBNS) option specifies a list of RFC
+1001/1002 NBNS name servers listed in order of preference.   NetBIOS
+Name Service is currently more commonly referred to as WINS.   WINS
+servers can be specified using the netbios-name-servers option.
+</DL>
+
+<P>
+
+<B>option netbios-node-type</B> <I>uint8</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The NetBIOS node type option allows NetBIOS over TCP/IP clients which
+are configurable to be configured as described in RFC 1001/1002.  The
+value is specified as a single octet which identifies the client type.
+<P>
+
+Possible node types are:
+<P>
+
+<DL COMPACT>
+<DT><I>1</I>
+
+<DD>
+B-node: Broadcast - no WINS
+<DT><I>2</I>
+
+<DD>
+P-node: Peer - WINS only
+<DT><I>4</I>
+
+<DD>
+M-node: Mixed - broadcast, then WINS
+<DT><I>8</I>
+
+<DD>
+H-node: Hybrid - WINS, then broadcast
+</DL>
+</DL>
+
+<P>
+
+<B>option netbios-scope</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The NetBIOS scope option specifies the NetBIOS over TCP/IP scope
+parameter for the client as specified in RFC 1001/1002. See RFC1001,
+RFC1002, and RFC1035 for character-set restrictions.
+</DL>
+
+<P>
+
+<B>option netinfo-server-address</B> <I>ip-address</I> [<B>,</B>
+
+<I>ip-address</I>... ]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>netinfo-server-address</B> option has not been described in any
+RFC, but has been allocated (and is claimed to be in use) by Apple
+Computers.  It's hard to say if the above is the correct format, or
+what clients might be expected to do if values were configured.  Use
+at your own risk.
+</DL>
+
+<P>
+
+<B>option netinfo-server-tag</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>netinfo-server-tag</B> option has not been described in any
+RFC, but has been allocated (and is claimed to be in use) by Apple
+Computers.  It's hard to say if the above is the correct format,
+or what clients might be expected to do if values were configured.  Use
+at your own risk.
+</DL>
+
+<P>
+
+<B>option nis-domain</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the name of the client's NIS (Sun Network
+Information Services) domain.  The domain is formatted as a character
+string consisting of characters from the NVT ASCII character set.
+</DL>
+
+<P>
+
+<B>option nis-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies a list of IP addresses indicating NIS servers
+available to the client.  Servers should be listed in order of
+preference.
+</DL>
+
+<P>
+
+<B>option nisplus-domain</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the name of the client's NIS+ domain.  The
+domain is formatted as a character string consisting of characters
+from the NVT ASCII character set.
+</DL>
+
+<P>
+
+<B>option nisplus-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies a list of IP addresses indicating NIS+ servers
+available to the client.  Servers should be listed in order of
+preference.
+</DL>
+
+<P>
+
+<B>option nntp-server</B> <I>ip-address</I> [<B>,</B>
+
+<I>ip-address</I>... ]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The NNTP server option specifies a list of NNTP servesr available
+to the client.  Servers should be listed in order of preference.
+</DL>
+
+<P>
+
+<B>option non-local-source-routing</B> <I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies whether the client should configure its IP
+layer to allow forwarding of datagrams with non-local source routes
+(see Section 3.3.5 of [4] for a discussion of this topic).  A value
+of false means disallow forwarding of such datagrams, and a value of true
+means allow forwarding.
+</DL>
+
+<P>
+
+<B>option ntp-servers</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies a list of IP addresses indicating NTP (RFC 1035)
+servers available to the client.  Servers should be listed in order
+of preference.
+</DL>
+
+<P>
+
+<B>option nwip-domain</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The name of the NetWare/IP domain that a NetWare/IP client should
+use.
+</DL>
+
+<P>
+
+<B>option nwip-suboptions</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+A sequence of suboptions for NetWare/IP clients - see RFC2242 for
+details.   Normally this option is set by specifying specific
+NetWare/IP suboptions - see the NETWARE/IP SUBOPTIONS section for more
+information.
+</DL>
+
+<P>
+
+<B>option path-mtu-aging-timeout</B> <I>uint32</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the timeout (in seconds) to use when aging Path
+MTU values discovered by the mechanism defined in RFC 1191.
+</DL>
+
+<P>
+
+<B>option path-mtu-plateau-table</B> <I>uint16</I> [<B>,</B> <I>uint16</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies a table of MTU sizes to use when performing
+Path MTU Discovery as defined in RFC 1191.  The table is formatted as
+a list of 16-bit unsigned integers, ordered from smallest to largest.
+The minimum MTU value cannot be smaller than 68.
+</DL>
+
+<P>
+
+<B>option perform-mask-discovery</B> <I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies whether or not the client should perform subnet
+mask discovery using ICMP.  A value of false indicates that the client
+should not perform mask discovery.  A value of true means that the
+client should perform mask discovery.
+</DL>
+
+<P>
+
+<PRE>
+<B>option policy-filter</B> <I>ip-address ip-address</I>
+                  [<B>,</B> <I>ip-address ip-address</I>...]<B>;</B>
+</PRE>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies policy filters for non-local source routing.
+The filters consist of a list of IP addresses and masks which specify
+destination/mask pairs with which to filter incoming source routes.
+<P>
+
+Any source routed datagram whose next-hop address does not match one
+of the filters should be discarded by the client.
+<P>
+
+See STD 3 (RFC1122) for further information.
+</DL>
+
+<P>
+
+<B>option pop-server</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>... ]<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The POP3 server option specifies a list of POP3 servers available
+to the client.  Servers should be listed in order of preference.
+</DL>
+
+<P>
+
+<B>option resource-location-servers</B> <I>ip-address</I>
+
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<B>,&nbsp;</B><I>ip-address</I>...]<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies a list of RFC 887 Resource Location
+servers available to the client.  Servers should be listed in order
+of preference.
+</DL>
+
+<P>
+
+<B>option root-path</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the path-name that contains the client's root
+disk.  The path is formatted as a character string consisting of
+characters from the NVT ASCII character set.
+</DL>
+
+<P>
+
+<B>option router-discovery</B> <I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies whether or not the client should solicit
+routers using the Router Discovery mechanism defined in RFC 1256.
+A value of false indicates that the client should not perform
+router discovery.  A value of true means that the client should perform
+router discovery.
+</DL>
+
+<P>
+
+<B>option router-solicitation-address</B> <I>ip-address</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the address to which the client should transmit
+router solicitation requests.
+</DL>
+
+<P>
+
+<B>option routers </B><I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The routers option specifies a list of IP addresses for routers on the
+client's subnet.  Routers should be listed in order of preference.
+</DL>
+
+<P>
+
+<B>option slp-directory-agent </B><I>boolean ip-address</I>
+
+[<B>,</B> <I>ip-address</I>... ]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies two things: the IP addresses of one or more
+Service Location Protocol Directory Agents, and whether the use of
+these addresses is mandatory.   If the initial boolean value is true,
+the SLP agent should just use the IP addresses given.   If the value
+is false, the SLP agent may additionally do active or passive
+multicast discovery of SLP agents (see RFC2165 for details).
+<P>
+
+Please note that in this option and the slp-service-scope option, the
+term &quot;SLP Agent&quot; is being used to refer to a Service Location Protocol
+agent running on a machine that is being configured using the DHCP
+protocol.
+<P>
+
+Also, please be aware that some companies may refer to SLP as NDS.
+If you have an NDS directory agent whose address you need to
+configure, the slp-directory-agent option should work.
+</DL>
+
+<P>
+
+<B>option slp-service-scope </B><I>boolean text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The Service Location Protocol Service Scope Option specifies two
+things: a list of service scopes for SLP, and whether the use of this
+list is mandatory.  If the initial boolean value is true, the SLP
+agent should only use the list of scopes provided in this option;
+otherwise, it may use its own static configuration in preference to
+the list provided in this option.
+<P>
+
+The text string should be a comma-separated list of scopes that the
+SLP agent should use.   It may be omitted, in which case the SLP Agent
+will use the aggregated list of scopes of all directory agents known
+to the SLP agent.
+</DL>
+
+<P>
+
+<B>option smtp-server</B> <I>ip-address</I> [<B>,</B>
+
+<I>ip-address</I>... ]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The SMTP server option specifies a list of SMTP servers available to
+the client.  Servers should be listed in order of preference.
+</DL>
+
+<P>
+
+<PRE>
+<B>option static-routes</B> <I>ip-address ip-address</I>
+                  [<B>,</B> <I>ip-address ip-address</I>...]<B>;</B>
+</PRE>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies a list of static routes that the client should
+install in its routing cache.  If multiple routes to the same
+destination are specified, they are listed in descending order of
+priority.
+<P>
+
+The routes consist of a list of IP address pairs.  The first address
+is the destination address, and the second address is the router for
+the destination.
+<P>
+
+The default route (0.0.0.0) is an illegal destination for a static
+route.  To specify the default route, use the
+<B>routers</B>
+
+option.   Also, please note that this option is not intended for
+classless IP routing - it does not include a subnet mask.   Since
+classless IP routing is now the most widely deployed routing standard,
+this option is virtually useless, and is not implemented by any of the
+popular DHCP clients, for example the Microsoft DHCP client.
+<P>
+
+NOTE to Fedora dhclient users:
+<BR>
+
+dhclient-script interprets trailing 0 octets of the target as indicating
+the subnet class of the route, so for the following static-routes value:
+<BR>
+
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;option&nbsp;static-routes&nbsp;172.0.0.0&nbsp;172.16.2.254,
+<BR>
+
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;192.168.0.0&nbsp;192.168.2.254;
+<BR>
+
+dhclient-script will create routes:
+<BR>
+
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;172/8&nbsp;via&nbsp;172.16.2.254&nbsp;dev&nbsp;$interface
+<BR>
+
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;192.168/16&nbsp;via&nbsp;192.168.2.254&nbsp;dev&nbsp;$interface
+</DL>
+
+<P>
+
+<PRE>
+<B>option classless-static-routes</B> <I>destination-descriptor ip-address</I>
+                            [<B>,</B> <I>destination-descriptor ip-address</I>...]<B>;</B>
+</PRE>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option (see RFC3442) specifies a list of classless static routes
+that the client should install in its routing cache.
+<P>
+
+This option can contain one or more static routes, each of which
+consists of a destination descriptor and the IP address of the router
+that should be used to reach that destination.
+<P>
+
+Many clients may not implement the Classless Static Routes option.
+DHCP server administrators should therefore configure their DHCP
+servers to send both a Router option and a Classless Static Routes
+option, and should specify the default router(s) both in the Router
+option and in the Classless Static Routes option.
+<P>
+
+If the DHCP server returns both a Classless Static Routes option and
+a Router option, the DHCP client ignores the Router option.
+</DL>
+
+<P>
+
+<PRE>
+<B>option streettalk-directory-assistance-server</B> <I>ip-address</I>
+                                           [<B>,</B> <I>ip-address</I>...]<B>;</B>
+</PRE>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The StreetTalk Directory Assistance (STDA) server option specifies a
+list of STDA servers available to the client.  Servers should be
+listed in order of preference.
+</DL>
+
+<P>
+
+<B>option streettalk-server</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>... ]<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The StreetTalk server option specifies a list of StreetTalk servers
+available to the client.  Servers should be listed in order of
+preference.
+</DL>
+
+<P>
+
+<B>option subnet-mask </B><I>ip-address</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The subnet mask option specifies the client's subnet mask as per RFC
+950.  If no subnet mask option is provided anywhere in scope, as a
+last resort dhcpd will use the subnet mask from the subnet declaration
+for the network on which an address is being assigned.  However,
+<I>any</I>
+
+subnet-mask option declaration that is in scope for the address being
+assigned will override the subnet mask specified in the subnet
+declaration.
+</DL>
+
+<P>
+
+<B>option subnet-selection</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+Sent by the client if an address is required in a subnet other than the one
+that would normally be selected (based on the relaying address of the
+connected subnet the request is obtained from). See RFC3011. Note that the
+option number used by this server is 118; this has not always been the
+defined number, and some clients may use a different value. Use of this
+option should be regarded as slightly experimental!
+</DL>
+
+<P>
+
+This option is not user configurable in the server.
+<P>
+
+<P>
+
+<B>option swap-server</B> <I>ip-address</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This specifies the IP address of the client's swap server.
+</DL>
+
+<P>
+
+<B>option tcp-keepalive-garbage</B> <I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies whether or not the client should send TCP
+keepalive messages with an octet of garbage for compatibility with
+older implementations.  A value of false indicates that a garbage octet
+should not be sent. A value of true indicates that a garbage octet
+should be sent.
+</DL>
+
+<P>
+
+<B>option tcp-keepalive-interval</B> <I>uint32</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the interval (in seconds) that the client TCP
+should wait before sending a keepalive message on a TCP connection.
+The time is specified as a 32-bit unsigned integer.  A value of zero
+indicates that the client should not generate keepalive messages on
+connections unless specifically requested by an application.
+</DL>
+
+<P>
+
+<B>option tftp-server-name</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option is used to identify a TFTP server and, if supported by the
+client, should have the same effect as the <B>server-name</B>
+declaration.   BOOTP clients are unlikely to support this option.
+Some DHCP clients will support it, and others actually require it.
+</DL>
+
+<P>
+
+<B>option time-offset </B><I>int32</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The time-offset option specifies the offset of the client's subnet in
+seconds from Coordinated Universal Time (UTC).
+</DL>
+
+<P>
+
+<B>option time-servers </B><I>ip-address</I> [, <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The time-server option specifies a list of RFC 868 time servers
+available to the client.  Servers should be listed in order of
+preference.
+</DL>
+
+<P>
+
+<B>option trailer-encapsulation</B> <I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies whether or not the client should negotiate the
+use of trailers (RFC 893 [14]) when using the ARP protocol.  A value
+of false indicates that the client should not attempt to use trailers.  A
+value of true means that the client should attempt to use trailers.
+</DL>
+
+<P>
+
+<B>option uap-servers</B> <I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies a list of URLs, each pointing to a user
+authentication service that is capable of processing authentication
+requests encapsulated in the User Authentication Protocol (UAP).  UAP
+servers can accept either HTTP 1.1 or SSLv3 connections.  If the list
+includes a URL that does not contain a port component, the normal
+default port is assumed (i.e., port 80 for http and port 443 for
+https).  If the list includes a URL that does not contain a path
+component, the path /uap is assumed.   If more than one URL is
+specified in this list, the URLs are separated by spaces.
+</DL>
+
+<P>
+
+<B>option user-class</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option is used by some DHCP clients as a way for users to
+specify identifying information to the client.   This can be used in a
+similar way to the vendor-class-identifier option, but the value of
+the option is specified by the user, not the vendor.   Most recent
+DHCP clients have a way in the user interface to specify the value for
+this identifier, usually as a text string.
+</DL>
+
+<P>
+
+<B>option vendor-class-identifier</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option is used by some DHCP clients to identify the vendor
+type and possibly the configuration of a DHCP client.  The information
+is a string of bytes whose contents are specific to the vendor and are
+not specified in a standard.   To see what vendor class identifier
+clients are sending, you can write the following in your DHCP server
+configuration file:
+<PRE>
+
+set vendor-string = option vendor-class-identifier;
+</PRE>
+
+<P>
+
+This will result in all entries in the DHCP server lease database file
+for clients that sent vendor-class-identifier options having a set
+statement that looks something like this:
+<PRE>
+
+set vendor-string = &quot;SUNW.Ultra-5_10&quot;;
+</PRE>
+
+<P>
+
+The vendor-class-identifier option is normally used by the DHCP server
+to determine the options that are returned in the
+<B>vendor-encapsulated-options</B>
+
+option.   Please see the VENDOR ENCAPSULATED OPTIONS section later in this
+manual page for further information.
+</DL>
+
+<P>
+
+<B>option vendor-encapsulated-options</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>vendor-encapsulated-options</B> option can contain either a
+single vendor-specific value or one or more vendor-specific
+suboptions.   This option is not normally specified in the DHCP server
+configuration file - instead, a vendor class is defined for each
+vendor, vendor class suboptions are defined, values for those
+suboptions are defined, and the DHCP server makes up a response on
+that basis.
+<P>
+
+Some default behaviours for well-known DHCP client vendors (currently,
+the Microsoft Windows 2000 DHCP client) are configured automatically,
+but otherwise this must be configured manually - see the VENDOR
+ENCAPSULATED OPTIONS section later in this manual page for details.
+</DL>
+
+<P>
+
+<B>option vivso</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>vivso</B> option can contain multiple separate options, one for
+each 32-bit Enterprise ID.  Each Enterprise-ID discriminated option then
+contains additional options whose format is defined by the vendor who
+holds that ID.  This option is usually not configured manually, but
+rather is configured via intervening option definitions.  Please also
+see the VENDOR ENCAPSULATED OPTIONS section later in this manual page
+for details.
+</DL>
+
+<P>
+
+<B>option www-server</B> <I>ip-address</I> [<B>,</B>
+
+<I>ip-address</I>... ]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+The WWW server option specifies a list of WWW servers available
+to the client.  Servers should be listed in order of preference.
+</DL>
+
+<P>
+
+<B>option x-display-manager</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>...
+
+]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies a list of systems that are running the X Window
+System Display Manager and are available to the client.  Addresses
+should be listed in order of preference.
+</DL>
+
+<A NAME="lbAG">&nbsp;</A>
+<H2>RELAY AGENT INFORMATION OPTION</H2>
+
+An IETF draft, draft-ietf-dhc-agent-options-11.txt, defines a series
+of encapsulated options that a relay agent can add to a DHCP packet
+when relaying it to the DHCP server.   The server can then make
+address allocation decisions (or whatever other decisions it wants)
+based on these options.   The server also returns these options in any
+replies it sends through the relay agent, so that the relay agent can
+use the information in these options for delivery or accounting
+purposes.
+<P>
+
+The current draft defines two options.   To reference
+these options in the dhcp server, specify the option space name,
+&quot;agent&quot;, followed by a period, followed by the option name.   It is
+not normally useful to define values for these options in the server,
+although it is permissible.   These options are not supported in the
+client.
+<P>
+
+<B>option agent.circuit-id</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The circuit-id suboption encodes an agent-local identifier of the
+circuit from which a DHCP client-to-server packet was received.  It is
+intended for use by agents in relaying DHCP responses back to the
+proper circuit.   The format of this option is currently defined to be
+vendor-dependent, and will probably remain that way, although the
+current draft allows for for the possibility of standardizing the
+format in the future.
+</DL>
+
+<P>
+
+<B>option agent.remote-id</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The remote-id suboption encodes information about the remote host end
+of a circuit.   Examples of what it might contain include caller ID
+information, username information, remote ATM address, cable modem ID,
+and similar things.   In principal, the meaning is not well-specified,
+and it should generally be assumed to be an opaque object that is
+administratively guaranteed to be unique to a particular remote end of
+a circuit.
+</DL>
+
+<P>
+
+<B>option agent.DOCSIS-device-class</B> <I>uint32</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The DOCSIS-device-class suboption is intended to convey information about
+the host endpoint, hardware, and software, that either the host operating
+system or the DHCP server may not otherwise be aware of (but the relay is
+able to distinguish).  This is implemented as a 32-bit field (4 octets),
+each bit representing a flag describing the host in one of these ways.
+So far, only bit zero (being the least significant bit) is defined in
+RFC3256.  If this bit is set to one, the host is considered a CPE
+Controlled Cable Modem (CCCM).  All other bits are reserved.
+</DL>
+
+<P>
+
+<B>option agent.link-selection</B> <I>ip-address</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The link-selection suboption is provided by relay agents to inform servers
+what subnet the client is actually attached to.  This is useful in those
+cases where the giaddr (where responses must be sent to the relay agent)
+is not on the same subnet as the client.  When this option is present in
+a packet from a relay agent, the DHCP server will use its contents to find
+a subnet declared in configuration, and from here take one step further
+backwards to any shared-network the subnet may be defined within...the
+client may be given any address within that shared network, as normally
+appropriate.
+</DL>
+
+<A NAME="lbAH">&nbsp;</A>
+<H2>THE CLIENT FQDN SUBOPTIONS</H2>
+
+The Client FQDN option, currently defined in the Internet Draft
+draft-ietf-dhc-fqdn-option-00.txt is not a standard yet, but is in
+sufficiently wide use already that we have implemented it.   Due to
+the complexity of the option format, we have implemented it as a
+suboption space rather than a single option.   In general this
+option should not be configured by the user - instead it should be
+used as part of an automatic DNS update system.
+<P>
+
+<B>option fqdn.no-client-update </B><I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+When the client sends this, if it is true, it means the client will not
+attempt to update its A record.   When sent by the server to the client,
+it means that the client <I>should not</I> update its own A record.
+</DL>
+
+<P>
+
+<B>option fqdn.server-update </B><I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+When the client sends this to the server, it is requesting that the server
+update its A record.   When sent by the server, it means that the server
+has updated (or is about to update) the client's A record.
+</DL>
+
+<P>
+
+<B>option fqdn.encoded </B><I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+If true, this indicates that the domain name included in the option is
+encoded in DNS wire format, rather than as plain ASCII text.   The client
+normally sets this to false if it doesn't support DNS wire format in the
+FQDN option.   The server should always send back the same value that the
+client sent.   When this value is set on the configuration side, it controls
+the format in which the <I>fqdn.fqdn</I> suboption is encoded.
+</DL>
+
+<P>
+
+<B>option fqdn.rcode1 </B><I>flag</I><B>;</B>
+
+<P>
+
+<B>option fqdn.rcode2 </B><I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+These options specify the result of the updates of the A and PTR records,
+respectively, and are only sent by the DHCP server to the DHCP client.
+The values of these fields are those defined in the DNS protocol specification.
+</DL>
+
+<P>
+
+<B>option fqdn.fqdn </B><I>text</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+Specifies the domain name that the client wishes to use.   This can be a
+fully-qualified domain name, or a single label.   If there is no trailing
+
+generally update that name in some locally-defined domain.
+</DL>
+
+<P>
+
+<B>option fqdn.hostname </B><I>--never set--</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option should never be set, but it can be read back using the <B>option</B>
+and <B>config-option</B> operators in an expression, in which case it returns
+the first label in the <B>fqdn.fqdn</B> suboption - for example, if
+the value of <B>fqdn.fqdn</B> is &quot;foo.example.com.&quot;, then <B>fqdn.hostname</B>
+will be &quot;foo&quot;.
+</DL>
+
+<P>
+
+<B>option fqdn.domainname </B><I>--never set--</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option should never be set, but it can be read back using the <B>option</B>
+and <B>config-option</B> operators in an expression, in which case it returns
+all labels after the first label in the <B>fqdn.fqdn</B> suboption - for
+example, if the value of <B>fqdn.fqdn</B> is &quot;foo.example.com.&quot;,
+then <B>fqdn.hostname</B> will be &quot;example.com.&quot;.   If this suboption value
+is not set, it means that an unqualified name was sent in the fqdn option,
+or that no fqdn option was sent at all.
+</DL>
+
+<P>
+
+If you wish to use any of these suboptions, we strongly recommend that you
+refer to the Client FQDN option draft (or standard, when it becomes a
+standard) - the documentation here is sketchy and incomplete in comparison,
+and is just intended for reference by people who already understand the
+Client FQDN option specification.
+<A NAME="lbAI">&nbsp;</A>
+<H2>THE NETWARE/IP SUBOPTIONS</H2>
+
+RFC2242 defines a set of encapsulated options for Novell NetWare/IP
+clients.  To use these options in the dhcp server, specify the option
+space name, &quot;nwip&quot;, followed by a period, followed by the option name.
+The following options can be specified:
+<P>
+
+<B>option nwip.nsq-broadcast</B> <I>flag</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+If true, the client should use the NetWare Nearest Server Query to
+locate a NetWare/IP server.   The behaviour of the Novell client if
+this suboption is false, or is not present, is not specified.
+<P>
+
+</DL>
+
+<B>option nwip.preferred-dss</B> <I>ip-address</I> [<B>,</B> <I>ip-address</I>... ]<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This suboption specifies a list of up to five IP addresses, each of
+which should be the IP address of a NetWare Domain SAP/RIP server
+(DSS).
+</DL>
+
+<P>
+
+<B>option nwip.nearest-nwip-server</B> <I>ip-address</I>
+
+<BR>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[<B>,</B>&nbsp;<I>ip-address</I>...]<B>;</B>
+<DL COMPACT><DT><DD>
+<P>
+
+This suboption specifies a list of up to five IP addresses, each of
+which should be the IP address of a Nearest NetWare IP server.
+</DL>
+
+<P>
+
+<B>option nwip.autoretries</B> <I>uint8</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+Specifies the number of times that a NetWare/IP client should attempt
+to communicate with a given DSS server at startup.
+</DL>
+
+<P>
+
+<B>option nwip.autoretry-secs</B> <I>uint8</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+Specifies the number of seconds that a Netware/IP client should wait
+between retries when attempting to establish communications with a DSS
+server at startup.
+</DL>
+
+<P>
+
+<B>option nwip.nwip-1-1</B> <I>uint8</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+If true, the NetWare/IP client should support NetWare/IP version 1.1
+compatibility.   This is only needed if the client will be contacting
+Netware/IP version 1.1 servers.
+</DL>
+
+<P>
+
+<B>option nwip.primary-dss</B> <I>ip-address</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+Specifies the IP address of the Primary Domain SAP/RIP Service server
+(DSS) for this NetWare/IP domain.   The NetWare/IP administration
+utility uses this value as Primary DSS server when configuring a
+secondary DSS server.
+</DL>
+
+<A NAME="lbAJ">&nbsp;</A>
+<H2>STANDARD DHCPV6 OPTIONS</H2>
+
+DHCPv6 options differ from DHCPv4 options partially due to using
+16-bit code and length tags, but semantically zero-length options
+are legal in DHCPv6, and multiple options are treated differently.
+Whereas in DHCPv4 multiple options would be concatenated to form one
+option, in DHCPv6 they are expected to be individual instantiations.
+Understandably, many options are not &quot;allowed&quot; to have multiple
+instances in a packet - normally these are options which are digested
+by the DHCP protocol software, and not by users or applications.
+<P>
+
+<B>option dhcp6.client-id</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the client's DUID identifier.  DUIDs are similar
+but different from DHCPv4 client identifiers - there are documented duid
+types:
+<P>
+
+<I>duid-llt</I>
+
+<P>
+
+<I>duid-en</I>
+
+<P>
+
+<I>duid-ll</I>
+
+<P>
+
+This value should not be configured, but rather is provided by clients
+and treated as an opaque identifier key blob by servers.
+</DL>
+
+<P>
+
+<B>option dhcp6.server-id</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+This option specifies the server's DUID identifier.  One may use this
+option to configure an opaque binary blob for your server's identifier.
+</DL>
+
+<P>
+
+<B>option dhcp6.ia-na</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The Identity Association for Non-temporary Addresses (ia-na) carries
+assigned addresses that are not temporary addresses for use by the
+DHCPv6 client.  This option is produced by the DHCPv6 server software,
+and should not be configured.
+</DL>
+
+<P>
+
+<B>option dhcp6.ia-ta</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The Identity Association for Temporary Addresses (ia-ta) carries
+temporary addresses, which may change upon every renewal.  There is
+no support for this in the current DHCPv6 software.
+</DL>
+
+<P>
+
+<B>option dhcp6.ia-addr</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The Identity Association Address option is encapsulated inside ia-na
+or ia-ta options in order to represent addresses associated with those
+IA's.  These options are manufactured by the software, so should not
+be configured.
+</DL>
+
+<P>
+
+<B>option dhcp6.oro</B> <I>uint16</I> [ <B>,</B> <I>uint16</I><B>,</B> ... ]<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The Option Request Option (&quot;ORO&quot;) is the DHCPv6 equivalent of the
+parameter-request-list.  Clients supply this option to ask servers
+to reply with options relevant to their needs and use.  This option
+must not be directly configured, the request syntax in dhclient.conf (5)
+should be used instead.
+</DL>
+
+<P>
+
+<B>option dhcp6.preference</B> <I>uint8</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>preference</B> option informs a DHCPv6 client which server is
+
+applied during the initial stages of configuration - once a client
+is bound to an IA, it will remain bound to that IA until it is no
+longer valid or has expired.  This value may be configured on the
+server, and is digested by the client software.
+</DL>
+
+<P>
+
+<B>option dhcp6.elapsed-time</B> <I>uint16</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>elapsed-time</B> option is constructed by the DHCPv6 client
+software, and is potentially consumed by intermediaries.  This
+option should not be configured.
+</DL>
+
+<P>
+
+<B>option dhcp6.relay-msg</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>relay-msg</B> option is constructed by intervening DHCPv6
+relay agent software.  This option is entirely used by protocol
+software, and is not meant for user configuration.
+</DL>
+
+<P>
+
+<B>option dhcp6.unicast</B> <I>ip6-address</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>unicast</B> option is provided by DHCPv6 servers which are
+willing (or prefer) to receive Renew packets from their clients
+by exchanging UDP unicasts with them.  Normally, DHCPv6 clients
+will multicast their Renew messages.  This may be configured on
+the server, and should be configured as an address the server
+is ready to reply to.
+</DL>
+
+<P>
+
+<B>option dhcp6.status-code</B> <I>status-code</I> [ <I>string</I> ] <B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>status-code</B> option is provided by DHCPv6 servers to inform
+clients of error conditions during protocol communication.  This option
+is manufactured and digested by protocol software, and should not be
+configured.
+</DL>
+
+<P>
+
+<B>option dhcp6.rapid-commit</B> <B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>rapid-commit</B> option is a zero-length option that clients use
+to indicate their desire to enter into rapid-commit with the server.  This
+option is not supported by the client at this time, and is digested by
+the server when present, so should not be configured.
+</DL>
+
+<P>
+
+<B>option dhcp6.vendor-opts</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>vendor-opts</B> option is actually an encapsulated sub-option space,
+in which each Vendor-specific Information Option (VSIO) is identified by
+a 32-bit Enterprise-ID number.  The encapsulated option spaces within these
+options are defined by the vendors.
+<P>
+
+To make use of this option, the best way is to examine the section
+titled VENDOR ENCAPSULATED OPTIONS below, in particular the bits about
+the &quot;vsio&quot; option space.
+</DL>
+
+<P>
+
+<B>option dhcp6.interface-id</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>interface-id</B> option is manufactured by relay agents, and may
+be used to guide configuration differentiating clients by the interface
+they are remotely attached to.  It does not make sense to configure a
+value for this option, but it may make sense to inspect its contents.
+</DL>
+
+<P>
+
+<B>option dhcp6.reconf-msg</B> <I>dhcpv6-message</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>reconf-msg</B> option is manufactured by servers, and sent to
+clients in Reconfigure messages to inform them of what message
+the client should Reconfigure using.  There is no support for
+DHCPv6 Reconfigure extensions, and this option is documented
+informationally only.
+</DL>
+
+<P>
+
+<B>option dhcp6.reconf-accept ;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>reconf-accept</B> option is included by DHCPv6 clients that
+support the Reconfigure extentions, advertising that they will
+respond if the server were to ask them to Reconfigure.  There is
+no support for DHCPv6 Reconfigure extensions, and this option is
+documented informationally only.
+</DL>
+
+<P>
+
+<B>option dhcp6.sip-servers-names</B> <I>domain-list</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>sip-servers-names</B> option allows SIP clients to locate a
+local SIP server that is to be used for all outbound SIP requests, a
+so-called&quot;outbound proxy server.&quot;  If you wish to use manually entered
+IPv6 addresses instead, please see the <B>sip-servers-addresses</B> option
+below.
+</DL>
+
+<P>
+
+<B>option</B>
+
+<B>dhcp6.sip-servers-addresses</B>
+
+<I>ip6-address </I>[<B>,</B>
+
+<I>ip6-address </I>... ]
+
+<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>sip-servers-addresses</B> option allows SIP clients to locate
+a local SIP server that is to be used for all outbound SIP requests,
+a so-called &quot;outbound proxy servers.&quot;  If you wish to use domain names
+rather than IPv6 addresses, please see the <B>sip-servers-names</B> option
+above.
+</DL>
+
+<P>
+
+<B>option </B>
+
+<B>dhcp6.name-servers</B>
+
+<I>ip6-address </I>[<B>,</B>
+
+<I>ip6-address </I>... ]
+
+<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>name-servers</B> option instructs clients about locally available
+recursive DNS servers.  It is easiest to describe this as the &quot;nameserver&quot;
+line in /etc/resolv.conf.
+</DL>
+
+<P>
+
+<B>option dhcp6.domain-search</B> <I>domain-list</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>domain-search</B> option specifies the client's domain search path
+to be applied to recursive DNS queries.  It is easiest to describe this as
+the &quot;search&quot; line in /etc/resolv.conf.
+</DL>
+
+<P>
+
+<B>option dhcp6.ia-pd</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>ia-pd</B> option is manufactured by clients and servers to create a
+Prefix Delegation binding - to delegate an IPv6 prefix to the client.  There
+is not yet any support for prefix delegation in this software, and this
+option is provided informationally only.
+</DL>
+
+<P>
+
+<B>option dhcp6.ia-prefix</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>ia-prefix</B> option is placed inside <B>ia-pd</B> options in order
+to identify the prefix(es) allocated to the client.  There is not yet
+any suport for prefix delegation in this software, and this option is
+provided informationally only.
+</DL>
+
+<P>
+
+<B>option</B>
+
+<B>dhcp6.nis-servers</B>
+
+<I>ip6-address </I>[<B>,</B>
+
+<I>ip6-address </I>...  ]
+
+<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>nis-servers</B> option identifies, in order, NIS servers available
+to the client.
+</DL>
+
+<P>
+
+<B>option</B>
+
+<B>dhcp6.nisp-servers</B>
+
+<I>ip6-address </I>[<B>,</B>
+
+<I>ip6-address </I>... ]
+
+<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>nisp-servers</B> option identifies, in order, NIS+ servers available
+to the client.
+</DL>
+
+<P>
+
+<B>option nis-domain-name</B> <I>domain-list</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>nis-domain-name</B> option specifies the NIS domain name the client is
+expected to use, and is related to the <B>nis-servers</B> option.
+</DL>
+
+<P>
+
+<B>option nisp-domain-name</B> <I>domain-list</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>nisp-domain-name</B> option specifies the NIS+ domain name the client
+is expected to use, and is related to the <B>nisp-servers</B> option.
+</DL>
+
+<P>
+
+<B>option</B>
+
+<B>dhcp6.sntp-servers</B>
+
+<I>ip6-address </I>[<B>,</B>
+
+<I>ip6-address </I>... ]
+
+<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>sntp-servers</B> option specifies a list of local SNTP servers
+available for the client to synchronize their clocks.
+</DL>
+
+<P>
+
+<B>option dhcp6.info-refresh-time</B> <I>uint32</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>info-refresh-time</B> option gives DHCPv6 clients using
+Information-request messages a hint as to how long they should between
+refreshing the information they were given.  Note that this option will
+only be delivered to the client, and be likely to affect the client's
+behaviour, if the client requested the option.
+</DL>
+
+<P>
+
+<B>option dhcp6.bcms-server-d</B> <I>domain-list</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>bcms-server-d</B> option contains the domain names of local BCMS
+(Broadcast and Multicast Control Services) controllers which the client
+may use.
+</DL>
+
+<P>
+
+<B>option</B>
+
+<B>dhcp6.bcms-server-a</B>
+
+<I>ip6-address </I>[<B>,</B>
+
+<I>ip6-address </I>... ]
+
+<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>bcms-server-a</B> option contains the IPv6 addresses of local BCMS
+(Broadcast and Multicast Control Services) controllers which the client
+may use.
+</DL>
+
+<P>
+
+<B>option dhcp6.remote-id</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>remote-id</B> option is constructed by relay agents, to inform the
+server of details pertaining to what the relay knows about the client (such
+as what port it is attached to, and so forth).  The contents of this option
+have some vendor-specific structure (similar to VSIO), but we have chosen
+to treat this option as an opaque field.
+</DL>
+
+<P>
+
+<B>option dhcp6.subscriber-id</B><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>subscriber-id</B> option is an opaque field provided by the relay agent,
+which provides additional information about the subscriber in question.  The
+exact contents of this option depend upon the vendor and/or the operator's
+configuration of the remote device, and as such is an opaque field.
+</DL>
+
+<P>
+
+<B>option dhcp6.fqdn</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>fqdn</B> option is normally constructed by the client or server,
+and negotiates the client's Fully Qualified Domain Name, as well as which
+party is responsible for Dynamic DNS Updates.  See the section on the
+Client FQDN SubOptions for full details (the DHCPv4 and DHCPv6 FQDN options
+use the same &quot;fqdn.&quot; encapsulated space, so are in all ways identical).
+</DL>
+
+<P>
+
+<B>option dhcp6.lq-query</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>lq-query</B> option is used internally by for lease query.
+</DL>
+
+<P>
+
+<B>option dhcp6.client-data</B> <I>string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>client-data</B> option is used internally by for lease query.
+</DL>
+
+<P>
+
+<B>option dhcp6.clt-time</B> <I>uint32</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>clt-time</B> option is used internally by for lease query.
+</DL>
+
+<P>
+
+<B>option dhcp6.lq-relay-data</B> <I>ip6-address string</I><B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>lq-relay-data</B> option is used internally by for lease query.
+</DL>
+
+<P>
+
+<B>option</B>
+
+<B>dhcp6.lq-client-link</B>
+
+<I>ip6-address </I>[<B>,</B>
+
+<I>ip6-address </I>... ]
+
+<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The <B>lq-client-link</B> option is used internally by for lease query.
+</DL>
+
+<P>
+
+<P>
+<B>option</B>
+
+<B>dhcp6.bootfile-url</B>
+
+<I>string </I>
+
+<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+The server sends this option to inform the client about a URL to a
+boot file.  Used primarily for UEFI network booting, it contains an RFC3986
+compliant URI which the client may use to boot an operating system.  This option
+is defined in RFC5970
+</DL>
+
+<P>
+
+<P>
+<B>option</B>
+
+<B>dhcp6.arch-type</B>
+
+<I>arch-id </I>[<B>,</B> arch-id...] 
+
+<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+A client will send this option to a server so that the server may make decisions
+on what options and addresses to offer the requesting client.  The option
+consists of a list of 16 bit unsigned values that represent the architecture of
+the requesting client.  These values corespond to the values available to the
+dhcpv4 option architecture-type, as defined in RFC4578, section 2.1.
+This option is defined in RFC5970
+</DL>
+
+<P>
+
+<P>
+<B>option</B>
+
+<B>dhcp6.net-id</B>
+
+<I>uint8 uint8 uint8 </I>
+
+<B>;</B>
+
+<DL COMPACT><DT><DD>
+<P>
+
+A client will send this option to a server to inform it about the clients level
+of UNDI support.  The option consists of 3 octets (a type, major and minor
+value).  Specific meanings of these values are doumented in section 2.2 of
+RFC4578.
+This option is defined in RFC5970
+</DL>
+
+<P>
+
+<A NAME="lbAK">&nbsp;</A>
+<H2>DEFINING NEW OPTIONS</H2>
+
+The Internet Systems Consortium DHCP client and server provide the
+capability to define new options.   Each DHCP option has a name, a
+code, and a structure.   The name is used by you to refer to the
+option.   The code is a number, used by the DHCP server and client to
+refer to an option.   The structure describes what the contents of an
+option looks like.
+<P>
+
+To define a new option, you need to choose a name for it that is not
+in use for some other option - for example, you can't use &quot;host-name&quot;
+because the DHCP protocol already defines a host-name option, which is
+documented earlier in this manual page.   If an option name doesn't
+appear in this manual page, you can use it, but it's probably a good
+idea to put some kind of unique string at the beginning so you can be
+sure that future options don't take your name.   For example, you
+might define an option, &quot;local-host-name&quot;, feeling some confidence
+that no official DHCP option name will ever start with &quot;local&quot;.
+<P>
+
+Once you have chosen a name, you must choose a code.  All codes between
+224 and 254 are reserved as 'site-local' DHCP options, so you can pick
+any one of these for your site (not for your product/application).  In
+RFC3942, site-local space was moved from starting at 128 to starting at
+224.  In practice, some vendors have interpreted the protocol rather
+loosely and have used option code values greater than 128 themselves.
+There's no real way to avoid this problem, and it was thought to be
+unlikely to cause too much trouble in practice.  If you come across
+a vendor-documented option code in either the new or old site-local
+spaces, please contact your vendor and inform them about rfc3942.
+<P>
+
+The structure of an option is simply the format in which the option
+data appears.   The ISC DHCP server currently supports a few simple
+types, like integers, booleans, strings and IP addresses, and it also
+supports the ability to define arrays of single types or arrays of
+fixed sequences of types.
+<P>
+
+New options are declared as follows:
+<P>
+
+<B>option</B>
+
+<I>new-name</I>
+
+<B>code</B>
+
+<I>new-code</I>
+
+<B>=</B>
+
+<I>definition</I>
+
+<B>;</B>
+
+<P>
+
+The values of
+<I>new-name</I>
+
+and
+<I>new-code</I>
+
+should be the name you have chosen for the new option and the code you
+have chosen.   The
+<I>definition</I>
+
+should be the definition of the structure of the option.
+<P>
+
+The following simple option type definitions are supported:
+<P>
+
+<B>BOOLEAN</B>
+
+<P>
+
+<B>option</B>
+
+<I>new-name</I>
+
+<B>code</B>
+
+<I>new-code</I>
+
+<B>=</B>
+
+<B>boolean</B>
+
+<B>;</B>
+
+<P>
+
+An option of type boolean is a flag with a value of either on or off
+(or true or false).   So an example use of the boolean type would be:
+<PRE>
+
+option use-zephyr code 180 = boolean;
+option use-zephyr on;
+
+</PRE>
+
+<B>INTEGER</B>
+
+<P>
+
+<B>option</B>
+
+<I>new-name</I>
+
+<B>code</B>
+
+<I>new-code</I>
+
+<B>=</B>
+
+<I>sign</I>
+
+<B>integer</B>
+
+<I>width</I>
+
+<B>;</B>
+
+<P>
+
+The <I>sign</I> token should either be blank, <I>unsigned</I>
+or <I>signed</I>.   The width can be either 8, 16 or 32, and refers to
+the number of bits in the integer.   So for example, the following two
+lines show a definition of the sql-connection-max option and its use:
+<PRE>
+
+option sql-connection-max code 192 = unsigned integer 16;
+option sql-connection-max 1536;
+
+</PRE>
+
+<B>IP-ADDRESS</B>
+
+<P>
+
+<B>option</B>
+
+<I>new-name</I>
+
+<B>code</B>
+
+<I>new-code</I>
+
+<B>=</B>
+
+<B>ip-address</B>
+
+<B>;</B>
+
+<P>
+
+An option whose structure is an IP address can be expressed either as
+a domain name or as a dotted quad.  So the following is an example use
+of the ip-address type:
+<PRE>
+
+option sql-server-address code 193 = ip-address;
+option sql-server-address sql.example.com;
+
+</PRE>
+
+<B>IP6-ADDRESS</B>
+
+<P>
+
+<B>option</B>
+
+<I>new-name</I>
+
+<B>code</B>
+
+<I>new-code</I>
+
+<B>=</B>
+
+<B>ip6-address</B>
+
+<B>;</B>
+
+<P>
+
+An option whose structure is an IPv6 address must be expressed as
+a valid IPv6 address.  The following is an example use of the 
+ip6-address type:
+<PRE>
+
+option dhcp6.some-server code 1234 = array of ip6-address;
+option dhcp6.some-server 3ffe:bbbb:aaaa:aaaa::1, 3ffe:bbbb:aaaa:aaaa::2;
+
+</PRE>
+
+<P>
+
+<B>TEXT</B>
+
+<P>
+
+<B>option</B>
+
+<I>new-name</I>
+
+<B>code</B>
+
+<I>new-code</I>
+
+<B>=</B>
+
+<B>text</B>
+
+<B>;</B>
+
+<P>
+
+An option whose type is text will encode an ASCII text string.   For
+example:
+<PRE>
+
+option sql-default-connection-name code 194 = text;
+option sql-default-connection-name &quot;PRODZA&quot;;
+
+</PRE>
+
+<P>
+
+<B>DATA STRING</B>
+
+<P>
+
+<B>option</B>
+
+<I>new-name</I>
+
+<B>code</B>
+
+<I>new-code</I>
+
+<B>=</B>
+
+<B>string</B>
+
+<B>;</B>
+
+<P>
+
+An option whose type is a data string is essentially just a collection
+of bytes, and can be specified either as quoted text, like the text
+type, or as a list of hexadecimal contents separated by colons whose
+values must be between 0 and FF.   For example:
+<PRE>
+
+option sql-identification-token code 195 = string;
+option sql-identification-token 17:23:19:a6:42:ea:99:7c:22;
+
+</PRE>
+
+<P>
+
+<B>DOMAIN-LIST</B>
+
+<P>
+
+<B>option</B>
+
+<I>new-name</I>
+
+<B>code</B>
+
+<I>new-code</I>
+
+<B>=</B>
+
+<B>domain-list</B>
+
+<B>[compressed]</B>
+
+<B>;</B>
+
+<P>
+
+An option whose type is <B>domain-list</B> is an RFC1035 formatted (on the
+wire, &quot;DNS Format&quot;) list of domain names, separated by root labels.  The
+optional <B>compressed</B> keyword indicates if the option should be
+compressed relative to the start of the option contents (not the packet
+contents).
+<P>
+
+When in doubt, omit the <B>compressed</B> keyword.  When the software recieves
+an option that is compressed and the <B>compressed</B> keyword is omitted, it
+will still decompress the option (relative to the option contents field).  The
+keyword only controls whether or not transmitted packets are compressed.
+<P>
+
+Note that when
+<B>domain-list</B>
+
+formatted options are output as environment variables to
+<B><A HREF="/manpages/index.html?8+dhclient-script">dhclient-script</A>(8),</B>
+
+the standard DNS -escape mechanism is used: they are decimal.  This is
+appropriate for direct use in eg /etc/resolv.conf.
+<PRE>
+
+</PRE>
+
+<P>
+
+<B>ENCAPSULATION</B>
+
+<P>
+
+<B>option</B>
+
+<I>new-name</I>
+
+<B>code</B>
+
+<I>new-code</I>
+
+<B>=</B>
+
+<B>encapsulate</B>
+
+<I>identifier</I>
+
+<B>;</B>
+
+<P>
+
+An option whose type is <B>encapsulate</B> will encapsulate the
+contents of the option space specified in <I>identifier</I>.   Examples
+of encapsulated options in the DHCP protocol as it currently exists
+include the vendor-encapsulated-options option, the netware-suboptions
+option and the relay-agent-information option.
+<PRE>
+
+option space local;
+option local.demo code 1 = text;
+option local-encapsulation code 197 = encapsulate local;
+option local.demo &quot;demo&quot;;
+
+</PRE>
+
+<P>
+
+<B>ARRAYS</B>
+
+<P>
+
+Options can contain arrays of any of the above types except for the
+text and data string types, which aren't currently supported in
+arrays.   An example of an array definition is as follows:
+<PRE>
+
+option kerberos-servers code 200 = array of ip-address;
+option kerberos-servers 10.20.10.1, 10.20.11.1;
+
+</PRE>
+
+<B>RECORDS</B>
+
+<P>
+
+Options can also contain data structures consisting of a sequence of
+data types, which is sometimes called a record type.   For example:
+<PRE>
+
+option contrived-001 code 201 = { boolean, integer 32, text };
+option contrived-001 on 1772 &quot;contrivance&quot;;
+
+</PRE>
+
+It's also possible to have options that are arrays of records, for
+example:
+<PRE>
+
+option new-static-routes code 201 = array of {
+        ip-address, ip-address, ip-address, integer 8 };
+option static-routes
+        10.0.0.0 255.255.255.0 net-0-rtr.example.com 1,
+        10.0.1.0 255.255.255.0 net-1-rtr.example.com 1,
+        10.2.0.0 255.255.224.0 net-2-0-rtr.example.com 3;
+
+</PRE>
+
+<A NAME="lbAL">&nbsp;</A>
+<H2>VENDOR ENCAPSULATED OPTIONS</H2>
+
+The DHCP protocol defines the <B>vendor-encapsulated-options</B>
+option, which allows vendors to define their own options that will be
+sent encapsulated in a standard DHCP option.  It also defines
+the <B>Vendor Identified Vendor Sub Options</B> option (&quot;VIVSO&quot;), and the
+DHCPv6 protocol defines the <B>Vendor-specific Information Option</B>
+(&quot;VSIO&quot;).  The format of all of these options is usually internally a
+string of options, similarly to other normal DHCP options.  The VIVSO
+and VSIO options differ in that that they contain options that correspond
+to vendor Enterprise-ID numbers (assigned by IANA), which then contain
+options according to each Vendor's specifications.  You will need to refer
+to your vendor's documentation in order to form options to their
+specification.
+<P>
+
+The value of these options can be set in one of two ways.   The first
+way is to simply specify the data directly, using a text string or a
+colon-separated list of hexadecimal values.  For help in forming these
+strings, please refer to <B>RFC2132</B> for the DHCPv4 <B>Vendor Specific
+Information Option</B>, <B>RFC3925</B> for the DHCPv4 <B>Vendor Identified Vendor
+Sub Options</B>, or <B>RFC3315</B> for the DHCPv6 <B>Vendor-specific Information
+Option</B>.  For example:
+<P>
+
+<PRE>
+option vendor-encapsulated-options
+    2:4:
+        AC:11:41:1:
+    3:12:
+        73:75:6e:64:68:63:70:2d:73:65:72:76:65:72:31:37:2d:31:
+    4:12:
+        2f:65:78:70:6f:72:74:2f:72:6f:6f:74:2f:69:38:36:70:63;
+option vivso
+    00:00:09:bf:0E:
+        01:0c:
+            48:65:6c:6c:6f:20:77:6f:72:6c:64:21;
+option dhcp6.vendor-opts
+    00:00:09:bf:
+        00:01:00:0c:
+            48:65:6c:6c:6f:20:77:6f:72:6c:64:21;
+</PRE>
+
+<P>
+
+The second way of setting the value of these options is to have the DHCP
+server generate a vendor-specific option buffer.   To do this, you
+must do four things: define an option space, define some options in
+that option space, provide values for them, and specify that that 
+option space should be used to generate the relevant option.
+<P>
+
+To define a new option space in which vendor options can be stored,
+use the option space statement:
+<P>
+
+<B>option</B>
+
+<B>space</B>
+
+<I>name</I>
+
+<B>[ [ code width</B>
+
+<I>number</I>
+
+<B>] [ length width</B>
+
+<I>number</I>
+
+<B>] [ hash size</B>
+
+<I>number</I>
+
+<B>] ] ;</B>
+
+<P>
+
+Where the numbers following <B>code width</B>, <B>length width</B>,
+and <B>hash size</B> respectively identify the number of bytes used to
+describe option codes, option lengths, and the size in buckets of the
+hash tables to hold options in this space (most DHCPv4 option spaces
+use 1 byte codes and lengths, which is the default, whereas most
+DHCPv6 option spaces use 2 byte codes and lengths).
+<P>
+
+The code and length widths are used in DHCP protocol - you must configure
+these numbers to match the applicable option space you are configuring.
+They each default to 1.  Valid values for code widths are 1, 2 or 4.
+Valid values for length widths are 0, 1 or 2.  Most DHCPv4 option spaces
+use 1 byte codes and lengths, which is the default, whereas most DHCPv6
+option spaces use 2 byte codes and lengths.  A zero-byte length produces
+options similar to the DHCPv6 Vendor-specific Information Option - but
+not their contents!
+<P>
+
+The hash size defaults depend upon the <B>code width</B> selected, and
+may be 254 or 1009.  Valid values range between 1 and 65535.  Note
+that the higher you configure this value, the more memory will be used.  It
+is considered good practice to configure a value that is slightly larger
+than the estimated number of options you plan to configure within the
+space.  Previous versions of ISC DHCP (up to and including DHCP 3.0.*),
+this value was fixed at 9973.
+<P>
+
+The name can then be used in option definitions, as described earlier in
+this document.   For example:
+<PRE>
+
+option space SUNW code width 1 length width 1 hash size 3;
+option SUNW.server-address code 2 = ip-address;
+option SUNW.server-name code 3 = text;
+option SUNW.root-path code 4 = text;
+
+option space ISC code width 1 length width 1 hash size 3;
+option ISC.sample code 1 = text;
+option vendor.ISC code 2495 = encapsulate vivso-sample;
+option vendor-class.ISC code 2495 = text;
+
+option ISC.sample &quot;configuration text here&quot;;
+option vendor-class.ISC &quot;vendor class here&quot;;
+
+option space docsis code width 2 length width 2 hash size 17;
+option docsis.tftp-servers code 32 = array of ip6-address;
+option docsis.cablelabs-configuration-file code 33 = text;
+option docsis.cablelabs-syslog-servers code 34 = array of ip6-address;
+option docsis.device-id code 36 = string;
+option docsis.time-servers code 37 = array of ip6-address;
+option docsis.time-offset code 38 = signed integer 32;
+option vsio.docsis code 4491 = encapsulate docsis;
+
+</PRE>
+
+Once you have defined an option space and the format of some options,
+you can set up scopes that define values for those options, and you
+can say when to use them.   For example, suppose you want to handle
+two different classes of clients.   Using the option space definition
+shown in the previous example, you can send different option values to
+different clients based on the vendor-class-identifier option that the
+clients send, as follows:
+<P>
+
+<PRE>
+class &quot;vendor-classes&quot; {
+  match option vendor-class-identifier;
+}
+
+subclass &quot;vendor-classes&quot; &quot;SUNW.Ultra-5_10&quot; {
+  vendor-option-space SUNW;
+  option SUNW.root-path &quot;/export/root/sparc&quot;;
+}
+
+subclass &quot;vendor-classes&quot; &quot;SUNW.i86pc&quot; {
+  vendor-option-space SUNW;
+  option SUNW.root-path &quot;/export/root/i86pc&quot;;
+}
+
+option SUNW.server-address 172.17.65.1;
+option SUNW.server-name &quot;sundhcp-server17-1&quot;;
+
+option vivso-sample.sample &quot;Hello world!&quot;;
+
+option docsis.tftp-servers ::1;
+
+</PRE>
+
+<P>
+
+As you can see in the preceding example, regular scoping rules apply,
+so you can define values that are global in the global scope, and only
+define values that are specific to a particular class in the local
+scope.  The <B>vendor-option-space</B> declaration tells the DHCP
+server to use options in the SUNW option space to construct the DHCPv4
+<B>vendor-encapsulated-options</B>
+
+option.  This is a limitation of that option - the DHCPv4 VIVSO and the
+DHCPv6 VSIO options can have multiple vendor definitions all at once (even
+transmitted to the same client), so it is not necessary to configure this.
+<A NAME="lbAM">&nbsp;</A>
+<H2>SEE ALSO</H2>
+
+<A HREF="/manpages/index.html?5+dhcpd.conf">dhcpd.conf</A>(5), <A HREF="http://localhost/cgi-bin/man/man2html?5+dhcpd.leases">dhcpd.leases</A>(5), <A HREF="http://localhost/cgi-bin/man/man2html?5+dhclient.conf">dhclient.conf</A>(5), <A HREF="http://localhost/cgi-bin/man/man2html?5+dhcp-eval">dhcp-eval</A>(5), <A HREF="http://localhost/cgi-bin/man/man2html?8+dhcpd">dhcpd</A>(8),
+<A HREF="/manpages/index.html?8+dhclient">dhclient</A>(8), RFC2132, RFC2131, RFC3046, RFC3315.
+<A NAME="lbAN">&nbsp;</A>
+<H2>AUTHOR</H2>
+
+The Internet Systems Consortium DHCP Distribution was written by Ted
+Lemon under a contract with Vixie Labs.  Funding for
+this project was provided through Internet Systems Consortium.
+Information about Internet Systems Consortium can be found at
+<B><A HREF="https://www.isc.org.">https://www.isc.org.</A></B>
+
+<P>
+
+<HR>
+<A NAME="index">&nbsp;</A><H2>Index</H2>
+<DL>
+<DT><A HREF="#lbAB">NAME</A><DD>
+<DT><A HREF="#lbAC">DESCRIPTION</A><DD>
+<DT><A HREF="#lbAD">REFERENCE: OPTION STATEMENTS</A><DD>
+<DT><A HREF="#lbAE">SETTING OPTION VALUES USING EXPRESSIONS</A><DD>
+<DT><A HREF="#lbAF">STANDARD DHCPV4 OPTIONS</A><DD>
+<DT><A HREF="#lbAG">RELAY AGENT INFORMATION OPTION</A><DD>
+<DT><A HREF="#lbAH">THE CLIENT FQDN SUBOPTIONS</A><DD>
+<DT><A HREF="#lbAI">THE NETWARE/IP SUBOPTIONS</A><DD>
+<DT><A HREF="#lbAJ">STANDARD DHCPV6 OPTIONS</A><DD>
+<DT><A HREF="#lbAK">DEFINING NEW OPTIONS</A><DD>
+<DT><A HREF="#lbAL">VENDOR ENCAPSULATED OPTIONS</A><DD>
+<DT><A HREF="#lbAM">SEE ALSO</A><DD>
+<DT><A HREF="#lbAN">AUTHOR</A><DD>
+</DL>
+<HR>
+This document was created by
+<A HREF="/manpages/index.html">man2html</A>,
+using the manual pages.<BR>
+Time: 05:33:59 GMT, December 24, 2015
+</div></body>
+</HTML>
