@@ -138,7 +138,7 @@ sub vim2html
 <header class="site-header">
     <div class="wrap">
         <div class="site-title"><a href="/vim-zh/usr_toc.html">vim中文手册</a></div>
-        <div class="site-description">{"type":"programming"}</div>
+        <div class="site-description">{"type":"documentation"}</div>
     </div>
 </header>
 <div class="page-content">
