@@ -1,0 +1,2271 @@
+<!doctype html>
+<html class="theme-next mist">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+<base href="https://www.4e00.com" />
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css" />
+
+<link href="/blog/css/main.css?v=5.0.1" rel="stylesheet" type="text/css" />
+  <link rel="alternate" href="/blog/atom.xml" title="一" type="application/atom+xml" />
+  <link rel="shortcut icon" type="image/x-icon" href="/blog/favicon.ico?v=5.0.1" />
+
+<meta name="description" content="The Java Class FileThe previous chapter, the first of Part II, &amp;quot;Java Internals,&amp;quot; gave an overview of the Java Virtual Machine. The next four chapters will focus on different aspects of the J">
+<meta property="og:type" content="article">
+<meta property="og:title" content="java class file">
+<meta property="og:url" content="https://www.4e00.com/java/2016/12/25/java-class-file.html">
+<meta property="og:site_name" content="一">
+<meta property="og:description" content="The Java Class FileThe previous chapter, the first of Part II, &amp;quot;Java Internals,&amp;quot; gave an overview of the Java Virtual Machine. The next four chapters will focus on different aspects of the J">
+<meta property="og:image" content="https://www.4e00.com/blog/img/java/class-file/java-class-file.png">
+<meta property="og:image" content="https://www.4e00.com/blog/img/java/class-file/this-class.png">
+<meta property="og:updated_time" content="2016-12-25T10:08:58.000Z">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="java class file">
+<meta name="twitter:description" content="The Java Class FileThe previous chapter, the first of Part II, &amp;quot;Java Internals,&amp;quot; gave an overview of the Java Virtual Machine. The next four chapters will focus on different aspects of the J">
+<meta name="twitter:image" content="https://www.4e00.com/blog/img/java/class-file/java-class-file.png">
+
+
+
+<script type="text/javascript" id="hexo.configuration">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    scheme: 'Mist',
+    sidebar: {"position":"left","display":"hide"},
+    fancybox: false,
+    motion: false,
+    duoshuo: {
+      userId: 0,
+      author: 'Author'
+    }
+  };
+</script>
+
+
+
+
+  <link rel="canonical" href="https://www.4e00.com/blog/java/2016/12/25/java-class-file.html"/>
+
+  <title> java class file | 一 </title>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="default">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <div class="container one-collumn sidebar-position-left page-post-detail ">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-meta ">
+
+
+  <div class="custom-logo-site-title">
+    <a href="/blog/"  class="brand" rel="start">
+      <span class="logo-line-before"><i></i></span>
+      <span class="site-title">一</span>
+      <span class="logo-line-after"><i></i></span>
+    </a>
+  </div>
+  <p class="site-subtitle">{"type":"编程笔记"}</p>
+</div>
+
+<div class="site-nav-toggle">
+  <button>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+    <span class="btn-bar"></span>
+  </button>
+</div>
+
+<nav class="site-nav">
+
+
+
+    <ul id="menu" class="menu">
+
+
+        <li class="menu-item menu-item-home">
+          <a href="/blog/" rel="section">
+
+              <i class="menu-item-icon fa fa-fw fa-home"></i> <br />
+
+            Home
+          </a>
+        </li>
+
+
+        <li class="menu-item menu-item-archives">
+          <a href="/blog/archives" rel="section">
+
+              <i class="menu-item-icon fa fa-fw fa-archive"></i> <br />
+
+            Archives
+          </a>
+        </li>
+
+
+
+        <li class="menu-item menu-item-search">
+
+            <a href="javascript:;" class="popup-trigger">
+
+
+              <i class="menu-item-icon fa fa-search fa-fw"></i> <br />
+
+            Search
+          </a>
+        </li>
+
+    </ul>
+
+
+
+    <div class="site-search">
+
+  <div class="popup">
+ <span class="search-icon fa fa-search"></span>
+ <input type="text" id="local-search-input">
+ <div id="local-search-result"></div>
+ <span class="popup-btn-close">close</span>
+</div>
+
+
+    </div>
+
+</nav>
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+
+
+  <div id="posts" class="posts-expand">
+
+
+
+
+
+
+
+
+
+  <article class="post post-type-normal " itemscope itemtype="http://schema.org/Article">
+
+
+      <header class="post-header">
+
+
+
+          <h1 class="post-title" itemprop="name headline">
+
+
+
+                java class file
+
+
+          </h1>
+
+
+        <div class="post-meta">
+          <span class="post-time">
+            <span class="post-meta-item-icon">
+              <i class="fa fa-calendar-o"></i>
+            </span>
+            <span class="post-meta-item-text">Posted on</span>
+            <time itemprop="dateCreated" datetime="2016-12-25T10:37:37+08:00" content="2016-12-25">
+              2016-12-25
+            </time>
+          </span>
+
+
+            <span class="post-category" >
+              &nbsp; | &nbsp;
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">In</span>
+
+                <span itemprop="about" itemscope itemtype="https://schema.org/Thing">
+                  <a href="/blog/categories/java/" itemprop="url" rel="index">
+                    <span itemprop="name">java</span>
+                  </a>
+                </span>
+
+
+
+
+
+            </span>
+
+
+
+
+
+
+
+
+
+
+
+
+        </div>
+      </header>
+
+
+
+    <div class="post-body" itemprop="articleBody">
+
+
+
+
+
+        <h2 id="The-Java-Class-File"><a href="#The-Java-Class-File" class="headerlink" title="The Java Class File"></a>The Java Class File</h2><p>The previous chapter, the first of Part II, &quot;Java Internals,&quot; gave an overview of the Java Virtual Machine. The next four chapters will focus on different aspects of the Java Virtual Machine. This chapter takes a look at the Java class file. It describes the contents of the class file, including the structure and format of the constant pool. This chapter serves as a complete reference of the Java class file format.</p>
+<p>Accompanying this chapter on the CD-ROM is an applet that interactively illustrates the material presented in the chapter. The applet, named Getting Loaded, simulates the Java Virtual Machine loading a Java class file. At the end of this chapter, you will find a description of this applet and an instructions on how to use it.</p>
+<h3 id="What-is-a-Java-Class-File"><a href="#What-is-a-Java-Class-File" class="headerlink" title="What is a Java Class File?"></a>What is a Java Class File?</h3><p>The Java class file is a precisely defined binary file format for Java programs. Each Java class file represents a complete description of one Java class or interface. There is no way to put more than one class or interface into a single class file. The precise definition of the class file format ensures that any Java class file can be loaded and correctly interpreted by any Java Virtual Machine, no matter what system produced the class file or what system hosts the virtual machine.</p>
+<p>Although the class file is related to the Java language architecturally, it is not inextricably linked to the Java language. As shown in Figure 6-1, you could write programs in other languages and compile them to class files, or you could compile your Java programs to a different binary file format. Nevertheless, most Java programmers will likely use the class file as the primary vehicle for delivering their programs to Java Virtual Machines.</p>
+<img src="/blog/img/java/class-file/java-class-file.png" title="[java-language-class-file]">
+<p>As mentioned in earlier chapters, the Java class file is a binary stream of 8-bit bytes. Data items are stored sequentially in the class file with no padding between adjacent items. The lack of padding helps keep class files compact. Items that occupy more than one byte are split up into several consecutive bytes that appear in big-endian (higher bytes first) order.</p>
+<p>Just as your Java classes can contain varying numbers of fields, methods, method parameters, local variables, and so on, the Java class file can contain many items that vary in size or number from one class file to another. In the class file, the size or length of a variable-length item precedes the actual data for the item. This allows class file streams to be parsed from beginning to end, reading in the size of an item first followed by the item data.</p>
+<h3 id="What-39-s-in-a-Class-File"><a href="#What-39-s-in-a-Class-File" class="headerlink" title="What&#39;s in a Class File?"></a>What&#39;s in a Class File?</h3><p>The Java class file contains everything a Java Virtual Machine needs to know about one Java class or interface. The remainder of this chapter describes the class file format using tables. Each table has a name and shows an ordered list of items that can appear in a class file. Items appear in the table in the order in which they appear in the class file. Each item has a type, a name, and a count. The type is either a table name or one of the &quot;primitive types&quot; shown in Table 6-1. All values stored in items of type u2, u4, and u8 appear in the class file in big-endian order.</p>
+<h3 id="Table-6-1-Class-file-quot-primitive-types-quot"><a href="#Table-6-1-Class-file-quot-primitive-types-quot" class="headerlink" title="Table 6-1. Class file &quot;primitive types&quot;"></a>Table 6-1. Class file &quot;primitive types&quot;</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Bytes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">a single unsigned byte</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">two unsigned bytes</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">four unsigned bytes</td>
+</tr>
+<tr>
+<td style="text-align:center">u8</td>
+<td style="text-align:center">eight unsigned bytes</td>
+</tr>
+</tbody>
+</table>
+<p>The major components of the class file, in their order of appearance in the class file, are shown in Table 6-2. Each of these components is described in more detail below.</p>
+<h3 id="Table-6-2-Format-of-a-ClassFile-Table"><a href="#Table-6-2-Format-of-a-ClassFile-Table" class="headerlink" title="Table 6-2. Format of a ClassFile Table"></a>Table 6-2. Format of a ClassFile Table</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">magic</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">minor_version</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">major_version</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">constant_pool_count</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">cp_info</td>
+<td style="text-align:center">constant_pool</td>
+<td style="text-align:center">constant_pool_count</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">access_flags</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">this_class</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">super_class</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">interfaces_count</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">interfaces</td>
+<td style="text-align:center">interfaces_count</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">fields_count</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">field_info</td>
+<td style="text-align:center">fields</td>
+<td style="text-align:center">fields_count</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">methods_count</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">method_info</td>
+<td style="text-align:center">methods</td>
+<td style="text-align:center">mehtods_count</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attributes_count</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">attribute_info</td>
+<td style="text-align:center">attributes</td>
+<td style="text-align:center">attributes_count</td>
+</tr>
+</tbody>
+</table>
+<a id="more"></a>
+<h4 id="magic"><a href="#magic" class="headerlink" title="magic"></a>magic</h4><p>The first four bytes of every Java class file are its magic number, 0xCAFEBABE. The magic number makes non-Java class files easier to identify. If a file doesnít start with 0xCAFEBABE, it definitely isnít a Java class file. A magic number can be chosen by a file format&#39;s designers to be any arbitrary number that isnít already in widespread use. The magic number for the Java class file was chosen back in the days when &quot;Java&quot; was called &quot;Oak.&quot; According to Patrick Naughton, a key member of the original Java team, the magic number was chosen &quot;long before the name Java was ever uttered in reference to this language. We were looking for something fun, unique, and easy to remember. It is only a coincidence that 0xCAFEBABE, an oblique reference to the cute baristas at Peet&#39;s Coffee, was foreshadowing for the name Java.&quot;</p>
+<h4 id="minor-version-and-major-version"><a href="#minor-version-and-major-version" class="headerlink" title="minor_version and major_version"></a>minor_version and major_version</h4><p>The second four bytes of the class file contain the minor and major version numbers. As Java technology evolves, new features may occasionally be added to the Java class file format. Each time the class file format changes, the version numbers will change as well. To the Java Virtual Machine, the version numbers identify the format to which a particular class file adheres. Java Virtual Machines will generally be able to load class files with a given major version number and a range of minor version numbers. Java Virtual Machines must reject class files with version numbers outside their valid range.</p>
+<p>For class files generated by 1.0 or 1.1 compilers, the major version number is 45. The minor version number is 3.</p>
+<h4 id="constant-pool-count-and-constant-pool"><a href="#constant-pool-count-and-constant-pool" class="headerlink" title="constant_pool_count and constant_pool"></a>constant_pool_count and constant_pool</h4><p>Following the magic and version numbers in the class file is the constant pool. As mentioned in Chapter 5, &quot;The Java Virtual Machine,&quot; the constant pool contains the constants associated with the class or interface defined by the file. Constants such as literal strings, final variable values, class names, and method names are stored in the constant pool. The constant pool is organized as a list of entries. A count of the number of entries in the list, constant_pool_count , precedes the actual list, constant_pool.</p>
+<p>Many entries in the constant pool refer to other entries in the constant pool, and many items that follow the constant pool in the class file refer back to entries in the constant pool. Throughout the class file, constant pool entries are referred to by the integer index that indicates their position in the constant_pool list. The first entry in the list has an index of one, the second has an index of two, and so on. Although there is no entry in the constant_pool list that has an index of zero, the missing zeroeth entry is included in the constant_pool_count. For example, if a constant_pool list includes fourteen entries (with indexes one through fourteen), the constant_pool_count would be fifteen.</p>
+<p>Each constant pool entry starts with a one-byte tag that indicates the type of constant making its home at that position in the list. Once a Java Virtual Machine grabs and interprets this tag, it knows what to expect after the tag. Table 6-3 shows the names and values of the constant pool tags.</p>
+<h5 id="Table-6-3-Constant-pool-tags"><a href="#Table-6-3-Constant-pool-tags" class="headerlink" title="Table 6-3. Constant pool tags"></a>Table 6-3. Constant pool tags</h5><table>
+<thead>
+<tr>
+<th style="text-align:center">Entry Type</th>
+<th style="text-align:center">Tag Description</th>
+<th style="text-align:left">Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">CONSTANT_Utf8</td>
+<td style="text-align:center">1</td>
+<td style="text-align:left">A UTF-8 encoded Unicode string</td>
+</tr>
+<tr>
+<td style="text-align:center">CONSTANT_Integer</td>
+<td style="text-align:center">3</td>
+<td style="text-align:left">An int literal value</td>
+</tr>
+<tr>
+<td style="text-align:center">CONSTANT_Float</td>
+<td style="text-align:center">4</td>
+<td style="text-align:left">A float literal value</td>
+</tr>
+<tr>
+<td style="text-align:center">CONSTANT_Long</td>
+<td style="text-align:center">5</td>
+<td style="text-align:left">A long literal value</td>
+</tr>
+<tr>
+<td style="text-align:center">CONSTANT_Double</td>
+<td style="text-align:center">6</td>
+<td style="text-align:left">A double literal value</td>
+</tr>
+<tr>
+<td style="text-align:center">CONSTANT_Class</td>
+<td style="text-align:center">7</td>
+<td style="text-align:left">A symbolic reference to a class or interface</td>
+</tr>
+<tr>
+<td style="text-align:center">CONSTANT_String</td>
+<td style="text-align:center">8</td>
+<td style="text-align:left">A String literal value</td>
+</tr>
+<tr>
+<td style="text-align:center">CONSTANT_Fieldref</td>
+<td style="text-align:center">9</td>
+<td style="text-align:left">A symbolic reference to a field</td>
+</tr>
+<tr>
+<td style="text-align:center">CONSTANT_Methodref</td>
+<td style="text-align:center">10</td>
+<td style="text-align:left">A symbolic reference to a method declared in a class</td>
+</tr>
+<tr>
+<td style="text-align:center">CONSTANT_InterfaceMethodref</td>
+<td style="text-align:center">11</td>
+<td style="text-align:left">A symbolic reference to a method declared in an interface</td>
+</tr>
+<tr>
+<td style="text-align:center">CONSTANT_NameAndType</td>
+<td style="text-align:center">12</td>
+<td style="text-align:left">Part of a symbolic reference to a field or method</td>
+</tr>
+</tbody>
+</table>
+<p>For each tag shown in Table 6-3, there is a corresponding table. The name of the table is formed by appending &quot;_info&quot; to the tag name. For example, the table that corresponds to the CONSTANT_Class tag is called CONSTANT_Class_info. The CONSTANT_Utf8_info table stores a compressed form of Unicode strings. The tables for the various kinds of constant pool entries are described in detail later in this chapter.</p>
+<p>The constant pool plays an important role in the dynamic linking of Java programs. In addition to literal constant values, the constant pool contains the following kinds of symbolic references:</p>
+<ol>
+<li>fully qualified names of classes and interfaces</li>
+<li>field names and descriptors</li>
+<li>method names and descriptors</li>
+</ol>
+<p>A field is an instance or class variable of the class or interface. A field descriptor is a string that indicates the field&#39;s type. A method descriptor is a string that indicates the method&#39;s return type and the number, order, and types of its parameters. The constant pool&#39;s fully qualified names and method and field descriptors are used at run time to link code in this class or interface with code and data in other classes and interfaces. The class file contains no information about the eventual memory layout of its components, so classes, fields, and methods cannot be referenced directly by the bytecodes in the class file. The Java Virtual Machine resolves the actual address of any referenced item at run time given a symbolic reference from the constant pool. For example, bytecode instructions that invoke a method give constant pool index of a symbolic reference to the method to invoke. This process of using the symbolic references in the constant pool is described in more detail in Chapter 8, &quot;The Linking Model.&quot;</p>
+<h4 id="access-flags"><a href="#access-flags" class="headerlink" title="access_flags"></a>access_flags</h4><p>The first two bytes after the constant pool, the access flags, reveal several pieces of information about the class or interface defined in the file. To start with, the access flags indicate whether the file defines a class or an interface. The access flags also indicate what modifiers were used in the declaration of the class or interface. Classes and interfaces can be public or abstract. Classes can be final, though final classes cannot be abstract. Interfaces canít be final. The bits used for the various flags are shown in Table 6-4.</p>
+<h5 id="Table-6-4-Flag-bits-in-the-access-flags-item-of-ClassFile-tables"><a href="#Table-6-4-Flag-bits-in-the-access-flags-item-of-ClassFile-tables" class="headerlink" title="Table 6-4. Flag bits in the access_flags item of ClassFile tables"></a>Table 6-4. Flag bits in the access_flags item of ClassFile tables</h5><table>
+<thead>
+<tr>
+<th style="text-align:center">Flag Name</th>
+<th style="text-align:center">Value</th>
+<th style="text-align:left">Meaning if Set</th>
+<th style="text-align:left">Set By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">ACC_PUBLIC</td>
+<td style="text-align:center">0x0001</td>
+<td style="text-align:left">Type is public</td>
+<td style="text-align:left">Classes and interfaces</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_FINAL</td>
+<td style="text-align:center">0x0010</td>
+<td style="text-align:left">Class is final</td>
+<td style="text-align:left">Classes only</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_SUPER</td>
+<td style="text-align:center">0x0020</td>
+<td style="text-align:left">Use new</td>
+<td style="text-align:left"><code>invokespecial</code> semantics Classes and interfaces</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_INTERFACE</td>
+<td style="text-align:center">0x0200</td>
+<td style="text-align:left">Type is an interface, not a class</td>
+<td style="text-align:left">All interfaces, no classes</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_ABSTRACT</td>
+<td style="text-align:center">0x0400</td>
+<td style="text-align:left">Type is abstract</td>
+<td style="text-align:left">All interfaces, some classes</td>
+</tr>
+</tbody>
+</table>
+<p>The ACC_SUPER flag exists for backwards compatibility with Sun&#39;s older Java compilers. In Sun&#39;s older Java Virtual Machines, the invokespecial instruction had more relaxed semantics. Alnew compilers should set the ACC_SUPER flag. All new implementations of the Java Virtual Machine should implement the newer, stricter invokespecial semantics. (See the invokespecial instruction in Appendix A for a description of these semantics.) Sun&#39;s older compilers generate class files with the ACC_SUPER flag set to zero. Sun&#39;s older Java Virtual Machines ignore the flag if it is set.</p>
+<p>All unused bits in access_flags must be set to zero and ignored by Java Virtual Machine implementations.</p>
+<h4 id="this-class"><a href="#this-class" class="headerlink" title="this_class"></a>this_class</h4><p>The next two bytes are the this_class item, an index into the constant pool. The constant pool entry at position this_class must be a CONSTANT_Class_info table, which has two parts: a tag and a name_index. The tag will have the value CONSTANT_Class. The constant pool entry at position name_index will be a CONSTANT_Utf8_info table containing the fully qualified name of the class or interface.</p>
+<p>The this_class item provides a glimpse of how the constant pool is used. By itself, the this_class item is just an index into the constant pool. When a Java Virtual Machine looks up the constant pool entry at position this_class, it will find an entry that identifies itself via its tag as a CONSTANT_Class_info. The Java Virtual Machine knows CONSTANT_Class_info entries always have an index into the constant pool, called name_index, following their tag. So the virtual machine looks up the constant pool entry at position name_index, where it should find a CONSTANT_Utf8_info entry that contains the fully qualified name of the class or interface. See Figure 6-2 for a graphical depiction of this process.</p>
+<img src="/blog/img/java/class-file/this-class.png" title="[constant-pool-and-this-class]">
+<h4 id="super-class"><a href="#super-class" class="headerlink" title="super_class"></a>super_class</h4><p>Following this_class in the class file is the super_class item, another two-byte index into the constant pool. The constant pool entry at position super_class will be a CONSTANT_Class_info entry that refers to the fully qualified name of this class&#39;s superclass. Because the base class of every object in Java programs is the java.lang.Object class, the super_class constant pool index will be valid for every class except Object. For Object, super_class is a zero. For interfaces, the constant pool entry at position super_class is java.lang.Object.</p>
+<h4 id="interfaces-count-and-interfaces"><a href="#interfaces-count-and-interfaces" class="headerlink" title="interfaces_count and interfaces"></a>interfaces_count and interfaces</h4><p>The component that follows super_class starts with interfaces_count, a count of the number of superinterfaces directly implemented by the class or interface defined in this file. Immediately following the count is interfaces, an array that contains one index into the constant pool for each superinterface directly implemented by this class or interface. Each superinterface is represented by a CONSTANT_Class_info entry in the constant pool that refers to the fully qualified name of the interface. Only direct superinterfaces, those that appear in the implements clause of the class or the extends clause of the interface declaration, appear in this array. The superinterfaces appear in the array in the order in which they appear (left to right) in the implements or extends clause.</p>
+<h4 id="fields-count-and-fields"><a href="#fields-count-and-fields" class="headerlink" title="fields_count and fields"></a>fields_count and fields</h4><p>Following the interfaces component in the class file is a description of the fields declared by this class or interface. This component starts with fields_count, a count of the number of fields, including both<br>￼class and instance variables. Following the count is a list of variable-length field_info tables, one for each field. (The fields_count indicates the number of field_info tables in the list.) The only fields that appear in the fields list are those that were declared by the class or interface defined in the file. No fields inherited from superclasses or superinterfaces appear in the fields list.</p>
+<p>Each field_info table reveals information about one field. The table contains the field&#39;s name, descriptor, and modifiers. If the field is declared as final, the field_info table also reveals the field&#39;s constant value. Some of this information is contained in the field_info table itself, and some is contained in constant pool locations referred to by the table. The field_info table is described in more detail later in this chapter.</p>
+<h4 id="methods-count-and-methods"><a href="#methods-count-and-methods" class="headerlink" title="methods_count and methods"></a>methods_count and methods</h4><p>Following the fields in the class file is a description of the methods declared by the class or interface. This component starts with methods_count, a two-byte count of the number of methods in the class or interface. The count includes only those methods that are explicitly defined by this class or interface. (It does not include any methods inherited from superclasses or superinterfaces.) Following the method count are the methods themselves, described in a list of method_info tables. (The methods_count indicates the number of method_info tables in the list.)</p>
+<p>The method_info table contains several pieces of information about the method, including the method&#39;s name and descriptor (its return type and argument types). If the method is not abstract, the method_info table includes the number of stack words required for the method&#39;s local variables, the maximum number of stack words required for the method&#39;s operand stack, a table of exceptions caught by the method, the bytecode sequence, and optional line number and local variable tables. If the method can throw any checked exceptions, the method_info table includes a list of those checked exceptions. The method_info table is described in detail later in this chapter.</p>
+<h4 id="attributes-count-and-attributes"><a href="#attributes-count-and-attributes" class="headerlink" title="attributes_count and attributes"></a>attributes_count and attributes</h4><p>The last component in the class file are the attributes, which give general information about the particular class or interface defined by the file. The attributes component starts with attributes_count, a count of the number of attribute_info tables appearing in the subsequent attributes list. The first item in each attribute_info table is an index into the constant pool of a CONSTANT_Utf8_info table that gives the attribute&#39;s name.</p>
+<p>Attributes come in many varieties. Several varieties are defined by the Java Virtual Machine specification, but anyone can create their own varieties of attributes (following certain rules) and place them into class files. Java Virtual Machine implementations must silently ignore any attributes they donít recognize. The rules surrounding the creation of new varieties of attributes are described later in this chapter.</p>
+<p>Attributes appear in several places in the class file, not just in the attributes item of the top-level ClassFile table. The attributes that appear in the ClassFile table give more information about the class or interface define by the file. Attributes that give more information about a field may be included as part of field_info table. Attributes that give more information about a method may be included as part of a method_info table.<br>￼The Java Virtual Machine specification defines two kinds of attributes that may appear in the attributes list of the ClassFile table: SourceCode and InnerClasses. These two attributes are described in detail later in this chapter.</p>
+<h3 id="Special-Strings"><a href="#Special-Strings" class="headerlink" title="Special Strings"></a>Special Strings</h3><p>The symbolic references contained in the constant pool involve three special kinds of strings:</p>
+<ol>
+<li>fully qualified names,</li>
+<li>simple names,</li>
+<li>descriptors.</li>
+</ol>
+<p>All symbolic references include the fully qualified name of a class or interface. Symbolic references to fields include a simple field name and field descriptor in addition to a fully qualified type name. Symbolic references to methods include a simple method name and method descriptor in addition to a fully qualified name.</p>
+<p>The same special strings are used to describe the class or interface that is defined by the class file. The class or interface name, the superclass name (if any), and the names of any superinterfaces are all given as fully qualified names. For each field declared by the class or interface, the constant pool contains a simple name and field descriptor. For each method declared by the class or interface, the constant pool contains a simple name and method descriptor.</p>
+<h4 id="Fully-Qualified-Names"><a href="#Fully-Qualified-Names" class="headerlink" title="Fully Qualified Names"></a>Fully Qualified Names</h4><p>Whenever constant pool entries refer to classes and interfaces, they give the fully qualified name of the class or interface. In the class file, fully qualified names have their dots replaced with slashes. For example, the representation of the fully qualified name of java.lang.Object in the class file is java/lang/Object. The fully qualified name of java.util.Hashtable in the class file is java/util/Hashtable .</p>
+<h4 id="Simple-Names"><a href="#Simple-Names" class="headerlink" title="Simple Names"></a>Simple Names</h4><p>The names of fields and methods appear in constant pool entries as simple (not fully qualified) names. For example, a constant pool entry that refers to the String toString() method of class java.lang.Object would give its method name as &quot;toString&quot;. A constant pool entry that refers to the java.io.PrintStream out field of class java.lang.System would specify the field name simply as &quot;out&quot;.</p>
+<h4 id="Descriptors"><a href="#Descriptors" class="headerlink" title="Descriptors"></a>Descriptors</h4><p>Symbolic references to fields and methods include a descriptor string in addition to a fully qualified class or interface name and a simple field or method name. A field descriptor gives the field&#39;s type. A method descriptor gives the method&#39;s return type and the number and types of the method&#39;s parameters.</p>
+<p>Field and method descriptors are defined by the context free grammar shown below. Nonterminals of this grammar, such as FieldType, are shown in italic font. Terminals, such as B or V, are shown in fixed width font. The asterisk character (*) stands for zero or more occurrences of the item that precedes it placed side by side (with no intervening white space).</p>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">FieldDescriptor:</div><div class="line">    FieldType</div><div class="line">ComponentType:</div><div class="line">    FieldType</div><div class="line">FieldType:</div><div class="line">    BaseType</div><div class="line">    ObjectType</div><div class="line">    ArrayType</div><div class="line">BaseType:</div><div class="line">    B</div><div class="line">    C</div><div class="line">    D</div><div class="line">    F</div><div class="line">    I</div><div class="line">    J</div><div class="line">    S</div><div class="line">    Z</div><div class="line">ObjectType:</div><div class="line">    L&lt;classname&gt;;</div><div class="line">ArrayType:</div><div class="line">    [ ComponentType</div><div class="line">ParameterDescriptor:</div><div class="line">    FieldType</div><div class="line">MethodDescriptor:</div><div class="line">    ( ParameterDescriptor* ) ReturnDescriptor</div><div class="line">ReturnDescriptor:</div><div class="line">    FieldType</div><div class="line">    V</div></pre></td></tr></table></figure>
+<p>The meaning of each of the BaseType terminals is shown in Table 6-5. The <code>V</code> terminal represents methods that return <code>void</code>.</p>
+<h5 id="Table-6-5-BaseType-terminals"><a href="#Table-6-5-BaseType-terminals" class="headerlink" title="Table 6-5. BaseType terminals"></a>Table 6-5. BaseType terminals</h5><table>
+<thead>
+<tr>
+<th style="text-align:center">Terminal</th>
+<th style="text-align:center">Type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">B</td>
+<td style="text-align:center">byte</td>
+</tr>
+<tr>
+<td style="text-align:center">C</td>
+<td style="text-align:center">char</td>
+</tr>
+<tr>
+<td style="text-align:center">D</td>
+<td style="text-align:center">double</td>
+</tr>
+<tr>
+<td style="text-align:center">F</td>
+<td style="text-align:center">float</td>
+</tr>
+<tr>
+<td style="text-align:center">I</td>
+<td style="text-align:center">int</td>
+</tr>
+<tr>
+<td style="text-align:center">J</td>
+<td style="text-align:center">long</td>
+</tr>
+<tr>
+<td style="text-align:center">S</td>
+<td style="text-align:center">short</td>
+</tr>
+<tr>
+<td style="text-align:center">Z</td>
+<td style="text-align:center">boolean</td>
+</tr>
+</tbody>
+</table>
+<p>Some examples of field descriptors are shown in Table 6-6.</p>
+<h5 id="Table-6-6-Examples-of-field-descriptors"><a href="#Table-6-6-Examples-of-field-descriptors" class="headerlink" title="Table 6-6. Examples of field descriptors"></a>Table 6-6. Examples of field descriptors</h5><table>
+<thead>
+<tr>
+<th style="text-align:center">Descriptor</th>
+<th style="text-align:left">Field Declaration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">I</td>
+<td style="text-align:left">int i;</td>
+</tr>
+<tr>
+<td style="text-align:center">[[J</td>
+<td style="text-align:left">long[][] windingRoad;</td>
+</tr>
+<tr>
+<td style="text-align:center">[Ljava/lang/Object;</td>
+<td style="text-align:left">java.lang.Object[] stuff;</td>
+</tr>
+<tr>
+<td style="text-align:center">Ljava/util/Hashtable;</td>
+<td style="text-align:left">java.util.Hashtable ht;</td>
+</tr>
+<tr>
+<td style="text-align:center">[[[Z</td>
+<td style="text-align:left">boolean[][][] isReady;</td>
+</tr>
+</tbody>
+</table>
+<p>Some examples of method descriptors are shown in Table 6-7. Note that method descriptors donít include the hidden this parameter passed as the first argument to all instance methods.</p>
+<h5 id="Table-6-7-Examples-of-method-descriptors"><a href="#Table-6-7-Examples-of-method-descriptors" class="headerlink" title="Table 6-7. Examples of method descriptors"></a>Table 6-7. Examples of method descriptors</h5><table>
+<thead>
+<tr>
+<th style="text-align:center">Descriptor</th>
+<th style="text-align:left">Method Declaration</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">()I</td>
+<td style="text-align:left">int getSize();</td>
+</tr>
+<tr>
+<td style="text-align:center">()Ljava/lang/String;</td>
+<td style="text-align:left">String toString();</td>
+</tr>
+<tr>
+<td style="text-align:center">([Ljava/lang/String;)V</td>
+<td style="text-align:left">void main(String[] args);</td>
+</tr>
+<tr>
+<td style="text-align:center">()V</td>
+<td style="text-align:left">void wait()</td>
+</tr>
+<tr>
+<td style="text-align:center">(JI)V</td>
+<td style="text-align:left">void wait(long timeout, int nanos)</td>
+</tr>
+<tr>
+<td style="text-align:center">(ZILjava/lang/String;II)Z</td>
+<td style="text-align:left">boolean regionMatches(boolean ignoreCase, int toOffset, String other, int ooffset, int len);</td>
+</tr>
+<tr>
+<td style="text-align:center">([BII)I</td>
+<td style="text-align:left">int read(byte[] b, int off, int len);</td>
+</tr>
+</tbody>
+</table>
+<h2 id="The-Constant-Pool"><a href="#The-Constant-Pool" class="headerlink" title="The Constant Pool"></a>The Constant Pool</h2><p>The constant pool is an ordered list of cp_info tables, each of which follows the general form shown in Table 6-8. The tag item of a cp_info table, an unsigned byte, indicates the table&#39;s variety and format. cp_info tables come in eleven varieties, each of which is described in detail in the following sections.</p>
+<h3 id="Table-6-8-General-form-of-a-cp-info-table"><a href="#Table-6-8-General-form-of-a-cp-info-table" class="headerlink" title="Table 6-8. General form of a cp_info table"></a>Table 6-8. General form of a cp_info table</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:left">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:left">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">info</td>
+<td style="text-align:left">depends on tag value</td>
+</tr>
+</tbody>
+</table>
+<h3 id="The-CONSTANT-Utf8-info-Table"><a href="#The-CONSTANT-Utf8-info-Table" class="headerlink" title="The CONSTANT_Utf8_info Table"></a>The CONSTANT_Utf8_info Table</h3><p>A CONSTANT_Utf8_info table stores one constant string value in a modified UTF-8 format. This table is used to store many different kinds of strings, including:</p>
+<ol>
+<li>string literals that get instantiated as String objects</li>
+<li>the fully qualified name of the class or interface being defined</li>
+<li>the fully qualified name of the superclass (if any) of the class being defined</li>
+<li>the fully qualified names of any superinterfaces of the class or interface being defined l the simple names and descriptors of any fields declared by the class or interface</li>
+<li>the simple names and descriptors of any methods declared by the class or interface</li>
+<li>fully qualified names of any referenced classes and interfaces</li>
+<li>simple names and descriptors of any referenced fields</li>
+<li>simple names and descriptors of any referenced methods</li>
+<li>strings associated with attributes</li>
+</ol>
+<p>As you can see from the above list, there are four basic kinds of information stored in CONSTANT_Utf8_info tables: string literals, descriptions of the class or interface being defined, symbolic references to other classes and interfaces, and strings associated with attributes. Some examples of strings associated with attributes are: the name of the attribute, the name of the source file from which the class file was generated, and the names and descriptors of local variables.</p>
+<p>The UTF-8 encoding scheme allows all two-byte Unicode characters to be represented in a string, but enables ASCII characters to be represented by just one byte. Table 6-9 shows the format of a CONSTANT_Utf8_info table.</p>
+<h4 id="Table-6-9-Format-of-a-CONSTANT-Utf8-info-table"><a href="#Table-6-9-Format-of-a-CONSTANT-Utf8-info-table" class="headerlink" title="Table 6-9. Format of a CONSTANT_Utf8_info table"></a>Table 6-9. Format of a CONSTANT_Utf8_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">bytes</td>
+<td style="text-align:center">length</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tag"><a href="#tag" class="headerlink" title="tag"></a>tag</h4><p>The tag item has the value CONSTANT_Utf8 (1).</p>
+<h4 id="length"><a href="#length" class="headerlink" title="length"></a>length</h4><p>The length item gives the length in bytes of the subsequent bytes item.</p>
+<h4 id="bytes"><a href="#bytes" class="headerlink" title="bytes"></a>bytes</h4><p>The bytes item contains the characters of the string stored in a modified UTF-8 format.</p>
+<ol>
+<li>Characters in the range <code>\u0001</code> through <code>\u007f</code> (all the ASCII characters except the null character) are represented by one byte.</li>
+<li>The null character, <code>\u0000</code>, and the characters in the range <code>\u0080</code> through <code>\u07ff</code> are represented by two bytes.</li>
+<li>Characters in the range <code>\u0800</code> through <code>\uffff</code> are represented by three bytes.</li>
+</ol>
+<p>The encoding of UTF-8 strings in the bytes item of CONSTANT_Utf8_info tables differs from the standard UTF-8 format in two ways. First, in the standard UTF-8 encoding scheme, the null character is represented by one byte. In a CONSTANT_Utf8_info table, null characters are represented by two bytes. This two-byte encoding of nulls means that the bytes item never contains any byte equal to zero. The second way the bytes item of a CONSTANT_Utf8_info departs from the standard UTF-8 encoding is that only one-, two-, and three-byte encodings are used in the bytes item. The standard UTF-8 includes longer formats that arenít used in CONSTANT_Utf8_info tables.</p>
+<h3 id="The-CONSTANT-Integer-info-Table"><a href="#The-CONSTANT-Integer-info-Table" class="headerlink" title="The CONSTANT_Integer_info Table"></a>The CONSTANT_Integer_info Table</h3><p>The CONSTANT_Integer_info table stores a constant int value. This table is used only to store int literals. It is not used in symbolic references. Table 6-10 shows the format of a CONSTANT_Integer_info table.</p>
+<h4 id="Table-6-10-Format-of-a-CONSTANT-Integer-info-table"><a href="#Table-6-10-Format-of-a-CONSTANT-Integer-info-table" class="headerlink" title="Table 6-10. Format of a CONSTANT_Integer_info table"></a>Table 6-10. Format of a CONSTANT_Integer_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">bytes</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tag-1"><a href="#tag-1" class="headerlink" title="tag"></a>tag</h4><p>The tag item has the value CONSTANT_Integer (3).</p>
+<h4 id="bytes-1"><a href="#bytes-1" class="headerlink" title="bytes"></a>bytes</h4><p>The bytes item contains the int value stored in big-endian order.</p>
+<h3 id="The-CONSTANT-Float-info-Table"><a href="#The-CONSTANT-Float-info-Table" class="headerlink" title="The CONSTANT_Float_info Table"></a>The CONSTANT_Float_info Table</h3><p>The CONSTANT_Float_info table stores a constant float value. This table is used only to store float literals. It is not used in symbolic references. Table 6-11 shows the format of a CONSTANT_Float_info table.</p>
+<h4 id="Table-6-11-Format-of-a-CONSTANT-Float-info-table"><a href="#Table-6-11-Format-of-a-CONSTANT-Float-info-table" class="headerlink" title="Table 6-11. Format of a CONSTANT_Float_info table"></a>Table 6-11. Format of a CONSTANT_Float_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">bytes</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tag-2"><a href="#tag-2" class="headerlink" title="tag"></a>tag</h4><p>The tag item has the value CONSTANT_Float (4).</p>
+<h4 id="bytes-2"><a href="#bytes-2" class="headerlink" title="bytes"></a>bytes</h4><p>The bytes item contains the float value stored in big-endian order. For the details of the representation of float in the Java class file, see Chapter 14, &quot;Floating Point Arithmetic.&quot;</p>
+<h3 id="The-CONSTANT-Long-info-Table"><a href="#The-CONSTANT-Long-info-Table" class="headerlink" title="The CONSTANT_Long_info Table"></a>The CONSTANT_Long_info Table</h3><p>The CONSTANT_Long_info table stores a constant long value. This table is used only to store long literals. It is not used in symbolic references. Table 6-12 shows the format of a CONSTANT_Long_info table.</p>
+<p>As noted above, a long occupies two slots in the constant pool table. In the class file, a long entry is just followed by the next entry, but the index of the next entry is two more than that of the long entry.</p>
+<h4 id="Table-6-12-Format-of-a-CONSTANT-Long-info-table"><a href="#Table-6-12-Format-of-a-CONSTANT-Long-info-table" class="headerlink" title="Table 6-12. Format of a CONSTANT_Long_info table"></a>Table 6-12. Format of a CONSTANT_Long_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u8</td>
+<td style="text-align:center">bytes</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tag-3"><a href="#tag-3" class="headerlink" title="tag"></a>tag</h4><p>The tag item has the value CONSTANT_Long (5).</p>
+<h4 id="bytes-3"><a href="#bytes-3" class="headerlink" title="bytes"></a>bytes</h4><p>The bytes item contains the long value stored in big-endian order.</p>
+<h3 id="The-CONSTANT-Double-info-Table"><a href="#The-CONSTANT-Double-info-Table" class="headerlink" title="The CONSTANT_Double_info Table"></a>The CONSTANT_Double_info Table</h3><p>The CONSTANT_Double_info table stores a constant double value. This table is used only to store double literals. It is not used in symbolic references. Table 6-13 shows the format of a CONSTANT_Double_info table.</p>
+<p>As noted above, a double occupies two slots in the constant pool table. In the class file, a double entry is just followed by the next entry, but the index of the next entry is two more than that of the double entry.</p>
+<h4 id="Table-6-13-Format-of-a-CONSTANT-Double-info-table"><a href="#Table-6-13-Format-of-a-CONSTANT-Double-info-table" class="headerlink" title="Table 6-13. Format of a CONSTANT_Double_info table"></a>Table 6-13. Format of a CONSTANT_Double_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u8</td>
+<td style="text-align:center">bytes</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tag-4"><a href="#tag-4" class="headerlink" title="tag"></a>tag</h4><p>The tag item has the value CONSTANT_Double (6).</p>
+<h4 id="bytes-4"><a href="#bytes-4" class="headerlink" title="bytes"></a>bytes</h4><p>The bytes item contains the double value stored in big-endian order. For the details of the representation of double in the Java class file, see Chapter 14, &quot;Floating Point Arithmetic.&quot;</p>
+<h3 id="The-CONSTANT-Class-info-Table"><a href="#The-CONSTANT-Class-info-Table" class="headerlink" title="The CONSTANT_Class_info Table"></a>The CONSTANT_Class_info Table</h3><p>The CONSTANT_Class_info table represents a class or interface in symbolic references. All symbolic references, whether they refer to a class, interface, field, or method, include a CONSTANT_Class_info table. Table 6-14 shows the format of a CONSTANT_Class_info table.</p>
+<h4 id="Table-6-14-Format-of-a-CONSTANT-Class-info-table"><a href="#Table-6-14-Format-of-a-CONSTANT-Class-info-table" class="headerlink" title="Table 6-14. Format of a CONSTANT_Class_info table"></a>Table 6-14. Format of a CONSTANT_Class_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tag-5"><a href="#tag-5" class="headerlink" title="tag"></a>tag</h4><p>The tag item has the value CONSTANT_Class (7).</p>
+<h4 id="name-index"><a href="#name-index" class="headerlink" title="name_index"></a>name_index</h4><p>The name_index item gives the index of a CONSTANT_Utf8_info table that contains a fully qualified name of a class or interface.</p>
+<h3 id="The-CONSTANT-String-info-Table"><a href="#The-CONSTANT-String-info-Table" class="headerlink" title="The CONSTANT_String_info Table"></a>The CONSTANT_String_info Table</h3><p>A CONSTANT_String_info represents a literal string value, which will be represented as an instance of class java.lang.String. This table is only used to represent literal strings. It is not used in symbolic references. Table 6-15 shows the format of a CONSTANT_String_info table.</p>
+<h4 id="Table-6-15-Format-of-a-CONSTANT-String-info-table"><a href="#Table-6-15-Format-of-a-CONSTANT-String-info-table" class="headerlink" title="Table 6-15. Format of a CONSTANT_String_info table"></a>Table 6-15. Format of a CONSTANT_String_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">string_index</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tag-6"><a href="#tag-6" class="headerlink" title="tag"></a>tag</h4><p>￼The tag item has the value CONSTANT_String (8).</p>
+<h4 id="string-index"><a href="#string-index" class="headerlink" title="string_index"></a>string_index</h4><p>The string_index item gives the index of a CONSTANT_Utf8_info entry that contains the value of the literal string.</p>
+<h3 id="The-CONSTANT-Fieldref-info-Table"><a href="#The-CONSTANT-Fieldref-info-Table" class="headerlink" title="The CONSTANT_Fieldref_info Table"></a>The CONSTANT_Fieldref_info Table</h3><p>The CONSTANT_Fieldref_info table represents a symbolic reference to a field. Table 6-16 shows the format of a CONSTANT_Fieldref_info table.</p>
+<h4 id="Table-6-16-Format-of-a-CONSTANT-Fieldref-info-table"><a href="#Table-6-16-Format-of-a-CONSTANT-Fieldref-info-table" class="headerlink" title="Table 6-16. Format of a CONSTANT_Fieldref_info table"></a>Table 6-16. Format of a CONSTANT_Fieldref_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">class_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">name_and_type_index</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tag-7"><a href="#tag-7" class="headerlink" title="tag"></a>tag</h4><p>The tag item has the value CONSTANT_Fieldref (9).</p>
+<h4 id="class-index"><a href="#class-index" class="headerlink" title="class_index"></a>class_index</h4><p>The class_index gives the index of the CONSTANT_Class_info entry for the class that declares the referenced field.</p>
+<p>Note that the CONSTANT_Class_info specified by class_index must represent a class and not an interface. Although interfaces can declare fields, those fields are by definition public, static, and final. As mentioned in earlier chapters, class files do not contain symbolic references to static final fields of other classes. Instead, class files contain a copy of the constant value of any static final fields it uses. For example, if a class uses a static final field of type float that is declared in an interface, the class would have a CONSTANT_Float_info table in its own constant pool that stores the float value. For more information about this special treatment of static final fields, see Chapter 8, &quot;The Linking Model.&quot;</p>
+<h4 id="name-and-type-index"><a href="#name-and-type-index" class="headerlink" title="name_and_type_index"></a>name_and_type_index</h4><p>The name_and_type_index gives the index of a CONSTANT_NameAndType_info entry that gives the field&#39;s simple name and descriptor.</p>
+<h3 id="The-CONSTANT-Methodref-info-Table"><a href="#The-CONSTANT-Methodref-info-Table" class="headerlink" title="The CONSTANT_Methodref_info Table"></a>The CONSTANT_Methodref_info Table</h3><p>The CONSTANT_Methodref_info table represents a symbolic reference to a method declared in a class (not in an interface). Table 6-17 shows the format of a CONSTANT_Methodref_info table.<br>￼Table 6-17. Format of a CONSTANT_Methodref_info table</p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">class_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">name_and_type_index</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tag-8"><a href="#tag-8" class="headerlink" title="tag"></a>tag</h4><p>The tag item has the value CONSTANT_Methodref (10).</p>
+<h4 id="class-index-1"><a href="#class-index-1" class="headerlink" title="class_index"></a>class_index</h4><p>The class_index gives the index of a CONSTANT_Class_info entry for the class that declares the referenced method. The CONSTANT_Class_info table specified by class_index must be a class and not an interface. Symbolic references to methods declared in interfaces use CONSTANT_InterfaceMethodref.</p>
+<h4 id="name-and-type-index-1"><a href="#name-and-type-index-1" class="headerlink" title="name_and_type_index"></a>name_and_type_index</h4><p>The name_and_type_index gives the index of a CONSTANT_NameAndType_info entry that gives the method&#39;s simple name and descriptor.</p>
+<h3 id="The-CONSTANT-InterfaceMethodref-info-Table"><a href="#The-CONSTANT-InterfaceMethodref-info-Table" class="headerlink" title="The CONSTANT_InterfaceMethodref_info Table"></a>The CONSTANT_InterfaceMethodref_info Table</h3><p>The CONSTANT_InterfaceMethodref_info table represents a symbolic reference to a method declared in an interface (not in a class). Table 6-18 shows the format of a CONSTANT_InterfaceMethodref_info table.</p>
+<h4 id="Table-6-18-Format-of-a-CONSTANT-InterfaceMethodref-info-table"><a href="#Table-6-18-Format-of-a-CONSTANT-InterfaceMethodref-info-table" class="headerlink" title="Table 6-18. Format of a CONSTANT_InterfaceMethodref_info table"></a>Table 6-18. Format of a CONSTANT_InterfaceMethodref_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">class_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">name_and_type_index</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<p>Type Name Count</p>
+<h4 id="tag-9"><a href="#tag-9" class="headerlink" title="tag"></a>tag</h4><p>The tag item has the value CONSTANT_InterfaceMethodref (11).</p>
+<h4 id="class-index-2"><a href="#class-index-2" class="headerlink" title="class_index"></a>class_index</h4><p>The class_index gives the index of a CONSTANT_Class_info entry for the interface that declares the referenced method. The CONSTANT_Class_info table specified by class_index must be an interface and not a class. Symbolic references to methods declared in classes use CONSTANT_Methodref.</p>
+<h4 id="name-and-type-index-2"><a href="#name-and-type-index-2" class="headerlink" title="name_and_type_index"></a>name_and_type_index</h4><p>The name_and_type_index gives the index of a CONSTANT_NameAndType_info entry that gives the method&#39;s simple name and descriptor.</p>
+<h3 id="The-CONSTANT-NameAndType-info-Table"><a href="#The-CONSTANT-NameAndType-info-Table" class="headerlink" title="The CONSTANT_NameAndType_info Table"></a>The CONSTANT_NameAndType_info Table</h3><p>The CONSTANT_NameAndType_info table forms part of a symbolic reference to a field or method. This table gives constant pool entries of the simple name and the descriptor of the referenced field or method. Table 6-19 shows the format of a CONSTANT_NameAndType_info table.</p>
+<h4 id="Table-6-19-Format-of-a-CONSTANT-NameAndType-info-table"><a href="#Table-6-19-Format-of-a-CONSTANT-NameAndType-info-table" class="headerlink" title="Table 6-19. Format of a CONSTANT_NameAndType_info table"></a>Table 6-19. Format of a CONSTANT_NameAndType_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">tag</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">descriptor_index</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="tag-10"><a href="#tag-10" class="headerlink" title="tag"></a>tag</h4><p>The tag item has the value CONSTANT_NameAndType (12).</p>
+<h4 id="name-index-1"><a href="#name-index-1" class="headerlink" title="name_index"></a>name_index</h4><p>The name_index gives the index of a CONSTANT_Utf8_info entry that gives the name of the field or method.</p>
+<h4 id="descriptor-index"><a href="#descriptor-index" class="headerlink" title="descriptor_index"></a>descriptor_index</h4><p>The descriptor_index gives the index of a CONSTANT_Utf8_info entry that gives the descriptor of the field or method.</p>
+<h2 id="Fields"><a href="#Fields" class="headerlink" title="Fields"></a>Fields</h2><p>Each field (class variable and instance variable) declared in a class or interface is described by a field_info table in the class file. The format of the field_info table is shown in Table 6-20.</p>
+<h3 id="Table-6-20-Format-of-a-field-info-table"><a href="#Table-6-20-Format-of-a-field-info-table" class="headerlink" title="Table 6-20. Format of a field_info table"></a>Table 6-20. Format of a field_info table</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">access_flags</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">descriptor_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attributes_count</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">attribute_info</td>
+<td style="text-align:center">attributes</td>
+<td style="text-align:center">attributes_count</td>
+</tr>
+</tbody>
+</table>
+<h4 id="access-flags-1"><a href="#access-flags-1" class="headerlink" title="access_flags"></a>access_flags</h4><p>The modifiers used in declaring the field are placed into the field&#39;s access_flags item. Table 6-21 shows the bits used by each flag.</p>
+<h5 id="Table-6-21-Flags-in-the-access-flags-item-of-field-info-tables"><a href="#Table-6-21-Flags-in-the-access-flags-item-of-field-info-tables" class="headerlink" title="Table 6-21. Flags in the access_flags item of field_info tables"></a>Table 6-21. Flags in the access_flags item of field_info tables</h5><table>
+<thead>
+<tr>
+<th style="text-align:center">Flag Name</th>
+<th style="text-align:center">Value</th>
+<th style="text-align:center">Meaning if Set</th>
+<th style="text-align:left">Set By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">ACC_PUBLIC</td>
+<td style="text-align:center">0x0001</td>
+<td style="text-align:center">Field is public</td>
+<td style="text-align:left">Classes and interfaces</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_PRIVATE</td>
+<td style="text-align:center">0x0002</td>
+<td style="text-align:center">Field is private</td>
+<td style="text-align:left">Classes only</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_PROTECTED</td>
+<td style="text-align:center">0x0004</td>
+<td style="text-align:center">Field is protected</td>
+<td style="text-align:left">Classes only</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_STATIC</td>
+<td style="text-align:center">0x0008</td>
+<td style="text-align:center">Field is static</td>
+<td style="text-align:left">Classes and interfaces</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_FINAL</td>
+<td style="text-align:center">0x0010</td>
+<td style="text-align:center">Field is final</td>
+<td style="text-align:left">Classes and interfaces</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_VOLATILE</td>
+<td style="text-align:center">0x0040</td>
+<td style="text-align:center">Field is volatile</td>
+<td style="text-align:left">Classes only</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_TRANSIENT</td>
+<td style="text-align:center">0x0080</td>
+<td style="text-align:center">Field is transient</td>
+<td style="text-align:left">Classes only</td>
+</tr>
+</tbody>
+</table>
+<p>For fields declared in a class (not an interface), at most one of ACC_PUBLIC, ACC_PRIVATE, and ACC_PROTECTED may be set. ACC_FINAL and ACC_VOLATILE must not both be set. All fields declared in interfaces must have the ACC_PUBLIC, ACC_STATIC, and ACC_FINAL flags set.</p>
+<p>All unused bits in access_flags must be set to zero and ignored by Java Virtual Machine implementations.</p>
+<h4 id="name-index-2"><a href="#name-index-2" class="headerlink" title="name_index"></a>name_index</h4><p>The name_index gives the index of a CONSTANT_Utf8_info entry that gives the simple (not fully qualified) name of the field.</p>
+<h4 id="descriptor-index-1"><a href="#descriptor-index-1" class="headerlink" title="descriptor_index"></a>descriptor_index</h4><p>The descriptor_index gives the index of a CONSTANT_Utf8_info entry that gives the descriptor of the field.</p>
+<h4 id="attributes-count-and-attributes-1"><a href="#attributes-count-and-attributes-1" class="headerlink" title="attributes_count and attributes"></a>attributes_count and attributes</h4><p>The attributes item is a list of attribute_info tables. The attributes_count indicates the number of attribute_info tables in the list. Two kinds of attributes defined by the Java Virtual Machine specification that may appear in this item are ConstantValue and Synthetic. These two attributes are described in detail later in this chapter.</p>
+<h2 id="Methods"><a href="#Methods" class="headerlink" title="Methods"></a>Methods</h2><p>Each method declared in a class or interface or generated by the compiler is described in the class file by a method_info table. The two types of compiler-generated methods that may appear in class files are instance initialization methods (named <code>&lt;init&gt;</code>) and class initialization methods (named <code>&lt;clinit&gt;</code>). For more information on the compiler-generated methods, see Chapter 7, &quot;The Lifetime of a Class.&quot; The￼format of the method_info table is shown in Table 6-22.</p>
+<h3 id="Table-6-22-Format-of-a-method-info-table"><a href="#Table-6-22-Format-of-a-method-info-table" class="headerlink" title="Table 6-22. Format of a method_info table"></a>Table 6-22. Format of a method_info table</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">access_flags</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">descriptor_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attributes_count</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">attribute_info</td>
+<td style="text-align:center">attributes</td>
+<td style="text-align:center">attributes_count</td>
+</tr>
+</tbody>
+</table>
+<h3 id="access-flags-2"><a href="#access-flags-2" class="headerlink" title="access_flags"></a>access_flags</h3><p>The modifiers used in declaring the method are placed into the method&#39;s access_flags item. Table 6-23 shows the bits used by each flag.</p>
+<h4 id="Table-6-23-Flags-in-the-access-flags-item-of-method-info-tables"><a href="#Table-6-23-Flags-in-the-access-flags-item-of-method-info-tables" class="headerlink" title="Table 6-23. Flags in the access_flags item of method_info tables"></a>Table 6-23. Flags in the access_flags item of method_info tables</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Flag Name</th>
+<th style="text-align:center">Value</th>
+<th style="text-align:center">Meaning if Set</th>
+<th style="text-align:center">Set By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">ACC_PUBLIC</td>
+<td style="text-align:center">0x0001</td>
+<td style="text-align:center">Method is public</td>
+<td style="text-align:center">Classes and all methods of interfaces</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_PRIVATE</td>
+<td style="text-align:center">0x0002</td>
+<td style="text-align:center">Method is private</td>
+<td style="text-align:center">Classes only</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_PROTECTED</td>
+<td style="text-align:center">0x0004</td>
+<td style="text-align:center">Method is protected</td>
+<td style="text-align:center">Classes only</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_STATIC</td>
+<td style="text-align:center">0x0008</td>
+<td style="text-align:center">Method is static</td>
+<td style="text-align:center">Classes only</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_FINAL</td>
+<td style="text-align:center">0x0010</td>
+<td style="text-align:center">Method is final</td>
+<td style="text-align:center">Classes only</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_SYNCHRONIZED</td>
+<td style="text-align:center">0x0020</td>
+<td style="text-align:center">Method is synchronized</td>
+<td style="text-align:center">Classes only</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_NATIVE</td>
+<td style="text-align:center">0x0100</td>
+<td style="text-align:center">Method is native</td>
+<td style="text-align:center">Classes only</td>
+</tr>
+<tr>
+<td style="text-align:center">ACC_ABSTRACT</td>
+<td style="text-align:center">0x0400</td>
+<td style="text-align:center">Method is abstract</td>
+<td style="text-align:center">Classes and all methods of interfaces</td>
+</tr>
+</tbody>
+</table>
+<p>For methods declared in a class (not an interface), at most one of ACC_PUBLIC, ACC_PRIVATE, and ACC_PROTECTED may be set. If a method&#39;s ACC_FINAL flag is set, then its ACC_SYNCHRONIZED, ACC_NATIVE, and ACC_ABSTRACT flags must not be set. If a method&#39;s ACC_PRIVATE or ACC_STATIC flag is set, then its ACC_ABSTRACT flag must not be set. All methods declared in interfaces must have their ACC_PUBLIC and ACC_ABSTRACT flags set.</p>
+<p>Instance initialization (<code>&lt;init&gt;</code>) methods may only use flags ACC_PUBLIC, ACC_PRIVATE, and ACC_PROTECTED. Because class initialization (<code>&lt;clinit&gt;</code>) methods are invoked by the Java Virtual Machine, never directly by Java bytecodes, the the access_flags for <code>&lt;clinit&gt;</code> methods is ignored.</p>
+<p>All unused bits in access_flags must be set to zero and ignored by Java Virtual Machine implementations.</p>
+<h3 id="name-index-3"><a href="#name-index-3" class="headerlink" title="name_index"></a>name_index</h3><p>The name_index gives the index of a CONSTANT_Utf8_info entry that gives the simple (not fully qualified) name of the method.</p>
+<h3 id="descriptor-index-2"><a href="#descriptor-index-2" class="headerlink" title="descriptor_index"></a>descriptor_index</h3><p>The descriptor_index gives the index of a CONSTANT_Utf8_info entry that gives the descriptor of the method.</p>
+<h3 id="attributes-count-and-attributes-2"><a href="#attributes-count-and-attributes-2" class="headerlink" title="attributes_count and attributes"></a>attributes_count and attributes</h3><p>The attributes item is a list of attribute_info tables. The attributes_count indicates the number of attribute_info tables in the list. Three kinds of attributes that are defined by the Java Virtual Machine specification that may appear in this item are Code, Exceptions, and Synthetic. These three attributes are described in detail later in this chapter.</p>
+<h2 id="Attributes"><a href="#Attributes" class="headerlink" title="Attributes"></a>Attributes</h2><p>As mentioned above, attributes appear in several places inside a Java class file. They can appear in the ClassFile, field_info, method_info, and Code_attribute tables. The Code_attribute table, an attribute itself, is described later in this section.</p>
+<p>Every attribute follows the same general format of the attribute_info table, shown in Table 6-24. The first two bytes of an attribute, the attribute_name_index, form an index into the constant pool of a CONSTANT_Utf8_info table that contains the string name of the attribute. Each attribute_info, therefore, identifies its &quot;type&quot; by the first item in its table much like cp_info tables identify their type by the initial tag byte. The difference is that whereas the type of a cp_info table is indicated by an unsigned byte value, such as 3 (CONSTANT_Integer_info), the type of an attribute_info table is indicated by a string.</p>
+<p>Following the attribute_name_index is a four-byte attribute_length item, which gives the length of the entire attribute_info table minus the initial six bytes. This length is necessary because anyone, following certain rules (outlined below), is allowed to add attributes to a Java class file. Java Virtual Machine implementations are allowed to recognize new attributes. Implementations must ignore any attributes they donít recognize. The attribute_length allows virtual machines to skip unrecognized attributes as they parse the class file.</p>
+<p>Anyone who wishes to add a new attribute to a Java class file must follow these two rules:</p>
+<ol>
+<li>Any attribute that is not predefined by the specification must not affect the semantics of class or interface types. New attributes can only add more information to the class file, such as information used during debugging.</li>
+<li>The attribute must be named using the reverse Internet domain name scheme that is defined for package naming in the Java Language Specification. For example, if your Internet domain name were artima.com and you wished to create a new attribute named CompilerVersion, you would name the attribute: COM.artima.CompilerVersion.</li>
+</ol>
+<h3 id="Table-6-24-Format-of-an-attribute-info-table"><a href="#Table-6-24-Format-of-an-attribute-info-table" class="headerlink" title="Table 6-24. Format of an attribute_info table"></a>Table 6-24. Format of an attribute_info table</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attribute_name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">attribute_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">info</td>
+<td style="text-align:center">attribute_length</td>
+</tr>
+</tbody>
+</table>
+<h3 id="attribute-name-index"><a href="#attribute-name-index" class="headerlink" title="attribute_name_index"></a>attribute_name_index</h3><p>The attribute_name_index gives the index in the constant pool of a CONSTANT_Utf8_info entry that contains the name of the attribute.</p>
+<h3 id="attribute-length"><a href="#attribute-length" class="headerlink" title="attribute_length"></a>attribute_length</h3><p>The attribute_length item indicates the length in bytes of the attribute data excluding the initial six bytes that contain the attribute_name_index and attribute_length.</p>
+<h3 id="info"><a href="#info" class="headerlink" title="info"></a>info</h3><p>The info item contains the attribute data.</p>
+<h2 id="Attributes-1"><a href="#Attributes-1" class="headerlink" title="Attributes"></a>Attributes</h2><p>The Java Virtual Machine specification defines eight types of attributes, shown in Table 6-25. All Java Virtual Machine implementations must recognize three of these attributes: Code, ConstantValue, and Exceptions. Implementations can choose whether to recognize or ignore the other predefined attributes. (The InnerClasses and Synthetic attributes were added in Java 1.1). All of these predefined attributes are described in detail later in this chapter.</p>
+<h3 id="Table-6-25-Types-of-attribute-info-tables-defined-by-the-specification"><a href="#Table-6-25-Types-of-attribute-info-tables-defined-by-the-specification" class="headerlink" title="Table 6-25. Types of attribute_info tables defined by the specification"></a>Table 6-25. Types of attribute_info tables defined by the specification</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Used By</th>
+<th style="text-align:center">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">Code</td>
+<td style="text-align:center">method_info</td>
+<td style="text-align:center">The bytecodes and other data for one method</td>
+</tr>
+<tr>
+<td style="text-align:center">ConstantValue</td>
+<td style="text-align:center">field_info</td>
+<td style="text-align:center">The value of a final variable</td>
+</tr>
+<tr>
+<td style="text-align:center">Exceptions</td>
+<td style="text-align:center">method_info</td>
+<td style="text-align:center">The checked exceptions that a method may throw</td>
+</tr>
+<tr>
+<td style="text-align:center">InnerClasses</td>
+<td style="text-align:center">ClassFile</td>
+<td style="text-align:center">A description of the inner classes defined inside a class</td>
+</tr>
+<tr>
+<td style="text-align:center">LineNumberTable</td>
+<td style="text-align:center">Code_attribute</td>
+<td style="text-align:center">A mapping of line numbers to bytecodes for one method</td>
+</tr>
+<tr>
+<td style="text-align:center">LocalVariableTable</td>
+<td style="text-align:center">Code_attribute</td>
+<td style="text-align:center">A description of the local variables for one method</td>
+</tr>
+<tr>
+<td style="text-align:center">SourceFile</td>
+<td style="text-align:center">ClassFile</td>
+<td style="text-align:center">The name of the source file</td>
+</tr>
+<tr>
+<td style="text-align:center">Synthetic</td>
+<td style="text-align:center">field_info, method_info</td>
+<td style="text-align:center">An indicator that a field or method was generated by the compiler</td>
+</tr>
+</tbody>
+</table>
+<h3 id="The-Code-Attribute"><a href="#The-Code-Attribute" class="headerlink" title="The Code Attribute"></a>The Code Attribute</h3><p>One Code_attribute table appears in the method_info table of every method that is not abstract or native. The format of a Code_attribute table is shown in Table 6-26.</p>
+<h4 id="Table-6-26-Format-of-a-Code-attribute-table"><a href="#Table-6-26-Format-of-a-Code-attribute-table" class="headerlink" title="Table 6-26. Format of a Code_attribute table"></a>Table 6-26. Format of a Code_attribute table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attribute_name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">attribute_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">max_stack</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">max_locals</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">code_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u1</td>
+<td style="text-align:center">code</td>
+<td style="text-align:center">code_length</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">exception_table_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">exception_info</td>
+<td style="text-align:center">exception_table</td>
+<td style="text-align:center">exception_table_length</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attributes_count</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">attribute_info</td>
+<td style="text-align:center">attributes</td>
+<td style="text-align:center">attributes_count</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-name-index-1"><a href="#attribute-name-index-1" class="headerlink" title="attribute_name_index"></a>attribute_name_index</h4><p>The attribute_name_index gives the index in the constant pool of a CONSTANT_Utf8_info entry that contains the string &quot;Code&quot;. attribute_length</p>
+<p>The attribute_length item gives the length in bytes of the Code attribute excluding the initial six bytes that contain the attribute_name_index and attribute_length items.</p>
+<h4 id="max-stack"><a href="#max-stack" class="headerlink" title="max_stack"></a>max_stack</h4><p>The max_stack item gives the maximum number of words that will be on the operand stack of this method at any point during its execution.</p>
+<h4 id="max-locals"><a href="#max-locals" class="headerlink" title="max_locals"></a>max_locals</h4><p>The max_locals item gives the number of words in the local variables that are required by this method.</p>
+<h4 id="code-length-and-code"><a href="#code-length-and-code" class="headerlink" title="code_length and code"></a>code_length and code</h4><p>The code_length item gives the length in bytes of the bytecode stream for this method. The bytecodes themselves appear in the code item.</p>
+<h4 id="exception-table-length-and-exception-table"><a href="#exception-table-length-and-exception-table" class="headerlink" title="exception_table_length and exception_table"></a>exception_table_length and exception_table</h4><p>The exception_table item is a list of exception_info tables. Each exception_info table describes one exception table entry. The exception_table_length item gives the number of exception_info tables that appear in the exception_table list. The order in which the exception_info tables appear in the list is the order in which the Java Virtual Machine will check for a matching exception handler (catch clause) if an exception is thrown while this method executes. The format of a exception_info table is shown in Table 6-27. For more information about exception tables, see Chapter 17, &quot;Exceptions.&quot;</p>
+<h5 id="Table-6-27-Format-of-an-exception-info-table"><a href="#Table-6-27-Format-of-an-exception-info-table" class="headerlink" title="Table 6-27. Format of an exception_info table"></a>Table 6-27. Format of an exception_info table</h5><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">start_pc</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">end_pc</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">handler_pc</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">catch_type</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h5 id="start-pc"><a href="#start-pc" class="headerlink" title="start_pc"></a>start_pc</h5><p>The start_pc item gives the offset from the beginning of the code array for the beginning of the range covered by this exception handler.</p>
+<h5 id="end-pc"><a href="#end-pc" class="headerlink" title="end_pc"></a>end_pc</h5><p>The end_pc item gives the offset from the beginning of the code array for one byte past the end of the range covered by this exception handler.</p>
+<h5 id="handler-pc"><a href="#handler-pc" class="headerlink" title="handler_pc"></a>handler_pc</h5><p>The handler_pc item gives the offset from the beginning of the code array for the instruction to jump to (the first instruction of the exception handler) if a thrown exception is caught by this entry.</p>
+<h5 id="catch-type"><a href="#catch-type" class="headerlink" title="catch_type"></a>catch_type</h5><p>The catch_type item gives the constant pool index of a CONSTANT_Class_info entry for the type of exception caught by this exception handler. The CONSTANT_Class_info entry must represent class java.lang.Throwable or one of its subclasses.</p>
+<p>If the value of catch_type is zero (which isnít a valid index into the constant pool, because the constant pool starts at index one), the exception handler handles all exceptions. A catch_type of zero is used to implement finally clauses. See Chapter 18, &quot;Finally Clauses,&quot; for more information about￼how finally clauses are implemented.</p>
+<h4 id="attributes-count-and-attributes-3"><a href="#attributes-count-and-attributes-3" class="headerlink" title="attributes_count and attributes"></a>attributes_count and attributes</h4><p>The attributes item is a list of attribute_info tables. The attributes_count indicates the number of attribute_info tables in the list. The two kinds of attributes defined by the Java Virtual Machine specification that may appear in this item are LineNumberTable and LocalVariableTable. These two attributes are described in detail later in this chapter.</p>
+<h3 id="The-ConstantValue-Attribute"><a href="#The-ConstantValue-Attribute" class="headerlink" title="The ConstantValue Attribute"></a>The ConstantValue Attribute</h3><p>The ConstantValue attribute appears in field_info tables for fields that have a constant value. In the access_flags of a field_info table that includes a ConstantValue attribute, the ACC_STATIC flag must be set. The ACC_FINAL flag may also be set, though it is not required. When the virtual machine initializes a field that has a ConstantValue attribute, it assigns the constant value to the field. The format of a ConstantValue_attribute table is shown in Table 6-28.</p>
+<h4 id="Table-6-28-Format-of-a-ConstantValue-attribute-table"><a href="#Table-6-28-Format-of-a-ConstantValue-attribute-table" class="headerlink" title="Table 6-28. Format of a ConstantValue_attribute table"></a>Table 6-28. Format of a ConstantValue_attribute table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attribute_name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">attribute_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">constantvalue_index</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-name-index-2"><a href="#attribute-name-index-2" class="headerlink" title="attribute_name_index"></a>attribute_name_index</h4><p>The attribute_name_index gives the index in the constant pool of a CONSTANT_Utf8_info entry that contains the string &quot;ConstantValue&quot;.</p>
+<h4 id="attribute-length-1"><a href="#attribute-length-1" class="headerlink" title="attribute_length"></a>attribute_length</h4><p>The attribute_length item of a ConstantValue_attribute is always 2.</p>
+<h4 id="constantvalue-index"><a href="#constantvalue-index" class="headerlink" title="constantvalue_index"></a>constantvalue_index</h4><p>The constantvalue_index item gives the index in the constant pool of an entry that gives a constant value. Table 6-29 shows the type of entry for each type of field.</p>
+<h5 id="Table-6-29-Constant-pool-entry-types-for-constant-value-attributes"><a href="#Table-6-29-Constant-pool-entry-types-for-constant-value-attributes" class="headerlink" title="Table 6-29. Constant pool entry types for constant value attributes"></a>Table 6-29. Constant pool entry types for constant value attributes</h5><table>
+<thead>
+<tr>
+<th style="text-align:center">Constant Value Attribute</th>
+<th style="text-align:center">Constant pool entry type</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">byte, short, char, int, boolean</td>
+<td style="text-align:center">CONSTANT_Integer_info</td>
+</tr>
+<tr>
+<td style="text-align:center">long</td>
+<td style="text-align:center">CONSTANT_Long_info</td>
+</tr>
+<tr>
+<td style="text-align:center">float</td>
+<td style="text-align:center">CONSTANT_Float_info</td>
+</tr>
+<tr>
+<td style="text-align:center">double</td>
+<td style="text-align:center">CONSTANT_Double_info</td>
+</tr>
+<tr>
+<td style="text-align:center">java.lang.String</td>
+<td style="text-align:center">CONSTANT_String_info</td>
+</tr>
+</tbody>
+</table>
+<h3 id="The-Exceptions-Attribute"><a href="#The-Exceptions-Attribute" class="headerlink" title="The Exceptions Attribute"></a>The Exceptions Attribute</h3><p>The Exceptions attribute lists the checked exceptions that a method may throw. One Exceptions_attribute table appears in the method_info table of every method that may throw checked exceptions. The format of a Exceptions_attribute table is shown in Table 6-30.</p>
+<h4 id="Table-6-30-Format-of-an-Exceptions-attribute-table"><a href="#Table-6-30-Format-of-an-Exceptions-attribute-table" class="headerlink" title="Table 6-30. Format of an Exceptions_attribute table"></a>Table 6-30. Format of an Exceptions_attribute table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attribute_name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">attribute_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">number_of_exceptions</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">exception_index_table</td>
+<td style="text-align:center">number_of_exceptions</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-name-index-3"><a href="#attribute-name-index-3" class="headerlink" title="attribute_name_index"></a>attribute_name_index</h4><p>The attribute_name_index gives the index in the constant pool of a CONSTANT_Utf8_info entry that contains the string &quot;Exceptions&quot;. attribute_length</p>
+<p>The attribute_length item gives the length in bytes of the Exceptions_attribute excluding the initial six bytes that contain the attribute_name_index and attribute_length items.</p>
+<h4 id="number-of-exceptions-and-exception-index-table"><a href="#number-of-exceptions-and-exception-index-table" class="headerlink" title="number_of_exceptions and exception_index_table"></a>number_of_exceptions and exception_index_table</h4><p>The exception_index_table is an array of indexes into the constant pool of CONSTANT_Class_info entries for the exceptions declared in this method&#39;s throws clause. In other words, the exception_index_table lists all the checked exceptions that this method may throw. The number_of_exceptions item indicates the number of indexes in the array.</p>
+<h3 id="The-InnerClasses-Attribute"><a href="#The-InnerClasses-Attribute" class="headerlink" title="The InnerClasses Attribute"></a>The InnerClasses Attribute</h3><p>The InnerClasses attribute lists any inner classes declared in a class. The InnerClasses_attribute table appears in the attributes of the ClassFile table for those classes that have inner classes. The format of a InnerClasses_attribute table is shown in Table 6-31.</p>
+<h4 id="Table-6-31-Format-of-a-InnerClasses-attribute-table"><a href="#Table-6-31-Format-of-a-InnerClasses-attribute-table" class="headerlink" title="Table 6-31. Format of a InnerClasses_attribute table"></a>Table 6-31. Format of a InnerClasses_attribute table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attribute_name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">attribute_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">number_of_classes</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">classes_info</td>
+<td style="text-align:center">classes</td>
+<td style="text-align:center">number_of_classes</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-name-index-4"><a href="#attribute-name-index-4" class="headerlink" title="attribute_name_index"></a>attribute_name_index</h4><p>The attribute_name_index gives the index in the constant pool of a CONSTANT_Utf8_info entry that contains the string &quot;InnerClasses&quot;.</p>
+<h4 id="attribute-length-2"><a href="#attribute-length-2" class="headerlink" title="attribute_length"></a>attribute_length</h4><p>The attribute_length item gives the length in bytes of the Exceptions_attribute excluding the initial six bytes that contain the attribute_name_index and attribute_length items.</p>
+<h4 id="number-of-classes-and-classes"><a href="#number-of-classes-and-classes" class="headerlink" title="number_of_classes and classes"></a>number_of_classes and classes</h4><p>The classes item is an array of inner_class_info tables. The number_of_classes gives the number of inner_class_info tables that appear in the classes array. The format of the inner_class_info table is shown in Table 6-32.</p>
+<h4 id="Table-6-32-Format-of-an-inner-class-info-table"><a href="#Table-6-32-Format-of-an-inner-class-info-table" class="headerlink" title="Table 6-32. Format of an inner_class_info table"></a>Table 6-32. Format of an inner_class_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">inner_class_info_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">outer_class_info_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">inner_name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">inner_class_access_flags</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="inner-class-info-index"><a href="#inner-class-info-index" class="headerlink" title="inner_class_info_index"></a>inner_class_info_index</h4><p>The inner_class_info_index gives an index into the constant pool for a CONSTANT_Class_info entry for an inner class.</p>
+<h4 id="outer-class-info-index"><a href="#outer-class-info-index" class="headerlink" title="outer_class_info_index"></a>outer_class_info_index</h4><p>The outer_class_info_index gives an index into the constant pool for a CONSTANT_Class_info entry for the class in which the inner class described by this inner_class_info table is defined. If the inner class is not a member, the outer_class_info_index is zero.</p>
+<h4 id="inner-name-index"><a href="#inner-name-index" class="headerlink" title="inner_name_index"></a>inner_name_index</h4><p>The inner_name_index gives an index in the constant pool for a CONSTANT_Utf8_info entry that gives the simple name of the inner class. If the inner class is anonymous, the inner_name_index is zero.</p>
+<h4 id="inner-class-access-flags"><a href="#inner-class-access-flags" class="headerlink" title="inner_class_access_flags"></a>inner_class_access_flags</h4><p>The inner_class_access_flags item gives the access flags for the inner class. The flags used in this item are the same shown in Table 6-4 above for top-level classes.</p>
+<h3 id="The-LineNumberTable-Attribute"><a href="#The-LineNumberTable-Attribute" class="headerlink" title="The LineNumberTable Attribute"></a>The LineNumberTable Attribute</h3><p>The LineNumberTable attribute maps offsets in a method&#39;s bytecode stream to line numbers in the source file. One LineNumberTable_attribute table may appear (it is optional) in the attributes component of Code_attribute tables. The format of a LineNumberTable_attribute table is shown in Table 6-33.</p>
+<h4 id="Table-6-33-Format-of-a-LineNumberTable-attribute-table"><a href="#Table-6-33-Format-of-a-LineNumberTable-attribute-table" class="headerlink" title="Table 6-33. Format of a LineNumberTable_attribute table"></a>Table 6-33. Format of a LineNumberTable_attribute table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attribute_name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">attribute_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">line_number_table_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">line_number_info</td>
+<td style="text-align:center">line_number_table</td>
+<td style="text-align:center">line_number_table_length</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-name-index-5"><a href="#attribute-name-index-5" class="headerlink" title="attribute_name_index"></a>attribute_name_index</h4><p>The attribute_name_index gives the index in the constant pool of a CONSTANT_Utf8_info entry that contains the string &quot;LineNumberTable&quot;.</p>
+<h4 id="attribute-length-3"><a href="#attribute-length-3" class="headerlink" title="attribute_length"></a>attribute_length</h4><p>The attribute_length item gives the length in bytes of the LineNumberTable_attribute excluding the initial six bytes that contain the attribute_name_index and attribute_length items.</p>
+<h4 id="line-number-table-length-and-line-number-table"><a href="#line-number-table-length-and-line-number-table" class="headerlink" title="line_number_table_length and line_number_table"></a>line_number_table_length and line_number_table</h4><p>The line_number_table item is an array of line_number_info tables. The line_number_table_length gives the number of line_number_info tables that appear in the line_number_table array. The tables in this array may appear in any order, and there may be more than one table for the same line number. The format of a line_number_info is shown in Table 6-34.</p>
+<h4 id="Table-6-34-Format-of-a-line-number-info"><a href="#Table-6-34-Format-of-a-line-number-info" class="headerlink" title="Table 6-34. Format of a line_number_info"></a>Table 6-34. Format of a line_number_info</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">start_pc</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">line_number</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="start-pc-1"><a href="#start-pc-1" class="headerlink" title="start_pc"></a>start_pc</h4><p>The start_pc item gives an offset from the beginning of the code array where a new line begins.</p>
+<h4 id="line-number"><a href="#line-number" class="headerlink" title="line_number"></a>line_number</h4><p>The line_number item gives the line number of the line that begins at start_pc. The LocalVariableTable Attribute</p>
+<p>The LocalVariableTable attribute maps words in the local variables portion of the method&#39;s stack frame to names and descriptors of local variables in the source code. One LocalVariableTable_attribute table may appear (it is optional) in the attributes component of Code_attribute tables. The format of a LocalVariableTable_attribute table is shown in Table 6-35.</p>
+<h4 id="Table-6-35-Format-of-a-LocalVariableTable-attribute-table"><a href="#Table-6-35-Format-of-a-LocalVariableTable-attribute-table" class="headerlink" title="Table 6-35. Format of a LocalVariableTable_attribute table"></a>Table 6-35. Format of a LocalVariableTable_attribute table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attribute_name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">attribute_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">local_variable_table_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">local_variable_info</td>
+<td style="text-align:center">local_variable_table</td>
+<td style="text-align:center">local_variable_table_length</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-name-index-6"><a href="#attribute-name-index-6" class="headerlink" title="attribute_name_index"></a>attribute_name_index</h4><p>The attribute_name_index gives the index in the constant pool of a CONSTANT_Utf8_info entry that contains the string &quot;LocalVariableTable&quot;.</p>
+<h4 id="attribute-length-4"><a href="#attribute-length-4" class="headerlink" title="attribute_length"></a>attribute_length</h4><p>The attribute_length item gives the length in bytes of the LocalVariableTable_attribute excluding the initial six bytes that contain the attribute_name_index and attribute_length items.</p>
+<h4 id="local-variable-table-length-and-local-variable-table"><a href="#local-variable-table-length-and-local-variable-table" class="headerlink" title="local_variable_table_length and local_variable_table"></a>local_variable_table_length and local_variable_table</h4><p>The local_variable_table item is an array of local_variable_info tables. The local_variable_table_length gives the number of local_variable_info tables that appear in the local_variable_table array. The format of a local_variable_info table is shown in Table 6-36.</p>
+<h4 id="Table-6-36-Format-of-a-local-variable-info-table"><a href="#Table-6-36-Format-of-a-local-variable-info-table" class="headerlink" title="Table 6-36. Format of a local_variable_info table"></a>Table 6-36. Format of a local_variable_info table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">start_pc</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">descriptor_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">index</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="start-pc-and-length"><a href="#start-pc-and-length" class="headerlink" title="start_pc and length"></a>start_pc and length</h4><p>￼The start_pc item gives an offset in the code array of the start of an instruction. The length item gives the length of the range of code that starts with start_pc for which a local variable is valid. The byte at offset <code>start_pc + length</code> from the beginning of the code array must either be the first byte of an instruction or the first byte past the end of the code array.</p>
+<h4 id="name-index-4"><a href="#name-index-4" class="headerlink" title="name_index"></a>name_index</h4><p>The name_index item gives an index in the constant pool of a CONSTANT_Utf8_info entry for the name of the local variable.</p>
+<h4 id="descriptor-index-3"><a href="#descriptor-index-3" class="headerlink" title="descriptor_index"></a>descriptor_index</h4><p>The descriptor_index item gives an index in the constant pool of a CONSTANT_Utf8_info entry that contains the descriptor for this local variable. (A local variable descriptor adheres to the same grammar as a field descriptor.)</p>
+<h4 id="index"><a href="#index" class="headerlink" title="index"></a>index</h4><p>The index item gives the index in the local variable portion of this method&#39;s stack frame where the data for this local variable is kept as the method executes. If the local variable is of type long or double, the data occupies two words at positions index and index + 1. Otherwise the data occupies one word at position index.</p>
+<h3 id="The-SourceFile-Attribute"><a href="#The-SourceFile-Attribute" class="headerlink" title="The SourceFile Attribute"></a>The SourceFile Attribute</h3><p>The optional SourceFile attribute, which may appear in the attributes component of a ClassFile table, gives the name of the source file from which the class file was generated. The format of a SourceFile_attribute table is shown in Table 6-37.</p>
+<h4 id="Table-6-37-Format-of-a-SourceFile-attribute-table"><a href="#Table-6-37-Format-of-a-SourceFile-attribute-table" class="headerlink" title="Table 6-37. Format of a SourceFile_attribute table"></a>Table 6-37. Format of a SourceFile_attribute table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attribute_name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">attribute_length</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">sourcefile_index</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-name-index-7"><a href="#attribute-name-index-7" class="headerlink" title="attribute_name_index"></a>attribute_name_index</h4><p>The attribute_name_index gives the index in the constant pool of a CONSTANT_Utf8_info entry that contains the string &quot;SourceFile&quot;.</p>
+<h4 id="attribute-length-5"><a href="#attribute-length-5" class="headerlink" title="attribute_length"></a>attribute_length</h4><p>The attribute_length item of a SourceFile_attribute is always 2.</p>
+<h4 id="sourcefile-index"><a href="#sourcefile-index" class="headerlink" title="sourcefile_index"></a>sourcefile_index</h4><p>The sourcefile_index item gives the index in the constant pool of a CONSTANT_Utf8_info entry that contains the name of the source file. The source file name never includes a directory path.</p>
+<h3 id="The-Synthetic-Attribute"><a href="#The-Synthetic-Attribute" class="headerlink" title="The Synthetic Attribute"></a>The Synthetic Attribute</h3><p>The Synthetic attribute, which may optionally appear in the attributes components of field_info and method_info tables, indicates that a field or method was generated by the compiler. The Synthetic attribute was added in Java 1.1 to support inner classes. The format of a Synthetic_attribute is shown in Table 6-38.</p>
+<h4 id="Table-6-38-Format-of-a-Synthetic-attribute-table"><a href="#Table-6-38-Format-of-a-Synthetic-attribute-table" class="headerlink" title="Table 6-38. Format of a Synthetic_attribute table"></a>Table 6-38. Format of a Synthetic_attribute table</h4><table>
+<thead>
+<tr>
+<th style="text-align:center">Type</th>
+<th style="text-align:center">Name</th>
+<th style="text-align:center">Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">u2</td>
+<td style="text-align:center">attribute_name_index</td>
+<td style="text-align:center">1</td>
+</tr>
+<tr>
+<td style="text-align:center">u4</td>
+<td style="text-align:center">attribute_length</td>
+<td style="text-align:center">1</td>
+</tr>
+</tbody>
+</table>
+<h4 id="attribute-name-index-8"><a href="#attribute-name-index-8" class="headerlink" title="attribute_name_index"></a>attribute_name_index</h4><p>The attribute_name_index gives the index in the constant pool of a CONSTANT_Utf8_info entry that contains the string &quot;Synthetic&quot;.</p>
+<h4 id="attribute-length-6"><a href="#attribute-length-6" class="headerlink" title="attribute_length"></a>attribute_length</h4><p>The attribute_length must be zero.</p>
+<h2 id="Getting-Loaded-A-Simulation"><a href="#Getting-Loaded-A-Simulation" class="headerlink" title="Getting Loaded: A Simulation"></a>Getting Loaded: A Simulation</h2><p>The Getting Loaded applet, shown in Figure 6-3, simulates a Java Virtual Machine loading a class file. The class file being loaded in the simulation was generated by the 1.1 javac compiler from the Java source code shown below. Although the snippet of code used in the simulation may not be very useful in the real world, it does compile to a real class file and provides a reasonably simple example of the class file format. This is the same class used in the Eternal Math simulation applet described in Chapter 5, &quot;The Java Virtual Machine.&quot;</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><div class="line"><span class="keyword">public</span> <span class="class"><span class="keyword">class</span> <span class="title">Act</span> </span>&#123;</div><div class="line"></div><div class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title">doMathForever</span><span class="params">()</span> </span>&#123;</div><div class="line">        <span class="keyword">int</span> i = <span class="number">0</span>;</div><div class="line"></div><div class="line">        <span class="keyword">for</span> (;;) &#123;</div><div class="line">            i += <span class="number">1</span>;</div><div class="line">            i *= <span class="number">2</span>;</div><div class="line">        &#125;</div><div class="line">    &#125;</div><div class="line"></div><div class="line">&#125;</div></pre></td></tr></table></figure>
+<p>The Getting Loaded applet allows you to drive the class load simulation one step at a time. For each step along the way you can read about the next chunk of bytes that is about to be consumed and interpreted by the Java Virtual Machine. Just press the &quot;Step&quot; button to cause the Java Virtual Machine to consume the next chunk. Pressing &quot;Back&quot; will undo the previous step, and pressing &quot;Reset&quot; will return the simulation to its original state, allowing you to start over from the beginning.</p>
+<p>The Java Virtual Machine is shown at the bottom left consuming the stream of bytes that makes up the class file Act.class . The bytes are shown in hex streaming out of a server on the bottom right. The bytes travel right to left, between the server and the Java Virtual Machine, one chunk at a time. The chunk of bytes to be consumed by the Java Virtual Machine on the next &quot;Step&quot; button press are shown in red. These highlighted bytes are described in the large text area above the Java Virtual Machine. Any remaining bytes beyond the next chunk are shown in black.</p>
+<p>As mentioned in previous sections, many items in the class file refer to constant pool entries. To make it easier for you to look up constant pool entries as you step through the simulation, a list of the contents of Act&#39;s constant pool is shown in Table 6-39.</p>
+<h3 id="Table-6-39-Class-Act-39-s-constant-pool"><a href="#Table-6-39-Class-Act-39-s-constant-pool" class="headerlink" title="Table 6-39. Class Act&#39;s constant pool"></a>Table 6-39. Class Act&#39;s constant pool</h3><table>
+<thead>
+<tr>
+<th style="text-align:center">Index</th>
+<th style="text-align:center">Type</th>
+<th style="text-align:left">Value</th>
+<th style="text-align:left">Memo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">#1</td>
+<td style="text-align:center">CONSTANT_Methodref_info</td>
+<td style="text-align:left">#3.#17</td>
+<td style="text-align:left">// <code>java/lang/Object.&lt;init&gt;:()V</code></td>
+</tr>
+<tr>
+<td style="text-align:center">#2</td>
+<td style="text-align:center">CONSTANT_Class_info</td>
+<td style="text-align:left">#18</td>
+<td style="text-align:left">// Act</td>
+</tr>
+<tr>
+<td style="text-align:center">#3</td>
+<td style="text-align:center">CONSTANT_Class_info</td>
+<td style="text-align:left">#19</td>
+<td style="text-align:left">// java/lang/Object</td>
+</tr>
+<tr>
+<td style="text-align:center">#4</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left"><code>&lt;init&gt;</code></td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#5</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">()V</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#6</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">Code</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#7</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">LineNumberTable</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#8</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">LocalVariableTable</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#9</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">this</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#10</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">LAct;</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#11</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">doMathForever</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#12</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">i</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#13</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">I</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#14</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">StackMapTable</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#15</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">SourceFile</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#16</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">Act.java</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#17</td>
+<td style="text-align:center">CONSTANT_NameAndType_info</td>
+<td style="text-align:left">#4:#5</td>
+<td style="text-align:left">// <code>&lt;init&gt;:()V</code></td>
+</tr>
+<tr>
+<td style="text-align:center">#18</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">Act</td>
+<td style="text-align:left">//</td>
+</tr>
+<tr>
+<td style="text-align:center">#19</td>
+<td style="text-align:center">CONSTANT_Utf8_info</td>
+<td style="text-align:left">java/lang/Object</td>
+<td style="text-align:left">//</td>
+</tr>
+</tbody>
+</table>
+<figure class="highlight plain"><table><tr><td class="code"><pre><div class="line">Classfile /Users/david/github.com/learning-programming/java/target/test-classes/Act.class</div><div class="line">  Last modified Dec 25, 2016; size 362 bytes</div><div class="line">  MD5 checksum 60173bdd89e14a248ef8213a495ad5d4</div><div class="line">  Compiled from &quot;Act.java&quot;</div><div class="line">public class Act</div><div class="line">  minor version: 0</div><div class="line">  major version: 52</div><div class="line">  flags: ACC_PUBLIC, ACC_SUPER</div><div class="line">Constant pool:</div><div class="line">   #1 = Methodref          #3.#17         // java/lang/Object.&quot;&lt;init&gt;&quot;:()V</div><div class="line">   #2 = Class              #18            // Act</div><div class="line">   #3 = Class              #19            // java/lang/Object</div><div class="line">   #4 = Utf8               &lt;init&gt;</div><div class="line">   #5 = Utf8               ()V</div><div class="line">   #6 = Utf8               Code</div><div class="line">   #7 = Utf8               LineNumberTable</div><div class="line">   #8 = Utf8               LocalVariableTable</div><div class="line">   #9 = Utf8               this</div><div class="line">  #10 = Utf8               LAct;</div><div class="line">  #11 = Utf8               doMathForever</div><div class="line">  #12 = Utf8               i</div><div class="line">  #13 = Utf8               I</div><div class="line">  #14 = Utf8               StackMapTable</div><div class="line">  #15 = Utf8               SourceFile</div><div class="line">  #16 = Utf8               Act.java</div><div class="line">  #17 = NameAndType        #4:#5          // &quot;&lt;init&gt;&quot;:()V</div><div class="line">  #18 = Utf8               Act</div><div class="line">  #19 = Utf8               java/lang/Object</div><div class="line">&#123;</div><div class="line">  public Act();</div><div class="line">    descriptor: ()V</div><div class="line">    flags: ACC_PUBLIC</div><div class="line">    Code:</div><div class="line">      stack=1, locals=1, args_size=1</div><div class="line">         0: aload_0</div><div class="line">         1: invokespecial #1                  // Method java/lang/Object.&quot;&lt;init&gt;&quot;:()V</div><div class="line">         4: return</div><div class="line">      LineNumberTable:</div><div class="line">        line 4: 0</div><div class="line">      LocalVariableTable:</div><div class="line">        Start  Length  Slot  Name   Signature</div><div class="line">            0       5     0  this   LAct;</div><div class="line"></div><div class="line">  public static void doMathForever();</div><div class="line">    descriptor: ()V</div><div class="line">    flags: ACC_PUBLIC, ACC_STATIC</div><div class="line">    Code:</div><div class="line">      stack=2, locals=1, args_size=0</div><div class="line">         0: iconst_0</div><div class="line">         1: istore_0</div><div class="line">         2: iinc          0, 1</div><div class="line">         5: iload_0</div><div class="line">         6: iconst_2</div><div class="line">         7: imul</div><div class="line">         8: istore_0</div><div class="line">         9: goto          2</div><div class="line">      LineNumberTable:</div><div class="line">        line 7: 0</div><div class="line">        line 10: 2</div><div class="line">        line 11: 5</div><div class="line">      LocalVariableTable:</div><div class="line">        Start  Length  Slot  Name   Signature</div><div class="line">            2      10     0     i   I</div><div class="line">      StackMapTable: number_of_entries = 1</div><div class="line">        frame_type = 252 /* append */</div><div class="line">          offset_delta = 2</div><div class="line">          locals = [ int ]</div><div class="line">&#125;</div><div class="line">SourceFile: &quot;Act.java&quot;</div></pre></td></tr></table></figure>
+<p>Each chunk of bytes is fully explained in the text area. Because there is a lot of detail in the text area, you may wish to skim through all the steps first to get the general idea, then look back for more details. Happy clicking.</p>
+<h2 id="References"><a href="#References" class="headerlink" title="References"></a>References</h2><ol>
+<li><a href="http://www.artima.com/insidejvm/resources/index.html" target="_blank" rel="external">Inside the Java Virtual Machine</a></li>
+</ol>
+
+
+    </div>
+
+    <div>
+
+
+
+
+    </div>
+
+    <div>
+
+
+
+
+    </div>
+
+    <footer class="post-footer">
+
+
+
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+
+              <a href="/blog/java/2016/12/16/java-command-line-options.html" rel="next" title="java command line options">
+                上一篇：java command line options
+              </a>
+
+          </div>
+
+          <div class="post-nav-prev post-nav-item">
+
+          </div>
+        </div>
+
+
+
+
+    </footer>
+  </article>
+
+
+
+    <div class="post-spread">
+
+    </div>
+  </div>
+
+
+          </div>
+
+
+
+
+  <div class="comments" id="comments">
+
+  </div>
+
+
+        </div>
+
+
+
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    <div class="sidebar-inner">
+
+
+
+
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap" >
+            Table of Contents
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview">
+            Overview
+          </li>
+        </ul>
+
+
+      <section class="site-overview sidebar-panel ">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <img class="site-author-image" itemprop="image"
+               src="/blog/images/avatar.jpg"
+               alt="yuweijun" />
+          <p class="site-author-name" itemprop="name">yuweijun</p>
+          <p class="site-description motion-element" itemprop="description"></p>
+        </div>
+        <nav class="site-state motion-element">
+          <div class="site-state-item site-state-posts">
+            <a href="/blog/archives">
+              <span class="site-state-item-count">434</span>
+              <span class="site-state-item-name">posts</span>
+            </a>
+          </div>
+
+
+            <div class="site-state-item site-state-categories">
+
+                <span class="site-state-item-count">12</span>
+                <span class="site-state-item-name">categories</span>
+
+            </div>
+
+
+
+
+        </nav>
+
+
+          <div class="feed-link motion-element">
+            <a href="/blog/atom.xml" rel="alternate">
+              <i class="fa fa-rss"></i>
+              RSS
+            </a>
+          </div>
+
+
+        <div class="links-of-author motion-element">
+
+
+              <span class="links-of-author-item">
+                <a href="https://github.com/yuweijun" target="_blank" title="GitHub">
+
+                    <i class="fa fa-fw fa-github"></i>
+
+                  GitHub
+                </a>
+              </span>
+
+              <span class="links-of-author-item">
+                <a href="https://twitter.com/yuweijun" target="_blank" title="Twitter">
+
+                    <i class="fa fa-fw fa-twitter"></i>
+
+                  Twitter
+                </a>
+              </span>
+
+
+        </div>
+
+
+
+
+
+
+
+      </section>
+
+
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+
+
+
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Java-Class-File"><span class="nav-number">1.</span> <span class="nav-text">The Java Class File</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#What-is-a-Java-Class-File"><span class="nav-number">1.1.</span> <span class="nav-text">What is a Java Class File?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#What-39-s-in-a-Class-File"><span class="nav-number">1.2.</span> <span class="nav-text">What's in a Class File?</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Table-6-1-Class-file-quot-primitive-types-quot"><span class="nav-number">1.3.</span> <span class="nav-text">Table 6-1. Class file "primitive types"</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Table-6-2-Format-of-a-ClassFile-Table"><span class="nav-number">1.4.</span> <span class="nav-text">Table 6-2. Format of a ClassFile Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#magic"><span class="nav-number">1.4.1.</span> <span class="nav-text">magic</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#minor-version-and-major-version"><span class="nav-number">1.4.2.</span> <span class="nav-text">minor_version and major_version</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#constant-pool-count-and-constant-pool"><span class="nav-number">1.4.3.</span> <span class="nav-text">constant_pool_count and constant_pool</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Table-6-3-Constant-pool-tags"><span class="nav-number">1.4.3.1.</span> <span class="nav-text">Table 6-3. Constant pool tags</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#access-flags"><span class="nav-number">1.4.4.</span> <span class="nav-text">access_flags</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Table-6-4-Flag-bits-in-the-access-flags-item-of-ClassFile-tables"><span class="nav-number">1.4.4.1.</span> <span class="nav-text">Table 6-4. Flag bits in the access_flags item of ClassFile tables</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#this-class"><span class="nav-number">1.4.5.</span> <span class="nav-text">this_class</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#super-class"><span class="nav-number">1.4.6.</span> <span class="nav-text">super_class</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#interfaces-count-and-interfaces"><span class="nav-number">1.4.7.</span> <span class="nav-text">interfaces_count and interfaces</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#fields-count-and-fields"><span class="nav-number">1.4.8.</span> <span class="nav-text">fields_count and fields</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#methods-count-and-methods"><span class="nav-number">1.4.9.</span> <span class="nav-text">methods_count and methods</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attributes-count-and-attributes"><span class="nav-number">1.4.10.</span> <span class="nav-text">attributes_count and attributes</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Special-Strings"><span class="nav-number">1.5.</span> <span class="nav-text">Special Strings</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Fully-Qualified-Names"><span class="nav-number">1.5.1.</span> <span class="nav-text">Fully Qualified Names</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Simple-Names"><span class="nav-number">1.5.2.</span> <span class="nav-text">Simple Names</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Descriptors"><span class="nav-number">1.5.3.</span> <span class="nav-text">Descriptors</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Table-6-5-BaseType-terminals"><span class="nav-number">1.5.3.1.</span> <span class="nav-text">Table 6-5. BaseType terminals</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Table-6-6-Examples-of-field-descriptors"><span class="nav-number">1.5.3.2.</span> <span class="nav-text">Table 6-6. Examples of field descriptors</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#Table-6-7-Examples-of-method-descriptors"><span class="nav-number">1.5.3.3.</span> <span class="nav-text">Table 6-7. Examples of method descriptors</span></a></li></ol></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#The-Constant-Pool"><span class="nav-number">2.</span> <span class="nav-text">The Constant Pool</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Table-6-8-General-form-of-a-cp-info-table"><span class="nav-number">2.1.</span> <span class="nav-text">Table 6-8. General form of a cp_info table</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-Utf8-info-Table"><span class="nav-number">2.2.</span> <span class="nav-text">The CONSTANT_Utf8_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-9-Format-of-a-CONSTANT-Utf8-info-table"><span class="nav-number">2.2.1.</span> <span class="nav-text">Table 6-9. Format of a CONSTANT_Utf8_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tag"><span class="nav-number">2.2.2.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#length"><span class="nav-number">2.2.3.</span> <span class="nav-text">length</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#bytes"><span class="nav-number">2.2.4.</span> <span class="nav-text">bytes</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-Integer-info-Table"><span class="nav-number">2.3.</span> <span class="nav-text">The CONSTANT_Integer_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-10-Format-of-a-CONSTANT-Integer-info-table"><span class="nav-number">2.3.1.</span> <span class="nav-text">Table 6-10. Format of a CONSTANT_Integer_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tag-1"><span class="nav-number">2.3.2.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#bytes-1"><span class="nav-number">2.3.3.</span> <span class="nav-text">bytes</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-Float-info-Table"><span class="nav-number">2.4.</span> <span class="nav-text">The CONSTANT_Float_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-11-Format-of-a-CONSTANT-Float-info-table"><span class="nav-number">2.4.1.</span> <span class="nav-text">Table 6-11. Format of a CONSTANT_Float_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tag-2"><span class="nav-number">2.4.2.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#bytes-2"><span class="nav-number">2.4.3.</span> <span class="nav-text">bytes</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-Long-info-Table"><span class="nav-number">2.5.</span> <span class="nav-text">The CONSTANT_Long_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-12-Format-of-a-CONSTANT-Long-info-table"><span class="nav-number">2.5.1.</span> <span class="nav-text">Table 6-12. Format of a CONSTANT_Long_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tag-3"><span class="nav-number">2.5.2.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#bytes-3"><span class="nav-number">2.5.3.</span> <span class="nav-text">bytes</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-Double-info-Table"><span class="nav-number">2.6.</span> <span class="nav-text">The CONSTANT_Double_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-13-Format-of-a-CONSTANT-Double-info-table"><span class="nav-number">2.6.1.</span> <span class="nav-text">Table 6-13. Format of a CONSTANT_Double_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tag-4"><span class="nav-number">2.6.2.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#bytes-4"><span class="nav-number">2.6.3.</span> <span class="nav-text">bytes</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-Class-info-Table"><span class="nav-number">2.7.</span> <span class="nav-text">The CONSTANT_Class_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-14-Format-of-a-CONSTANT-Class-info-table"><span class="nav-number">2.7.1.</span> <span class="nav-text">Table 6-14. Format of a CONSTANT_Class_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tag-5"><span class="nav-number">2.7.2.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#name-index"><span class="nav-number">2.7.3.</span> <span class="nav-text">name_index</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-String-info-Table"><span class="nav-number">2.8.</span> <span class="nav-text">The CONSTANT_String_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-15-Format-of-a-CONSTANT-String-info-table"><span class="nav-number">2.8.1.</span> <span class="nav-text">Table 6-15. Format of a CONSTANT_String_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tag-6"><span class="nav-number">2.8.2.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#string-index"><span class="nav-number">2.8.3.</span> <span class="nav-text">string_index</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-Fieldref-info-Table"><span class="nav-number">2.9.</span> <span class="nav-text">The CONSTANT_Fieldref_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-16-Format-of-a-CONSTANT-Fieldref-info-table"><span class="nav-number">2.9.1.</span> <span class="nav-text">Table 6-16. Format of a CONSTANT_Fieldref_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tag-7"><span class="nav-number">2.9.2.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#class-index"><span class="nav-number">2.9.3.</span> <span class="nav-text">class_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#name-and-type-index"><span class="nav-number">2.9.4.</span> <span class="nav-text">name_and_type_index</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-Methodref-info-Table"><span class="nav-number">2.10.</span> <span class="nav-text">The CONSTANT_Methodref_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#tag-8"><span class="nav-number">2.10.1.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#class-index-1"><span class="nav-number">2.10.2.</span> <span class="nav-text">class_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#name-and-type-index-1"><span class="nav-number">2.10.3.</span> <span class="nav-text">name_and_type_index</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-InterfaceMethodref-info-Table"><span class="nav-number">2.11.</span> <span class="nav-text">The CONSTANT_InterfaceMethodref_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-18-Format-of-a-CONSTANT-InterfaceMethodref-info-table"><span class="nav-number">2.11.1.</span> <span class="nav-text">Table 6-18. Format of a CONSTANT_InterfaceMethodref_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tag-9"><span class="nav-number">2.11.2.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#class-index-2"><span class="nav-number">2.11.3.</span> <span class="nav-text">class_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#name-and-type-index-2"><span class="nav-number">2.11.4.</span> <span class="nav-text">name_and_type_index</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-CONSTANT-NameAndType-info-Table"><span class="nav-number">2.12.</span> <span class="nav-text">The CONSTANT_NameAndType_info Table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-19-Format-of-a-CONSTANT-NameAndType-info-table"><span class="nav-number">2.12.1.</span> <span class="nav-text">Table 6-19. Format of a CONSTANT_NameAndType_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#tag-10"><span class="nav-number">2.12.2.</span> <span class="nav-text">tag</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#name-index-1"><span class="nav-number">2.12.3.</span> <span class="nav-text">name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#descriptor-index"><span class="nav-number">2.12.4.</span> <span class="nav-text">descriptor_index</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Fields"><span class="nav-number">3.</span> <span class="nav-text">Fields</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Table-6-20-Format-of-a-field-info-table"><span class="nav-number">3.1.</span> <span class="nav-text">Table 6-20. Format of a field_info table</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#access-flags-1"><span class="nav-number">3.1.1.</span> <span class="nav-text">access_flags</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Table-6-21-Flags-in-the-access-flags-item-of-field-info-tables"><span class="nav-number">3.1.1.1.</span> <span class="nav-text">Table 6-21. Flags in the access_flags item of field_info tables</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#name-index-2"><span class="nav-number">3.1.2.</span> <span class="nav-text">name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#descriptor-index-1"><span class="nav-number">3.1.3.</span> <span class="nav-text">descriptor_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attributes-count-and-attributes-1"><span class="nav-number">3.1.4.</span> <span class="nav-text">attributes_count and attributes</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Methods"><span class="nav-number">4.</span> <span class="nav-text">Methods</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Table-6-22-Format-of-a-method-info-table"><span class="nav-number">4.1.</span> <span class="nav-text">Table 6-22. Format of a method_info table</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#access-flags-2"><span class="nav-number">4.2.</span> <span class="nav-text">access_flags</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-23-Flags-in-the-access-flags-item-of-method-info-tables"><span class="nav-number">4.2.1.</span> <span class="nav-text">Table 6-23. Flags in the access_flags item of method_info tables</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#name-index-3"><span class="nav-number">4.3.</span> <span class="nav-text">name_index</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#descriptor-index-2"><span class="nav-number">4.4.</span> <span class="nav-text">descriptor_index</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#attributes-count-and-attributes-2"><span class="nav-number">4.5.</span> <span class="nav-text">attributes_count and attributes</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Attributes"><span class="nav-number">5.</span> <span class="nav-text">Attributes</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Table-6-24-Format-of-an-attribute-info-table"><span class="nav-number">5.1.</span> <span class="nav-text">Table 6-24. Format of an attribute_info table</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#attribute-name-index"><span class="nav-number">5.2.</span> <span class="nav-text">attribute_name_index</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#attribute-length"><span class="nav-number">5.3.</span> <span class="nav-text">attribute_length</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#info"><span class="nav-number">5.4.</span> <span class="nav-text">info</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Attributes-1"><span class="nav-number">6.</span> <span class="nav-text">Attributes</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Table-6-25-Types-of-attribute-info-tables-defined-by-the-specification"><span class="nav-number">6.1.</span> <span class="nav-text">Table 6-25. Types of attribute_info tables defined by the specification</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-Code-Attribute"><span class="nav-number">6.2.</span> <span class="nav-text">The Code Attribute</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-26-Format-of-a-Code-attribute-table"><span class="nav-number">6.2.1.</span> <span class="nav-text">Table 6-26. Format of a Code_attribute table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-name-index-1"><span class="nav-number">6.2.2.</span> <span class="nav-text">attribute_name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#max-stack"><span class="nav-number">6.2.3.</span> <span class="nav-text">max_stack</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#max-locals"><span class="nav-number">6.2.4.</span> <span class="nav-text">max_locals</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#code-length-and-code"><span class="nav-number">6.2.5.</span> <span class="nav-text">code_length and code</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#exception-table-length-and-exception-table"><span class="nav-number">6.2.6.</span> <span class="nav-text">exception_table_length and exception_table</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Table-6-27-Format-of-an-exception-info-table"><span class="nav-number">6.2.6.1.</span> <span class="nav-text">Table 6-27. Format of an exception_info table</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#start-pc"><span class="nav-number">6.2.6.2.</span> <span class="nav-text">start_pc</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#end-pc"><span class="nav-number">6.2.6.3.</span> <span class="nav-text">end_pc</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#handler-pc"><span class="nav-number">6.2.6.4.</span> <span class="nav-text">handler_pc</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#catch-type"><span class="nav-number">6.2.6.5.</span> <span class="nav-text">catch_type</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attributes-count-and-attributes-3"><span class="nav-number">6.2.7.</span> <span class="nav-text">attributes_count and attributes</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-ConstantValue-Attribute"><span class="nav-number">6.3.</span> <span class="nav-text">The ConstantValue Attribute</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-28-Format-of-a-ConstantValue-attribute-table"><span class="nav-number">6.3.1.</span> <span class="nav-text">Table 6-28. Format of a ConstantValue_attribute table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-name-index-2"><span class="nav-number">6.3.2.</span> <span class="nav-text">attribute_name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-length-1"><span class="nav-number">6.3.3.</span> <span class="nav-text">attribute_length</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#constantvalue-index"><span class="nav-number">6.3.4.</span> <span class="nav-text">constantvalue_index</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#Table-6-29-Constant-pool-entry-types-for-constant-value-attributes"><span class="nav-number">6.3.4.1.</span> <span class="nav-text">Table 6-29. Constant pool entry types for constant value attributes</span></a></li></ol></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-Exceptions-Attribute"><span class="nav-number">6.4.</span> <span class="nav-text">The Exceptions Attribute</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-30-Format-of-an-Exceptions-attribute-table"><span class="nav-number">6.4.1.</span> <span class="nav-text">Table 6-30. Format of an Exceptions_attribute table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-name-index-3"><span class="nav-number">6.4.2.</span> <span class="nav-text">attribute_name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#number-of-exceptions-and-exception-index-table"><span class="nav-number">6.4.3.</span> <span class="nav-text">number_of_exceptions and exception_index_table</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-InnerClasses-Attribute"><span class="nav-number">6.5.</span> <span class="nav-text">The InnerClasses Attribute</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-31-Format-of-a-InnerClasses-attribute-table"><span class="nav-number">6.5.1.</span> <span class="nav-text">Table 6-31. Format of a InnerClasses_attribute table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-name-index-4"><span class="nav-number">6.5.2.</span> <span class="nav-text">attribute_name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-length-2"><span class="nav-number">6.5.3.</span> <span class="nav-text">attribute_length</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#number-of-classes-and-classes"><span class="nav-number">6.5.4.</span> <span class="nav-text">number_of_classes and classes</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-32-Format-of-an-inner-class-info-table"><span class="nav-number">6.5.5.</span> <span class="nav-text">Table 6-32. Format of an inner_class_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#inner-class-info-index"><span class="nav-number">6.5.6.</span> <span class="nav-text">inner_class_info_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#outer-class-info-index"><span class="nav-number">6.5.7.</span> <span class="nav-text">outer_class_info_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#inner-name-index"><span class="nav-number">6.5.8.</span> <span class="nav-text">inner_name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#inner-class-access-flags"><span class="nav-number">6.5.9.</span> <span class="nav-text">inner_class_access_flags</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-LineNumberTable-Attribute"><span class="nav-number">6.6.</span> <span class="nav-text">The LineNumberTable Attribute</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-33-Format-of-a-LineNumberTable-attribute-table"><span class="nav-number">6.6.1.</span> <span class="nav-text">Table 6-33. Format of a LineNumberTable_attribute table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-name-index-5"><span class="nav-number">6.6.2.</span> <span class="nav-text">attribute_name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-length-3"><span class="nav-number">6.6.3.</span> <span class="nav-text">attribute_length</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#line-number-table-length-and-line-number-table"><span class="nav-number">6.6.4.</span> <span class="nav-text">line_number_table_length and line_number_table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-34-Format-of-a-line-number-info"><span class="nav-number">6.6.5.</span> <span class="nav-text">Table 6-34. Format of a line_number_info</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#start-pc-1"><span class="nav-number">6.6.6.</span> <span class="nav-text">start_pc</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#line-number"><span class="nav-number">6.6.7.</span> <span class="nav-text">line_number</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-35-Format-of-a-LocalVariableTable-attribute-table"><span class="nav-number">6.6.8.</span> <span class="nav-text">Table 6-35. Format of a LocalVariableTable_attribute table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-name-index-6"><span class="nav-number">6.6.9.</span> <span class="nav-text">attribute_name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-length-4"><span class="nav-number">6.6.10.</span> <span class="nav-text">attribute_length</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#local-variable-table-length-and-local-variable-table"><span class="nav-number">6.6.11.</span> <span class="nav-text">local_variable_table_length and local_variable_table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-36-Format-of-a-local-variable-info-table"><span class="nav-number">6.6.12.</span> <span class="nav-text">Table 6-36. Format of a local_variable_info table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#start-pc-and-length"><span class="nav-number">6.6.13.</span> <span class="nav-text">start_pc and length</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#name-index-4"><span class="nav-number">6.6.14.</span> <span class="nav-text">name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#descriptor-index-3"><span class="nav-number">6.6.15.</span> <span class="nav-text">descriptor_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#index"><span class="nav-number">6.6.16.</span> <span class="nav-text">index</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-SourceFile-Attribute"><span class="nav-number">6.7.</span> <span class="nav-text">The SourceFile Attribute</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-37-Format-of-a-SourceFile-attribute-table"><span class="nav-number">6.7.1.</span> <span class="nav-text">Table 6-37. Format of a SourceFile_attribute table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-name-index-7"><span class="nav-number">6.7.2.</span> <span class="nav-text">attribute_name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-length-5"><span class="nav-number">6.7.3.</span> <span class="nav-text">attribute_length</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#sourcefile-index"><span class="nav-number">6.7.4.</span> <span class="nav-text">sourcefile_index</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#The-Synthetic-Attribute"><span class="nav-number">6.8.</span> <span class="nav-text">The Synthetic Attribute</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#Table-6-38-Format-of-a-Synthetic-attribute-table"><span class="nav-number">6.8.1.</span> <span class="nav-text">Table 6-38. Format of a Synthetic_attribute table</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-name-index-8"><span class="nav-number">6.8.2.</span> <span class="nav-text">attribute_name_index</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#attribute-length-6"><span class="nav-number">6.8.3.</span> <span class="nav-text">attribute_length</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Getting-Loaded-A-Simulation"><span class="nav-number">7.</span> <span class="nav-text">Getting Loaded: A Simulation</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Table-6-39-Class-Act-39-s-constant-pool"><span class="nav-number">7.1.</span> <span class="nav-text">Table 6-39. Class Act's constant pool</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#References"><span class="nav-number">8.</span> <span class="nav-text">References</span></a></li></ol></div>
+
+          </div>
+        </section>
+
+
+    </div>
+  </aside>
+
+
+
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright" >
+
+  &copy;
+  <span itemprop="copyrightYear">2016</span>
+  <span class="with-love">
+    <i class="fa fa-github"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">yuweijun</span>
+</div>
+
+<div class="powered-by">
+  Powered by <a class="theme-link" href="https://hexo.io">Hexo</a>
+</div>
+
+<div class="theme-info">
+  Theme -
+  <a class="theme-link" href="https://github.com/iissnan/hexo-theme-next">
+    NexT.Mist.KISS
+  </a>
+</div>
+
+
+
+
+      </div>
+    </footer>
+
+    <div class="back-to-top">
+      <i class="fa fa-arrow-up"></i>
+    </div>
+  </div>
+
+
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0/jquery.min.js"></script>
+
+
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/fastclick/1.0.6/fastclick.min.js"></script>
+
+
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery.lazyload/1.9.1/jquery.lazyload.min.js"></script>
+
+
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/velocity/1.3.1/velocity.min.js"></script>
+
+
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/velocity/1.3.1/velocity.ui.min.js"></script>
+
+
+
+
+
+  <script type="text/javascript" src="/blog/js/src/utils.js?v=5.0.1"></script>
+
+  <script type="text/javascript" src="/blog/js/src/motion.js?v=5.0.1"></script>
+
+
+
+
+
+
+
+  <script type="text/javascript" src="/blog/js/src/scrollspy.js?v=5.0.1"></script>
+<script type="text/javascript" src="/blog/js/src/post-details.js?v=5.0.1"></script>
+
+
+
+
+
+
+  <script type="text/javascript" src="/blog/js/src/bootstrap.js?v=5.0.1"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    // Popup Window;
+    var isfetched = false;
+    // Search DB path;
+    var search_path = "search.xml";
+    if (search_path.length == 0) {
+       search_path = "search.xml";
+    }
+    var path = "/blog/" + search_path;
+    // monitor main search box;
+
+    function proceedsearch() {
+      $("body").append('<div class="popoverlay">').css('overflow', 'hidden');
+      $('.popup').toggle();
+
+    }
+    // search function;
+    var searchFunc = function(path, search_id, content_id) {
+    'use strict';
+    $.ajax({
+        url: path,
+        dataType: "xml",
+        async: true,
+        success: function( xmlResponse ) {
+            // get the contents from search data
+            isfetched = true;
+            $('.popup').detach().appendTo('.header-inner');
+            var datas = $( "entry", xmlResponse ).map(function() {
+                return {
+                    title: $( "title", this ).text(),
+                    content: $("content",this).text(),
+                    url: $( "url" , this).text()
+                };
+            }).get();
+            var $input = document.getElementById(search_id);
+            var $resultContent = document.getElementById(content_id);
+            $input.addEventListener('input', function(){
+                var matchcounts = 0;
+                var str='<ul class=\"search-result-list\">';
+                var keywords = this.value.trim().toLowerCase().split(/[\s\-]+/);
+                $resultContent.innerHTML = "";
+                if (this.value.trim().length > 1) {
+                // perform local searching
+                datas.forEach(function(data) {
+                    var isMatch = true;
+                    var content_index = [];
+                    var data_title = data.title.trim().toLowerCase();
+                    var data_content = data.content.trim().replace(/<[^>]+>/g,"").toLowerCase();
+                    var data_url = data.url;
+                    var index_title = -1;
+                    var index_content = -1;
+                    var first_occur = -1;
+                    // only match artiles with not empty titles and contents
+                    if(data_title != '' && data_content != '') {
+                        keywords.forEach(function(keyword, i) {
+                            index_title = data_title.indexOf(keyword);
+                            index_content = data_content.indexOf(keyword);
+                            if( index_title < 0 && index_content < 0 ){
+                                isMatch = false;
+                            } else {
+                                if (index_content < 0) {
+                                    index_content = 0;
+                                }
+                                if (i == 0) {
+                                    first_occur = index_content;
+                                }
+                            }
+                        });
+                    }
+                    // show search results
+                    if (isMatch) {
+                        matchcounts += 1;
+                        str += "<li><a href='"+ data_url +"' class='search-result-title'>"+ data_title +"</a>";
+                        var content = data.content.trim().replace(/<[^>]+>/g,"");
+                        if (first_occur >= 0) {
+                            // cut out 100 characters
+                            var start = first_occur - 20;
+                            var end = first_occur + 80;
+                            if(start < 0){
+                                start = 0;
+                            }
+                            if(start == 0){
+                                end = 50;
+                            }
+                            if(end > content.length){
+                                end = content.length;
+                            }
+                            var match_content = content.substring(start, end);
+                            // highlight all keywords
+                            keywords.forEach(function(keyword){
+                                var regS = new RegExp(keyword, "gi");
+                                match_content = match_content.replace(regS, "<b class=\"search-keyword\">"+keyword+"</b>");
+                            });
+
+                            str += "<p class=\"search-result\">" + match_content +"...</p>"
+                        }
+                        str += "</li>";
+                    }
+                })};
+                str += "</ul>";
+                if (matchcounts == 0) { str = '<div id="no-result"><i class="fa fa-frown-o fa-5x" /></div>' }
+                if (keywords == "") { str = '<div id="no-result"><i class="fa fa-search fa-5x" /></div>' }
+                $resultContent.innerHTML = str;
+            });
+            proceedsearch();
+        }
+    });}
+
+    // handle and trigger popup window;
+    $('.popup-trigger').click(function(e) {
+      e.stopPropagation();
+      if (isfetched == false) {
+        searchFunc(path, 'local-search-input', 'local-search-result');
+      } else {
+        proceedsearch();
+      };
+
+    });
+
+    $('.popup-btn-close').click(function(e){
+      $('.popup').hide();
+      $(".popoverlay").remove();
+      $('body').css('overflow', '');
+    });
+    $('.popup').click(function(e){
+      e.stopPropagation();
+    });
+  </script>
+
+</body>
+</html>
+
