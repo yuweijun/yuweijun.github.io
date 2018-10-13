@@ -5,7 +5,9 @@
         var elem = article;
         while (elem.length && elem.get(0).tagName.toUpperCase() !== 'BODY') {
             elem.width(1024)
-                .css({margin: '0 auto', maxWidth: 1024})
+                .css({padding: 0})
+                .css({margin: '0 auto'})
+                .css({minWidth: 1024})
                 .siblings().remove();
             elem = elem.parent();
         }
