@@ -12,7 +12,7 @@
             elem = elem.parent();
         }
 
-        return article;
+        return article.css({boxSizing: 'border-box', padding: 15});
     };
 
     window.clean = f;
