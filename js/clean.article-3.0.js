@@ -4,7 +4,7 @@
 
         var elem = article;
         while (elem.length && elem.get(0).tagName.toUpperCase() !== 'BODY') {
-            elem.width(1024)
+            elem.css({boxSizing: 'border-box'})
                 .css({padding: 5})
                 .css({margin: '0 auto'})
                 .css({minWidth: 1024})
