@@ -4,8 +4,10 @@
 
         var elem = article;
         while (elem.length && elem.get(0).tagName.toUpperCase() !== 'BODY') {
-            elem.css({boxSizing: 'border-box'})
-                .css({padding: 5})
+            elem.width(1024)
+                .css({boxSizing: 'border-box'})
+                .css({padding: 0})
+                .css({border: 'none'})
                 .css({margin: '0 auto'})
                 .css({minWidth: 1024})
                 .siblings().remove();
