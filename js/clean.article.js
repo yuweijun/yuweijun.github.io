@@ -1,21 +1,30 @@
 (function() {
-    var f = function(selector) {
-        var article = $(selector);
 
+    var f = function(selector) {
+        var article = document.querySelector(selector);
+        var siblings = n => [...n.parentElement.children].filter(c => c.nodeType == 1 && c != n);
         var elem = article;
-        while (elem.length && elem.get(0).tagName.toUpperCase() !== 'BODY') {
-            elem.width(1024)
-                .css({minWidth: 1024})
-                .css({padding: 0})
-                .css({margin: '0 auto'})
-                .siblings()
-                .filter(function(i, e) {return e.tagName.toUpperCase() !== 'LINK'})
-                .remove();
-            elem = elem.parent();
+
+        while (elem && elem.tagName.toUpperCase() !== 'BODY') {
+            elem.style.width = '1024px';
+            elem.style.minWidth = '1024px';
+            elem.style.padding = 0;
+            elem.style.margin = '0 auto';
+
+            siblings(elem).filter(e => e.tagName.toUpperCase() !== 'LINK').forEach(e => e.remove());
+            elem = elem.parentNode;
         }
 
-        return article.css({boxSizing: 'border-box', padding: 15});
+        article.style.boxSizing = 'border-box';
+        article.style.padding = '15px';
+
+        var body = document.body,
+            html = document.documentElement,
+            height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+        document.body.style.height = height;
+        return article;
     };
 
     window.clean = f;
+
 })();
