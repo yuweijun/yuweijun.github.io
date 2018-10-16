@@ -2,6 +2,8 @@
 
     var f = function(selector) {
         var article = document.querySelector(selector);
+        if (!article) return;
+
         var siblings = n => [...n.parentElement.children].filter(c => c.nodeType == 1 && c != n);
         var elem = article;
 
