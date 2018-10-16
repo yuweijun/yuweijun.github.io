@@ -14,7 +14,8 @@
             elem.style.background = 'white';
             elem.style.position = 'static';
 
-            siblings(elem).filter(e => e.tagName.toUpperCase() !== 'LINK').forEach(e => e.remove());
+            siblings(elem).filter(e => e.tagName.toUpperCase() !== 'LINK').forEach(function(n) { n.style.display = 'none'});
+
             elem = elem.parentNode;
         }
 
