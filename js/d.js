@@ -2,7 +2,7 @@
 
     var element = {
         siblings: function() {
-            return [...this.parentElement.children].filter(c => c.nodeType == 1 && c != this);
+            return [...this.parentNode.children].filter(c => c.nodeType == 1 && c != this);
         },
         attr: function(attributes) {
             if (this.nodeType === 3 || this.nodeType === 8 || this.nodeType === 2) {
@@ -47,18 +47,97 @@
             return matched;
         },
         hasClass: function(selector) {
-            var classes = this.getAttribute && this.getAttribute("class") || "",
+            var classes = " " + (this.getAttribute("class") || "") + " ",
                 className = " " + selector + " ";
-            if (this.nodeType === 1 && (" " + classes + " ").indexOf(className) > -1) {
+            if (this.nodeType === 1 && classes.indexOf(className) > -1) {
                 return true;
             }
 
             return false;
         },
-        prepend: function() {
-            [...arguments].forEach(elem => {
-                $(elem).forEach(e => this.insertBefore(e, this.firstElementChild));
-            });
+        addClass: function(selector) {
+            if (!element.hasClass.apply(this, arguments)) {
+                var classes = this.getAttribute("class") || "",
+                    className = classes + " " + selector + " ";
+                if (this.nodeType === 1) {
+                    this.setAttribute('class', className.trim());
+                }
+            }
+
+            return this;
+        },
+        removeClass: function(selector) {
+            if (element.hasClass.apply(this, arguments)) {
+                var classes = " " + (this.getAttribute("class") || "") + " ",
+                    className = " " + selector + " ";
+                if (this.nodeType === 1) {
+                    while (classes.indexOf(className) > -1) {
+                        classes = classes.replace(className, " ");
+                    }
+                    this.setAttribute('class', classes.trim());
+                }
+            }
+
+            return this;
+        },
+        hide: function() {
+            this.style.display = 'none';
+            return this;
+        },
+        show: function() {
+            this.style.display = 'block';
+            return this;
+        },
+        after: function(elem) {
+            if (this.parentNode) {
+                this.parentNode.insertBefore(elem, this.nextSibling);
+            }
+
+            return this;
+        },
+        before: function(elem) {
+            if (this.parentNode) {
+                this.parentNode.insertBefore(elem, this);
+            }
+            return this;
+        },
+        empty: function() {
+            if (this.nodeType === 1) {
+                this.textContent = "";
+            }
+
+            return this;
+        },
+        html: function() {
+            if (this.nodeType === 1) {
+                if (arguments.length) {
+                    this.innerHTML = arguments[0];
+                } else {
+                    return this.innerHTML;
+                }
+            }
+
+            return this;
+        },
+        prepend: function(nodes) {
+            if (nodes) {
+                if (nodes instanceof Array) {
+                    nodes.forEach(elem => this.insertBefore(elem, this.firstElementChild));
+                } else {
+                    $(nodes).forEach(elem => this.insertBefore(elem, this.firstElementChild));
+                }
+            }
+
+            return this;
+        },
+        append: function(nodes) {
+            if (nodes) {
+                if (nodes instanceof Array) {
+                    nodes.forEach(elem => this.appendChild(elem));
+                } else {
+                    $(nodes).forEach(elem => this.appendChild(elem));
+                }
+            }
 
             return this;
         }
@@ -87,8 +166,7 @@
                 enumerable: false
             };
         });
-        ("blur focus focusin focusout resize scroll click dblclick " +
-            "mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave " +
+        ("blur focus click mouseover mouseenter mouseleave " +
             "change select submit keydown keypress keyup").split(" ").forEach(function(event) {
             attr[event] = {
                 value: function() {
@@ -143,6 +221,20 @@
             },
             enumerable: false
         };
+        attr.parent = {
+            value: function() {
+                var array = [];
+                this.forEach(elem => {
+                    if (elem) {
+                        array.push(elem.parentNode);
+                    } else {
+                        array.push(null);
+                    }
+                });
+                return $(array);
+            },
+            enumerable: false
+        };
         attr.parents = {
             value: function() {
                 var array = [];
@@ -167,10 +259,26 @@
         };
         attr.hasClass = {
             value: function() {
-                this.forEach(elem => {
-                    if (!element.hasClass.apply(elem, arguments)) return false;
-                });
-                return true;
+                for (var i = 0; i < this.length; i++) {
+                    if (element.hasClass.apply(this[i], arguments)) {
+                        return true;
+                    }
+                }
+                return false;
+            },
+            enumerable: false
+        };
+        attr.addClass = {
+            value: function() {
+                this.forEach(elem => element.addClass.apply(elem, arguments));
+                return this;
+            },
+            enumerable: false
+        };
+        attr.removeClass = {
+            value: function() {
+                this.forEach(elem => element.removeClass.apply(elem, arguments));
+                return this;
             },
             enumerable: false
         };
@@ -199,18 +307,62 @@
             },
             enumerable: false
         };
-        // attr.after
-        // attr.before
-        // attr.append
-        // attr.parent
-        // attr.addClass
-        // attr.removeClass
-        // attr.hide
-        // attr.show
-        // attr.val
+        attr.hide = {
+            value: function() {
+                this.forEach(elem => element.hide.apply(elem, arguments));
+                return this;
+            },
+            enumerable: false
+        };
+        attr.show = {
+            value: function() {
+                this.forEach(elem => element.show.apply(elem, arguments));
+                return this;
+            },
+            enumerable: false
+        };
+        attr.after = {
+            value: function() {
+                this.first().forEach(elem => element.after.apply(elem, arguments));
+                return this;
+            },
+            enumerable: false
+        };
+        attr.before = {
+            value: function() {
+                this.first().forEach(elem => element.before.apply(elem, arguments));
+                return this;
+            },
+            enumerable: false
+        };
+        attr.empty = {
+            value: function() {
+                this.forEach(elem => element.empty.apply(elem, arguments));
+                return this;
+            },
+            enumerable: false
+        };
+        attr.html = {
+            value: function() {
+                if (arguments.length) {
+                    this.forEach(elem => element.html.apply(elem, arguments));
+                } else {
+                    return this.map(elem => element.html.apply(elem, arguments));
+                }
+                return this;
+            },
+            enumerable: false
+        };
         attr.prepend = {
             value: function() {
-                this.forEach(elem => element.prepend.apply(elem, arguments));
+                this.first().forEach(elem => element.prepend.apply(elem, arguments));
+                return this;
+            },
+            enumerable: false
+        };
+        attr.append = {
+            value: function() {
+                this.first().forEach(elem => element.append.apply(elem, arguments));
                 return this;
             },
             enumerable: false
@@ -266,9 +418,7 @@
                     boxSizing: 'border-box'
                 });
 
-                var body = document.body,
-                    html = document.documentElement;
-                document.body.style.height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+                document.body.style.height = document.documentElement.scrollHeight + 'px';
 
                 return this;
             },
