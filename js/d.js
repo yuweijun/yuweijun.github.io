@@ -1,3 +1,12 @@
+// ==UserScript==
+// @name         d.js
+// @namespace    http://tampermonkey.net/
+// @version      0.1
+// @author       test.yu
+// @match        http*://*/*
+// @run-at       document-start
+// ==/UserScript==
+
 (function() {
 
     var element = {
@@ -382,6 +391,13 @@
             },
             enumerable: false
         };
+        attr.tee = {
+            value: function() {
+                console.log(...this);
+                return this;
+            },
+            enumerable: false
+        };
         attr.readable = {
             value: function() {
                 if (this.length === 0) return;
@@ -394,8 +410,8 @@
                         $elem.css({
                             padding: 0,
                             margin: '0 auto',
-                            minWidth: '1024px',
-                            width: '1024px',
+                            width: '100%',
+                            maxWidth: '1024px',
                             position: 'static'
                         });
 
@@ -419,6 +435,7 @@
                 });
 
                 document.body.style.height = document.documentElement.scrollHeight + 'px';
+                document.head.querySelectorAll('script').$.remove();
 
                 return this;
             },
