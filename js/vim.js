@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         vim
+// @name         vim.js
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  emulation HOME/END/UP/DOWN shortcuts of vim
 // @author       test.yu
 // @match        http*://*/*
@@ -44,9 +44,7 @@
         if (document.querySelectorAll('input:focus, textarea:focus, select:focus').length) return;
 
         if (e.shiftKey) {
-            var body = document.body,
-                html = document.documentElement,
-                height = Math.max(body.scrollHeight, body.offsetHeight, html.clientHeight, html.scrollHeight, html.offsetHeight);
+            var height = document.documentElement.scrollHeight;
 
             if (e.which === 71) {
                 // console.log('G');
@@ -65,7 +63,7 @@
                 });
             }
         } else if (e.ctrlKey) {
-            var page = window.innerHeight;
+            var page = Math.floor(window.innerHeight / 50) * 50;
             if (e.which === 68) {
                 // console.log('D');
                 // default action is bookmark
@@ -82,8 +80,10 @@
                 });
             }
         } else {
+            // console.log(e.key, e.which, stack.e);
             stack.push(e.key);
 
+            // check combination key shortcuts firstly
             if (stack.full()) {
                 var keys = stack.dump();
                 // console.log(keys);
@@ -91,9 +91,22 @@
                     window.scroll({
                         top: 0
                     });
+                    return;
                 }
-            } else {
-                // console.log(e.key, stack.e);
+            }
+
+            // check key shortcuts for J/K
+            if (e.which === 74) {
+                // console.log('J');
+                // chrome default scroll 40px using arrow keys
+                window.scrollBy({
+                    top: 50
+                });
+            } else if (e.which === 75) {
+                // console.log('K');
+                window.scrollBy({
+                    top: -50
+                });
             }
         }
 
@@ -101,3 +114,4 @@
 
 
 })();
+

@@ -1,7 +1,7 @@
 // ==UserScript==
-// @name         copy
+// @name         copy.js
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @description  shortcuts for copy selection using alt+c
 // @author       test.yu
 // @match        http*://*/*
@@ -36,3 +36,4 @@
         }
     });
 })();
+
