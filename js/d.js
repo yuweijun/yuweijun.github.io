@@ -1,17 +1,18 @@
 // ==UserScript==
 // @name         d.js
 // @namespace    http://tampermonkey.net/
-// @version      0.1
+// @version      0.2
 // @author       test.yu
 // @match        http*://*/*
 // @run-at       document-start
+// @grant        none
 // ==/UserScript==
 
 (function() {
 
     var element = {
         siblings: function() {
-            return [...this.parentNode.children].filter(c => c.nodeType == 1 && c != this);
+            return Array.from(this.parentNode.children).filter(c => c.nodeType == 1 && c != this);
         },
         attr: function(attributes) {
             if (this.nodeType === 3 || this.nodeType === 8 || this.nodeType === 2) {
@@ -410,6 +411,7 @@
                         $elem.css({
                             padding: 0,
                             margin: '0 auto',
+                            display: 'block',
                             width: '100%',
                             maxWidth: '1024px',
                             position: 'static'
@@ -434,8 +436,9 @@
                     boxSizing: 'border-box'
                 });
 
-                document.body.style.height = document.documentElement.scrollHeight + 'px';
                 document.head.querySelectorAll('script').$.remove();
+                $(document.head).append(document.body.querySelectorAll('link'));
+                document.body.style.height = document.documentElement.scrollHeight + 'px';
 
                 return this;
             },
@@ -468,3 +471,4 @@
     });
 
 })();
+
