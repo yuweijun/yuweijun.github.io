@@ -1,20 +1,10 @@
-// ==UserScript==
-// @name         d.js
-// @namespace    http://tampermonkey.net/
-// @version      0.2
-// @author       test.yu
-// @match        http*://*/*
-// @run-at       document-start
-// @grant        none
-// ==/UserScript==
-
 (function() {
 
     var element = {
-        siblings: function() {
+        siblings() {
             return Array.from(this.parentNode.children).filter(c => c.nodeType == 1 && c != this);
         },
-        attr: function(attributes) {
+        attr(attributes) {
             if (this.nodeType === 3 || this.nodeType === 8 || this.nodeType === 2) {
                 return this;
             }
@@ -28,7 +18,7 @@
                 return this;
             }
         },
-        css: function(styles) {
+        css(styles) {
             if (this.nodeType === 1) {
                 for (var key in styles) {
                     this.style[key] = styles[key];
@@ -37,7 +27,7 @@
 
             return this;
         },
-        parents: function() {
+        parents() {
             var matched = [],
                 elem = this;
             while (elem) {
@@ -56,7 +46,7 @@
 
             return matched;
         },
-        hasClass: function(selector) {
+        hasClass(selector = '') {
             var classes = " " + (this.getAttribute("class") || "") + " ",
                 className = " " + selector + " ";
             if (this.nodeType === 1 && classes.indexOf(className) > -1) {
@@ -65,7 +55,7 @@
 
             return false;
         },
-        addClass: function(selector) {
+        addClass(selector = '') {
             if (!element.hasClass.apply(this, arguments)) {
                 var classes = this.getAttribute("class") || "",
                     className = classes + " " + selector + " ";
@@ -76,7 +66,7 @@
 
             return this;
         },
-        removeClass: function(selector) {
+        removeClass(selector = '') {
             if (element.hasClass.apply(this, arguments)) {
                 var classes = " " + (this.getAttribute("class") || "") + " ",
                     className = " " + selector + " ";
@@ -90,35 +80,35 @@
 
             return this;
         },
-        hide: function() {
+        hide() {
             this.style.display = 'none';
             return this;
         },
-        show: function() {
+        show() {
             this.style.display = 'block';
             return this;
         },
-        after: function(elem) {
+        after(elem) {
             if (this.parentNode) {
                 this.parentNode.insertBefore(elem, this.nextSibling);
             }
 
             return this;
         },
-        before: function(elem) {
+        before(elem) {
             if (this.parentNode) {
                 this.parentNode.insertBefore(elem, this);
             }
             return this;
         },
-        empty: function() {
+        empty() {
             if (this.nodeType === 1) {
                 this.textContent = "";
             }
 
             return this;
         },
-        html: function() {
+        html() {
             if (this.nodeType === 1) {
                 if (arguments.length) {
                     this.innerHTML = arguments[0];
@@ -129,24 +119,20 @@
 
             return this;
         },
-        prepend: function(nodes) {
-            if (nodes) {
-                if (nodes instanceof Array) {
-                    nodes.forEach(elem => this.insertBefore(elem, this.firstElementChild));
-                } else {
-                    $(nodes).forEach(elem => this.insertBefore(elem, this.firstElementChild));
-                }
+        prepend(nodes = []) {
+            if (nodes instanceof Array) {
+                nodes.forEach(elem => this.insertBefore(elem, this.firstElementChild));
+            } else {
+                $(nodes).forEach(elem => this.insertBefore(elem, this.firstElementChild));
             }
 
             return this;
         },
-        append: function(nodes) {
-            if (nodes) {
-                if (nodes instanceof Array) {
-                    nodes.forEach(elem => this.appendChild(elem));
-                } else {
-                    $(nodes).forEach(elem => this.appendChild(elem));
-                }
+        append(nodes = []) {
+            if (nodes instanceof Array) {
+                nodes.forEach(elem => this.appendChild(elem));
+            } else {
+                $(nodes).forEach(elem => this.appendChild(elem));
             }
 
             return this;
@@ -154,12 +140,10 @@
     };
 
     // transform object of Node/NodeList/Array to enhanced Array instance
-    var $ = function(array) {
+    var $ = function(array = []) {
         var attr = {};
 
-        if (!arguments.length) {
-            array = [];
-        } else if (array instanceof Node) {
+        if (array instanceof Node) {
             array = [array];
         } else if (array instanceof NodeList) {
             array = [...array];
@@ -169,7 +153,7 @@
 
         ['filter', 'map', 'slice', 'sort'].forEach(function(method) {
             attr[method] = {
-                value: function() {
+                value() {
                     var array = Array.prototype[method].apply(this, arguments);
                     return $(array);
                 },
@@ -179,7 +163,7 @@
         ("blur focus click mouseover mouseenter mouseleave " +
             "change select submit keydown keypress keyup").split(" ").forEach(function(event) {
             attr[event] = {
-                value: function() {
+                value() {
                     this.forEach(elem => {
                         if (arguments.length) {
                             [...arguments].forEach((fn) => {
@@ -196,21 +180,21 @@
             };
         });
         attr.first = {
-            value: function() {
+            value() {
                 var array = Array.prototype.slice.call(this, 0, 1);
                 return $(array);
             },
             enumerable: false
         };
         attr.last = {
-            value: function() {
+            value() {
                 var array = Array.prototype.slice.call(this, this.length - 1, this.length);
                 return $(array);
             },
             enumerable: false
         };
         attr.remove = {
-            value: function() {
+            value() {
                 this.forEach(function(elem) {
                     if (elem.nodeType === 1) {
                         elem.remove();
@@ -221,7 +205,7 @@
             enumerable: false
         };
         attr.siblings = {
-            value: function() {
+            value() {
                 var array = [];
                 this.forEach(function(elem) {
                     array = array.concat(element.siblings.apply(elem, arguments));
@@ -232,7 +216,7 @@
             enumerable: false
         };
         attr.parent = {
-            value: function() {
+            value() {
                 var array = [];
                 this.forEach(elem => {
                     if (elem) {
@@ -246,7 +230,7 @@
             enumerable: false
         };
         attr.parents = {
-            value: function() {
+            value() {
                 var array = [];
                 this.forEach(function(elem) {
                     element.parents.apply(elem, arguments).forEach(function(p) {
@@ -260,7 +244,10 @@
             enumerable: false
         };
         attr.closest = {
-            value: function(selector) {
+            value(selector = '') {
+                if (!selector) {
+                    return this;
+                }
                 var array = [];
                 this.forEach(elem => array.push(elem.closest(selector)));
                 return $(array);
@@ -268,7 +255,7 @@
             enumerable: false
         };
         attr.hasClass = {
-            value: function() {
+            value() {
                 for (var i = 0; i < this.length; i++) {
                     if (element.hasClass.apply(this[i], arguments)) {
                         return true;
@@ -279,21 +266,21 @@
             enumerable: false
         };
         attr.addClass = {
-            value: function() {
+            value() {
                 this.forEach(elem => element.addClass.apply(elem, arguments));
                 return this;
             },
             enumerable: false
         };
         attr.removeClass = {
-            value: function() {
+            value() {
                 this.forEach(elem => element.removeClass.apply(elem, arguments));
                 return this;
             },
             enumerable: false
         };
         attr.attr = {
-            value: function() {
+            value() {
                 if (arguments.length) {
                     if (typeof arguments[0] === 'string') {
                         var values = [];
@@ -311,49 +298,49 @@
             enumerable: false
         };
         attr.css = {
-            value: function() {
+            value() {
                 this.forEach(elem => element.css.apply(elem, arguments));
                 return this;
             },
             enumerable: false
         };
         attr.hide = {
-            value: function() {
+            value() {
                 this.forEach(elem => element.hide.apply(elem, arguments));
                 return this;
             },
             enumerable: false
         };
         attr.show = {
-            value: function() {
+            value() {
                 this.forEach(elem => element.show.apply(elem, arguments));
                 return this;
             },
             enumerable: false
         };
         attr.after = {
-            value: function() {
+            value() {
                 this.first().forEach(elem => element.after.apply(elem, arguments));
                 return this;
             },
             enumerable: false
         };
         attr.before = {
-            value: function() {
+            value() {
                 this.first().forEach(elem => element.before.apply(elem, arguments));
                 return this;
             },
             enumerable: false
         };
         attr.empty = {
-            value: function() {
+            value() {
                 this.forEach(elem => element.empty.apply(elem, arguments));
                 return this;
             },
             enumerable: false
         };
         attr.html = {
-            value: function() {
+            value() {
                 if (arguments.length) {
                     this.forEach(elem => element.html.apply(elem, arguments));
                 } else {
@@ -364,21 +351,21 @@
             enumerable: false
         };
         attr.prepend = {
-            value: function() {
+            value() {
                 this.first().forEach(elem => element.prepend.apply(elem, arguments));
                 return this;
             },
             enumerable: false
         };
         attr.append = {
-            value: function() {
+            value() {
                 this.first().forEach(elem => element.append.apply(elem, arguments));
                 return this;
             },
             enumerable: false
         };
         attr.querySelectorAll = {
-            value: function(selector) {
+            value(selector) {
                 if (typeof selector === 'string') {
                     var array = [];
                     this.forEach(function(elem) {
@@ -393,14 +380,14 @@
             enumerable: false
         };
         attr.tee = {
-            value: function() {
+            value() {
                 console.log(...this);
                 return this;
             },
             enumerable: false
         };
         attr.readable = {
-            value: function() {
+            value() {
                 if (this.length === 0) return;
 
                 var parents = this.parents();
@@ -448,17 +435,60 @@
         return Object.create(array, attr);
     };
 
+    var stack = {
+        timeId: 0,
+        keys: [],
+        push(k) {
+            if (this.full()) {
+                stack.clear();
+            }
+
+            this.keys.push(k);
+            if (this.timeId) {
+                clearTimeout(this.timeId);
+                this.timeId = 0;
+            }
+
+            this.timeId = setTimeout(() => {
+                this.clear()
+            }, 300);
+
+            return this;
+        },
+        dump() {
+            return this.keys.join('');
+        },
+        clear() {
+            this.keys.length = 0;
+            return this;
+        },
+        full() {
+            return this.keys.length === 2;
+        },
+        match(k, v) {
+            this.push(k);
+            if (stack.full()) {
+                return this.dump() === v;
+            }
+
+            return false;
+        }
+    };
+
     Object.defineProperty(Document.prototype, '$', {
         get() {
-            return function() {
+            let fn = function() {
                 if (arguments.length === 0) {
                     return $(document);
-                } else if (!(arguments[0] instanceof Object)) {
+                } else if (typeof arguments[0] === 'string') {
                     return $(document.querySelectorAll.apply(document, arguments));
                 } else {
                     return $(arguments[0]);
                 }
             };
+            fn.stack = stack;
+
+            return fn;
         },
         enumerable: false
     });
