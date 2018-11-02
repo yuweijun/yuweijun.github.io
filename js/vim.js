@@ -1,24 +1,19 @@
-// ==UserScript==
-// @name         vim.js
-// @namespace    http://tampermonkey.net/
-// @version      0.2
-// @description  emulation HOME/END/UP/DOWN shortcuts of vim
-// @author       test.yu
-// @match        http*://*/*
-// @grant        none
-// ==/UserScript==
-
 (function() {
 
     var stack = {
         timeId: 0,
-        e: [],
-        push: function(k) {
+        keys: [],
+        push(k) {
+            let code = k.charCodeAt(0);
+            if (code < 97 || code > 122) {
+                return this;
+            }
+
             if (this.full()) {
                 stack.clear();
             }
 
-            this.e.push(k);
+            this.keys.push(k);
             if (this.timeId) {
                 clearTimeout(this.timeId);
                 this.timeId = 0;
@@ -27,15 +22,26 @@
             this.timeId = setTimeout(() => {
                 this.clear()
             }, 300);
+
+            return this;
         },
-        dump: function() {
-            return this.e.join('');
+        dump() {
+            return this.keys.join('');
         },
-        clear: function() {
-            this.e.length = 0;
+        clear() {
+            this.keys.length = 0;
+            return this;
         },
-        full: function() {
-            return this.e.length === 2;
+        full() {
+            return this.keys.length === 2;
+        },
+        match(k, v) {
+            this.push(k);
+            if (stack.full()) {
+                return this.dump() === v;
+            }
+
+            return false;
         }
     };
 
@@ -79,20 +85,18 @@
                     top: -page
                 });
             }
+        } else if (e.metaKey) {
+            // console.log("e.metaKey", e.metaKey);
+        } else if (e.altKey) {
+            // console.log("e.altKey", e.altKey);
         } else {
-            // console.log(e.key, e.which, stack.e);
-            stack.push(e.key);
-
+            // console.log(e.key, e.which, stack.keys);
             // check combination key shortcuts firstly
-            if (stack.full()) {
-                var keys = stack.dump();
-                // console.log(keys);
-                if (keys === 'gg') {
-                    window.scroll({
-                        top: 0
-                    });
-                    return;
-                }
+            if (stack.match(e.key, 'gg')) {
+                window.scroll({
+                    top: 0
+                });
+                return;
             }
 
             // check key shortcuts for J/K
@@ -111,7 +115,6 @@
         }
 
     });
-
 
 })();
 

@@ -439,6 +439,11 @@
         timeId: 0,
         keys: [],
         push(k) {
+            let code = k.charCodeAt(0);
+            if (code < 97 || code > 122) {
+                return this;
+            }
+
             if (this.full()) {
                 stack.clear();
             }
@@ -501,4 +506,3 @@
     });
 
 })();
-
