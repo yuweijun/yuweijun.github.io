@@ -471,7 +471,6 @@
             return this.keys.length === 2;
         },
         match(k, v) {
-            this.push(k);
             if (stack.full()) {
                 return this.dump() === v;
             }

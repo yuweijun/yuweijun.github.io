@@ -1,49 +1,6 @@
 (function() {
 
-    var stack = {
-        timeId: 0,
-        keys: [],
-        push(k) {
-            let code = k.charCodeAt(0);
-            if (code < 97 || code > 122) {
-                return this;
-            }
-
-            if (this.full()) {
-                stack.clear();
-            }
-
-            this.keys.push(k);
-            if (this.timeId) {
-                clearTimeout(this.timeId);
-                this.timeId = 0;
-            }
-
-            this.timeId = setTimeout(() => {
-                this.clear()
-            }, 300);
-
-            return this;
-        },
-        dump() {
-            return this.keys.join('');
-        },
-        clear() {
-            this.keys.length = 0;
-            return this;
-        },
-        full() {
-            return this.keys.length === 2;
-        },
-        match(k, v) {
-            this.push(k);
-            if (stack.full()) {
-                return this.dump() === v;
-            }
-
-            return false;
-        }
-    };
+    var stack = document.$.stack;
 
     document.addEventListener('keydown', function(e) {
 
@@ -92,6 +49,7 @@
         } else {
             // console.log(e.key, e.which, stack.keys);
             // check combination key shortcuts firstly
+            stack.push(e.key);
             if (stack.match(e.key, 'gg')) {
                 window.scroll({
                     top: 0
