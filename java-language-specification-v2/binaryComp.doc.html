@@ -1,0 +1,690 @@
+<html>
+<head>
+<title> Binary Compatibility</title>
+</head>
+<body BGCOLOR=#eeeeff text=#000000 LINK=#0000ff VLINK=#000077 ALINK=#ff0000>
+ 
+<table border="0" width="100%">
+<tr>
+<td><a href="jTOC.doc.html">Contents</a> | <a href="execution.doc.html">Prev</a> | <a href="statements.doc.html">Next</a> | <a href="jIX.fm.html">Index</a></td>
+<td align=right><i>Java Language Specification</i><br>
+<font size="-1">Second Edition</font></td></tr></table>
+<hr><br>
+ 
+<a name="44871"></a>
+<p><strong>
+CHAPTER
+ 13 </strong></p>
+<a name="44872"></a>
+<h1>Binary Compatibility</h1>
+<hr><p>
+<a name="44874"></a>
+Development tools for the Java programming language should support automatic recompilation as necessary whenever source code is available. Particular implementations may also store the source and binary of types in a versioning database and implement a <code>ClassLoader</code> that uses integrity mechanisms of the database to prevent linkage errors by providing binary-compatible versions of types to clients.<p>
+<a name="44878"></a>
+Developers of packages and classes that are to be widely distributed face a different set of problems. In the Internet, which is our favorite example of a widely distributed system, it is often impractical or impossible to automatically recompile the pre-existing binaries that directly or indirectly depend on a type that is to be changed. Instead, this specification defines a set of changes that developers are permitted to make to a package or to a class or interface type while preserving (not breaking) compatibility with existing binaries.<p>
+<a name="44879"></a>
+The paper quoted above appears in <em>Proceedings of OOPSLA '95</em>, published as <em>ACM SIGPLAN Notices</em>, Volume 30, Number 10, October 1995, pages 426-438. Within the framework of that paper, Java programming language binaries are binary compatible under all relevant transformations that the authors identify (with some caveats with respect to the addition of instance variables). Using their scheme, here is a list of some important binary compatible changes that the Java programming language supports:<p>
+<ul><a name="44880"></a>
+<li>Reimplementing existing methods, constructors, and initializers to improve performance.
+<a name="44881"></a>
+<li>Changing methods or constructors to return values on inputs for which they previously either threw exceptions that normally should not occur or failed by going into an infinite loop or causing a deadlock.
+<a name="44882"></a>
+<li>Adding new fields, methods, or constructors to an existing class or interface.
+<a name="44883"></a>
+<li>Deleting <code>private</code> fields, methods, or constructors of a class.
+<a name="44884"></a>
+<li>When an entire package is updated, deleting default (package-only) access fields, methods, or constructors of classes and interfaces in the package.
+<a name="44885"></a>
+<li>Reordering the fields, methods, or constructors in an existing type declaration.
+<a name="44886"></a>
+<li>Moving a method upward in the class hierarchy.
+<a name="44887"></a>
+<li>Reordering the list of direct superinterfaces of a class or interface.
+<a name="44888"></a>
+<li>Inserting new class or interface types in the type hierarchy.
+</ul><a name="44889"></a>
+This chapter specifies minimum standards for binary compatibility guaranteed by all implementations. The Java programming language guarantees compatibility when binaries of classes and interfaces are mixed that are not known to be from compatible sources, but whose sources have been modified in the compatible ways described here. Note that we are discussing compatibility between releases of an application. A discussion of compatibility among releases of the Java platform beyond the scope of this chapter.<p>
+<a name="44891"></a>
+We encourage development systems to provide facilities that alert developers to the impact of changes on pre-existing binaries that cannot be recompiled.<p>
+<a name="44892"></a>
+This chapter first specifies some properties that any binary format for the Java programming language must have <a href="binaryComp.doc.html#44909">(&#167;13.1)</a>. It next defines binary compatibility, explaining what it is and what it is not <a href="binaryComp.doc.html#44952">(&#167;13.2)</a>. It finally enumerates a large set of possible changes to packages <a href="binaryComp.doc.html#47338">(&#167;13.3)</a>, classes <a href="binaryComp.doc.html#44977">(&#167;13.4)</a> and interfaces <a href="binaryComp.doc.html#45337">(&#167;13.5)</a>, specifying which of these changes are guaranteed to preserve binary compatibility and which are not.<p>
+<a name="44909"></a>
+<h2>13.1    The Form of a Binary</h2>
+<a name="44910"></a>
+Programs must be compiled either into the <code>class</code> file format specified by the <em>The Java</em><i></i><em> Virtual Machine Specification, Second Edition</em>, or into a representation that can be mapped into that format by a class loader written in the Java programming language. Furthermore, the resulting <code>class</code> file must have certain properties. A number of these properties are specifically chosen to support source code transformations that preserve binary compatibility.<p>
+<a name="44911"></a>
+The required properties are:<p>
+<ul><a name="59876"></a>
+<li>The class or interface must be named by its binary name, which must meet the following constraints:
+<ul>
+<a name="59877"></a>
+<li>The binary name of a top-level type is its canonical name <a href="names.doc.html#25430">(&#167;6.7)</a>.
+<a name="59892"></a>
+<li>The binary name of a member type consists of the binary name of its immediately enclosing type, followed by $ followed by the simple name of the member.
+<a name="59905"></a>
+<li>The binary name of any nested type must have, as a prefix, the binary name of its enclosing top-level class.
+</ul>
+<a name="59896"></a>
+<li>A reference to another class or interface type must be symbolic, using the binary name of the type.
+<a name="55627"></a>
+<li>Given a legal expression denoting a field access in a class <i>C</i>, referencing a field named <i>f</i> declared in a (possibly distinct) class or interface <i>D</i>, we define the <em>qualifying type of the field reference</em> as follows: 
+<ul>
+<a name="56329"></a>
+<li>If the expression is of the form <em>Primary.f</em> then the compile-time type of <em>Primary</em> is the qualifying type of the reference.
+<a name="56339"></a>
+<li>If the expression is of the form <code>super</code>.<i>f</i> then the superclass of <i>C</i> is the qualifying type of the reference.
+<a name="56330"></a>
+<li>If the expression is of the form X.super.<i>f</i> then the superclass of X is the qualifying type of the reference.
+<a name="56331"></a>
+<li>If the reference is of the form <i>X</i>.<i>f</i>, where <i>X</i> denotes a class or interface, then the class or interface denoted by <i>X</i> is the qualifying type of the reference
+<a name="56338"></a>
+<li>If the expression is referenced by a simple name, then if <i>f</i> is a member of the current class or interface, <i>C</i>, then let <i>T</i> be <i>C</i>. Otherwise, let <i>T</i> be the innermost lexically enclosing class of which <i>f</i> is a member. <i>T </i>is the qualifying type of the reference.
+</ul>
+</ul><ul><a name="56332"></a>
+The reference to <i>f</i> must be compiled into a symbolic reference to the qualifying type of the reference, plus the simple name of the field, <i>f</i>. The reference must also include a symbolic reference to the declared type of the field so that the verifier can check that the type is as expected. References to fields that are  <code>final</code> and initialized with compile-time constant expressions are resolved at compile time to the constant value that is denoted. No reference to such a constant field should be present in the code in a binary file (except in the class or interface containing the constant field, which will have code to initialize it), and such constant fields must always appear to have been initialized; the default initial value for the type of such a field must never be observed. See &#167;13.4.8 for a discussion.
+</ul><ul><a name="65047"></a>
+<li>Given a method invocation expression in a class or interface <i>C</i> referencing a method named <i>m</i> declared in a (possibly distinct) class or interface <i>D</i>, we define the <em>qualifying type of the method invocation</em> as follows: 
+</ul><ul><a name="65081"></a>
+If <i>D</i> is <code>Object</code> then the qualifying type of the expression is <code>Object</code>. Otherwise: 
+<ul>
+<a name="65052"></a>
+<li>If the expression is of the form <em>Primary.m</em> then the compile-time type of <em>Primary</em> is the qualifying type of the method invocation. 
+<a name="56381"></a>
+<li>If the expression is of the form <code>super</code>.<i>m</i> then the superclass of <i>C</i> is the qualifying type of the method invocation.
+<a name="56382"></a>
+<li>If the expression is of the form X.super.<i>m</i> then the superclass of X is the qualifying type of the method invocation.
+<a name="56396"></a>
+<li>If the reference is of the form <i>X</i>.<i>m</i>, where <i>X</i> denotes a class or interface, then the class or interface denoted by <i>X</i> is the qualifying type of the method invocation
+<a name="56383"></a>
+<li>If the method is referenced by a simple name, then if <i>m</i> is a member of the current class or interface, <i>C</i>, let <i>T</i> be <i>C</i>. Otherwise, let T be the innermost lexically enclosing class of which m is a member. <i>T</i> is the qualifying type of the method invocation.
+</ul>
+<a name="56551"></a>
+A reference to a method must be resolved at compile time to a symbolic reference to the qualifying type of the invocation, plus the signature of the method <a href="classes.doc.html#38649">(&#167;8.4.2)</a>. A reference to a method must also include either a symbolic reference to the return type of the denoted method or an indication that the denoted method is declared <code>void</code> and does not return a value. The signature of a method must include all of the following:
+<ul>
+<a name="56552"></a>
+<li>The simple name of the method
+<a name="56553"></a>
+<li>The number of parameters to the method 
+<a name="56554"></a>
+<li>A symbolic reference to the type of each parameter
+</ul>
+</ul><ul><a name="56450"></a>
+<li>Given a class instance creation expression <a href="expressions.doc.html#41147">(&#167;15.9)</a> or a constructor invocation statement <a href="classes.doc.html#229267">(&#167;8.8.5.1)</a> in a class or interface <i>C</i> referencing a constructor <i>m</i> declared in a (possibly distinct) class or interface <i>D</i>, we define the <em>qualifying type of the constructor invocation</em> as follows: 
+<ul>
+<a name="56459"></a>
+<li>If the expression is of the form <code>new</code> <i>D</i>(...) or X.new D(...), then the qualifying type of the invocation is <i>D</i>.
+<a name="56460"></a>
+<li>If the expression is of the form new D(..){...} or X.new D(...){...}, then the qualifying type of the expression is the compile-time type of the expression.
+<a name="56461"></a>
+<li>If the expression is of the form super(...) or Primary.super(...) then the qualifying type of the expression is the direct superclass of <i>C</i>.
+<a name="56465"></a>
+<li>If the expression is of the form <code>this</code>(...), then the qualifying type of the expression is <i>C</i>.
+</ul>
+</ul><ul><a name="56572"></a>
+A reference to a constructor must be resolved at compile time to a symbolic reference to the qualifying type of the invocation, plus the signature of the constructor <a href="classes.doc.html#41990">(&#167;8.8.2)</a>. The signature of a constructor must include both:
+<ul>
+<a name="56573"></a>
+<li>The number of parameters to the constructor
+<a name="56574"></a>
+<li>A symbolic reference to the type of each parameter
+</ul>
+<a name="59655"></a>
+In addition the constructor of a non-private inner member class must be compiled such that it has as its first parameter, an additional implicit parameter representing the immediately enclosing instance <a href="classes.doc.html#262890">(&#167;8.1.2)</a>.
+</ul><ul><a name="59648"></a>
+<li>Any constructs introduced by the compiler that do not have a corresponding construct in the a source code must be marked as synthetic, except for default constructors and the class initialization method.
+</ul><a name="46203"></a>
+A binary representation for a class or interface must also contain all of the following:<p>
+<ul><a name="44941"></a>
+<li>If it is a class and is not class <code>Object</code>, then a symbolic reference to the direct superclass of this class
+<a name="44942"></a>
+<li>A symbolic reference to each direct superinterface, if any
+<a name="44943"></a>
+<li>A specification of each field declared in the class or interface, given as the simple name of the field and a symbolic reference to the type of the field
+<a name="44944"></a>
+<li>If it is a class, then the signature of each constructor, as described above
+<a name="44945"></a>
+<li>For each method declared in the class or interface, its signature and return type, as described above
+<a name="44946"></a>
+<li>The code needed to implement the class or interface:
+<ul>
+<a name="59854"></a>
+<li>For an interface, code for the field initializers
+<a name="59855"></a>
+<li>For a class, code for the field initializers, the instance and static initializers, and the implementation of each method or constructor
+</ul>
+<a name="56679"></a>
+<li> Every type must contain sufficient information to recover its canonical name <a href="names.doc.html#25430">(&#167;6.7)</a>.
+<a name="56682"></a>
+<li>Every member type must have sufficient information to recover its source level access modifier.
+<a name="56669"></a>
+<li>Every nested class must have a symbolic reference to its immediately enclosing class.
+<a name="56670"></a>
+<li>Every class that contains a nested class must contain symbolic references to all of its member classes, and to all local and anonymous classes that appear in its methods, constructors and static or instance initializers.
+</ul><a name="44950"></a>
+The following sections discuss changes that may be made to class and interface type declarations without breaking compatibility with pre-existing binaries. Under the translation requirements given above, the Java virtual machine and its  <code>class</code> file format support these changes. Any other valid binary format, such as a compressed or encrypted representation that is mapped back into class files by a class loader under the above requirements will necessarily support these changes as well. <p>
+<a name="44952"></a>
+<h2>13.2    What Binary Compatibility Is and Is Not</h2>
+<a name="44953"></a>
+A change to a type is <em>binary compatible</em> <em>with</em> (equivalently, does not<em> break binary compatibility </em>with) preexisting binaries if preexisting binaries that previously linked without error will continue to link without error.<p>
+<a name="44957"></a>
+Binaries are compiled to rely on the accessible members and constructors of other classes and interfaces. To preserve binary compatibility, a class or interface should treat its accessible members and constructors, their existence and behavior, as a <em>contract</em> with its users.<p>
+<a name="44958"></a>
+The Java programming language is designed to prevent additions to contracts and accidental name collisions from breaking binary compatibility; specifically:<p>
+<ul><a name="44963"></a>
+<li>Addition of more methods overloading a particular method name does not break compatibility with preexisting binaries. The method signature that the preexisting binary will use for method lookup is chosen by the method overload resolution algorithm at compile time <a href="expressions.doc.html#289905">(&#167;15.12.2)</a>. (If the language had been designed so that the particular method to be executed was chosen at run time, then such an ambiguity might be detected at run time. Such a rule would imply that adding an additional overloaded method so as to make ambiguity possible at a call site could break compatibility with an unknown number of preexisting binaries. See <a href="binaryComp.doc.html#45274">&#167;13.4.21</a> for more discussion.)
+</ul><a name="59688"></a>
+Binary compatibility is not the same as source compatibility. In particular, the example in <a href="binaryComp.doc.html#45037">&#167;13.4.5</a> shows that a set of compatible binaries can be produced from sources that will not compile all together. This example is typical: a new declaration is added, changing the meaning of a name in an unchanged part of the source code, while the preexisting binary for that unchanged part of the source code retains the fully-qualified, previous meaning of the name. Producing a consistent set of source code requires providing a qualified name or field access expression corresponding to the previous meaning. <p>
+<a name="47338"></a>
+<h2>13.3    Evolution of Packages</h2>
+<a name="44974"></a>
+A new top-level class or interface type may be added to a package without breaking compatibility with pre-existing binaries, provided the new type does not reuse a name previously given to an unrelated type. If a new type reuses a name previously given to an unrelated type, then a conflict may result, since binaries for both types could not be loaded by the same class loader.<p>
+<a name="44975"></a>
+Changes in top-level class and interface types that are not <code>public</code> and that are not a superclass or superinterface, respectively, of a <code>public</code> type, affect only types within the package in which they are declared. Such types may be deleted or otherwise changed, even if incompatibilities are otherwise described here, provided that the affected binaries of that package are updated together.<p>
+<a name="44977"></a>
+<h2>13.4    Evolution of Classes</h2>
+<a name="44978"></a>
+This section describes the effects of changes to the declaration of a class and its members and constructors on pre-existing binaries.<p>
+<a name="44980"></a>
+<h3>13.4.1    <code>abstract</code> Classes</h3>
+<a name="44981"></a>
+If a class that was not <code>abstract</code> is changed to be declared <code>abstract</code>, then pre-existing binaries that attempt to create new instances of that class will throw either an <code>InstantiationError</code> at link time, or (if a reflective method is used) an <code>InstantiationException</code> at run time; such a change is therefore not recommended for widely distributed classes.<p>
+<a name="44985"></a>
+Changing a class that was declared <code>abstract</code> to no longer be declared <code>abstract</code> does not break compatibility with pre-existing binaries.<p>
+<a name="44987"></a>
+<h3>13.4.2    <code>final</code> Classes</h3>
+<a name="44988"></a>
+If a class that was not declared <code>final</code> is changed to be declared <code>final</code>, then a <code>VerifyError</code> is thrown if a binary of a pre-existing subclass of this class is loaded, because <code>final</code> classes can have no subclasses; such a change is not recommended for widely distributed classes.<p>
+<a name="44989"></a>
+Changing a class that was declared <code>final</code> to no longer be declared <code>final </code>does not break compatibility with pre-existing binaries.<p>
+<a name="44990"></a>
+<h3>13.4.3    <code>public</code> Classes</h3>
+<a name="44991"></a>
+Changing a class that was not declared <code>public</code> to be declared <code>public</code> does not break compatibility with pre-existing binaries.<p>
+<a name="44992"></a>
+If a class that was declared <code>public</code> is changed to not be declared <code>public</code>, then an <code>IllegalAccessError</code> is thrown if a pre-existing binary is linked that needs but no longer has access to the class type; such a change is not recommended for widely distributed classes.<p>
+<a name="44994"></a>
+<h3>13.4.4    Superclasses and Superinterfaces</h3>
+<a name="44995"></a>
+A <code>ClassCircularityError</code> is thrown at load time if a class would be a superclass of itself. Changes to the class hierarchy that could result in such a circularity when newly compiled binaries are loaded with pre-existing binaries are not recommended for widely distributed classes.<p>
+<a name="44996"></a>
+Changing the direct superclass or the set of direct superinterfaces of a class type will not break compatibility with pre-existing binaries, provided that the total set of superclasses or superinterfaces, respectively, of the class type loses no members.<p>
+<a name="44998"></a>
+If a change to the direct superclass or the set of direct superinterfaces results in any class or interface no longer being a superclass or superinterface, respectively, then link-time errors may result if pre-existing binaries are loaded with the binary of the modified class. Such changes are not recommended for widely distributed classes. <p>
+<a name="74221"></a>
+For example, suppose that the following test program:<p>
+<blockquote><pre>class Hyper { char h = 'h'; } 
+class Super extends Hyper { char s = 's'; }
+class Test extends Super {
+    public static void main(String[] args) {
+        Hyper h = new Super();
+        System.out.println(h.h);
+    }
+}
+</pre></blockquote><a name="45007"></a>
+is compiled and executed, producing the output:<p>
+<blockquote><pre>h
+</pre></blockquote><a name="47239"></a>
+Suppose that a new version of class <code>Super</code> is then compiled:<p>
+<blockquote><pre>class Super { char s = 's'; }
+</pre></blockquote><a name="47241"></a>
+This version of class <code>Super</code> is not a subclass of <code>Hyper</code>. If we then run the existing binaries of <code>Hyper</code> and <code>Test</code> with the new version of <code>Super</code>, then a <code>VerifyError</code> is thrown at link time. The verifier objects because the result of <code>new</code> <code>Super()</code> cannot &#32;be assigned to a variable of type <code>Hyper</code>, because <code>Super</code> is not a subclass of <code>Hyper</code>.<p>
+<a name="45012"></a>
+It is instructive to consider what might happen without the verification step: the program might run and print:<p>
+<blockquote><pre>s
+</pre></blockquote><a name="45014"></a>
+This demonstrates that without the verifier the type system could be defeated by linking inconsistent binary files, even though each was produced by a correct Java compiler.<p>
+<a name="45035"></a>
+The lesson is that an implementation that lacks a verifier or fails to use it will not maintain type safety and is, therefore, not a valid implementation. <p>
+<a name="45037"></a>
+<h3>13.4.5    Class Body and Member Declarations</h3>
+<a name="45038"></a>
+No incompatibility with pre-existing binaries is caused by adding an instance (respectively <code>static</code>) member that has the same name, accessibility, (for fields) or same name, accessibility, signature, and return type (for methods) as an instance (respectively <code>static</code>) member of a superclass or subclass. No error occurs even if the set of classes being linked would encounter a compile-time error. <p>
+<a name="56157"></a>
+Deleting a class member or constructor that is not declared <code>private</code> may cause a linkage error if the member or constructor is used by a pre-existing binary. <p>
+<a name="74226"></a>
+If the program:<p>
+<blockquote><pre>class Hyper {
+	void hello() { System.out.println("hello from Hyper"); }
+}
+class Super extends Hyper {
+	void hello() { System.out.println("hello from Super"); }
+}
+class Test {
+	public static void main(String[] args) {
+		new Super().hello();
+	}
+}
+</pre></blockquote><a name="45075"></a>
+is compiled and executed, it produces the output:<p>
+<blockquote><pre>hello from Super
+</pre></blockquote><a name="45077"></a>
+Suppose that a new version of class <code>Super</code> is produced:<p>
+<blockquote><pre>class Super extends Hyper { }
+</pre></blockquote><a name="45084"></a>
+then recompiling <code>Super</code> and executing this new binary with the original binaries for <code>Test</code> and <code>Hyper</code> produces the output:<p>
+<blockquote><pre>hello from Hyper
+</pre></blockquote><a name="45086"></a>
+as expected.<p>
+<a name="45087"></a>
+The <code>super</code> keyword can be used to access a method declared in a superclass, bypassing any methods declared in the current class. The expression:<p>
+<blockquote><pre>super.Identifier
+</pre></blockquote><a name="45089"></a>
+is resolved, at compile time, to a method <i>M</i> in the superclass <i>S</i>. If the method <i>M</i> is an instance method, then the method <i>MR</i> invoked at run time is the method with the same signature as <i>M</i> that is a member of the direct superclass of the class containing the expression involving <code>super</code>. Thus, if the program:<p>
+<blockquote><pre>class Hyper {
+	void hello() { System.out.println("hello from Hyper"); }
+}
+class Super extends Hyper { }
+class Test extends Super {
+	public static void main(String[] args) {
+		new Test().hello();
+	}
+	void hello() {
+		super.hello();
+	}
+}
+</pre></blockquote><a name="45102"></a>
+is compiled and executed, it produces the output:<p>
+<blockquote><pre>hello from Hyper
+</pre></blockquote><a name="45104"></a>
+Suppose that a new version of class <code>Super</code> is produced:<p>
+<blockquote><pre>class Super extends Hyper {
+	void hello() { System.out.println("hello from Super"); }
+}
+</pre></blockquote><a name="45108"></a>
+If <code>Super</code> and <code>Hyper</code> are recompiled but not <code>Test</code>, then running the new binaries with the existing binary of <code>Test</code> produces the output:<p>
+<blockquote><pre>hello from Super
+</pre></blockquote><a name="45110"></a>
+as you might expect. (A flaw in some early implementations caused them to print:<p>
+<blockquote><pre>hello from Hyper
+</pre></blockquote><a name="45114"></a>
+incorrectly.)<p>
+<a name="47259"></a>
+<h3>13.4.6    Access to Members and Constructors</h3>
+<a name="45115"></a>
+Changing the declared access of a member or constructor to permit less access may break compatibility with pre-existing binaries, causing a linkage error to be thrown when these binaries are resolved. Less access is permitted if the access modifier is changed from default access to <code>private</code> access; from <code>protected</code> access to default or <code>private</code> access; or from <code>public</code> access to <code>protected</code>, default, or <code>private</code> access. Changing a member or constructor to permit less access is therefore not recommended for widely distributed classes.<p>
+<a name="45116"></a>
+Perhaps surprisingly, the binary format is defined so that changing a member or constructor to be more accessible does not cause a linkage error when a subclass (already) defines a method to have less access. <p>
+<a name="74312"></a>
+So, for example, if the package <code>points</code> defines the class <code>Point</code>:<p>
+<blockquote><pre>package points;
+public class Point {
+	public int x, y;
+	protected void print() {
+		System.out.println("(" + x + "," + y + ")");
+	}
+}
+</pre></blockquote><a name="45726"></a>
+used by the <code>Test</code> program:<p>
+<blockquote><pre>class Test extends points.Point {
+	protected void print() { System.out.println("Test"); }
+	public static void main(String[] args) {
+		Test t = new Test();
+		t.print();
+	}
+}
+</pre></blockquote><a name="45734"></a>
+then these classes compile and <code>Test</code> executes to produce the output:<p>
+<blockquote><pre>Test
+</pre></blockquote><a name="45736"></a>
+If the method <code>print</code> in class <code>Point</code> is changed to be <code>public</code>, and then only the <code>Point</code> class is recompiled, and then executed with the previously existing binary for <code>Test</code> then no linkage error occurs, even though it is improper, at compile time, for a <code>public</code> method to be overridden by a <code>protected</code> method (as shown by the fact that the class <code>Test</code> could not be recompiled using this new <code>Point</code> class unless print were changed to be <code>public</code>.)<p>
+<a name="47725"></a>
+Allowing superclasses to change <code>protected</code> methods to be <code>public</code> without breaking binaries of preexisting subclasses helps make binaries less fragile. The alternative, where such a change would cause a linkage error, would create additional binary incompatibilities. <p>
+<a name="45118"></a>
+<h3>13.4.7    Field Declarations</h3>
+<a name="63231"></a>
+Widely distributed programs should not expose any fields to their clients. Apart from the binary compatibility issues discussed below, this is generally good software engineering practice. Adding a field to a class may break compatibility with pre-existing binaries that are not recompiled.<p>
+<a name="59700"></a>
+Assume a reference to a field <i>f</i> with qualifying type <i>T</i>. Assume further that <i>f</i> is in fact an instance (respectively <code>static</code>) field declared in a superclass of <i>T</i>, <i>S</i>, and that the type of <i>f</i> is <i>X</i>. If a new field of type <i>X</i> with the same name as <i>f</i> is added to a subclass of <i>S</i> that is a superclass of <i>T</i> or <i>T</i> itself, then a linkage error may occur. Such a linkage error will occur only if, in addition to the above, either one of the following conditions hold:<p>
+<ul><a name="56623"></a>
+<li>The new field is less accessible than the old one.
+<a name="56684"></a>
+<li>The new field is a <code>static</code> (respectively instance) field.
+</ul><a name="59953"></a>
+ In particular, no linkage error will occur in the case where a class could no longer be recompiled because a field access previously referenced a field of a superclass with an incompatible type. The previously compiled class with such a reference will continue to reference the field declared in a superclass. <p>
+<a name="74317"></a>
+Thus compiling and executing the code:<p>
+<blockquote><pre>class Hyper { String h = "hyper"; }
+class Super extends Hyper { String s = "super"; }
+class Test {
+	public static void main(String[] args) {
+		System.out.println(new Super().h);
+	}
+}
+</pre></blockquote><a name="45127"></a>
+produces the output:<p>
+<blockquote><pre>hyper
+</pre></blockquote><a name="47307"></a>
+Changing <code>Super</code> to be defined as:<p>
+<blockquote><pre>class Super extends Hyper {
+	String s = "super";
+	int h = 0;
+}
+</pre></blockquote><a name="45134"></a>
+recompiling <code>Hyper</code> and <code>Super</code>, and executing the resulting new binaries with the old binary of <code>Test</code> produces the output:<p>
+<blockquote><pre>hyper
+</pre></blockquote><a name="45136"></a>
+The field <code>h</code> of <code>Hyper</code> is output by the original binary of <code>main</code>. While this may seem surprising at first, it serves to reduce the number of incompatibilities that occur at run time. (In an ideal world, all source files that needed recompilation would be recompiled whenever any one of them changed, eliminating such surprises. But such a mass recompilation is often impractical or impossible, especially in the Internet. And, as was previously noted, such recompilation would sometimes require further changes to the source code.)<p>
+<a name="59958"></a>
+As an example, if the program:<p>
+<blockquote><pre>class Hyper { String h = "Hyper"; }
+class Super extends Hyper { }
+class Test extends Super {
+	public static void main(String[] args) {
+		String s = new Test().h;
+		System.out.println(s);
+	}
+}
+</pre></blockquote><a name="59967"></a>
+is compiled and executed, it produces the output:<p>
+<blockquote><pre>Hyper
+</pre></blockquote><a name="59969"></a>
+Suppose that a new version of class <code>Super</code> is then compiled:<p>
+<blockquote><pre>class Super extends Hyper { char h = 'h'; }
+</pre></blockquote><a name="59971"></a>
+If the resulting binary is used with the existing binaries for <code>Hyper</code> and <code>Test</code>, then the output is still:<p>
+<blockquote><pre>Hyper
+</pre></blockquote><a name="59973"></a>
+even though compiling the source for these binaries:<p>
+<blockquote><pre>class Hyper { String h = "Hyper"; }
+class Super extends Hyper { char h = 'h'; }
+class Test extends Super {
+	public static void main(String[] args) {
+		String s = new Test().h;
+		System.out.println(s);
+	}
+}
+</pre></blockquote><a name="59982"></a>
+would result in a compile-time error, because the <code>h</code> in the source code for <code>main</code> would now be construed as referring to the <code>char</code> field declared in <code>Super</code>, and a <code>char</code> value can't be assigned to a <code>String</code>.<p>
+<a name="45137"></a>
+Deleting a field from a class will break compatibility with any pre-existing binaries that reference this field, and a <code>NoSuchFieldError</code> will be thrown when such a reference from a pre-existing binary is linked. Only <code>private</code> fields may be safely deleted from a widely distributed class.<p>
+<a name="45139"></a>
+<h3>13.4.8    <code>final</code> Fields and Constants</h3>
+<a name="45140"></a>
+If a field that was not <code>final</code> is changed to be <code>final</code>, then it can break compatibility with pre-existing binaries that attempt to assign new values to the field. <p>
+<a name="74322"></a>
+For example, if the program:<p>
+<blockquote><pre>class Super { static char s; }
+class Test extends Super {
+	public static void main(String[] args) {
+		s = 'a';
+		System.out.println(s);
+	}
+}
+</pre></blockquote><a name="45148"></a>
+is compiled and executed, it produces the output:<p>
+<blockquote><pre>a
+</pre></blockquote><a name="47429"></a>
+Suppose that a new version of class <code>Super</code> is produced:<p>
+<blockquote><pre>class Super { final static char s = 'b'; }
+</pre></blockquote><a name="55952"></a>
+If <code>Super</code> is recompiled but not <code>Test</code>, then running the new binary with the existing binary of <code>Test</code> results in a <code>IllegalAccessError</code>. <p>
+<a name="45154"></a>
+Deleting the keyword <code>final</code> or changing the value to which a field is initialized does not break compatibility with existing binaries.<p>
+<a name="45155"></a>
+If a field is a compile-time constant, then deleting the keyword <code>final</code> or changing its value will not break compatibility with pre-existing binaries by causing them not to run, but they will not see any new value for the constant unless they are recompiled. <p>
+<a name="74327"></a>
+If the example:<p>
+<blockquote><pre>class Flags { final static boolean debug = true; }
+class Test {
+	public static void main(String[] args) {
+		if (Flags.debug)
+			System.out.println("debug is true");
+	}
+}
+</pre></blockquote><a name="45163"></a>
+is compiled and executed, it produces the output:<p>
+<blockquote><pre>debug is true
+</pre></blockquote><a name="45165"></a>
+Suppose that a new version of class <code>Flags</code> is produced:<p>
+<blockquote><pre>class Flags { final static boolean debug = false; }
+</pre></blockquote><a name="45167"></a>
+If <code>Flags</code> is recompiled but not <code>Test</code>, then running the new binary with the existing binary of <code>Test</code> produces the output:<p>
+<blockquote><pre>debug is true
+</pre></blockquote><a name="45169"></a>
+because the value of <code>debug</code> was a compile-time constant, and could have been used in compiling <code>Test</code> without making a reference to the class <code>Flags</code>.<p>
+<a name="47322"></a>
+This result is a side-effect of the decision to support conditional compilation, as discussed at the end of <a href="statements.doc.html#236365">&#167;14.20</a>.<p>
+<a name="47435"></a>
+This behavior would not change if <code>Flags</code> were changed to be an interface, as in the modified example:<p>
+<blockquote><pre>interface Flags { boolean debug = true; }
+class Test {
+	public static void main(String[] args) {
+		if (Flags.debug)
+			System.out.println("debug is true");
+	}
+}
+</pre></blockquote><a name="45177"></a>
+(One reason for requiring inlining of constants is that <code>switch</code> statements require constants on each <code>case</code>, and no two such constant values may be the same. The compiler checks for duplicate constant values in a <code>switch</code> statement at compile time; the <code>class</code> file format does not do symbolic linkage of <code>case</code> values.)<p>
+<a name="77134"></a>
+The best way to avoid problems with "inconstant constants" in widely-distributed code is to declare as compile time constants only values which truly are unlikely ever to change. Many compile time constants in interfaces are small integer values replacing enumerated types, which the language does not support; these small values can be chosen arbitrarily, and should not need to be changed. Other than for true mathematical constants, we recommend that source code make very sparing use of class variables that are declared <code>static</code> and <code>final</code>. If the read-only nature of <code>final</code> is required, a better choice is to declare a <code>private</code> <code>static</code> variable and a suitable accessor method to get its value. Thus we recommend:<p>
+<blockquote><pre>private static int N;
+public static int getN() { return N; }
+</pre></blockquote><a name="45181"></a>
+rather than:<p>
+<blockquote><pre>public static final int N = ...;
+</pre></blockquote><a name="45183"></a>
+There is no problem with:<p>
+<blockquote><pre>public static int N = ...;
+</pre></blockquote><a name="45185"></a>
+if <code>N</code> need not be read-only. We also recommend, as a general rule, that only truly constant values be declared in interfaces. We note, but do not recommend, that if a field of primitive type of an interface may change, its value may be expressed idiomatically as in:<p>
+<blockquote><pre>interface Flags {
+	boolean debug = new Boolean(true).booleanValue();
+}
+</pre></blockquote><a name="47644"></a>
+insuring that this value is not a constant. Similar idioms exist for the other primitive types.<p>
+<a name="47645"></a>
+One other thing to note is that <code>static</code> <code>final</code> fields that have constant values (whether of primitive or <code>String</code> type) must never appear to have the default initial value for their type <a href="typesValues.doc.html#96595">(&#167;4.5.5)</a>. This means that all such fields appear to be initialized first during class initialization (<a href="classes.doc.html#38010">&#167;8.3.2.1</a>, <a href="interfaces.doc.html#40720">&#167;9.3.1</a>, <a href="execution.doc.html#44630">&#167;12.4.2</a>).<p>
+<a name="45190"></a>
+<h3>13.4.9    <code>static</code> Fields</h3>
+<a name="45191"></a>
+If a field that is not declared <code>private</code> was not declared <code>static</code> and is changed to be declared <code>static</code>, or vice versa, then a linkage time error, specifically an <code>IncompatibleClassChangeError</code>, will result if the field is used by a preexisting binary which expected a field of the other kind. Such changes are not recommended in code that has been widely distributed.<p>
+<a name="45192"></a>
+<h3>13.4.10    <code>transient</code> Fields</h3>
+<a name="45193"></a>
+Adding or deleting a <code>transient</code> modifier of a field does not break compatibility with pre-existing binaries.<p>
+<a name="45197"></a>
+<h3>13.4.11    Method and Constructor Declarations</h3>
+<a name="61575"></a>
+Adding a method or constructor declaration to a class will not break compatibility with any pre-existing binaries, in the case where a type could no longer be recompiled because an invocation previously referenced a method or constructor of a superclass with an incompatible type. The previously compiled class with such a reference will continue to reference the method or constructor declared in a superclass.<p>
+<a name="61590"></a>
+Assume a reference to a method <i>m</i> with qualifying type <i>T</i>. Assume further that <i>m</i> is in fact an instance (respectively <code>static</code>) method declared in a superclass of <i>T</i>, <i>S</i>. If a new method of type <i>X</i> with the same signature and return type as <i>m</i> is added to a subclass of <i>S</i> that is a superclass of <i>T</i> or <i>T</i> itself, then a linkage error may occur. Such a linkage error will occur only if, in addition to the above, either one of the following conditions hold:<p>
+<ul><a name="61576"></a>
+<li>The new method is less accessible than the old one.
+<a name="61577"></a>
+<li>The new method is a <code>static</code> (respectively instance) method.
+</ul><a name="45199"></a>
+Deleting a method or constructor from a class may break compatibility with any pre-existing binary that referenced this method or constructor; a <code>NoSuchMethodError</code> &#32; may be thrown when such a reference from a pre-existing binary is linked. Such an error will occur only if no method with a matching signature and return type is declared in a superclass. <p>
+<a name="45200"></a>
+If the source code for a class contains no declared constructors, the Java compiler automatically supplies a constructor with no parameters. Adding one or more constructor declarations to the source code of such a class will prevent this default constructor from being supplied automatically, effectively deleting a constructor, unless one of the new constructors also has no parameters, thus replacing the default constructor. The automatically supplied constructor with no parameters is given the same access modifier as the class of its declaration, so any replacement should have as much or more access if compatibility with pre-existing binaries is to be preserved.<p>
+<a name="45202"></a>
+<h3>13.4.12    Method and Constructor Parameters</h3>
+<a name="45203"></a>
+Changing the name of a formal parameter of a method or constructor does not impact pre-existing binaries. Changing the name of a method, the type of a formal parameter to a method or constructor, or adding a parameter to or deleting a parameter from a method or constructor declaration creates a method or constructor with a new signature, and has the combined effect of deleting the method or constructor with the old signature and adding a method or constructor with the new signature (see <a href="binaryComp.doc.html#45197">&#167;13.4.11</a>).<p>
+<a name="45208"></a>
+<h3>13.4.13    Method Result Type</h3>
+<a name="45209"></a>
+Changing the result type of a method, replacing a result type with <code>void</code>, or replacing <code>void</code> with a result type has the combined effect of deleting the old method and adding a new method with the new result type or newly <code>void</code> result (see <a href="binaryComp.doc.html#45197">&#167;13.4.11</a>).<p>
+<a name="45214"></a>
+<h3>13.4.14    <code>abstract</code> Methods</h3>
+<a name="45215"></a>
+Changing a method that is declared <code>abstract</code> to no longer be declared <code>abstract</code> does not break compatibility with pre-existing binaries.<p>
+<a name="45216"></a>
+Changing a method that is not declared <code>abstract</code> to be declared <code>abstract</code> will break compatibility with pre-existing binaries that previously invoked the method, causing an <code>AbstractMethodError</code>. <p>
+<a name="74332"></a>
+If the example program:<p>
+<blockquote><pre>class Super { void out() { System.out.println("Out"); } }
+class Test extends Super {
+	public static void main(String[] args) {
+		Test t = new Test();
+		System.out.println("Way ");
+		t.out();
+	}
+}
+</pre></blockquote><a name="45227"></a>
+is compiled and executed, it produces the output:<p>
+<blockquote><pre>Way
+Out
+</pre></blockquote><a name="45230"></a>
+Suppose that a new version of class <code>Super</code> is produced:<p>
+<blockquote><pre>abstract class Super {
+	abstract void out();
+}
+</pre></blockquote><a name="45236"></a>
+If <code>Super</code> is recompiled but not <code>Test</code>, then running the new binary with the existing binary of <code>Test</code> results in a <code>AbstractMethodError</code>, because class <code>Test</code> has no implementation of the method <code>out</code>, and is therefore is (or should be) abstract. <p>
+<a name="45238"></a>
+<h3>13.4.15    <code>final</code> Methods</h3>
+<a name="45239"></a>
+Changing an instance method that is not <code>final</code> to be <code>final</code> may break compatibility with existing binaries that depend on the ability to override the method. <p>
+<a name="74337"></a>
+If the test program:<p>
+<blockquote><pre>class Super { void out() { System.out.println("out"); } }
+class Test extends Super {
+	public static void main(String[] args) {
+		Test t = new Test();
+		t.out();
+	}
+	void out() { super.out(); }
+}
+</pre></blockquote><a name="45248"></a>
+is compiled and executed, it produces the output:<p>
+<blockquote><pre>out
+</pre></blockquote><a name="45250"></a>
+Suppose that a new version of class <code>Super</code> is produced:<p>
+<blockquote><pre>class Super { final void out() { System.out.println("!"); } }
+</pre></blockquote><a name="45252"></a>
+If <code>Super</code> is recompiled but not <code>Test</code>, then running the new binary with the existing binary of <code>Test</code> results in a <code>VerifyError</code> because the class <code>Test</code> improperly tries to override the instance method <code>out</code>.<p>
+<a name="45253"></a>
+Changing a class (<code>static</code>) method that is not <code>final</code> to be <code>final</code> does not break compatibility with existing binaries, because the method could not have been overridden.<p>
+<a name="45254"></a>
+Removing the <code>final</code> modifier from a method does not break compatibility with pre-existing binaries.<p>
+<a name="45255"></a>
+<h3>13.4.16    <code>native</code> Methods</h3>
+<a name="45256"></a>
+Adding or deleting a <code>native</code> modifier of a method does not break compatibility with pre-existing binaries.<p>
+<a name="46194"></a>
+The impact of changes to types on preexisting <code>native</code> methods that are not recompiled is beyond the scope of this specification and should be provided with the description of an implementation. Implementations are encouraged, but not required, to implement <code>native</code> methods in a way that limits such impact.<p>
+<a name="45257"></a>
+<h3>13.4.17    <code>static</code> Methods</h3>
+<a name="45258"></a>
+If a method that is not declared <code>private</code> was declared <code>static</code> (that is, a class method) and is changed to not be declared <code>static</code> (that is, to an instance method), or vice versa, then compatibility with pre-existing binaries may be broken, resulting in a linkage time error, namely an <code>IncompatibleClassChangeError</code>, if these methods are used by the pre-existing binaries. Such changes are not recommended in code that has been widely distributed.<p>
+<a name="45259"></a>
+<h3>13.4.18    <code>synchronized</code> Methods</h3>
+<a name="45260"></a>
+Adding or deleting a <code>synchronized</code> modifier of a method does not break compatibility with existing binaries.<p>
+<a name="45262"></a>
+<h3>13.4.19    Method and Constructor Throws</h3>
+<a name="45263"></a>
+Changes to the <code>throws</code> clause of methods or constructors do not break compatibility with existing binaries; these clauses are checked only at compile time.<p>
+<a name="45265"></a>
+<h3>13.4.20    Method and Constructor Body</h3>
+<a name="45266"></a>
+Changes to the body of a method or constructor do not break compatibility with pre-existing binaries.<p>
+<a name="45270"></a>
+We note that a compiler cannot expand a method inline at compile time. <p>
+<a name="45271"></a>
+The keyword <code>final</code> on a method does not mean that the method can be safely inlined; it means only that the method cannot be overridden. It is still possible that a new version of that method will be provided at link time. Furthermore, the structure of the original program must be preserved for purposes of reflection.<p>
+<a name="45272"></a>
+In general we suggest that implementations use late-bound (run-time) code generation and optimization.<p>
+<a name="77124"></a>
+<p>
+<a name="45274"></a>
+<h3>13.4.21    Method and Constructor Overloading</h3>
+<a name="45275"></a>
+Adding new methods or constructors that overload existing methods or constructors does not break compatibility with pre-existing binaries. The signature to be used for each invocation was determined when these existing binaries were compiled; therefore newly added methods or constructors will not be used, even if their signatures are both applicable and more specific than the signature originally chosen.<p>
+<a name="45276"></a>
+While adding a new overloaded method or constructor may cause a compile-time error the next time a class or interface is compiled because there is no method or constructor that is most specific <a href="expressions.doc.html#18428">(&#167;15.12.2.2)</a>, no such error occurs when a program is executed, because no overload resolution is done at execution time.<p>
+<a name="45280"></a>
+If the example program:<p>
+<blockquote><pre>class Super {
+	static void out(float f) { System.out.println("float"); }
+}
+class Test {
+	public static void main(String[] args) {
+		Super.out(2);
+	}
+}
+</pre></blockquote><a name="45289"></a>
+is compiled and executed, it produces the output:<p>
+<blockquote><pre>float
+</pre></blockquote><a name="45291"></a>
+Suppose that a new version of class <code>Super</code> is produced:<p>
+<blockquote><pre>class Super {
+	static void out(float f) { System.out.println("float"); }
+	static void out(int i) { System.out.println("int"); }
+}
+</pre></blockquote><a name="45296"></a>
+If <code>Super</code> is recompiled but not <code>Test</code>, then running the new binary with the existing binary of <code>Test</code> still produces the output:<p>
+<blockquote><pre>float
+</pre></blockquote><a name="45298"></a>
+However, if <code>Test</code> is then recompiled, using this new <code>Super</code>, the output is then:<p>
+<blockquote><pre>int
+</pre></blockquote><a name="45300"></a>
+as might have been naively expected in the previous case.<p>
+<a name="45301"></a>
+<h3>13.4.22    Method Overriding</h3>
+<a name="59454"></a>
+If an instance method is added to a subclass and it overrides a method in a superclass, then the subclass method will be found by method invocations in pre-existing binaries, and these binaries are not impacted. If a class method is added to a class, then this method will not be found unless the qualifying type of the reference is the subclass type.<p>
+<a name="45331"></a>
+<h3>13.4.23    Static Initializers</h3>
+<a name="45335"></a>
+Adding, deleting, or changing a static initializer <a href="classes.doc.html#39245">(&#167;8.7)</a> of a class does not impact pre-existing binaries.<p>
+<a name="45337"></a>
+<h2>13.5    Evolution of Interfaces</h2>
+<a name="45338"></a>
+This section describes the impact of changes to the declaration of an interface and its members on pre-existing binaries.<p>
+<a name="45339"></a>
+<h3>13.5.1    <code>public</code> Interfaces</h3>
+<a name="45340"></a>
+Changing an interface that is not declared <code>public</code> to be declared <code>public</code> does not break compatibility with pre-existing binaries.<p>
+<a name="45341"></a>
+If an interface that is declared <code>public</code> is changed to not be declared <code>public</code>, then an <code>IllegalAccessError</code> is thrown if a pre-existing binary is linked that needs but no longer has access to the interface type, so such a change is not recommended for widely distributed interfaces.<p>
+<a name="45342"></a>
+<h3>13.5.2    Superinterfaces</h3>
+<a name="45343"></a>
+Changes to the interface hierarchy cause errors in the same way that changes to the class hierarchy do, as described in <a href="binaryComp.doc.html#44994">&#167;13.4.4</a>. In particular, changes that result in any previous superinterface of a class no longer being a superinterface can break compatibility with pre-existing binaries, resulting in a <code>VerifyError</code>.<p>
+<a name="45347"></a>
+<h3>13.5.3    The Interface Members</h3>
+<a name="45348"></a>
+Adding a method to an interface does not break compatibility with pre-existing binaries. A field added to a superinterface of <i>C</i> may hide a field inherited from a superclass of <i>C</i>. If the original reference was to an instance field, an <code>IncompatibleClassChangeError</code> will result. If the original reference was an assignment, an <code>IllegalAccessError </code>will result.<p>
+<a name="45349"></a>
+Deleting a member from an interface may cause linkage errors in pre-existing binaries. <p>
+<a name="74349"></a>
+If the example program:<p>
+<blockquote><pre>interface I { void hello(); }
+class Test implements I {
+	public static void main(String[] args) {
+		I anI = new Test();
+		anI.hello();
+	}
+	public void hello() { System.out.println("hello"); }
+}
+</pre></blockquote><a name="45358"></a>
+is compiled and executed, it produces the output:<p>
+<blockquote><pre>hello
+</pre></blockquote><a name="45360"></a>
+Suppose that a new version of interface <code>I</code> is compiled:<p>
+<blockquote><pre>interface I { }
+</pre></blockquote><a name="45362"></a>
+If <code>I</code> is recompiled but not <code>Test</code>, then running the new binary with the existing binary for <code>Test</code> will result in a <code>NoSuchMethodError</code>. (In some early implementations this program still executed; the fact that the method <code>hello</code> no longer exists in interface <code>I</code> was not correctly detected.)<p>
+<a name="45363"></a>
+<h3>13.5.4    Field Declarations</h3>
+<a name="45364"></a>
+The considerations for changing field declarations in interfaces are the same as those for <code>static</code> <code>final</code> fields in classes, as described in <a href="binaryComp.doc.html#45118">&#167;13.4.7</a> and <a href="binaryComp.doc.html#45139">&#167;13.4.8</a>.<p>
+<a name="45371"></a>
+<h3>13.5.5    Abstract Method Declarations</h3>
+<a name="46514"></a>
+The considerations for changing abstract method declarations in interfaces are the same as those for <code>abstract</code> methods in classes, as described in <a href="binaryComp.doc.html#45202">&#167;13.4.12</a>, <a href="binaryComp.doc.html#45208">&#167;13.4.13</a>, <a href="binaryComp.doc.html#45262">&#167;13.4.19</a>, and <a href="binaryComp.doc.html#45274">&#167;13.4.21</a>.<p>
+
+
+<hr>
+<table border="0" width="100%">
+<tr>
+<td><a href="jTOC.doc.html">Contents</a> | <a href="execution.doc.html">Prev</a> | <a href="statements.doc.html">Next</a> | <a href="jIX.fm.html">Index</a></td>
+<td align=right><i>Java Language Specification</i><br>
+<font size="-1">Second Edition</font></td></tr></table>
+<i><a href="jcopyright.doc.html">Copyright</a> &#169 2000 Sun Microsystems, Inc.
+All rights reserved</i>
+<br>
+Please send any comments or corrections to <a href="mailto:jls@java.sun.com">jls@java.sun.com</a>
+</font>
+</body></html>

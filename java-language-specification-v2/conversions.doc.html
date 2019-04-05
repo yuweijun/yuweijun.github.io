@@ -1,0 +1,950 @@
+<html>
+<head>
+<title> Conversions and Promotions</title>
+</head>
+<body BGCOLOR=#eeeeff text=#000000 LINK=#0000ff VLINK=#000077 ALINK=#ff0000>
+ 
+<table border="0" width="100%">
+<tr>
+<td><a href="jTOC.doc.html">Contents</a> | <a href="typesValues.doc.html">Prev</a> | <a href="names.doc.html">Next</a> | <a href="jIX.fm.html">Index</a></td>
+<td align=right><i>Java Language Specification</i><br>
+<font size="-1">Second Edition</font></td></tr></table>
+<hr><br>
+ 
+<a name="44342"></a>
+<p><strong>
+CHAPTER
+ 5 </strong></p>
+<a name="27529"></a>
+<h1>Conversions and Promotions</h1>
+<hr><p>
+<a name="25009"></a>
+Every expression written in the Java programming language has a type that can be deduced from the structure of the expression and the types of the literals, variables, and methods mentioned in the expression. It is possible, however, to write an expression in a context where the type of the expression is not appropriate. In some cases, this leads to an error at compile time; for example, if the expression in an <code>if</code> statement <a href="statements.doc.html#5991">(&#167;14.9)</a> has any type other than <code>boolean</code>, a compile-time error occurs. In other cases, the context may be able to accept a type that is related to the type of the expression; as a convenience, rather than requiring the programmer to indicate a type conversion explicitly, the language performs an implicit <em>conversion</em> from the type of the expression to a type acceptable for its surrounding context.<p>
+<a name="189998"></a>
+A specific conversion from type <i>S</i> to type <i>T</i> allows an expression of type <i>S</i> to be treated at compile time as if it had type <i>T</i> instead. In some cases this will require a corresponding action at run time to check the validity of the conversion or to translate the run-time value of the expression into a form appropriate for the new type <i>T</i>. For example:<p>
+<ul><a name="190003"></a>
+<li>A conversion from type <code>Object</code> to type <code>Thread</code> requires a run-time check to make sure that the run-time value is actually an instance of class <code>Thread</code> or one of its subclasses; if it is not, an exception is thrown.
+<a name="25042"></a>
+<li>A conversion from type <code>Thread</code> to type <code>Object</code> requires no run-time action; <code>Thread</code> is a subclass of <code>Object</code>, so any reference produced by an expression of type <code>Thread</code> is a valid reference value of type <code>Object</code>.
+<a name="25043"></a>
+<li>A conversion from type <code>int</code> to type <code>long</code> requires run-time sign-extension of a 32-bit integer value to the 64-bit <code>long</code> representation. No information is lost.
+<a name="185533"></a>
+</ul>
+A conversion from type <code>double</code> to type <code>long</code> requires a nontrivial translation from a 64-bit floating-point value to the 64-bit integer representation. Depending on the actual run-time value, information may be lost.
+<p>
+In every conversion context, only certain specific conversions are permitted. For convenience of description, the specific conversions that are possible in the Java programming language are grouped into several broad categories:
+<a name="25070"></a>
+<ul>
+<li>Identity conversions
+<a name="25071"></a>
+<li>Widening primitive conversions
+<a name="25072"></a>
+<li>Narrowing primitive conversions
+<a name="25073"></a>
+<li>Widening reference conversions
+<a name="184139"></a>
+<li>Narrowing reference conversions
+<a name="184140"></a>
+<li>String conversions
+<a name="184148"></a>
+<li>Value set conversions
+</ul><a name="185434"></a>
+There are five <em>conversion contexts</em> in which conversion of expressions may occur. Each context allows conversions in some of the categories named above but not others. The term "conversion" is also used to describe the process of choosing a specific conversion for such a context. For example, we say that an expression that is an actual argument in a method invocation is subject to "method invocation conversion," meaning that a specific conversion will be implicitly chosen for that expression according to the rules for the method invocation argument context.<p>
+<a name="185543"></a>
+One conversion context is the operand of a numeric operator such as <code>+</code> or <code>*</code>. The conversion process for such operands is called <em>numeric promotion</em>. Promotion is special in that, in the case of binary operators, the conversion chosen for one operand may depend in part on the type of the other operand expression.
+<a name="189322"></a>
+This chapter first describes the seven categories of conversions <a href="conversions.doc.html#189955">(&#167;5.1)</a>, including the special conversions to <code>String</code> allowed for the string concatenation operator <code>+</code>. Then the five conversion contexts are described:
+<ul><a name="25117"></a>
+<li>Assignment conversion (<a href="conversions.doc.html#184206">&#167;5.2</a>, <a href="expressions.doc.html#5281">&#167;15.26</a>) converts the type of an expression to the type of a specified variable. The conversions permitted for assignment are limited in such a way that assignment conversion never causes an exception.
+<a name="52883"></a>
+<li>Method invocation conversion (<a href="conversions.doc.html#12687">&#167;5.3</a>, <a href="expressions.doc.html#41147">&#167;15.9</a>, <a href="expressions.doc.html#20448">&#167;15.12</a>) is applied to each argument in a method or constructor invocation and, except in one case, performs the same conversions that assignment conversion does. Method invocation conversion never causes an exception.
+<a name="25151"></a>
+<li>Casting conversion <a href="conversions.doc.html#20232">(&#167;5.5)</a> converts the type of an expression to a type explicitly specified by a cast operator <a href="expressions.doc.html#238146">(&#167;15.16)</a>. It is more inclusive than assignment or method invocation conversion, allowing any specific conversion other than a string conversion, but certain casts to a reference type may cause an exception at run time.
+<a name="25179"></a>
+<li>String conversion (<a href="conversions.doc.html#186035">&#167;5.4</a>, <a href="expressions.doc.html#39990">&#167;15.18.1</a>) allows any type to be converted to type <code>String</code>.
+<a name="52885"></a>
+<li>Numeric promotion <a href="conversions.doc.html#26917">(&#167;5.6)</a> brings the operands of a numeric operator to a common type so that an operation can be performed.
+</ul>
+<a name="185443"></a>
+Here are some examples of the various contexts for conversion:
+</ul><blockquote><pre>class Test {			
+
+	public static void main(String[] args) {
+
+		// Casting conversion <a href="conversions.doc.html#186035">(&#167;5.4)</a> of a float literal to
+		// type int. Without the cast operator, this would
+		// be a compile-time error, because this is a
+		// narrowing conversion <a href="conversions.doc.html#25363">(&#167;5.1.3)</a>:
+		int i = (int)12.5f;
+
+		// String conversion <a href="conversions.doc.html#186035">(&#167;5.4)</a> of i's int value:
+		System.out.println("(int)12.5f==" + i);
+
+		// Assignment conversion <a href="conversions.doc.html#184206">(&#167;5.2)</a> of i's value to type
+		// float. This is a widening conversion <a href="conversions.doc.html#25214">(&#167;5.1.2)</a>:
+		float f = i;
+
+		// String conversion of f's float value:
+		System.out.println("after float widening: " + f);
+
+		// Numeric promotion <a href="conversions.doc.html#26917">(&#167;5.6)</a> of i's value to type
+		// float. This is a binary numeric promotion.
+		// After promotion, the operation is float*float:
+		System.out.print(f);
+		f = f * i;
+
+		// Two string conversions of i and f:
+		System.out.println("*" + i + "==" + f);
+
+		// Method invocation conversion <a href="conversions.doc.html#12687">(&#167;5.3)</a> of f's value
+		// to type double, needed because the method Math.sin
+		// accepts only a double argument:
+		double d = Math.sin(f);
+
+		// Two string conversions of f and d:
+		System.out.println("Math.sin(" + f + ")==" + d);
+	}
+}
+</pre></blockquote><a name="26253"></a>
+which produces the output:<p>
+<blockquote><pre>(int)12.5f==12
+after float widening: 12.0
+12.0*12==144.0
+Math.sin(144.0)==-0.49102159389846934
+</pre></blockquote><a name="189955"></a>
+<h2>5.1    Kinds of Conversion</h2>
+<a name="25201"></a>
+Specific type conversions in the Java programming language are divided into seven categories.<p>
+<a name="25209"></a>
+<h3>5.1.1    Identity Conversions</h3>
+<a name="185447"></a>
+A conversion from a type to that same type is permitted for any type. <p>
+<a name="185451"></a>
+This may seem trivial, but it has two practical consequences. First, it is always permitted for an expression to have the desired type to begin with, thus allowing the simply stated rule that every expression is subject to conversion, if only a trivial identity conversion. Second, it implies that it is permitted for a program to include redundant cast operators for the sake of clarity.
+<a name="185553"></a>
+<p>The only permitted conversion that involves the type <code>boolean</code> is the identity conversion from <code>boolean</code> to <code>boolean</code>.
+<a name="25214"></a>
+<h3>5.1.2    Widening Primitive Conversion</h3>
+<a name="25224"></a>
+The following 19 specific conversions on primitive types are called the <em>widening primitive conversions</em>:<p>
+<ul><a name="25225"></a>
+<li><code>byte</code> to <code>short</code>, <code>int</code>, <code>long</code>, <code>float</code>, or <code>double</code>
+<a name="25226"></a>
+<li><code>short</code> to <code>int</code>, <code>long</code>, <code>float</code>, or <code>double</code>
+<a name="25227"></a>
+<li><code>char</code> to <code>int</code>, <code>long</code>, <code>float</code>, or <code>double</code>
+<a name="25228"></a>
+<li><code>int</code> to <code>long</code>, <code>float</code>, or <code>double</code>
+<a name="25229"></a>
+<li><code>long</code> to <code>float</code> or <code>double</code>
+<a name="25230"></a>
+<li><code>float</code> to <code>double</code>
+</ul><a name="25231"></a>
+Widening primitive conversions do not lose information about the overall magnitude of a numeric value. Indeed, conversions widening from an integral type to another integral type and from <code>float</code> to <code>double</code> do not lose any information at all; the numeric value is preserved exactly. Conversions widening from <code>float</code> to <code>double</code> in <code>strictfp</code> expressions also preserve the numeric value exactly; however, such conversions that are not <code>strictfp</code> may lose information about the overall magnitude of the converted value.<p>
+<a name="185724"></a>
+Conversion of an <code>int</code> or a <code>long</code> value to <code>float</code>, or of a <code>long</code> value to <code>double</code>, may result in <em>loss of precision</em>-that is, the result may lose some of the least significant bits of the value. In this case, the resulting floating-point value will be a correctly rounded version of the integer value, using IEEE 754 round-to-nearest mode <a href="typesValues.doc.html#9249">(&#167;4.2.4)</a>.<p>
+<a name="25237"></a>
+A widening conversion of a signed integer value to an integral type <i>T</i> simply sign-extends the two's-complement representation of the integer value to fill the wider format. A widening conversion of a character to an integral type <i>T</i> zero-extends the representation of the character value to fill the wider format.<p>
+<a name="185453"></a>
+Despite the fact that loss of precision may occur, widening conversions among primitive types never result in a run-time exception <a href="exceptions.doc.html#44043">(&#167;11)</a>.<p>
+<a name="25242"></a>
+Here is an example of a widening conversion that loses precision:
+<blockquote><pre>class Test {
+	public static void main(String[] args) {
+		int big = 1234567890;
+		float approx = big;
+		System.out.println(big - (int)approx);
+	}
+}
+</pre></blockquote><a name="25250"></a>
+which prints:<p>
+<blockquote><pre>-46
+</pre></blockquote><a name="185558"></a>
+thus indicating that information was lost during the conversion from type <code>int</code> to type <code>float</code> because values of type <code>float</code> are not precise to nine significant digits.<p>
+<a name="25363"></a>
+<h3>5.1.3    Narrowing Primitive Conversions</h3>
+<a name="185663"></a>
+The following 23 specific conversions on primitive types are called the <em>narrowing</em> <em>primitive conversions</em>:<p>
+<ul><a name="25257"></a>
+<li><code>byte</code> to <code>char</code>
+<a name="25258"></a>
+<li><code>short</code> to <code>byte</code> or <code>char</code>
+<a name="25259"></a>
+<li><code>char</code> to <code>byte</code> or <code>short</code>
+<a name="25260"></a>
+<li><code>int</code> to <code>byte</code>, <code>short</code>, or <code>char</code>
+<a name="25261"></a>
+<li><code>long</code> to <code>byte</code>, <code>short</code>, <code>char</code>, or <code>int</code>
+<a name="25262"></a>
+<li><code>float</code> to <code>byte</code>, <code>short</code>, <code>char</code>, <code>int</code>, or <code>long</code>
+<a name="25263"></a>
+<li><code>double</code> to <code>byte</code>, <code>short</code>, <code>char</code>, <code>int</code>, <code>long</code>, or <code>float</code>
+</ul><a name="25264"></a>
+Narrowing conversions may lose information about the overall magnitude of a numeric value and may also lose precision.<p>
+<a name="25265"></a>
+A narrowing conversion of a signed integer to an integral type <i>T</i> simply discards all but the <em>n </em>lowest order bits, where <em>n </em>is the number of bits used to represent type <i>T</i>. In addition to a possible loss of information about the magnitude of the numeric value, this may cause the sign of the resulting value to differ from the sign of the input value.<p>
+<a name="25266"></a>
+A narrowing conversion of a character to an integral type <i>T</i> likewise simply discards all but the <em>n </em>lowest order bits, where <em>n </em>is the number of bits used to represent type <i>T</i>. In addition to a possible loss of information about the magnitude of the numeric value, this may cause the resulting value to be a negative number, even though characters represent 16-bit unsigned integer values.<p>
+<a name="25267"></a>
+A narrowing conversion of a floating-point number to an integral type <i>T</i> takes two steps:<p>
+<ol>
+<a name="25268"></a>
+<li>In the first step, the floating-point number is converted either to a <code>long</code>, if <i>T</i> is <code>long</code>, or to an <code>int</code>, if <i>T</i> is <code>byte</code>, <code>short</code>, <code>char</code>, or <code>int</code>, as follows:
+<ul>
+<a name="25272"></a>
+<li>If the floating-point number is NaN <a href="typesValues.doc.html#9208">(&#167;4.2.3)</a>, the result of the first step of the conversion is an <code>int</code> or <code>long</code> <code>0</code>.
+<a name="174285"></a>
+<li>Otherwise, if the floating-point number is not an infinity, the floating-point value is rounded to an integer value <i>V</i>, rounding toward zero using IEEE 754 round-toward-zero mode <a href="typesValues.doc.html#9208">(&#167;4.2.3)</a>. Then there are two cases:
+<ul>
+<a name="25277"></a>
+<li>If <i>T</i> is <code>long</code>, and this integer value can be represented as a <code>long</code>, then the result of the first step is the <code>long</code> value <i>V</i>.
+<a name="25278"></a>
+<li>Otherwise, if this integer value can be represented as an <code>int</code>, then the result of the first step is the <code>int</code> value <i>V</i>.
+</ul>
+<a name="25279"></a>
+<li>Otherwise, one of the following two cases must be true:
+<ul>
+<a name="25280"></a>
+<li>The value must be too small (a negative value of large magnitude or negative infinity), and the result of the first step is the smallest representable value of type <code>int</code> or <code>long</code>.
+<a name="25281"></a>
+<li>The value must be too large (a positive value of large magnitude or positive infinity), and the result of the first step is the largest representable value of type <code>int</code> or <code>long</code>.
+</ul>
+</ul>
+<a name="25282"></a>
+<li>In the second step:
+<ul>
+<a name="25283"></a>
+<li>If <i>T</i> is <code>int</code> or <code>long</code>, the result of the conversion is the result of the first step.
+<a name="25284"></a>
+<li>If <i>T</i> is <code>byte</code>, <code>char</code>, or <code>short</code>, the result of the conversion is the result of a narrowing conversion to type <i>T</i> <a href="conversions.doc.html#25363">(&#167;5.1.3)</a> of the result of the first step.
+</ul>
+</ol>
+<a name="176319"></a>
+The example:<p>
+<blockquote><pre>class Test {
+	public static void main(String[] args) {
+		float fmin = Float.NEGATIVE_INFINITY;
+		float fmax = Float.POSITIVE_INFINITY;
+		System.out.println("long: " + (long)fmin +
+						".." + (long)fmax);
+		System.out.println("int: " + (int)fmin +
+						".." + (int)fmax);
+		System.out.println("short: " + (short)fmin +
+						".." + (short)fmax);
+		System.out.println("char: " + (int)(char)fmin +
+						".." + (int)(char)fmax);
+		System.out.println("byte: " + (byte)fmin +
+						".." + (byte)fmax);
+	}
+}
+</pre></blockquote><a name="25305"></a>
+produces the output:<p>
+<blockquote><pre>long: -9223372036854775808..9223372036854775807
+int: -2147483648..2147483647
+short: 0..-1
+char: 0..65535
+byte: 0..-1
+<a name="25311"></a>
+</pre></blockquote>
+The results for <code>char</code>, <code>int</code>, and <code>long</code> are unsurprising, producing the minimum and maximum representable values of the type.
+<a name="185563"></a>
+<p>The results for <code>byte</code> and <code>short</code> lose information about the sign and magnitude of the numeric values and also lose precision. The results can be understood by examining the low order bits of the minimum and maximum <code>int.</code> The minimum <code>int</code> is, in hexadecimal, <code>0x80000000</code>, and the maximum <code>int</code> is <code>0x7fffffff</code>. This explains the <code>short</code> results, which are the low 16 bits of these values, namely, <code>0x0000</code> and <code>0xffff</code>; it explains the <code>char</code> results, which also are the low 16 bits of these values, namely, <code>'\u0000'</code> and <code>'\uffff'</code>; and it explains the <code>byte</code> results, which are the low 8 bits of these values, namely, <code>0x00</code> and <code>0xff</code>.
+</pre></blockquote><a name="185465"></a>
+Despite the fact that overflow, underflow, or other loss of information may occur, narrowing conversions among primitive types never result in a run-time exception <a href="exceptions.doc.html#44043">(&#167;11)</a>.<p>
+<a name="189966"></a>
+Here is a small test program that demonstrates a number of narrowing conversions that lose information:<p>
+<blockquote><pre>class Test {
+	public static void main(String[] args) {
+
+		// A narrowing of int to short loses high bits:
+		System.out.println("(short)0x12345678==0x" +
+					Integer.toHexString((short)0x12345678));
+
+		// A int value not fitting in byte changes sign and magnitude:
+		System.out.println("(byte)255==" + (byte)255);
+
+		// A float value too big to fit gives largest int value:
+		System.out.println("(int)1e20f==" + (int)1e20f);
+
+		// A NaN converted to int yields zero:
+		System.out.println("(int)NaN==" + (int)Float.NaN);
+		
+		// A double value too large for float yields infinity:
+		System.out.println("(float)-1e100==" + (float)-1e100);
+
+		// A double value too small for float underflows to zero:
+		System.out.println("(float)1e-50==" + (float)1e-50);
+	}
+}
+</pre></blockquote><a name="25347"></a>
+This test program produces the following output:<p>
+<blockquote><pre>(short)0x12345678==0x5678
+(byte)255==-1
+(int)1e20f==2147483647
+(int)NaN==0
+(float)-1e100==-Infinity
+(float)1e-50==0.0
+</pre></blockquote><a name="25215"></a>
+<h3>5.1.4    Widening Reference Conversions</h3>
+<a name="25460"></a>
+The following conversions are called the <em>widening reference conversions</em>:<p>
+<ul><a name="25482"></a>
+<li>From any class type <i>S</i> to any class type <i>T</i>, provided that <i>S</i> is a subclass of <i>T</i>. (An important special case is that there is a widening conversion to the class type <code>Object</code> from any other class type.)
+<a name="25484"></a>
+<li>From any class type <i>S</i> to any interface type <i>K</i>, provided that <i>S</i> implements <i>K</i>.
+<a name="25483"></a>
+<li>From the null type to any class type, interface type, or array type.
+<a name="25502"></a>
+<li>From any interface type <i>J</i> to any interface type <i>K</i>, provided that <i>J</i> is a subinterface of <i>K</i>.
+<a name="25500"></a>
+<li>From any interface type to type <code>Object</code>.
+<a name="174846"></a>
+<li>From any array type to type <code>Object</code>.
+<a name="174848"></a>
+<li>From any array type to type <code>Cloneable</code>.
+<a name="184037"></a>
+<li>From any array type to type <code>java.io.Serializable</code>
+<a name="25525"></a>
+<li>From any array type <i>SC</i><code>[]</code> to any array type <i>TC</i><code>[]</code>, provided that <i>SC</i> and <i>TC</i> are reference types and there is a widening conversion from <i>SC</i> to <i>TC</i>.
+</ul><a name="25616"></a>
+Such conversions never require a special action at run time and therefore never throw an exception at run time. They consist simply in regarding a reference as having some other type in a manner that can be proved correct at compile time.<p>
+<a name="25457"></a>
+See <a href="classes.doc.html#3857">&#167;8</a> for the detailed specifications for classes, <a href="interfaces.doc.html#238678">&#167;9</a> for interfaces, and <a href="arrays.doc.html#27803">&#167;10</a> for arrays.<p>
+<a name="25379"></a>
+<h3>5.1.5    Narrowing Reference Conversions</h3>
+<a name="175454"></a>
+The following conversions are called the <em>narrowing reference conversions</em>:<p>
+<ul><a name="175455"></a>
+<li>From any class type <i>S</i> to any class type <i>T</i>, provided that <i>S</i> is a superclass of <i>T</i>. (An important special case is that there is a narrowing conversion from the class type <code>Object</code> to any other class type.)
+<a name="25705"></a>
+<li>From any class type <i>S</i> to any interface type <i>K</i>, provided that <i>S</i> is not final and does not implement <i>K.</i> (An important special case is that there is a narrowing conversion from the class type <code>Object</code> to any interface type.)
+<a name="25766"></a>
+<li>From type <code>Object</code> to any array type.
+<a name="175692"></a>
+<li>From type <code>Object</code> to any interface type.
+<a name="25783"></a>
+<li>From any interface type <i>J</i> to any class type <i>T</i> that is not <code>final</code>.
+<a name="25787"></a>
+<li>From any interface type <i>J</i> to any class type <i>T</i> that is <code>final</code>, provided that <i>T</i> implements <i>J</i>.
+<a name="25774"></a>
+<li>From any interface type <i>J</i> to any interface type <i>K</i>, provided that <i>J</i> is not a subinterface of <i>K</i> and there is no method name <i>m</i> such that <i>J</i> and <i>K</i> both contain a method named <i>m</i> with the same signature but different return types.
+<a name="25710"></a>
+<li>From any array type <i>SC</i><code>[]</code> to any array type <i>TC</i><code>[]</code>, provided that <i>SC</i> and <i>TC</i> are reference types and there is a narrowing conversion from <i>SC</i> to <i>TC</i>.
+</ul><a name="176885"></a>
+Such conversions require a test at run time to find out whether the actual reference value is a legitimate value of the new type. If not, then a <code>ClassCastException</code> is thrown.<p>
+<a name="176886"></a>
+<h3>5.1.6    String Conversions</h3>
+<a name="175033"></a>
+There is a string conversion to type <code>String</code> from every other type, including the null type.<p>
+<a name="175034"></a>
+<h3>5.1.7    Forbidden Conversions</h3>
+<ul><a name="175035"></a>
+<li>There is no permitted conversion from any reference type to any primitive type.
+<a name="25844"></a>
+<li>Except for the string conversions, there is no permitted conversion from any primitive type to any reference type.
+<a name="25860"></a>
+<li>There is no permitted conversion from the null type to any primitive type.
+<a name="25835"></a>
+<li>There is no permitted conversion to the null type other than the identity conversion.
+<a name="25993"></a>
+<li>There is no permitted conversion to the type <code>boolean</code> other than the identity conversion.
+<a name="25997"></a>
+<li>There is no permitted conversion from the type <code>boolean</code> other than the identity conversion and string conversion.
+<a name="25357"></a>
+<li>There is no permitted conversion other than string conversion from class type <i>S</i> to a different class type <i>T</i> if <i>S</i> is not a subclass of <i>T</i> and <i>T</i> is not a subclass of <i>S</i>.
+<a name="25885"></a>
+<li>There is no permitted conversion from class type <i>S</i> to interface type <i>K</i> if <i>S</i> is <code>final</code> and does not implement <i>K</i>.
+<a name="25899"></a>
+<li>There is no permitted conversion from class type <i>S</i> to any array type if <i>S</i> is not <code>Object</code>.
+<a name="25902"></a>
+<li>There is no permitted conversion other than string conversion from interface type <i>J</i> to class type <i>T</i> if <i>T</i> is <code>final</code> and does not implement <i>J</i>.
+<a name="25924"></a>
+<li>There is no permitted conversion from interface type <i>J</i> to interface type <i>K</i> if <i>J</i> and <i>K</i> contain methods with the same signature but different return types.
+<a name="25954"></a>
+<li>There is no permitted conversion from any array type to any class type other than <code>Object</code> or <code>String</code>. 
+<a name="25958"></a>
+<li>There is no permitted conversion from any array type to any interface type, except to the interface types <code>java.io.Serializable</code> and <code>Cloneable</code>, which are implemented by all arrays.
+<a name="184224"></a>
+<li>There is no permitted conversion from array type <i>SC</i><code>[]</code> to array type <i>TC</i><code>[]</code> if there is no permitted conversion other than a string conversion from <i>SC</i> to <i>TC.</i>
+</ul><a name="184225"></a>
+<h3>5.1.8    Value Set Conversion</h3>
+<a name="184226"></a>
+<em>Value set conversion</em> is the process of mapping a floating-point value from one value set to another without changing its type.<p>
+<a name="184212"></a>
+Within an expression that is not FP-strict <a href="expressions.doc.html#249198">(&#167;15.4)</a>, value set conversion provides choices to an implementation of the Java programming language:<p>
+<ul><a name="184213"></a>
+<li>If the value is an element of the float-extended-exponent value set, then the implementation may, at its option, map the value to the nearest element of the float value set. This conversion may result in overflow (in which case the value is replaced by an infinity of the same sign) or underflow (in which case the value may lose precision because it is replaced by a denormalized number or zero of the same sign).
+<a name="184214"></a>
+<li>If the value is an element of the double-extended-exponent value set, then the implementation may, at its option, map the value to the nearest element of the double value set. This conversion may result in overflow (in which case the value is replaced by an infinity of the same sign) or underflow (in which case the value may lose precision because it is replaced by a denormalized number or zero of the same sign).
+</ul><a name="184215"></a>
+Within an FP-strict expression <a href="expressions.doc.html#249198">(&#167;15.4)</a>, value set conversion does not provide any choices; every implementation must behave in the same way:<p>
+<ul><a name="184216"></a>
+<li>If the value is of type <code>float</code> and is not an element of the float value set, then the implementation must map the value to the nearest element of the float value set. This conversion may result in overflow or underflow.
+<a name="184217"></a>
+<li>If the value is of type <code>double</code> and is not an element of the double value set, then the implementation must map the value to the nearest element of the double value set. This conversion may result in overflow or underflow.
+</ul><a name="184218"></a>
+Within an FP-strict expression, mapping values from the float-extended-exponent value set or double-extended-exponent value set is necessary only when a method is invoked whose declaration is not FP-strict and the implementation has chosen to represent the result of the method invocation as an element of an extended-exponent value set.<p>
+<a name="184219"></a>
+Whether in FP-strict code or code that is not FP-strict, value set conversion always leaves unchanged any value whose type is neither <code>float</code> nor <code>double</code>.<p>
+<a name="184206"></a>
+<h2>5.2    Assignment Conversion</h2>
+<a name="170769"></a>
+<em>Assignment conversion</em> occurs when the value of an expression is assigned <a href="expressions.doc.html#5281">(&#167;15.26)</a> to a variable: the type of the expression must be converted to the type of the variable. Assignment contexts allow the use of an identity conversion <a href="conversions.doc.html#25209">(&#167;5.1.1)</a>, a widening primitive conversion <a href="conversions.doc.html#25214">(&#167;5.1.2)</a>, or a widening reference conversion <a href="conversions.doc.html#25215">(&#167;5.1.4)</a>. In addition, a narrowing primitive conversion may be used if all of the following conditions are satisfied:<p>
+<ul><a name="26335"></a>
+<li>The expression is a constant expression of type <code>byte</code>, <code>short</code>, <code>char</code> or <code>int</code>. 
+<a name="26336"></a>
+<li>The type of the variable is <code>byte</code>, <code>short</code>, or <code>char</code>.
+<a name="26337"></a>
+<li>The value of the expression (which is known at compile time, because it is a constant expression) is representable in the type of the variable.
+</ul><a name="26341"></a>
+If the type of the expression cannot be converted to the type of the variable by a conversion permitted in an assignment context, then a compile-time error occurs.<p>
+<a name="184230"></a>
+If the type of the variable is <code>float</code> or <code>double</code>, then value set conversion is applied after the type conversion:<p>
+<ul><a name="184231"></a>
+<li>If the value is of type <code>float</code> and is an element of the float-extended-exponent value set, then the implementation must map the value to the nearest element of the float value set. This conversion may result in overflow or underflow.
+<a name="184232"></a>
+<li>If the value is of type <code>double</code> and is an element of the double-extended-exponent value set, then the implementation must map the value to the nearest element of the double value set. This conversion may result in overflow or underflow.
+</ul><a name="22422"></a>
+If the type of an expression can be converted to the type of a variable by assignment conversion, we say the expression (or its value) is <em>assignable to</em> the variable or, equivalently, that the type of the expression is <em>assignment compatible with</em> the type of the variable.<p>
+<a name="185470"></a>
+An assignment conversion never causes an exception. (Note, however, that an assignment may result in an exception in a special case involving array elements -see <a href="arrays.doc.html#11430">&#167;10.10</a> and <a href="expressions.doc.html#5295">&#167;15.26.1</a>.)<p>
+<a name="28552"></a>
+The compile-time narrowing of constants means that code such as:
+<blockquote><pre>byte theAnswer = 42;
+</pre></blockquote><a name="170786"></a>
+is allowed. Without the narrowing, the fact that the integer literal <code>42</code> has type <code>int</code> would mean that a cast to <code>byte</code> would be required:<p>
+<blockquote><pre>byte theAnswer = (byte)42;		// cast is permitted but not required
+</pre></blockquote><a name="185475"></a>
+A value of primitive type must not be assigned to a variable of reference type; an attempt to do so will result in a compile-time error. A value of type <code>boolean</code> can be assigned only to a variable of type <code>boolean</code>.<p>
+<a name="187261"></a>
+The following test program contains examples of assignment conversion of primitive values:
+<blockquote><pre>class Test {
+	public static void main(String[] args) {
+		short s = 12;			// narrow 12 to short
+		float f = s;			// widen short to float
+		System.out.println("f=" + f);
+
+		char c = '\u0123';
+		long l = c;			// widen char to long
+		System.out.println("l=0x" + Long.toString(l,16));
+
+		f = 1.23f;
+		double d = f;			// widen float to double
+		System.out.println("d=" + d);
+	}
+}
+</pre></blockquote><a name="13013"></a>
+It produces the following output:<p>
+<blockquote><pre>f=12.0	
+l=0x123
+d=1.2300000190734863
+</pre></blockquote><a name="13041"></a>
+The following test, however, produces compile-time errors:<p>
+<blockquote><pre>class Test {
+	public static void main(String[] args) {
+		short s = 123;
+		char c = s;			// error: would require cast
+		s = c;				// error: would require cast
+	}
+}
+</pre></blockquote><a name="189974"></a>
+because not all <code>short</code> values are <code>char</code> values, and neither are all <code>char</code> values <code>short</code> values.<p>
+<a name="185480"></a>
+A value of the null type (the null reference is the only such value) may be assigned to any reference type, resulting in a null reference of that type.<p>
+<a name="26417"></a>
+Here is a sample program illustrating assignments of references:
+<blockquote><pre>public class Point { int x, y; }
+public class Point3D extends Point { int z; }
+public interface Colorable {
+	void setColor(int color);
+}
+public class ColoredPoint extends Point implements Colorable 
+{
+	int color;
+	public void setColor(int color) { this.color = color; }
+}
+class Test {
+	public static void main(String[] args) {
+		// Assignments to variables of class type:
+		Point p = new Point();
+		p = new Point3D();		// ok: because Point3D is a
+						// subclass of Point
+
+		Point3D p3d = p;		// error: will require a cast because a 
+						// Point might not be a Point3D
+						// (even though it is, dynamically,
+						// in this example.)
+
+		// Assignments to variables of type Object:
+		Object o = p;			// ok: any object to Object
+		int[] a = new int[3];
+		Object o2 = a;			// ok: an array to Object
+
+		// Assignments to variables of interface type:
+		ColoredPoint cp = new ColoredPoint();
+		Colorable c = cp;		// ok: ColoredPoint implements
+						// Colorable
+
+		// Assignments to variables of array type:
+		byte[] b = new byte[4];
+		a = b;				// error: these are not arrays
+						// of the same primitive type
+		Point3D[] p3da = new Point3D[3];
+		Point[] pa = p3da;		// ok: since we can assign a
+						// Point3D to a Point
+		p3da = pa;			// error: (cast needed) since a Point
+						// can't be assigned to a Point3D
+	}
+<a name="190012"></a>
+}<p>
+</pre></blockquote><a name="190015"></a>
+Assignment of a value of compile-time reference type <i>S</i> (source) to a variable of compile-time reference type <i>T</i> (target) is checked as follows:<p>
+<ul><a name="25632"></a>
+<li>If <i>S</i> is a class type:
+<ul>
+<a name="25636"></a>
+<li>If <i>T</i> is a class type, then <i>S</i> must either be the same class as <i>T</i>, or <i>S</i> must be a subclass of <i>T</i>, or a compile-time error occurs.
+<a name="25643"></a>
+<li>If <i>T</i> is an interface type, then <i>S</i> must implement interface <i>T</i>, or a compile-time error occurs.
+<a name="25644"></a>
+<li>If <i>T</i> is an array type, then a compile-time error occurs.
+</ul>
+<a name="176327"></a>
+<li>If <i>S</i> is an interface type:
+<ul>
+<a name="25655"></a>
+<li>If <i>T</i> is a class type, then <i>T</i> must be <code>Object</code>, or a compile-time error occurs.
+<a name="25659"></a>
+<li>If <i>T</i> is an interface type, then <i>T</i> must be either the same interface as <i>S</i> or a superinterface of <i>S</i>, or a compile-time error occurs.
+<a name="25663"></a>
+<li>If <i>T</i> is an array type, then a compile-time error occurs.
+</ul>
+<a name="25667"></a>
+<li>If <i>S</i> is an array type <i>SC</i><code>[]</code>, that is, an array of components of type <i>SC</i>:
+<ul>
+<a name="25677"></a>
+<li>If <i>T</i> is a class type, then <i>T</i> must be <code>Object</code>, or a compile-time error occurs.
+<a name="25678"></a>
+<li>If <i>T</i> is an interface type, then a compile-time error occurs unless <i>T</i> is the type <code>java.io.Serializable</code> or the type <code>Cloneable</code>, the only interfaces implemented by arrays.
+<a name="25679"></a>
+<li>If <i>T</i> is an array type <i>TC</i><code>[]</code>, that is, an array of components of type <i>TC</i>, then a compile-time error occurs unless one of the following is true:
+<ul>
+<a name="25683"></a>
+<li><i>TC</i> and <i>SC</i> are the same primitive type.
+<a name="25684"></a>
+<li><i>TC</i> and <i>SC</i> are both reference types and type <i>SC</i> is assignable to <i>TC</i>, as determined by a recursive application of these compile-time rules for assignability.
+</ul>
+</ul>
+</ul><a name="185485"></a>
+See <a href="classes.doc.html#3857">&#167;8</a> for the specification of classes, <a href="interfaces.doc.html#238678">&#167;9</a> for interfaces, and <a href="arrays.doc.html#27803">&#167;10</a> for arrays.<p>
+<a name="56972"></a>
+The following test program illustrates assignment conversions on reference values, but fails to compile because it violates the preceding rules, as described in its comments. This example should be compared to the preceding one.
+<blockquote><pre>public class Point { int x, y; }
+public interface Colorable { void setColor(int color); }
+public class ColoredPoint extends Point implements Colorable 
+{
+	int color;
+	public void setColor(int color) { this.color = color; }
+}
+class Test {
+	public static void main(String[] args) {
+		Point p = new Point();
+		ColoredPoint cp = new ColoredPoint();
+		// Okay because ColoredPoint is a subclass of Point:
+		p = cp;
+		// Okay because ColoredPoint implements Colorable:
+		Colorable c = cp;
+		// The following cause compile-time errors because
+		// we cannot be sure they will succeed, depending on
+		// the run-time type of p; a run-time check will be
+		// necessary for the needed narrowing conversion and
+		// must be indicated by including a cast:
+		cp = p;				// p might be neither a ColoredPoint
+						// nor a subclass of ColoredPoint
+		c = p;				// p might not implement Colorable
+	}
+}
+</pre></blockquote><a name="29746"></a>
+Here is another example involving assignment of array objects:<p>
+<blockquote><pre>class Point { int x, y; }
+class ColoredPoint extends Point { int color; }
+class Test {
+	public static void main(String[] args) {
+		long[] veclong = new long[100];
+		Object o = veclong;				// okay
+		Long l = veclong;				// compile-time error
+		short[] vecshort = veclong;			// compile-time error
+		Point[] pvec = new Point[100];
+		ColoredPoint[] cpvec = new ColoredPoint[100];
+		pvec = cpvec;					// okay
+		pvec[0] = new Point();				// okay at compile time,
+								// but would throw an
+								// exception at run time
+		cpvec = pvec;					// compile-time error
+	}
+}
+</pre></blockquote><a name="29761"></a>
+In this example:<p>
+<ul><a name="12615"></a>
+<li>The value of <code>veclong</code> cannot be assigned to a <code>Long</code> variable, because <code>Long</code> is a class type other than <code>Object</code>. An array can be assigned only to a variable of a compatible array type, or to a variable of type <code>Object</code>.
+<a name="12616"></a>
+<li>The value of <code>veclong</code> cannot be assigned to <code>vecshort</code>, because they are arrays of primitive type, and <code>short</code> and <code>long</code> are not the same primitive type.
+<a name="12617"></a>
+<li>The value of <code>cpvec</code> can be assigned to <code>pvec</code>,<code></code> because any reference that could be the value of an expression of type <code>ColoredPoint</code> can be the value of a variable of type <code>Point</code>. The subsequent assignment of the new <code>Point</code> to a component of <code>pvec</code> then would throw an <code>ArrayStoreException</code> (if the program were otherwise corrected so that it could be compiled), because a <code>ColoredPoint</code> &#32;array can't have an instance of <code>Point</code> as the value of a component.
+<a name="29743"></a>
+<li>The value of <code>pvec</code> cannot be assigned to <code>cpvec</code>,<code></code> because not every reference that could be the value of an expression of type <code>ColoredPoint</code> can correctly be the value of a variable of type <code>Point</code>. If the value of <code>pvec</code> at run time were a reference to an instance of <code>Point[]</code>, and the assignment to <code>cpvec</code> were allowed, a simple reference to a component of <code>cpvec</code>, say, <code>cpvec[0]</code>, could return a <code>Point</code>, and a <code>Point</code> is not a <code>ColoredPoint</code>. Thus to allow such an assignment would allow a violation of the type system. A cast may be used (<a href="conversions.doc.html#20232">&#167;5.5</a>, <a href="expressions.doc.html#238146">&#167;15.16</a>) to ensure that <code>pvec</code> references a <code>ColoredPoint[]</code>:
+</ul><blockquote><pre>
+cpvec = (ColoredPoint[])pvec;		// okay, but may throw an
+					// exception at run time
+</pre></blockquote><a name="12687"></a>
+<h2>5.3    Method Invocation Conversion</h2>
+<a name="53171"></a>
+<em>Method invocation conversion</em> is applied to each argument value in a method or constructor invocation (<a href="expressions.doc.html#41147">&#167;15.9</a>, <a href="expressions.doc.html#20448">&#167;15.12</a>): the type of the argument expression must be converted to the type of the corresponding parameter. Method invocation contexts allow the use of an identity conversion <a href="conversions.doc.html#25209">(&#167;5.1.1)</a>, a widening primitive conversion <a href="conversions.doc.html#25214">(&#167;5.1.2)</a>, or a widening reference conversion <a href="conversions.doc.html#25215">(&#167;5.1.4)</a>.<p>
+<a name="184237"></a>
+If the type of an argument expression is either <code>float</code> or <code>double</code>, then value set conversion <a href="conversions.doc.html#184225">(&#167;5.1.8)</a> is applied after the type conversion:<p>
+<ul><a name="184238"></a>
+<li>If an argument value of type <code>float</code> is an element of the float-extended-exponent value set, then the implementation must map the value to the nearest element of the float value set. This conversion may result in overflow or underflow.
+<a name="184239"></a>
+<li>If an argument value of type <code>double</code> is an element of the double-extended-exponent value set, then the implementation must map the value to the nearest element of the double value set. This conversion may result in overflow or underflow.
+<a name="185494"></a>
+</ul>Method invocation conversions specifically do not include the implicit narrowing of integer constants which is part of assignment conversion <a href="conversions.doc.html#184206">(&#167;5.2)</a>. The designers of the Java programming language felt that including these implicit narrowing conversions would add additional complexity to the overloaded method matching resolution process <a href="expressions.doc.html#289905">(&#167;15.12.2)</a>. Thus, the example:
+</ul><blockquote><pre>class Test {
+	static int m(byte a, int b) { return a+b; }
+	static int m(short a, short b) { return a-b; }
+	public static void main(String[] args) {
+		System.out.println(m(12, 2));										// compile-time error
+	}
+}
+</pre></blockquote><a name="185593"></a>
+causes a compile-time error because the integer literals <code>12</code> and <code>2</code> have type <code>int</code>, so neither method <code>m</code> matches under the rules of <a href="expressions.doc.html#289905">(&#167;15.12.2)</a>. A language that included implicit narrowing of integer constants would need additional rules to resolve cases like this example.<p>
+<a name="186035"></a>
+<h2>5.4    String Conversion</h2>
+<a name="176922"></a>
+String conversion applies only to the operands of the binary <code>+</code> operator when one of the arguments is a <code>String</code>. In this single special case, the other argument to the <code>+</code> is converted to a <code>String</code>, and a new <code>String</code> which is the concatenation of the two strings is the result of the <code>+</code>. String conversion is specified in detail within the description of the string concatenation <code>+</code> operator <a href="expressions.doc.html#39990">(&#167;15.18.1)</a>.<p>
+<a name="20232"></a>
+<h2>5.5    Casting Conversion</h2>
+<a name="20233"></a>
+<em>Casting conversion</em> is applied to the operand of a cast operator <a href="expressions.doc.html#238146">(&#167;15.16)</a>: the type of the operand expression must be converted to the type explicitly named by the cast operator. Casting contexts allow the use of an identity conversion <a href="conversions.doc.html#25209">(&#167;5.1.1)</a>, a widening primitive conversion <a href="conversions.doc.html#25214">(&#167;5.1.2)</a>, a narrowing primitive conversion <a href="conversions.doc.html#25363">(&#167;5.1.3)</a>, a widening reference conversion <a href="conversions.doc.html#25215">(&#167;5.1.4)</a>, or a narrowing reference conversion <a href="conversions.doc.html#25379">(&#167;5.1.5)</a>. Thus casting conversions are more inclusive than assignment or method invocation conversions: a cast can do any permitted conversion other than a string conversion.<p>
+<a name="184265"></a>
+Value set conversion <a href="conversions.doc.html#184225">(&#167;5.1.8)</a> is applied after the type conversion.<p>
+<a name="183573"></a>
+Some casts can be proven incorrect at compile time; such casts result in a compile-time error.<p>
+<a name="189992"></a>
+A value of a primitive type can be cast to another primitive type by identity conversion, if the types are the same, or by a widening primitive conversion or a narrowing primitive conversion.<p>
+<a name="175724"></a>
+A value of a primitive type cannot be cast to a reference type by casting conversion, nor can a value of a reference type be cast to a primitive type.<p>
+<a name="175725"></a>
+The remaining cases involve conversion between reference types. The detailed rules for compile-time correctness checking of a casting conversion of a value of compile-time reference type <i>S</i> (source) to a compile-time reference type <i>T</i> (target) are as follows:<p>
+<ul><a name="27459"></a>
+<li>If <i>S</i> is a class type:
+<ul>
+<a name="27460"></a>
+<li>If <i>T</i> is a class type, then <i>S</i> and <i>T</i> must be related classes-that is, <i>S</i> and <i>T</i> must be the same class, or <i>S</i> a subclass of <i>T</i>, or <i>T</i> a subclass of <i>S</i>; otherwise a compile-time error occurs.
+<a name="27461"></a>
+<li>If <i>T</i> is an interface type:
+<ul>
+<a name="26664"></a>
+<li>If <i>S</i> is not a <code>final</code> class <a href="classes.doc.html#21613">(&#167;8.1.1)</a>, then the cast is always correct at compile time (because even if <i>S</i> does not implement <i>T</i>, a subclass of <i>S</i> might).
+<a name="26668"></a>
+<li>If <i>S</i> is a <code>final</code> class <a href="classes.doc.html#21613">(&#167;8.1.1)</a>, then <i>S</i> must implement <i>T</i>, or a compile-time error occurs.
+</ul>
+<a name="27505"></a>
+<li>If <i>T</i> is an array type, then <i>S</i> must be the class <code>Object</code>, or a compile-time error occurs.
+</ul>
+<a name="184308"></a>
+<li>If <i>S</i> is an interface type:
+<ul>
+<a name="184339"></a>
+<li>If <i>T</i> is an array type, then <i>T</i> must implement <i>S</i>, or a compile-time error occurs.
+<a name="185598"></a>
+<li>If <i>T</i> is a class type that is not <code>final</code> <a href="classes.doc.html#21613">(&#167;8.1.1)</a>, then the cast is always correct at compile time (because even if <i>T</i> does not implement <i>S</i>, a subclass of <i>T</i> might).
+<a name="45656"></a>
+<li>If <i>T</i> is an interface type and if <i>T</i> and <i>S</i> contain methods with the same signature <a href="classes.doc.html#38649">(&#167;8.4.2)</a> but different return types, then a compile-time error occurs.
+</ul>
+<a name="53974"></a>
+<li>If <i>S</i> is an array type <i>SC</i><code>[]</code>, that is, an array of components of type <i>SC</i>:
+<ul>
+<a name="53981"></a>
+<li>If <i>T</i> is a class type, then if <i>T</i> is not <code>Object</code>, then a compile-time error occurs (because <code>Object</code> is the only class type to which arrays can be assigned).
+<a name="28948"></a>
+<li>If <i>T</i> is an interface type, then a compile-time error occurs unless <i>T</i> is the type <code>java.io.Serializable</code> or the type <code>Cloneable</code>, the only interfaces implemented by arrays.
+<a name="28949"></a>
+<li>If <i>T</i> is an array type <i>TC</i><code>[]</code>, that is, an array of components of type <i>TC</i>, then a compile-time error occurs unless one of the following is true:
+<ul>
+<a name="176094"></a>
+<li><i>TC</i> and <i>SC</i> are the same primitive type.
+<a name="176095"></a>
+<li><i>TC</i> and <i>SC</i> are reference types and type <i>SC</i> can be cast to <i>TC</i> by a recursive application of these compile-time rules for casting.
+</ul>
+</ul>
+</ul><a name="184257"></a>
+See <a href="classes.doc.html#3857">&#167;8</a> for the specification of classes, <a href="interfaces.doc.html#238678">&#167;9</a> for interfaces, and <a href="arrays.doc.html#27803">&#167;10</a> for arrays.<p>
+<a name="189942"></a>
+If a cast to a reference type is not a compile-time error, there are two cases:<p>
+<ul><a name="26702"></a>
+<li>The cast can be determined to be correct at compile time. A cast from the compile-time type <i>S</i> to compile-time type <i>T</i> is correct at compile time if and only if <i>S</i> can be converted to <i>T</i> by assignment conversion <a href="conversions.doc.html#184206">(&#167;5.2)</a>.
+<a name="185505"></a>
+<li>The cast requires a run-time validity check. If the value at run time is <code>null</code>, then the cast is allowed. Otherwise, let <i>R</i> be the class of the object referred to by the run-time reference value, and let <i>T</i> be the type named in the cast operator. A cast conversion must check, at run time, that the class <i>R</i> is assignment compatible with the type <i>T</i>, using the algorithm specified in <a href="conversions.doc.html#184206">&#167;5.2</a> but using the class <i>R</i> instead of the compile-time type <i>S</i> as specified there. (Note that <i>R</i> cannot be an interface when these rules are first applied for any given cast, but <i>R</i> may be an interface if the rules are applied recursively because the run-time reference value may refer to an array whose element type is an interface type.) The modified algorithm is shown here:
+<ul>
+<a name="29070"></a>
+<li>If <i>R</i> is an ordinary class (not an array class):
+<ul>
+<a name="29074"></a>
+<li>If <i>T</i> is a class type, then <i>R</i> must be either the same class <a href="typesValues.doc.html#97058">(&#167;4.3.4)</a> as <i>T</i> or a subclass of <i>T</i>, or a run-time exception is thrown.
+<a name="29084"></a>
+<li>If <i>T</i> is an interface type, then <i>R</i> must implement <a href="classes.doc.html#34031">(&#167;8.1.4)</a> interface <i>T</i>, or a run-time exception is thrown.
+<a name="29085"></a>
+<li>If <i>T</i> is an array type, then a run-time exception is thrown.
+</ul>
+<a name="174679"></a>
+<li>If <i>R</i> is an interface:
+<ul>
+<a name="174686"></a>
+<li>If <i>T</i> is a class type, then <i>T</i> must be <code>Object</code> (<a href="typesValues.doc.html#11055">&#167;4.3.2</a>), or a run-time exception is thrown.
+<a name="174687"></a>
+<li>If <i>T</i> is an interface type, then <i>R</i> must be either the same interface as <i>T</i> or a subinterface of <i>T</i>, or a run-time exception is thrown.
+<a name="174682"></a>
+<li>If <i>T</i> is an array type, then a run-time exception is thrown.
+</ul>
+<a name="29102"></a>
+<li>If <i>R</i> is a class representing an array type <i>RC</i><code>[]</code>-that is, an array of components of type <i>RC</i>:
+<ul>
+<a name="29109"></a>
+<li>If <i>T</i> is a class type, then <i>T</i> must be <code>Object</code> (<a href="typesValues.doc.html#11055">&#167;4.3.2</a>), or a run-time exception is thrown.
+<a name="29110"></a>
+<li>If <i>T</i> is an interface type, then a run-time exception is thrown unless <i>T</i> is the type <code>java.io.Serializable</code> or the type <code>Cloneable</code>, the only interfaces implemented by arrays (this case could slip past the compile-time checking if, for example, a reference to an array were stored in a variable of type <code>Object</code>).
+<a name="29114"></a>
+<li>If <i>T</i> is an array type <i>TC</i><code>[]</code>, that is, an array of components of type <i>TC</i>, then a run-time exception is thrown unless one of the following is true:
+<ul>
+<a name="29118"></a>
+<li><i>TC</i> and <i>RC</i> are the same primitive type.
+<a name="184534"></a>
+<li><i>TC</i> and <i>RC</i> are reference types and type <i>RC</i> can be cast to <i>TC</i> by a recursive application of these run-time rules for casting.
+</ul>
+</ul>
+</ul>
+</ul><a name="185512"></a>
+If a run-time exception is thrown, it is a <code>ClassCastException</code>.<p>
+<a name="189995"></a>
+Here are some examples of casting conversions of reference types, similar to the example in <a href="conversions.doc.html#184206">&#167;5.2</a>:<p>
+<blockquote><pre>public class Point { int x, y; }
+public interface Colorable { void setColor(int color); }
+public class ColoredPoint extends Point implements Colorable 
+{
+	int color;
+	public void setColor(int color) { this.color = color; }
+}
+final class EndPoint extends Point { }
+class Test {
+	public static void main(String[] args) {
+		Point p = new Point();
+		ColoredPoint cp = new ColoredPoint();
+		Colorable c;
+
+		// The following may cause errors at run time because
+		// we cannot be sure they will succeed; this possibility
+		// is suggested by the casts:
+		cp = (ColoredPoint)p;		// p might not reference an
+						// object which is a ColoredPoint
+						// or a subclass of ColoredPoint
+		c = (Colorable)p;		// p might not be Colorable
+
+		// The following are incorrect at compile time because
+		// they can never succeed as explained in the text:
+		Long l = (Long)p;		// compile-time error #1
+		EndPoint e = new EndPoint();
+		c = (Colorable)e;		// compile-time error #2
+	}
+}
+</pre></blockquote><a name="29315"></a>
+Here the first compile-time error occurs because the class types <code>Long</code> and <code>Point</code> are unrelated (that is, they are not the same, and neither is a subclass of the other), so a cast between them will always fail.<p>
+<a name="176389"></a>
+The second compile-time error occurs because a variable of type <code>EndPoint</code> can never reference a value that implements the interface <code>Colorable</code>. This is because <code>EndPoint</code> is a <code>final</code> type, and a variable of a <code>final</code> type always holds a value of the same run-time type as its compile-time type. Therefore, the run-time type of variable <code>e</code> must be exactly the type <code>EndPoint</code>, and type <code>EndPoint</code> does not implement <code>Colorable</code>.
+<a name="189949"></a>
+<p>Here is an example involving arrays <a href="arrays.doc.html#27803">(&#167;10)</a>: 
+<blockquote><pre>class Point {
+	int x, y;
+	Point(int x, int y) { this.x = x; this.y = y; }
+	public String toString() { return "("+x+","+y+")"; }
+}
+public interface Colorable { void setColor(int color); }
+public class ColoredPoint extends Point implements Colorable 
+{
+	int color;
+	ColoredPoint(int x, int y, int color) {
+		super(x, y); setColor(color);
+	}
+	public void setColor(int color) { this.color = color; }
+	public String toString() {
+		return super.toString() + "@" + color;
+	}
+}
+class Test {
+	public static void main(String[] args) {
+		Point[] pa = new ColoredPoint[4];
+		pa[0] = new ColoredPoint(2, 2, 12);
+		pa[1] = new ColoredPoint(4, 5, 24);
+		ColoredPoint[] cpa = (ColoredPoint[])pa;
+		System.out.print("cpa: {");
+		for (int i = 0; i &lt; cpa.length; i++)
+			System.out.print((i == 0 ? " " : ", ") + cpa[i]);
+		System.out.println(" }");
+	}
+}
+</pre></blockquote><a name="53223"></a>
+This example compiles without errors and produces the output:<p>
+<blockquote><pre>cpa: { (2,2)@12, (4,5)@24, null, null }
+<a name="176370"></a>
+</pre></blockquote>
+The following example uses casts to compile, but it throws exceptions at run time, because the types are incompatible:
+<blockquote><pre>
+public class Point { int x, y; }
+public interface Colorable { void setColor(int color); }
+public class ColoredPoint extends Point implements Colorable 
+{
+	int color;
+	public void setColor(int color) { this.color = color; }
+}
+class Test {
+	public static void main(String[] args) {
+		Point[] pa = new Point[100];
+		// The following line will throw a ClassCastException:
+		ColoredPoint[] cpa = (ColoredPoint[])pa;
+		System.out.println(cpa[0]);
+		int[] shortvec = new int[2];
+		Object o = shortvec;
+		// The following line will throw a ClassCastException:
+		Colorable c = (Colorable)o;
+		c.setColor(0);
+	}
+<a name="185611"></a>
+}<p>
+</pre></blockquote><a name="26917"></a>
+<h2>5.6    Numeric Promotions</h2>
+<a name="26918"></a>
+<em>Numeric promotion</em> is applied to the operands of an arithmetic operator. Numeric promotion contexts allow the use of an identity conversion <a href="conversions.doc.html#25209">(&#167;5.1.1)</a> or a widening primitive conversion <a href="conversions.doc.html#25214">(&#167;5.1.2)</a>.<p>
+<a name="53304"></a>
+Numeric promotions are used to convert the operands of a numeric operator to a common type so that an operation can be performed. The two kinds of numeric promotion are unary numeric promotion <a href="conversions.doc.html#170952">(&#167;5.6.1)</a> and binary numeric promotion<em> </em><a href="conversions.doc.html#170983">(&#167;5.6.2)</a>. The analogous conversions in C are called "the usual unary conversions" and "the usual binary conversions."<p>
+<a name="170949"></a>
+Numeric promotion is not a general feature of the Java programming language, but rather a property of the specific definitions of the built-in operations.<p>
+<a name="170952"></a>
+<h3>5.6.1    Unary Numeric Promotion</h3>
+<a name="170954"></a>
+Some operators apply <em>unary numeric promotion</em> to a single operand, which must produce a value of a numeric type:<p>
+<ul><a name="20278"></a>
+<li>If the operand is of compile-time type <code>byte</code>, <code>short</code>, or <code>char</code>, unary numeric promotion promotes it to a value of type <code>int</code> by a widening conversion <a href="conversions.doc.html#25214">(&#167;5.1.2)</a>.
+<a name="20279"></a>
+<li>Otherwise, a unary numeric operand remains as is and is not converted.
+</ul><a name="183582"></a>
+In either case, value set conversion <a href="conversions.doc.html#184225">(&#167;5.1.8)</a> is then applied.<p>
+<a name="23183"></a>
+Unary numeric promotion is performed on expressions in the following situations:<p>
+<ul><a name="175745"></a>
+<li>Each dimension expression in an array creation expression <a href="expressions.doc.html#46168">(&#167;15.10)</a>
+<a name="23187"></a>
+<li>The index expression in an array access expression <a href="expressions.doc.html#239587">(&#167;15.13)</a>
+<a name="170969"></a>
+<li>The operand of a unary plus operator <code>+</code> <a href="expressions.doc.html#24924">(&#167;15.15.3)</a>
+<a name="183601"></a>
+<li>The operand of a unary minus operator <code>-</code> <a href="expressions.doc.html#236345">(&#167;15.15.4)</a>
+<a name="170977"></a>
+<li>The operand of a bitwise complement operator <code>~</code> <a href="expressions.doc.html#5017">(&#167;15.15.5)</a>
+<a name="170981"></a>
+<li>Each operand, separately, of a shift operator <code>&gt;&gt;</code>, <code>&gt;&gt;&gt;</code>, or <code>&lt;&lt;</code> <a href="expressions.doc.html#5121">(&#167;15.19)</a>; therefore a <code>long</code> shift distance (right operand) does not promote the value being shifted (left operand) to <code>long</code>
+<a name="185521"></a>
+<p>Here is a test program that includes examples of unary numeric promotion:
+</ul><blockquote><pre>class Test {
+	public static void main(String[] args) {
+		byte b = 2;
+		int a[] = new int[b];	// dimension expression promotion
+		char c = '\u0001';
+		a[c] = 1;			// index expression promotion
+		a[0] = -c;			// unary - promotion
+		System.out.println("a: " + a[0] + "," + a[1]);
+		b = -1;
+		int i = ~b;			// bitwise complement promotion
+		System.out.println("~0x" + Integer.toHexString(b)
+							+ "==0x" + Integer.toHexString(i));
+		i = b &lt;&lt; 4L;		// shift promotion (left operand)
+		System.out.println("0x" + Integer.toHexString(b)
+					 + "&lt;&lt;4L==0x" + Integer.toHexString(i));
+	}
+}
+</pre></blockquote><a name="30172"></a>
+This test program produces the output:<p>
+<blockquote><pre>a: -1,1
+~0xffffffff==0x0
+0xffffffff&lt;&lt;4L==0xfffffff0
+</pre></blockquote><a name="170983"></a>
+<h3>5.6.2    Binary Numeric Promotion</h3>
+<a name="183615"></a>
+When an operator applies <em>binary numeric promotion</em> to a pair of operands, each of which must denote a value of a numeric type, the following rules apply, in order, using widening conversion <a href="conversions.doc.html#25214">(&#167;5.1.2)</a> to convert operands as necessary:<p>
+<ul><a name="183619"></a>
+<li>If either operand is of type <code>double</code>, the other is converted to <code>double</code>.
+<a name="183620"></a>
+<li>Otherwise, if either operand is of type <code>float</code>, the other is converted to <code>float</code>.
+<a name="170988"></a>
+<li>Otherwise, if either operand is of type <code>long</code>, the other is converted to <code>long</code>.
+<a name="170989"></a>
+<li>Otherwise, both operands are converted to type <code>int</code>.
+</ul><a name="183628"></a>
+After the type conversion, if any, value set conversion <a href="conversions.doc.html#184225">(&#167;5.1.8)</a> is applied to each operand.<p>
+<a name="183623"></a>
+Binary numeric promotion is performed on the operands of certain operators:<p>
+<ul><a name="170994"></a>
+<li>The multiplicative operators <code>*</code>, <code>/</code> and <code>%</code> <a href="expressions.doc.html#239829">(&#167;15.17)</a>
+<a name="170998"></a>
+<li>The addition and subtraction operators for numeric types <code>+</code> and <code>- </code><a href="expressions.doc.html#13510">(&#167;15.18.2)</a>
+<a name="171002"></a>
+<li>The numerical comparison operators <code>&lt;</code>, <code>&lt;=</code>, <code>&gt;</code>, and <code>&gt;=</code> <a href="expressions.doc.html#153654">(&#167;15.20.1)</a>
+<a name="171006"></a>
+<li>The numerical equality operators <code>==</code> and <code>!=</code> <a href="expressions.doc.html#5198">(&#167;15.21.1)</a>
+<a name="171010"></a>
+<li>The integer bitwise operators <code>&amp;</code>, <code>^</code>, and <code>|</code> <a href="expressions.doc.html#5233">(&#167;15.22.1)</a>
+<a name="171014"></a>
+<li>In certain cases, the conditional operator <code>?&#32;:</code> <a href="expressions.doc.html#290293">(&#167;15.25)</a>
+</ul><a name="7306"></a>
+<p>
+<a name="185529"></a>
+An example of binary numeric promotion appears above in <a href="conversions.doc.html#189955">&#167;5.1</a>. Here is another:
+<blockquote><pre>class Test {
+	public static void main(String[] args) {
+		int i = 0;
+		float f = 1.0f;
+		double d = 2.0;
+		// First int*float is promoted to float*float, then
+		// float==double is promoted to double==double:
+		if (i * f == d)
+			System.out.println("oops");
+		// A char&amp;byte is promoted to int&amp;int:
+		byte b = 0x1f;
+		char c = 'G';
+		int control = c &amp; b;
+		System.out.println(Integer.toHexString(control));
+		// Here int:float is promoted to float:float:
+		f = (b==0) ? i : 4.0f;
+		System.out.println(1.0/f);
+	}
+}
+</pre></blockquote><a name="17465"></a>
+which produces the output:<p>
+<blockquote><pre>7
+0.25
+</pre></blockquote>
+<a name="185621"></a>
+The example converts the ASCII character <code>G</code> to the ASCII control-G (BEL), by masking off all but the low 5 bits of the character. The <code>7</code> is the numeric value of this control character.
+<p>
+
+
+<hr>
+<table border="0" width="100%">
+<tr>
+<td><a href="jTOC.doc.html">Contents</a> | <a href="typesValues.doc.html">Prev</a> | <a href="names.doc.html">Next</a> | <a href="jIX.fm.html">Index</a></td>
+<td align=right><i>Java Language Specification</i><br>
+<font size="-1">Second Edition</font></td></tr></table>
+<i><a href="jcopyright.doc.html">Copyright</a> &#169 2000 Sun Microsystems, Inc.
+All rights reserved</i>
+<br>
+Please send any comments or corrections to <a href="mailto:jls@java.sun.com">jls@java.sun.com</a>
+</font>
+</body></html>

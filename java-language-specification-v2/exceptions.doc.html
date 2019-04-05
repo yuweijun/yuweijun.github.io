@@ -1,0 +1,244 @@
+<html>
+<head>
+<title> Exceptions</title>
+</head>
+<body BGCOLOR=#eeeeff text=#000000 LINK=#0000ff VLINK=#000077 ALINK=#ff0000>
+ 
+<table border="0" width="100%">
+<tr>
+<td><a href="jTOC.doc.html">Contents</a> | <a href="arrays.doc.html">Prev</a> | <a href="execution.doc.html">Next</a> | <a href="jIX.fm.html">Index</a></td>
+<td align=right><i>Java Language Specification</i><br>
+<font size="-1">Second Edition</font></td></tr></table>
+<hr><br>
+ 
+<a name="44043"></a>
+<p><strong>
+CHAPTER
+ 11 </strong></p>
+<a name="44044"></a>
+<h1>Exceptions</h1>
+<hr><p>
+<a name="44046"></a>
+When a program violates the semantic constraints of the Java programming language, the Java virtual machine signals this error to the program as an <em>exception</em>. An example of such a violation is an attempt to index outside the bounds of an array. Some programming languages and their implementations react to such errors by peremptorily terminating the program; other programming languages allow an implementation to react in an arbitrary or unpredictable way. Neither of these approaches is compatible with the design goals of the Java platform: to provide portability and robustness. Instead, the Java programming language specifies that an exception will be thrown when semantic constraints are violated and will cause a non-local transfer of control from the point where the exception occurred to a point that can be specified by the programmer. An exception is said to be <em>thrown</em> from the point where it occurred and is said to be <em>caught</em> at the point to which control is transferred.<p>
+<a name="44047"></a>
+Programs can also throw exceptions explicitly, using <code>throw</code> statements <a href="statements.doc.html#237350">(&#167;14.17)</a>. <p>
+<a name="56963"></a>
+Explicit use of <code>throw</code> statements provides an alternative to the old-fashioned style of handling error conditions by returning funny values, such as the integer value <code>-1</code> where a negative value would not normally be expected. Experience shows that too often such funny values are ignored or not checked for by callers, leading to programs that are not robust, exhibit undesirable behavior, or both.<p>
+<a name="67239"></a>
+Every exception is represented by an instance of the class <code>Throwable</code> or one of its subclasses; such an object can be used to carry information from the point at which an exception occurs to the handler that catches it. Handlers are established by <code>catch</code> clauses of <code>try</code> statements <a href="statements.doc.html#79311">(&#167;14.19)</a>. During the process of throwing an exception, the Java virtual machine abruptly completes, one by one, any expressions, statements, method and constructor invocations, initializers, and field initialization expressions that have begun but not completed execution in the current thread. This process continues until a handler is found that indicates that it handles that particular exception by naming the class of the exception or a superclass of the class of the exception. If no such handler is found, then the method <code>uncaughtException</code> is invoked for the <code>ThreadGroup</code> that is the parent of the current thread-thus every effort is made to avoid letting an exception go unhandled.<p>
+<a name="44058"></a>
+The exception mechanism of the Java platform is integrated with its synchronization model <a href="memory.doc.html#26250">(&#167;17)</a>, so that locks are released as <code>synchronized</code> statements <a href="statements.doc.html#255769">(&#167;14.18)</a> and invocations of <code>synchronized</code> methods (<a href="classes.doc.html#260369">&#167;8.4.3.6</a>, <a href="expressions.doc.html#20448">&#167;15.12</a>) complete abruptly.<p>
+<a name="44074"></a>
+This chapter describes the different causes of exceptions <a href="exceptions.doc.html#44088">(&#167;11.1)</a>. It details how exceptions are checked at compile time <a href="exceptions.doc.html#44121">(&#167;11.2)</a> and processed at run time <a href="exceptions.doc.html#44153">(&#167;11.3)</a>. A detailed example <a href="exceptions.doc.html#44218">(&#167;11.4)</a> is then followed by an explanation of the exception hierarchy <a href="exceptions.doc.html#44278">(&#167;11.5)</a>.<p>
+<a name="44088"></a>
+<h2>11.1    The Causes of Exceptions</h2>
+<a name="44091"></a>
+An exception is thrown for one of three <em>reasons</em>:<p>
+<ul><a name="44092"></a>
+<li>An abnormal execution condition was synchronously detected by the Java virtual machine. Such conditions arise because:
+<ul>
+<a name="44093"></a>
+<li>evaluation of an expression violates the normal semantics of the language, such as an integer divide by zero, as summarized in <a href="expressions.doc.html#79448">&#167;15.6</a>
+<a name="44106"></a>
+<li>an error occurs in loading or linking part of the program (<a href="execution.doc.html#44459">&#167;12.2</a>, <a href="execution.doc.html#44487">&#167;12.3</a>)
+<a name="44107"></a>
+<li>some limitation on a resource is exceeded, such as using too much memory
+</ul>
+</ul><ul><a name="44108"></a>
+These exceptions are not thrown at an arbitrary point in the program, but rather at a point where they are specified as a possible result of an expression evaluation or statement execution.
+</ul><ul><a name="44112"></a>
+<li>A <code>throw</code> statement <a href="statements.doc.html#237350">(&#167;14.17)</a> was executed.
+<a name="44113"></a>
+<li>An asynchronous exception occurred either because:
+<ul>
+<a name="44114"></a>
+<li>the method <code>stop</code> of class <code>Thread</code> was invoked 
+<a name="44118"></a>
+<li>an internal error has occurred in the virtual machine <a href="exceptions.doc.html#44395">(&#167;11.5.2)</a>
+</ul>
+</ul><a name="44119"></a>
+Exceptions are represented by instances of the class <code>Throwable</code> and instances of its subclasses. These classes are, collectively, the <em>exception classes</em>.<p>
+<a name="44121"></a>
+<h2>11.2    Compile-Time Checking of Exceptions</h2>
+<a name="44122"></a>
+A compiler for the Java programming language checks, at compile time, that a program contains handlers for <em>checked exceptions</em>, by analyzing which checked exceptions can result from execution of a method or constructor. For each checked exception which is a possible result, the <code>throws</code> clause for the method <a href="classes.doc.html#78323">(&#167;8.4.4)</a> or constructor <a href="classes.doc.html#244611">(&#167;8.8.4)</a> must mention the class of that exception or one of the superclasses of the class of that exception. This compile-time checking for the presence of exception handlers is designed to reduce the number of exceptions which are not properly handled.<p>
+<a name="44129"></a>
+The <em>unchecked exceptions classes</em> are the class <code>RuntimeException</code> and its subclasses, and the class <code>Error</code> and its subclasses. All other exception classes are <em>checked exception classes</em>. The Java API defines a number of exception classes, both checked and unchecked. Additional exception classes, both checked and unchecked, may be declared by programmers. See <a href="exceptions.doc.html#44278">&#167;11.5</a> for a description of the exception class hierarchy and some of the exception classes defined by the Java API and Java virtual machine.<p>
+<a name="44133"></a>
+The checked exception classes named in the <code>throws</code> clause are part of the contract between the implementor and user of the method or constructor. The <code>throws</code> clause of an overriding method may not specify that this method will result in throwing any checked exception which the overridden method is not permitted, by its <code>throws</code> clause, to throw. When interfaces are involved, more than one method declaration may be overridden by a single overriding declaration. In this case, the overriding declaration must have a <code>throws</code> clause that is compatible with <em>all</em> the overridden declarations <a href="interfaces.doc.html#78651">(&#167;9.4)</a>.<p>
+<a name="62175"></a>
+Static initializers <a href="classes.doc.html#39245">(&#167;8.7)</a>, class variable initializers, and instance initializers or instance variable initializers within named classes and interfaces <a href="classes.doc.html#24510">(&#167;8.3.2)</a>, must not result in a checked exception; if one does, a compile-time error occurs. No such restriction applies to instance initializers or instance variable initializers within anonymous classes <a href="expressions.doc.html#252986">(&#167;15.9.5)</a>.<p>
+<a name="62178"></a>
+<h3>11.2.1    Why Errors are Not Checked</h3>
+<a name="44148"></a>
+Those unchecked exception classes which are the <em>error classes</em> (<code>Error</code> and its subclasses) are exempted from compile-time checking because they can occur at many points in the program and recovery from them is difficult or impossible. A program declaring such exceptions would be cluttered, pointlessly.<p>
+<a name="44149"></a>
+<h3>11.2.2    Why Runtime Exceptions are Not Checked</h3>
+<a name="44150"></a>
+The <em>runtime exception classes</em> (<code>RuntimeException</code> and its subclasses) are exempted from compile-time checking because, in the judgment of the designers of the Java programming language, having to declare such exceptions would not aid significantly in establishing the correctness of programs. Many of the operations and constructs of the Java programming language can result in runtime exceptions. The information available to a compiler, and the level of analysis the compiler performs, are usually not sufficient to establish that such run-time exceptions cannot occur, even though this may be obvious to the programmer. Requiring such exception classes to be declared would simply be an irritation to programmers.<p>
+<a name="44151"></a>
+For example, certain code might implement a circular data structure that, by construction, can never involve <code>null</code> references; the programmer can then be certain &#32;that a <code>NullPointerException</code> cannot occur, but it would be difficult for a compiler to prove it. The theorem-proving technology that is needed to establish such global properties of data structures is beyond the scope of this specification.<p>
+<a name="44153"></a>
+<h2>11.3    Handling of an Exception</h2>
+<a name="44154"></a>
+When an exception is thrown, control is transferred from the code that caused the exception to the nearest dynamically-enclosing <code>catch</code> clause of a <code>try</code> statement <a href="statements.doc.html#79311">(&#167;14.19)</a> that handles the exception.<p>
+<a name="44158"></a>
+A statement or expression is <em>dynamically enclosed</em> by a <code>catch</code> clause if it appears within the <code>try</code> block of the <code>try</code> statement of which the <code>catch</code> clause is a part, or if the caller of the statement or expression is dynamically enclosed by the <code>catch</code> clause.<p>
+<a name="44159"></a>
+The <em>caller</em> of a statement or expression depends on where it occurs:<p>
+<ul><a name="44160"></a>
+<li>If within a method, then the caller is the method invocation expression <a href="expressions.doc.html#20448">(&#167;15.12)</a> that was executed to cause the method to be invoked.
+<a name="44164"></a>
+<li>If within a constructor or an instance initializer or the initializer for an instance variable, then the caller is the class instance creation expression <a href="expressions.doc.html#41147">(&#167;15.9)</a> or the method invocation of <code>newInstance</code> that was executed to cause an object to be created. 
+<a name="44168"></a>
+<li>If within a static initializer or an initializer for a <code>static</code> variable, then the caller is the expression that used the class or interface so as to cause it to be initialized.
+</ul><a name="44169"></a>
+Whether a particular <code>catch</code> clause <em>handles</em> an exception is determined by comparing the class of the object that was thrown to the declared type of the parameter of the <code>catch</code> clause. The <code>catch</code> clause handles the exception if the type of its parameter is the class of the exception or a superclass of the class of the exception. Equivalently, a <code>catch</code> clause will catch any exception object that is an <code>instanceof</code> <a href="expressions.doc.html#80289">(&#167;15.20.2)</a> the declared parameter type.<p>
+<a name="44173"></a>
+The control transfer that occurs when an exception is thrown causes abrupt completion of expressions <a href="expressions.doc.html#79448">(&#167;15.6)</a> and statements <a href="statements.doc.html#5894">(&#167;14.1)</a> until a <code>catch</code> clause is encountered that can handle the exception; execution then continues by executing the block of that <code>catch</code> clause. The code that caused the exception is never resumed.<p>
+<a name="44180"></a>
+If no <code>catch</code> clause handling an exception can be found, then the current thread (the thread that encountered the exception) is terminated, but only after all <code>finally</code> clauses have been executed and the method <code>uncaughtException</code> has been invoked for the <code>ThreadGroup</code> that is the parent of the current thread.<p>
+<a name="67272"></a>
+In situations where it is desirable to ensure that one block of code is always executed after another, even if that other block of code completes abruptly, a <code>try</code> statement with a <code>finally</code> clause <a href="statements.doc.html#236653">(&#167;14.19.2)</a> may be used. <p>
+<a name="67278"></a>
+If a <code>try</code> or <code>catch</code> block in a <code>try</code>-<code>finally</code> or <code>try</code>-<code>catch</code>-<code>finally</code> statement completes abruptly, then the <code>finally</code> clause is executed during propagation of the exception, even if no matching <code>catch</code> clause is ultimately found. If a <code>finally</code> clause is executed because of abrupt completion of a <code>try</code> block and the <code>finally</code> clause itself completes abruptly, then the reason for the abrupt completion of the <code>try</code> block is discarded and the new reason for abrupt completion is propagated from there.<p>
+<a name="44188"></a>
+The exact rules for abrupt completion and for the catching of exceptions are specified in detail with the specification of each statement in <a href="statements.doc.html#44383">&#167;14</a> and for expressions in <a href="expressions.doc.html#4709">&#167;15</a> (especially <a href="expressions.doc.html#79448">&#167;15.6</a>).<p>
+<a name="44199"></a>
+<h3>11.3.1    Exceptions are Precise</h3>
+<a name="44200"></a>
+Exceptions are <em>precise</em>: when the transfer of control takes place, all effects of the statements executed and expressions evaluated before the point from which the exception is thrown must appear to have taken place. No expressions, statements, or parts thereof that occur after the point from which the exception is thrown may appear to have been evaluated. If optimized code has speculatively executed some of the expressions or statements which follow the point at which the exception occurs, such code must be prepared to hide this speculative execution from the user-visible state of the program.<p>
+<a name="44202"></a>
+<h3>11.3.2    Handling Asynchronous Exceptions</h3>
+<a name="44203"></a>
+Most exceptions occur synchronously as a result of an action by the thread in which they occur, and at a point in the program that is specified to possibly result in such an exception. An asynchronous exception is, by contrast, an exception that can potentially occur at any point in the execution of a program.<p>
+<a name="44204"></a>
+Proper understanding of the semantics of asynchronous exceptions is necessary if high-quality machine code is to be generated.<p>
+<a name="47137"></a>
+Asynchronous exceptions are rare. They occur only as a result of:<p>
+<ul><a name="44205"></a>
+<li>An invocation of the <code>stop</code> methods of class <code>Thread</code> or <code>ThreadGroup</code> 
+<a name="44209"></a>
+<li>An internal error <a href="exceptions.doc.html#44395">(&#167;11.5.2)</a> in the Java virtual machine
+</ul><a name="44210"></a>
+The <code>stop</code> methods may be invoked by one thread to affect another thread or all the threads in a specified thread group. They are asynchronous because they may occur at any point in the execution of the other thread or threads. An <code>InternalError</code> &#32;is considered asynchronous.<p>
+<a name="44211"></a>
+The Java platform permits a small but bounded amount of execution to occur before an asynchronous exception is thrown. This delay is permitted to allow optimized code to detect and throw these exceptions at points where it is practical to handle them while obeying the semantics of the Java programming language.<p>
+<a name="44212"></a>
+A simple implementation might poll for asynchronous exceptions at the point of each control transfer instruction. Since a program has a finite size, this provides a bound on the total delay in detecting an asynchronous exception. Since no asynchronous exception will occur between control transfers, the code generator has some flexibility to reorder computation between control transfers for greater performance.<p>
+<a name="46637"></a>
+The paper <em>Polling Efficiently on Stock Hardware </em>by Marc Feeley, <em>Proc. 1993 Conference on Functional Programming and Computer Architecture</em>, Copenhagen, Denmark, pp. 179-187, is recommended as further reading.<p>
+<a name="44216"></a>
+Like all exceptions, asynchronous exceptions are precise <a href="exceptions.doc.html#44199">(&#167;11.3.1)</a>.<p>
+<a name="44218"></a>
+<h2>11.4    An Example of Exceptions</h2>
+<a name="56950"></a>
+Consider the following example:<p>
+<blockquote><pre>class TestException extends Exception {
+	TestException() { super(); }
+	TestException(String s) { super(s); }
+}
+class Test {
+	public static void main(String[] args) {
+		for (int i = 0; i &lt; args.length; i++) {
+			try {
+				thrower(args[i]);
+				System.out.println("Test \"" + args[i] +
+					"\" didn't throw an exception");
+			} catch (Exception e) {
+				System.out.println("Test \"" + args[i] +
+					"\" threw a " + e.getClass() +
+					"\n &#32; &#32; &#32; &#32;with message: " + e.getMessage());
+			}
+		}
+	}
+	static int thrower(String s) throws TestException {
+		try {
+			if (s.equals("divide")) {
+				int i = 0;
+				return i/i;
+			}
+			if (s.equals("null")) {
+				s = null;
+				return s.length();
+			}
+			if (s.equals("test"))
+				throw new TestException("Test message");
+			return 0;
+		} finally {
+			System.out.println("[thrower(\"" + s +
+					"\") done]");
+		}
+	}
+}
+</pre></blockquote><a name="44257"></a>
+If we execute the test program, passing it the arguments:<p>
+<blockquote><pre>divide null not test
+</pre></blockquote><a name="44259"></a>
+it produces the output:<p>
+<blockquote><pre>[thrower("divide") done]
+Test "divide" threw a class java.lang.ArithmeticException
+ &#32; &#32; &#32; &#32;with message: / by zero
+[thrower("null") done]
+Test "null" threw a class java.lang.NullPointerException
+ &#32; &#32; &#32; &#32;with message: null
+[thrower("not") done]
+Test "not" didn't throw an exception
+[thrower("test") done]
+Test "test" threw a class TestException
+ &#32; &#32; &#32; &#32;with message: Test message
+<a name="44271"></a>
+</pre></blockquote>
+This example declares an exception class <code>TestException</code>. The <code>main</code> method of class <code>Test</code> invokes the <code>thrower</code> method four times, causing exceptions to be thrown three of the four times. The <code>try</code> statement in method <code>main</code> catches each exception that the <code>thrower</code> throws. Whether the invocation of <code>thrower</code> completes normally or abruptly, a message is printed describing what happened.<p>
+<a name="44272"></a>
+The declaration of the method <code>thrower</code> must have a <code>throws</code> clause because it &#32;can throw instances of <code>TestException</code>, which is a checked exception class <a href="exceptions.doc.html#44121">(&#167;11.2)</a>. A compile-time error would occur if the <code>throws</code> clause were omitted.<p>
+<a name="44276"></a>
+Notice that the <code>finally</code> clause is executed on every invocation of <code>thrower</code>, whether or not an exception occurs, as shown by the "<code>[thrower(</code>...<code>)&#32;done]</code>" output that occurs for each invocation.<p>
+<a name="44278"></a>
+<h2>11.5    The Exception Hierarchy</h2>
+<a name="67305"></a>
+The possible exceptions in a program are organized in a hierarchy of classes, rooted at class <code>Throwable</code> (<a href="exceptions.doc.html#44278">&#167;11.5</a>), a direct subclass of <code>Object</code>. The classes <code>Exception</code> and <code>Error</code> are direct subclasses of <code>Throwable</code>. The class <code>RuntimeException</code> is a direct subclass of <code>Exception</code>.<p>
+<a name="67317"></a>
+Programs can use the pre-existing exception classes in <code>throw</code> statements, or define additional exception classes, as subclasses of <code>Throwable</code> or of any of its subclasses, as appropriate. To take advantage of the Java platform's compile-time checking for exception handlers, it is typical to define most new exception classes as checked exception classes, specifically as subclasses of <code>Exception</code> that are not subclasses of <code>RuntimeException</code>.<p>
+<a name="44286"></a>
+The class <code>Exception</code> is the superclass of all the exceptions that ordinary programs may wish to recover from. The class <code>RuntimeException</code> is a subclass of class <code>Exception</code>. The subclasses of <code>RuntimeException</code> are unchecked exception classes. The subclasses of <code>Exception</code> other than <code>RuntimeException</code> are all checked exception classes.<p>
+<a name="67258"></a>
+The class <code>Error</code> and its subclasses are exceptions from which ordinary programs are not ordinarily expected to recover. See the Java API specification for a detailed description of the exception hierarchy.<p>
+<a name="67259"></a>
+The class <code>Error</code> is a separate subclass of <code>Throwable</code>, distinct from <code>Exception</code> in the class hierarchy, to allow programs to use the idiom:<p>
+<blockquote><pre>} catch (Exception e) {
+</pre></blockquote><a name="67290"></a>
+to catch all exceptions from which recovery may be possible without catching errors from which recovery is typically not possible.<p>
+<a name="44372"></a>
+<h3>11.5.1    Loading and Linkage Errors</h3>
+<a name="44373"></a>
+The Java virtual machine throws an object that is an instance of a subclass of <code>LinkageError</code> &#32;when a loading, linkage, preparation, verification or initialization error occurs:<p>
+<ul><a name="44377"></a>
+<li>The loading process is described in <a href="execution.doc.html#44459">&#167;12.2</a>.
+<a name="47893"></a>
+<li>The linking process is described in <a href="execution.doc.html#44487">&#167;12.3</a>. 
+<a name="47897"></a>
+<li>The class verification process is described in <a href="execution.doc.html#44491">&#167;12.3.1</a>. 
+<a name="44389"></a>
+<li>The class preparation process is described in <a href="execution.doc.html#47979">&#167;12.3.2</a>. 
+<a name="44393"></a>
+<li>The class initialization process is described in <a href="execution.doc.html#44557">&#167;12.4</a>.
+</ul><a name="44395"></a>
+<h3>11.5.2    Virtual Machine Errors</h3>
+<a name="47538"></a>
+The Java virtual machine throws an object that is an instance of a subclass of the class <code>VirtualMachineError</code> when an internal error or resource limitation prevents it from implementing the semantics of the Java programming language. See <em>The Java</em><i></i><em> Virtual Machine Specification Second Edition</em> for the definitive discussion of these errors.<p>
+<p>
+
+
+<hr>
+<table border="0" width="100%">
+<tr>
+<td><a href="jTOC.doc.html">Contents</a> | <a href="arrays.doc.html">Prev</a> | <a href="execution.doc.html">Next</a> | <a href="jIX.fm.html">Index</a></td>
+<td align=right><i>Java Language Specification</i><br>
+<font size="-1">Second Edition</font></td></tr></table>
+<i><a href="jcopyright.doc.html">Copyright</a> &#169 2000 Sun Microsystems, Inc.
+All rights reserved</i>
+<br>
+Please send any comments or corrections to <a href="mailto:jls@java.sun.com">jls@java.sun.com</a>
+</font>
+</body></html>

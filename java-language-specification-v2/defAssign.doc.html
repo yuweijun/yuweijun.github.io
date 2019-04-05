@@ -1,0 +1,664 @@
+<html>
+<head>
+<title> Definite Assignment</title>
+</head>
+<body BGCOLOR=#eeeeff text=#000000 LINK=#0000ff VLINK=#000077 ALINK=#ff0000>
+ 
+<table border="0" width="100%">
+<tr>
+<td><a href="jTOC.doc.html">Contents</a> | <a href="expressions.doc.html">Prev</a> | <a href="memory.doc.html">Next</a> | <a href="jIX.fm.html">Index</a></td>
+<td align=right><i>Java Language Specification</i><br>
+<font size="-1">Second Edition</font></td></tr></table>
+<hr><br>
+ 
+<a name="25979"></a>
+<p><strong>
+CHAPTER
+ 16 </strong></p>
+<a name="25980"></a>
+<h1>Definite Assignment</h1>
+<hr><p>
+<a name="68435"></a>
+Each local variable <a href="statements.doc.html#5920">(&#167;14.4)</a> and every blank <code>final</code> <a href="typesValues.doc.html#10931">(&#167;4.5.4)</a> field <a href="classes.doc.html#35962">(&#167;8.3.1.2)</a> must have a <em>definitely assigned</em> value when any access of its value occurs. A Java compiler must carry out a specific conservative flow analysis to make sure that, for every access of a local variable or blank <code>final</code> field f, f is definitely assigned before the access; otherwise a compile-time error must occur.<p>
+<a name="53690"></a>
+Similarly, every blank <code>final</code> variable must be assigned at most once; it must be <em>definitely unassigned</em> when an assignment to it occurs. A Java compiler must carry out a specific conservative flow analysis to make sure that, for every assignment to a blank <code>final</code> variable, the variable is definitely unassigned before the assignment; otherwise a compile-time error must occur.<p>
+<a name="29500"></a>
+The remainder of this chapter is devoted to a precise explanation of the words "definitely assigned before" and "definitely unassigned before".<p>
+<a name="53741"></a>
+The idea behind definite assignment is that an assignment to the local variable or blank <code>final</code> field must occur on every possible execution path to the access. Similarly, the idea behind definite unassignment is that no other assignment to the blank <code>final</code> variable is permitted to occur on any possible execution path to an assignment. The analysis takes into account the structure of statements and expressions; it also provides a special treatment of the expression operators <code>!</code>, <code>&amp;&amp;</code>, <code>||</code>, and <code>?&#32;:</code>, and of boolean-valued constant expressions.<p>
+<a name="53744"></a>
+For example, a Java compiler recognizes that <code>k</code> is definitely assigned before its access (as an argument of a method invocation) in the code:<p>
+<blockquote><pre>{
+	int k;
+	if (v &gt; 0 &amp;&amp; (k = System.in.read()) &gt;= 0)
+		System.out.println(k);
+}
+</pre></blockquote><a name="25994"></a>
+because the access occurs only if the value of the expression:<p>
+<blockquote><pre>v &gt; 0 &amp;&amp; (k = System.in.read()) &gt;= 0
+</pre></blockquote><a name="25996"></a>
+is true, and the value can be <code>true</code> only if the assignment to <code>k</code> is executed (more properly, evaluated).<p>
+<a name="54962"></a>
+Similarly, a Java compiler will recognize that in the code:<p>
+<blockquote><pre>{
+	int k;
+	while (true) {
+		k = n;
+		if (k &gt;= 5) break;
+		n = 6;
+	}
+	System.out.println(k);
+}
+</pre></blockquote><a name="26006"></a>
+the variable <code>k</code> is definitely assigned by the <code>while</code> statement because the condition expression <code>true</code> never has the value <code>false</code>, so only the <code>break</code> statement can cause the <code>while</code> statement to complete normally, and <code>k</code> is definitely assigned before the <code>break</code> statement.<p>
+<a name="54966"></a>
+On the other hand, the code<p>
+<blockquote><pre>{
+	int k;
+	while (n &lt; 4) {
+		k = n;
+		if (k &gt;= 5) break;
+		n = 6;
+	}
+	System.out.println(k);	// k is not "definitely assigned" before this
+}
+</pre></blockquote><a name="54931"></a>
+must be rejected by a Java compiler, because in this case the <code>while</code> statement is not guaranteed to execute its body as far as the rules of definite assignment are concerned.<p>
+<a name="26007"></a>
+Except for the special treatment of the conditional boolean operators <code>&amp;&amp;</code>, <code>||</code>, and<code> ? : </code>and of boolean-valued constant expressions, the values of expressions are not taken into account in the flow analysis. <p>
+<a name="63512"></a>
+For example, a Java compiler must produce a compile-time error for the code:<p>
+<blockquote><pre>{
+	int k;
+	int n = 5;
+	if (n &gt; 2)
+		k = 3;
+	System.out.println(k);	// k is not "definitely assigned" before this
+}
+</pre></blockquote><a name="26015"></a>
+even though the value of <code>n</code> is known at compile time, and in principle it can be known at compile time that the assignment to <code>k</code> will always be executed (more properly, evaluated). A Java compiler must operate according to the rules laid out in this section. The rules recognize only constant expressions; in this example, the expression <code>n</code> <code>&gt;</code> <code>2</code> is not a constant expression as defined in <a href="expressions.doc.html#5313">&#167;15.28</a>. <p>
+<a name="26019"></a>
+As another example, a Java compiler will accept the code:<p>
+<blockquote><pre>void flow(boolean flag) {
+	int k;
+	if (flag)
+		k = 3;
+	else
+		k = 4;
+	System.out.println(k);
+}
+</pre></blockquote><a name="26028"></a>
+as far as definite assignment of <code>k</code> is concerned, because the rules outlined in this section allow it to tell that <code>k</code> is assigned no matter whether the flag is <code>true</code> or <code>false</code>. But the rules do not accept the variation:<p>
+<blockquote><pre>void flow(boolean flag) {
+	int k;
+	if (flag)
+		k = 3;
+	if (!flag)
+		k = 4;
+	System.out.println(k);	// k is not "definitely assigned" before here
+}
+</pre></blockquote><a name="26037"></a>
+and so compiling this program must cause a compile-time error to occur.<p>
+<a name="54848"></a>
+A related example illustrates rules of definite unassignment. A Java compiler will accept the code:<p>
+<blockquote><pre>void unflow(boolean flag) {
+	final int k;
+	if (flag) {
+		k = 3;
+		System.out.println(k);
+	}
+	else {
+		k = 4;
+		System.out.println(k);
+	}
+}
+</pre></blockquote><a name="54859"></a>
+as far as definite unassignment of <code>k</code> is concerned, because the rules outlined in this section allow it to tell that <code>k</code> is assigned at most once (indeed, exactly once) no matter whether the flag is <code>true</code> or <code>false</code>. But the rules do not accept the variation:<p>
+<blockquote><pre>void unflow(boolean flag) {
+	final int k;
+	if (flag) {
+		k = 3;
+		System.out.println(k);
+	}
+	if (!flag) {
+		k = 4; 		// k is not "definitely unassigned" before here
+		System.out.println(k);
+	}
+}
+</pre></blockquote><a name="54923"></a>
+and so compiling this program must cause a compile-time error to occur.<p>
+<a name="26038"></a>
+In order to precisely specify all the cases of definite assignment, the rules in this section define several technical terms:<p>
+<ul><a name="26039"></a>
+<li>whether a variable is <em>definitely assigned before</em> a statement or expression;
+<a name="53753"></a>
+<li>whether a variable is <em>definitely unassigned before</em> a statement or expression;
+<a name="53772"></a>
+<li>whether a variable is <em>definitely assigned after </em>a statement or expression; and
+<a name="53754"></a>
+<li>whether a variable is <em>definitely unassigned after </em>a statement or expression.
+</ul><a name="26041"></a>
+For boolean-valued expressions, the last two are refined into four cases:<p>
+<ul><a name="53786"></a>
+<li>whether a variable is <em>definitely assigned after</em> the expression <em>when true</em>;
+<a name="53790"></a>
+<li>whether a variable is <em>definitely unassigned after</em> the expression <em>when true</em>;
+<a name="53794"></a>
+<li>whether a variable is <em>definitely assigned after</em> the expression <em>when false</em>; and
+<a name="53798"></a>
+<li>whether a variable is <em>definitely unassigned after</em> the expression <em>when false</em>.
+</ul><a name="26044"></a>
+Here <em>when true</em> and <em>when false</em> refer to the value of the expression. <p>
+<a name="63514"></a>
+For example, the local variable k is definitely assigned a value after evaluation of the expression<p>
+<blockquote><pre>a &amp;&amp; ((k=m) &gt; 5)
+</pre></blockquote><a name="26046"></a>
+when the expression is <code>true</code> but not when the expression is <code>false</code> (because if <code>a</code> is <code>false</code>, then the assignment to <code>k</code> is not necessarily executed (more properly, evaluated)).<p>
+<a name="26047"></a>
+The phrase "V is definitely assigned after X" (where V is a local variable and X is a statement or expression) means "V is definitely assigned after X if X completes normally". If X completes abruptly, the assignment need not have occurred, and the rules stated here take this into account. A peculiar consequence of this definition is that "V is definitely assigned after <code>break;</code>" is always true! Because a <code>break</code> statement never completes normally, it is vacuously true that V has been assigned a value if the <code>break</code> statement completes normally.<p>
+<a name="53802"></a>
+Similarly, the statement "V is definitely unassigned after X" (where V is a variable and X is a statement or expression) means "V is definitely unassigned after X if X completes normally". An even more peculiar consequence of this definition is that "V is definitely unassigned after <code>break;</code>" is always true! Because a <code>break</code> statement never completes normally, it is vacuously true that V has not been assigned a value if the <code>break</code> statement completes normally. (For that matter, it is also vacuously true that the moon is made of green cheese if the <code>break</code> statement completes normally.)<p>
+<a name="54969"></a>
+In all, there are four possibilities for a variable V after a statement or expression has been executed:<p>
+<ul><a name="54980"></a>
+<li>V is definitely assigned and is not definitely unassigned.(The flow analysis rules prove that an assignment to V has occurred.)
+<a name="54984"></a>
+<li>V is definitely unassigned and is not definitely assigned.(The flow analysis rules prove that an assignment to V has not occurred.)
+<a name="54988"></a>
+<li>V is not definitely assigned and is not definitely unassigned.(The rules cannot prove whether or not an assignment to V has occurred.)
+<a name="54992"></a>
+<li>V is definitely assigned and is definitely unassigned.(It is impossible for the statement or expression to complete normally.)
+</ul><a name="26048"></a>
+To shorten the rules, the customary abbreviation "iff" is used to mean "if and only if". We also use an abbreviation convention: if a rule contains one or more occurrences of "[un]assigned" then it stands for two rules, one with every occurrence of "[un]assigned" replaced by "definitely assigned" and one with every occurrence of "[un]assigned" replaced by "definitely unassigned". <p>
+<a name="63513"></a>
+For example:<p>
+<a name="53830"></a>
+V is [un]assigned after an empty statement iff it is [un]assigned before the empty statement.<p>
+<a name="53835"></a>
+should be understood to stand for two rules:<p>
+<ul><a name="53840"></a>
+<li>V is definitely assigned after an empty statement iff it is definitely assigned before the empty statement.
+<a name="53851"></a>
+<li>V is definitely unassigned after an empty statement iff it is definitely unassigned before the empty statement.
+<a name="58384"></a>
+</ul>
+<p>
+The definite unassignment analysis of loop statements raises a special problem. Consider the statement <code>while</code> <code>(</code>e<code>)</code> S. In order to determine whether V is definitely unassigned within some subexpression of <em>e</em>, we need to determine whether V is definitely unassigned before <em>e</em>. One might argue, by analogy with the rule for definite assignment <a href="defAssign.doc.html#44047">(&#167;16.2.9)</a>, that V is definitely unassigned before <em>e</em> iff it is definitely unassigned before the <code>while</code> statement. However, such a rule is inadequate for our purposes. If <em>e</em> evaluates to true, the statement S will be executed. Later, if V is assigned by S, then in the following iteration(s) V will have already been assigned when <em>e</em> is evaluated. Under the rule suggested above, it would be possible to assign V multiple times, which is exactly what we have sought to avoid by introducing these rules.<p>
+<a name="58385"></a>
+A revised rule would be: "V is definitely unassigned before <em>e</em> iff it is definitely unassigned before the while statement and definitely unassigned after S". However, when we formulate the rule for S, we find: "V is definitely unassigned before S iff it is definitely unassigned after <em>e</em> when true". This leads to a circularity. In effect, V is definitely unassigned <em>before</em> the loop condition <em>e </em>only if it is unassigned <em>after</em> the loop as a whole! <p>
+<a name="58386"></a>
+We break this vicious circle using a <em>hypothetical</em> analysis of the loop condition and body. For example, if we assume that V is definitely unassigned before <em>e</em> (regardless of whether V really is definitely unassigned before <em>e</em>), and can then prove that V was definitely unassigned after <em>e</em> then we know that <em>e</em> does not assign V. This is stated more formally as:<p>
+<a name="58387"></a>
+Assuming V is definitely unassigned before <em>e</em>, V is definitely unassigned after <em>e</em>.<p>
+<a name="58388"></a>
+Variations on the above analysis are used to define well founded definite unassignment rules for all loop statements in the language.<p>
+</ul><a name="58087"></a>
+Throughout the rest of this chapter, we will, unless explicitly stated otherwise, write V to represent a local variable or a blank <code>final</code> field (for rules of definite assignment) or a blank <code>final</code> variable (for rules of definite unassignment). Likewise, we will use <em>a</em>, <em>b</em>, <em>c</em>, and <em>e </em>to represent expressions, and S and T to represent statements.<p>
+<a name="26051"></a>
+<h2>16.1    Definite Assignment and Expressions</h2>
+<a name="55164"></a>
+<h3>16.1.1    Boolean Constant Expressions</h3>
+<ul><a name="55507"></a>
+<li>V is [un]assigned after any constant expression whose value is <code>true</code> when false.
+<a name="55154"></a>
+<li>V is [un]assigned after any constant expression whose value is <code>false</code> when true.
+</ul><a name="55559"></a>
+Because a constant expression whose value is <code>true</code> never has the value <code>false</code>, and a constant expression whose value is <code>false</code> never has the value <code>true</code>, the two preceding rules are vacuously satisfied. They are helpful in analyzing expressions involving the operators <code>&amp;&amp;</code> <a href="defAssign.doc.html#29521">(&#167;16.1.2)</a>, <code>||</code> <a href="defAssign.doc.html#26067">(&#167;16.1.3)</a>, <code>!</code> <a href="defAssign.doc.html#54187">(&#167;16.1.4)</a>, and <code>?</code> <code>:</code> <a href="defAssign.doc.html#26118">(&#167;16.1.5)</a>.<p>
+<ul><a name="55552"></a>
+<li>V is [un]assigned after any constant expression whose value is <code>true</code> when true iff V is [un]assigned before the constant expression.
+<a name="55511"></a>
+<li>V is [un]assigned after any constant expression whose value is <code>false</code> when false iff V is [un]assigned before the constant expression.
+<a name="26054"></a>
+<li>V is [un]assigned after a boolean-valued constant expression <em>e</em> iff V is [un]assigned after <em>e</em> when true and V is [un]assigned after <em>e</em> when false. (This is equivalent to saying that V is [un]assigned after <em>e</em> iff V is [un]assigned before <em>e</em>.)
+</ul><a name="29521"></a>
+<h3>16.1.2    The Boolean Operator &amp;&amp;</h3>
+<ul><a name="26063"></a>
+<li>V is [un]assigned after <em>a</em> <code>&amp;&amp;</code> <em>b</em> when true iff V is [un]assigned after <em>b</em> when true.
+<a name="55175"></a>
+<li>V is [un]assigned after <em>a</em> <code>&amp;&amp;</code> <em>b</em> when false iff V is [un]assigned after <em>a</em> when false and V is [un]assigned after <em>b</em> when false.
+<a name="55176"></a>
+<li>V is [un]assigned before <em>a</em> iff V is [un]assigned before <em>a</em> <code>&amp;&amp;</code> <em>b</em>.
+<a name="55177"></a>
+<li>V is [un]assigned before <em>b </em>iff V is [un]assigned after <em>a</em> when true.
+<a name="55080"></a>
+<li>V is [un]assigned after <em>a</em> <code>&amp;&amp;</code> <em>b</em> iff V is [un]assigned after <em>a</em> <code>&amp;&amp;</code> <em>b</em> when true and V is [un]assigned after <em>a</em> <code>&amp;&amp;</code> <em>b</em> when false.
+</ul><a name="26067"></a>
+<h3>16.1.3    The Boolean Operator ||</h3>
+<ul><a name="26068"></a>
+<li>V is [un]assigned after <em>a</em> <code>||</code> <em>b</em> when true iff V is [un]assigned after <em>a</em> when true and V is [un]assigned after <em>b</em> when true.
+<a name="26069"></a>
+<li>V is [un]assigned after <em>a</em> <code>||</code> <em>b</em> when false iff V is [un]assigned after <em>b</em> when false.
+<a name="26070"></a>
+<li>V is [un]assigned before <em>a</em> iff V is [un]assigned before <em>a</em> <code>||</code> <em>b</em>.
+<a name="26071"></a>
+<li>V is [un]assigned before <em>b </em>iff V is [un]assigned after <em>a</em> when false.
+<a name="55084"></a>
+<li>V is [un]assigned after <em>a</em> <code>||</code> <em>b</em> iff V is [un]assigned after <em>a</em> <code>||</code> <em>b</em> when true and V is [un]assigned after <em>a</em> <code>||</code> <em>b</em> when false.
+</ul><a name="54187"></a>
+<h3>16.1.4    The Boolean Operator !</h3>
+<ul><a name="54188"></a>
+<li>V is [un]assigned after <code>!</code>a when true iff V is [un]assigned after <em>a</em> when false.
+<a name="26074"></a>
+<li>V is [un]assigned after <code>!</code>a when false iff V is [un]assigned after <em>a</em> when true.
+<a name="26075"></a>
+<li>V is [un]assigned before <em>a</em> iff V is [un]assigned before <code>!</code>a.
+<a name="55092"></a>
+<li>V is [un]assigned after <code>!</code>a iff V is [un]assigned after <code>!</code>a when true and V is [un]assigned after <code>!</code>a when false. (This is equivalent to saying that V is [un]assigned after <code>!</code>a iff V is [un]assigned after <em>a</em>.)
+</ul><a name="26118"></a>
+<h3>16.1.5    The Boolean Operator ?&#32;:</h3>
+<a name="54079"></a>
+Suppose that <em>b</em> and <em>c</em> are boolean-valued expressions.<p>
+<ul><a name="54080"></a>
+<li>V is [un]assigned after <em>a</em> <code>?</code> <em>b</em> <code>:</code> <em>c </em>when true iff V is [un]assigned after <em>b</em> when true and V is [un]assigned after <em>c</em> when true.
+<a name="26123"></a>
+<li>V is [un]assigned after <em>a</em> <code>?</code> <em>b</em> <code>:</code> <em>c </em>when false iff V is [un]assigned after <em>b</em> when false and V is [un]assigned after <em>c</em> when false.
+<a name="26126"></a>
+<li>V is [un]assigned before <em>a</em> iff V is [un]assigned before <em>a</em> <code>?</code> <em>b</em> <code>:</code> <em>c</em>.
+<a name="26127"></a>
+<li>V is [un]assigned before <em>b </em>iff V is [un]assigned after <em>a</em> when true.
+<a name="26128"></a>
+<li>V is [un]assigned before <em>c </em>iff V is [un]assigned after <em>a</em> when false.
+<a name="55096"></a>
+<li>V is [un]assigned after <em>a</em> <code>?</code> <em>b</em> <code>:</code> <em>c</em> iff V is [un]assigned after <em>a</em> <code>?</code> <em>b</em> <code>:</code> <em>c</em> when true and V is [un]assigned after <em>a</em> <code>?</code> <em>b</em> <code>:</code> <em>c</em> when false.
+</ul><a name="26129"></a>
+<h3>16.1.6    The Conditional Operator ?&#32;:</h3>
+<a name="26130"></a>
+Suppose that <em>b</em> and <em>c</em> are expressions that are not boolean-valued.<p>
+<ul><a name="26131"></a>
+<li>V is [un]assigned after <em>a</em> <code>?</code> <em>b</em> <code>:</code> <em>c </em>iff V is [un]assigned after <em>b</em> and V is [un]assigned after <em>c.</em>
+<a name="26134"></a>
+<li>V is [un]assigned before <em>a</em> iff V is [un]assigned before <em>a</em> <code>?</code> <em>b</em> <code>:</code> <em>c</em>.
+<a name="26135"></a>
+<li>V is [un]assigned before <em>b </em>iff V is [un]assigned after <em>a</em> when true.
+<a name="26136"></a>
+<li>V is [un]assigned before <em>c </em>iff V is [un]assigned after <em>a</em> when false.
+</ul><a name="26150"></a>
+<h3>16.1.7    Assignment Expressions</h3>
+<a name="26151"></a>
+Consider an assignment expression <em>a</em> <code>=</code> <em>b</em>, <em>a</em> <code>+=</code> <em>b</em>, <em>a</em> <code>-=</code> <em>b</em>, <em>a</em> <code>*=</code> <em>b</em>, <em>a</em> <code>/=</code> <em>b</em>, <em>a</em> <code>%=</code> <em>b</em>, <em>a</em> <code>&lt;&lt;=</code> <em>b</em>, <em>a</em> <code>&gt;&gt;=</code> <em>b</em>, <em>a</em> <code>&gt;&gt;&gt;=</code> <em>b</em>, <em>a</em> <code>&amp;=</code> <em>b</em>, <em>a</em> <code>|=</code> <em>b</em>, or <em>a</em> <code>^=</code> <em>b</em>.<p>
+<ul><a name="26152"></a>
+<li>V is definitely assigned after the assignment expression iff either <em>a</em> is V or V is definitely assigned after <em>b</em>.
+<a name="54335"></a>
+<li>V is definitely unassigned after the assignment expression iff <em>a</em> is not V and V is definitely unassigned after <em>b</em>.
+<a name="54321"></a>
+<li>V is [un]assigned before <em>a</em> iff V is [un]assigned before the assignment expression.
+<a name="54322"></a>
+<li>V is [un]assigned before <em>b</em> iff V is [un]assigned after <em>a</em>.
+<a name="58763"></a>
+Note that if <em>a</em> is V and V is not definitely assigned before a compound assignment such as <em>a</em> <code>&amp;=</code> <em>b</em>, then a compile-time error will necessarily occur. The first rule for definite assignment stated above includes the disjunct "<em>a</em> is V" even for compound assignment expressions, not just simple assignments, so that V will be considered to have been definitely assigned at later points in the code. Including the disjunct "<em>a</em> is V" does not affect the binary decision as to whether a program is acceptable or will result in a compile-time error, but it affects <em>how many</em> different points in the code may be regarded as erroneous, and so in practice it can improve the quality of error reporting. A similar remark applies to the inclusion of the conjunct "<em>a</em> is not V" in the first rule for definite unassignment stated above.<p>
+</ul><a name="55712"></a>
+If the assignment expression is boolean-valued, then these rules also apply:<p>
+<ul><a name="55715"></a>
+<li>V is [un]assigned after the assignment expression when true iff V is [un]assigned after the assignment expression.
+<a name="55727"></a>
+<li>V is [un]assigned after the assignment expression when false iff V is [un]assigned after the assignment expression.
+</ul><a name="54323"></a>
+<h3>16.1.8    Operators ++ and --</h3>
+<ul><a name="26156"></a>
+<li>V is definitely assigned after <code>++</code>a, <code>--</code>a, <em>a</em><code>++</code>, or <em>a</em><code>--</code> iff either <em>a</em> is V or V is definitely assigned after the operand expression.
+<a name="55698"></a>
+<li>V is definitely unassigned after <code>++</code>a, <code>--</code>a, <em>a</em><code>++</code>, or <em>a</em><code>--</code> iff <em>a</em> is not V and V is definitely unassigned after the operand expression.
+<a name="55699"></a>
+<li>V is [un]assigned before <em>a</em> iff V is [un]assigned before <code>++</code>a, <code>--</code>a, <em>a</em><code>++</code>, or <em>a</em><code>--</code>. 
+</ul><a name="26158"></a>
+<h3>16.1.9    Other Expressions</h3>
+<a name="26159"></a>
+If an expression is not a boolean constant expression, and is not a preincrement expression <code>++</code>a, predecrement expression <code>--</code>a, postincrement expression <em>a</em><code>++</code>, postdecrement expression <em>a</em><code>--</code>, logical complement expression <code>!</code>a, conditional-and expression <em>a</em> &#32;<code>&amp;&amp;</code> <em>b</em>, conditional-or expression <em>a</em> <code>||</code> <em>b</em>, conditional expression <em>a</em> <code>?</code> <em>b</em> <code>:</code> <em>c</em>, or assignment expression, then the following rules apply:<p>
+<ul><a name="26160"></a>
+<li>If the expression has no subexpressions, V is [un]assigned after the expression iff V is [un]assigned before the expression. This case applies to literals, names, <code>this</code> (both qualified and unqualified), unqualified class instance creation expressions with no arguments, initialized array creation expressions whose initializers contain no expressions, unqualified superclass field access expressions, named method invocations with no arguments, and unqualified superclass method invocations with no arguments.
+<a name="26161"></a>
+<li>If the expression has subexpressions, V is [un]assigned after the expression iff V is [un]assigned after its rightmost immediate subexpression.
+</ul><a name="26162"></a>
+There is a piece of subtle reasoning behind the assertion that a variable V can be known to be definitely unassigned after a method invocation. Taken by itself, at face value and without qualification, such an assertion is not always true, because an invoked method can perform assignments. But it must be remembered that, for the purposes of the Java programming language, the concept of definite unassignment is applied <em>only</em> to blank <code>final</code> variables. If V is a blank <code>final</code> local variable, then only the method to which its declaration belongs can perform assignments to V. If V is a blank <code>final</code> field, then only a constructor or an initializer for the class containing the declaration for V can perform assignments to V; no method can perform assignments to V. Finally, explicit constructor invocations <a href="classes.doc.html#78435">(&#167;8.8.5)</a> are handled specially <a href="defAssign.doc.html#56210">(&#167;16.8)</a>; although they are syntactically similar to expression statements containing method invocations, they are not expression statements and therefore the rules of this section do not apply to explicit constructor invocations.<p>
+<a name="54430"></a>
+For any immediate subexpression <em>y</em> of an expression <em>x</em>, V is [un]assigned before <em>y</em> iff one of the following situations is true:<p>
+<ul><a name="54364"></a>
+<li><em>y</em> is the leftmost immediate subexpression of <em>x</em> and V is [un]assigned before <em>x</em>.
+<a name="26163"></a>
+<li><em>y</em> is the right-hand operand of a binary operator and V is [un]assigned after the left-hand operand.
+<a name="26164"></a>
+<li><em>x</em> is an array access, <em>y</em> is the subexpression within the brackets, and V is [un]assigned after the subexpression before the brackets.
+<a name="26165"></a>
+<li><em>x</em> is a primary method invocation expression, <em>y</em> is the first argument expression in the method invocation expression, and V is [un]assigned after the primary expression that computes the target object.
+<a name="26166"></a>
+<li><em>x</em> is a method invocation expression or a class instance creation expression; <em>y</em> is an argument expression, but not the first; and V is [un]assigned after the argument expression to the left of <em>y</em>.
+<a name="56068"></a>
+<li>x is a qualified class instance creation expression, y is the first argument expression in the class instance creation expression, and V is [un]assigned after the primary expression that computes the qualifying object.
+<a name="55799"></a>
+<li><em>x</em> is an array instance creation expression; <em>y</em> is a dimension expression, but not the first; and V is [un]assigned after the dimension expression to the left of <em>y</em>.
+<a name="56890"></a>
+<li><em>x</em> is an array instance creation expression initialized via an array initializer; <em>y</em> is the array initializer in <em>x</em>; and <em>V</em> is [un]assigned after the dimension expression to the left of <em>y</em>.
+</ul><a name="55800"></a>
+<h2>16.2    Definite Assignment and Statements</h2>
+<a name="26169"></a>
+<h3>16.2.1    Empty Statements</h3>
+<ul><a name="26170"></a>
+<li>V is [un]assigned after an empty statement iff it is [un]assigned before the empty statement.
+</ul><a name="26171"></a>
+<h3>16.2.2    Blocks</h3>
+<ul><a name="26172"></a>
+<li>A blank final member field V is definitely assigned (and moreover is not definitely unassigned) before the block that is the body of any method in the scope of V.
+<a name="57736"></a>
+<li>A local variable V is definitely unassigned (and moreover is not definitely assigned) before the block that is the body of the constructor, method, instance initializer or static initializer that declares V.
+<a name="63401"></a>
+<li>Let C be a class declared within the scope of V. Then:
+<ul>
+<a name="63402"></a>
+<li>V is definitely assigned before the block that is the body of any constructor, method, instance initializer or static initializer declared in C iff V is definitely assigned before the declaration of C. 
+<a name="63466"></a>
+Note that there are no rules that would allow us to conclude that V is definitely unassigned before the block that is the body of any constructor, method, instance initializer or static initializer declared in C. We can informally conclude that V is not definitely unassigned before the block that is the body of any constructor, method, instance initializer or static initializer declared in C, but there is no need for such a rule to be stated explicitly.<p>
+</ul>
+<a name="57731"></a>
+<li>V is [un]assigned after an empty block iff it is [un]assigned before the empty block.
+<a name="26173"></a>
+<li>V is [un]assigned after a nonempty block iff it is [un]assigned after the last statement in the block.
+<a name="26174"></a>
+<li>V is [un]assigned before the first statement of the block iff it is [un]assigned before the block.
+<a name="26175"></a>
+<li>V is [un]assigned before any other statement S of the block iff it is [un]assigned after the statement immediately preceding S in the block.
+</ul><a name="26177"></a>
+<h3>16.2.3    Local Class Declaration Statements</h3>
+<ul><a name="63252"></a>
+<li>V is [un]assigned after a local class declaration statement iff it is [un]assigned before the local class declaration statement.
+</ul><a name="63257"></a>
+<h3>16.2.4    Local Variable Declaration Statements</h3>
+<ul><a name="26178"></a>
+<li>V is [un]assigned after a local variable declaration statement that contains no variable initializers iff it is [un]assigned before the local variable declaration statement. 
+<a name="26179"></a>
+<li>V is definitely assigned after a local variable declaration statement that contains at least one variable initializer iff either it is definitely assigned after the last variable initializer in the local variable declaration statement or the last variable initializer in the declaration is in the declarator that declares V.
+<a name="55859"></a>
+<li>V is definitely unassigned after a local variable declaration statement that contains at least one variable initializer iff it is definitely unassigned after the last variable initializer in the local variable declaration statement and the last variable initializer in the declaration is not in the declarator that declares V.
+<a name="26180"></a>
+<li>V is [un]assigned before the first variable initializer iff it is [un]assigned before the local variable declaration statement.
+<a name="26181"></a>
+<li>V is definitely assigned before any variable initializer <em>e</em> other than the first one in the local variable declaration statement iff either V is definitely assigned after the variable initializer to the left of <em>e </em>or the initializer expression to the left of <em>e </em>is in the declarator that declares V.
+<a name="55868"></a>
+<li>V is definitely unassigned before any variable initializer <em>e</em> other than the first one in the local variable declaration statement iff V is definitely unassigned after the variable initializer to the left of <em>e </em>and the initializer expression to the left of <em>e </em>is not in the declarator that declares V.
+</ul><a name="26182"></a>
+<h3>16.2.5    Labeled Statements</h3>
+<ul><a name="26183"></a>
+<li>V is [un]assigned after a labeled statement L<code>:</code>S (where L is a label) iff V is [un]assigned after S and V is [un]assigned before every <code>break</code> statement that may exit the labeled statement L<code>:</code>S.
+<a name="26184"></a>
+<li>V is [un]assigned before S iff V is [un]assigned before L<code>:</code>S.
+</ul><a name="26185"></a>
+<h3>16.2.6    Expression Statements</h3>
+<ul><a name="26186"></a>
+<li>V is [un]assigned after an expression statement <em>e</em><code>;</code> iff it is [un]assigned after <em>e</em>.
+<a name="26187"></a>
+<li>V is [un]assigned before <em>e</em> iff it is [un]assigned before <em>e</em><code>;</code>.
+</ul><a name="26188"></a>
+<h3>16.2.7    <code>if</code> Statements</h3>
+<a name="55876"></a>
+The following rules apply to a statement <code>if</code> <code>(</code>e<code>)</code> S:<p>
+<ul><a name="26189"></a>
+<li>V is [un]assigned after <code>if</code> <code>(</code>e<code>)</code> S iff V is [un]assigned after S and V is [un]assigned after <em>e</em> when false.
+<a name="26190"></a>
+<li>V is [un]assigned before <em>e</em> iff V is [un]assigned before <code>if</code> <code>(</code>e<code>)</code> S.
+<a name="55897"></a>
+<li>V &#32;is [un]assigned before S iff V is [un]assigned after <em>e</em> when true.
+</ul><a name="55889"></a>
+The following rules apply to a statement <code>if</code> <code>(</code>e<code>)</code> S <code>else</code> T:<p>
+<ul><a name="55890"></a>
+<li>V is [un]assigned after <code>if</code> <code>(</code>e<code>)</code> S <code>else</code> T iff V is [un]assigned after S and V is [un]assigned after T.
+<a name="26192"></a>
+<li>V is [un]assigned before <em>e </em>iff V is [un]assigned before <code>if</code> <code>(</code>e<code>)</code> S <code>else</code> T.
+<a name="55898"></a>
+<li>V is [un]assigned before S iff V is [un]assigned after <em>e</em> when true.
+<a name="55899"></a>
+<li>V is [un]assigned before T iff V is [un]assigned after <em>e</em> when false.
+</ul><a name="26193"></a>
+<h3>16.2.8    <code>switch</code> Statements</h3>
+<ul><a name="26194"></a>
+<li>V is [un]assigned after a <code>switch</code> statement iff all of the following are true:
+<ul>
+<a name="55305"></a>
+<li>Either there is a <code>default</code> label in the <code>switch</code> block or V is [un]assigned after the switch expression.
+<a name="55309"></a>
+<li>Either there are no switch labels in the <code>switch</code> block that do not begin a block-statement-group (that is, there are no switch labels immediately before the "<code>}</code>" that ends the switch block) or V is [un]assigned after the switch expression.
+<a name="55289"></a>
+<li>Either the <code>switch</code> block contains no block-statement-groups or V is [un]assigned after the last block-statement of the last block-statement-group.
+<a name="26196"></a>
+<li>V is [un]assigned before every <code>break</code> statement that may exit the <code>switch</code> statement.
+</ul>
+<a name="26197"></a>
+<li>V is [un]assigned before the switch expression iff V is [un]assigned before the <code>switch</code> statement.
+</ul><a name="55368"></a>
+If a switch block contains at least one block-statement-group, then the following rules also apply:<p>
+<ul><a name="26198"></a>
+<li>V is [un]assigned before the first block-statement of the first block-statement-group in the switch block iff V is [un]assigned after the switch expression.
+<a name="55390"></a>
+<li>V is [un]assigned before the first block-statement of any block-statement-group other than the first iff V is [un]assigned after the switch expression and V is [un]assigned after the last block-statement of the preceding block-statement-group.
+<a name="55405"></a>
+<li>V is [un]assigned before any block-statement other than the first of any block-statement-group in the switch block iff V is [un]assigned after the last block-statement of the preceding block-statement-group.
+</ul><a name="44047"></a>
+<h3>16.2.9    <code>while</code> Statements</h3>
+<ul><a name="44048"></a>
+<li>V is [un]assigned after <code>while</code> <code>(</code>e<code>)</code> S iff V is [un]assigned after <em>e</em> when false and V is [un]assigned before every <code>break</code> statement for which the <code>while</code> statement is the break target.
+<a name="26203"></a>
+<li>V is definitely assigned before <em>e</em> iff V is definitely assigned before the <code>while</code> statement.
+<a name="59413"></a>
+<li>V is definitely unassigned before <em>e</em> iff all of the following conditions hold:
+<ul>
+<a name="59414"></a>
+<li>V is definitely unassigned before the <code>while</code> statement.
+<a name="59416"></a>
+<li>Assuming V is definitely unassigned before <em>e,</em> V is definitely unassigned after S.
+<a name="59417"></a>
+<li>Assuming V is definitely unassigned before <em>e</em>, V is definitely unassigned before every <code>continue</code> statement for which the <code>while</code> statement is the continue target.
+</ul>
+<a name="59400"></a>
+<li>V is [un]assigned before S iff V is [un]assigned after <em>e</em> when true. 
+</ul><a name="59408"></a>
+<h3>16.2.10    <code>do</code> Statements</h3>
+<ul><a name="59546"></a>
+<li>V is [un]assigned after <code>do</code> S <code>while</code> <code>(</code>e<code>);</code> iff V is [un]assigned after <em>e</em> when false and V is [un]assigned before every <code>break</code> statement for which the <code>do</code> statement is the break target.
+<a name="59547"></a>
+<li>V is definitely assigned before S iff V is definitely assigned before the <code>do</code> statement.
+<a name="59548"></a>
+<li>V is definitely unassigned before S iff all of the following conditions hold:
+<ul>
+<a name="59495"></a>
+<li>V is definitely unassigned before the <code>do</code> statement.
+<a name="59518"></a>
+<li>Assuming V is definitely unassigned before S, V is definitely unassigned after <em>e</em> when true.
+</ul>
+<a name="58125"></a>
+<li>V is [un]assigned before <em>e</em> iff V is [un]assigned after S and V is [un]assigned before every <code>continue</code> statement for which the <code>do</code> statement is the continue target.
+</ul><a name="58405"></a>
+<h3>16.2.11    <code>for</code> Statements</h3>
+<ul><a name="58413"></a>
+<li>V is [un]assigned after a <code>for</code> statement iff both of the following are true:
+<ul>
+<a name="26211"></a>
+<li>Either a condition expression is not present or V is [un]assigned after the condition expression when false.
+<a name="26212"></a>
+<li>V is [un]assigned before every <code>break</code> statement for which the <code>for</code> statement is the break target.
+</ul>
+<a name="26213"></a>
+<li>V is [un]assigned before the initialization part of the <code>for</code> statement iff V is [un]assigned before the <code>for</code> statement.
+<a name="59714"></a>
+<li>V is definitely assigned before the condition part of the <code>for</code> statement iff V is definitely assigned after the initialization part of the <code>for</code> statement.
+<a name="59463"></a>
+<li>V is definitely unassigned before the condition part of the <code>for</code> statement iff all of the following conditions hold:
+<ul>
+<a name="60483"></a>
+<li>V is definitely unassigned after the initialization part of the <code>for</code> statement.
+<a name="60484"></a>
+<li>Assuming V is definitely unassigned before the condition part of the <code>for</code> statement<em>,</em> V is definitely unassigned after the contained statement.
+<a name="59469"></a>
+<li>Assuming V is definitely unassigned before the contained statement<em>,</em>  V is definitely unassigned before every <code>continue</code> statement for which the <code>for</code> statement is the continue target.
+</ul>
+<a name="26215"></a>
+<li>V is [un]assigned before the contained statement iff either of the following is true:
+<ul>
+<a name="26216"></a>
+<li>A condition expression is present and V is [un]assigned after the condition expression when true.
+<a name="26217"></a>
+<li>No condition expression is present and V is [un]assigned after the initialization part of the <code>for</code> statement.
+</ul>
+<a name="26218"></a>
+<li>V is [un]assigned before the incrementation part of the <code>for</code> statement iff V is [un]assigned after the contained statement and V is [un]assigned before every <code>continue</code> statement for which the <code>for</code> statement is the continue target.
+</ul><a name="26219"></a>
+<h4>16.2.11.1    Initialization Part</h4>
+<ul><a name="26220"></a>
+<li>If the initialization part of the <code>for</code> statement is a local variable declaration statement, the rules of <a href="defAssign.doc.html#63257">&#167;16.2.4</a> apply.
+<a name="26224"></a>
+<li>Otherwise, if the initialization part is empty, then V is [un]assigned after the initialization part iff V is [un]assigned before the initialization part.
+<a name="26225"></a>
+<li>Otherwise, three rules apply:
+<ul>
+<a name="26226"></a>
+<li>V is [un]assigned after the initialization part iff V is [un]assigned after the last expression statement in the initialization part.
+<a name="26227"></a>
+<li>V is [un]assigned before the first expression statement in the initialization part iff V is [un]assigned before the initialization part.
+<a name="26228"></a>
+<li>V is [un]assigned before an expression statement E other than the first in the initialization part iff V is [un]assigned after the expression statement immediately preceding E.
+</ul>
+</ul><a name="26229"></a>
+<h4>16.2.11.2    Incrementation Part</h4>
+<ul><a name="26230"></a>
+<li>If the incrementation part of the <code>for</code> statement is empty, then V is [un]assigned after the incrementation part iff V is [un]assigned before the incrementation part.
+<a name="26231"></a>
+<li>Otherwise, three rules apply:
+<ul>
+<a name="26232"></a>
+<li>V is [un]assigned after the incrementation part iff V is [un]assigned after the last expression statement in the incrementation part.
+<a name="26233"></a>
+<li>V is [un]assigned before the first expression statement in the incrementation part iff V is [un]assigned before the incrementation part.
+<a name="26234"></a>
+<li>V is [un]assigned before an expression statement E other than the first in the incrementation part iff V is [un]assigned after the expression statement immediately preceding E.
+</ul>
+</ul><a name="26235"></a>
+<h3>16.2.12    <code>break, continue, return,</code> and <code>throw</code> Statements</h3>
+<ul><a name="26236"></a>
+<li>By convention, we say that V is [un]assigned after any <code>break</code>, <code>continue</code>, <code>return</code>, or <code>throw</code> statement. The notion that a variable is "[un]assigned after" a statement or expression really means "is [un]assigned after the statement or expression completes normally". Because a <code>break</code>, <code>continue</code>, <code>return</code>, or <code>throw</code> statement never completes normally, it vacuously satisfies this notion.
+<a name="26237"></a>
+<li>In a <code>return</code> statement with an expression <em>e </em>or a <code>throw</code> statement with an expression <em>e</em>, V is [un]assigned before <em>e</em> iff V is [un]assigned before the <code>return</code> or <code>throw</code> statement.
+</ul><a name="26238"></a>
+<h3>16.2.13    <code>synchronized</code> Statements</h3>
+<ul><a name="26239"></a>
+<li>V is [un]assigned after <code>synchronized</code> <code>(</code>e<code>)</code> S iff V is [un]assigned after S.
+<a name="26240"></a>
+<li>V is [un]assigned before <em>e</em> iff V is [un]assigned before the statement <code>synchronized</code> <code>(</code>e<code>)</code> S.
+<a name="26241"></a>
+<li>V is [un]assigned before S iff V is [un]assigned after <em>e</em>.
+</ul><a name="26242"></a>
+<h3>16.2.14    <code>try</code> Statements</h3>
+<a name="54833"></a>
+These rules apply to every <code>try</code> statement, whether or not it has a <code>finally</code> block:<p>
+<ul><a name="54837"></a>
+<li>V is [un]assigned before the <code>try</code> block iff V is [un]assigned before the <code>try</code> statement.
+<a name="54838"></a>
+<li>V is definitely assigned before a <code>catch</code> block iff V is definitely assigned before the <code>try</code> block.
+<a name="54839"></a>
+<li>V is definitely unassigned before a <code>catch</code> block iff V is definitely unassigned after the <code>try</code> block and V is definitely unassigned before every <code>return</code> statement that belongs to the <code>try</code> block, every <code>throw</code> statement that belongs to the <code>try</code> block, every <code>break</code> statement that belongs to the <code>try</code> block and whose break target contains (or is) the <code>try</code> statement, and every <code>continue</code> statement that belongs to the <code>try</code> block and whose continue target contains the <code>try</code> statement.
+</ul><a name="54752"></a>
+If a <code>try</code> statement does not have a <code>finally</code> block, then this rule also applies:<p>
+<ul><a name="26243"></a>
+<li>V is [un]assigned after the <code>try</code> statement iff V is [un]assigned after the <code>try</code> block and V is [un]assigned after every <code>catch</code> block in the try statement.
+</ul><a name="54754"></a>
+If a <code>try</code> statement does have a <code>finally</code> block, then these rules also apply:<p>
+<ul><a name="54755"></a>
+<li>V is definitely assigned after the <code>try</code> statement iff at least one of the following is true:
+<ul>
+<a name="54756"></a>
+<li>V is definitely assigned after the try block and V is definitely assigned after every <code>catch</code> block in the try statement.
+<a name="54757"></a>
+<li>V is definitely assigned after the <code>finally</code> block.
+<a name="54760"></a>
+<li>V is definitely unassigned after a <code>try</code> statement iff V is definitely unassigned after the <code>finally</code> block.
+</ul>
+<a name="54763"></a>
+<li>V is definitely assigned before the <code>finally</code> block iff V is definitely assigned before the <code>try</code> statement.
+<a name="57722"></a>
+<li>V is definitely unassigned before the <code>finally</code> block iff V is definitely unassigned after the <code>try</code> block and V is definitely unassigned before every <code>return</code> statement that belongs to the <code>try</code> block, every <code>throw</code> statement that belongs to the <code>try</code> block, every <code>break</code> statement that belongs to the <code>try</code> block and whose break target contains (or is) the <code>try</code> statement, and every <code>continue</code> statement that belongs to the <code>try</code> block and whose continue target contains the <code>try</code> statement and V is definitely unassigned after every <code>catch</code> block of the <code>try</code> statement.
+</ul><a name="57723"></a>
+<h2>16.3    Definite Assignment and Parameters</h2>
+<ul><a name="57724"></a>
+<li>A formal parameter V of a method or constructor is definitely assigned (and moreover is not definitely unassigned) before the body of the method or constructor.
+<a name="57680"></a>
+<li>An exception parameter V of a <code>catch</code> clause is definitely assigned (and moreover is not definitely unassigned) before the body of the <code>catch</code> clause.
+</ul><a name="57667"></a>
+<h2>16.4    Definite Assignment and Array Initializers</h2>
+<ul><a name="55204"></a>
+<li>V is [un]assigned after an empty array initializer iff it is [un]assigned before the empty array initializer.
+<a name="55205"></a>
+<li>V is [un]assigned after a nonempty array initializer iff it is [un]assigned after the last variable initializer in the array initializer.
+<a name="55206"></a>
+<li>V is [un]assigned before the first variable initializer of the array initializer iff it is [un]assigned before the array initializer.
+<a name="68506"></a>
+<li>V is [un]assigned before any other variable initializer I of the array initializer iff it is [un]assigned after the variable initializer to the left of I in the array initializer.
+</ul><a name="68509"></a>
+<h2>16.5    Definite Assignment and Anonymous Classes</h2>
+<ul><a name="68513"></a>
+<li>V is definitely assigned before an anonymous class declaration <a href="expressions.doc.html#252986">(&#167;15.9.5)</a> that is declared within the scope of V iff V is definitely assigned after the class instance creation expression that declares the anonymous class.
+</ul><a name="63649"></a>
+<h2>16.6    Definite Assignment and Member Types</h2>
+<a name="63313"></a>
+Let C be a class declared within the scope of V. Then:<p>
+<ul><a name="63315"></a>
+<li>V is definitely assigned before a member type (<a href="classes.doc.html#246026">&#167;8.5</a>, <a href="interfaces.doc.html#252566">&#167;9.5</a>) declaration of C iff V is definitely assigned before the declaration of C. 
+</ul><a name="63310"></a>
+<h2>16.7    Definite Assignment and Static Initializers</h2>
+<a name="64587"></a>
+Let C be a class declared within the scope of V. Then:<p>
+<ul><a name="64588"></a>
+<li>V is definitely assigned before a static variable initializer of C iff V is definitely assigned before the declaration of C. 
+<a name="64589"></a>
+Note that there are no rules that would allow us to conclude that V is definitely unassigned before a static variable initializer. We can informally conclude that V is not definitely unassigned before any static variable initializer of C, but there is no need for such a rule to be stated explicitly.<p>
+</ul><a name="63675"></a>
+Let C be a class, and let V be a blank <code>final</code> <code>static</code> member field of C, declared in C. Then: <p>
+<ul><a name="56222"></a>
+<li>V is definitely unassigned (and moreover is not definitely assigned) before the leftmost <code>static</code> initializer or <code>static</code> variable initializer of C.
+<a name="63682"></a>
+<li>V is [un]assigned before a <code>static</code> initializer or <code>static</code> variable initializer of C other than the leftmost iff V is [un]assigned after the preceding <code>static</code> initializer or <code>static</code> variable initializer of C.
+</ul><a name="59726"></a>
+Let C be a class, and let V be a blank <code>final</code> <code>static </code>member field of C, declared in a superclass of C. Then: <p>
+<ul><a name="59727"></a>
+<li>V is definitely assigned (and moreover is not definitely unassigned) before the block that is the body of a static initializer of C.
+<a name="59728"></a>
+<li>V is definitely assigned (and moreover is not definitely unassigned) before every static variable initializer of C.
+</ul><a name="56210"></a>
+<h2>16.8    Definite Assignment, Constructors, and Instance Initializers</h2>
+<a name="64579"></a>
+Let C be a class declared within the scope of V. Then:<p>
+<ul><a name="64580"></a>
+<li>V is definitely assigned before an instance variable initializer of C iff V is definitely assigned before the declaration of C. 
+<a name="64581"></a>
+Note that there are no rules that would allow us to conclude that V is definitely unassigned before an instance variable initializer. We can informally conclude that V is not definitely unassigned before any instance variable initializer of C, but there is no need for such a rule to be stated explicitly.<p>
+</ul><a name="64573"></a>
+Let C be a class, and let V be a blank <code>final</code> non-<code>static</code> member field of C, declared in C. Then: <p>
+<ul><a name="56362"></a>
+<li>V is definitely unassigned (and moreover is not definitely assigned) before the leftmost instance initializer or instance variable initializer of C.
+<a name="63691"></a>
+<li>V is [un]assigned before an instance initializer or instance variable initializer of C other than the leftmost iff V is [un]assigned after the preceding instance initializer or instance variable initializer of C.
+</ul><a name="56366"></a>
+The following rules hold within the constructors of class C: <p>
+<ul><a name="54510"></a>
+<li>V is definitely assigned (and moreover is not definitely unassigned) after an alternate constructor invocation.
+<a name="57625"></a>
+<li>V is definitely unassigned (and moreover is not definitely assigned) before an explicit or implicit superclass constructor invocation.
+<a name="56418"></a>
+<li>If C has no instance initializers or instance variable initializers, then V is not definitely assigned (and moreover is definitely unassigned) after an explicit or implicit superclass constructor invocation.
+<a name="56509"></a>
+<li>If C has at least one instance initializer or instance variable initializer then V is [un]assigned after an explicit or implicit superclass constructor invocation iff V is [un]assigned after the rightmost instance initializer or instance variable initializer of C.
+</ul><a name="57776"></a>
+Let C be a class, and let V be a blank <code>final</code> member field of C, declared in a superclass of C. Then: <p>
+<ul><a name="57782"></a>
+<li>V is definitely assigned (and moreover is not definitely unassigned) before the block that is the body of a constructor, or instance initializer of C.
+<a name="57787"></a>
+<li>V is definitely assigned (and moreover is not definitely unassigned) before every instance variable initializer of C.
+</ul>
+
+<hr>
+<table border="0" width="100%">
+<tr>
+<td><a href="jTOC.doc.html">Contents</a> | <a href="expressions.doc.html">Prev</a> | <a href="memory.doc.html">Next</a> | <a href="jIX.fm.html">Index</a></td>
+<td align=right><i>Java Language Specification</i><br>
+<font size="-1">Second Edition</font></td></tr></table>
+<i><a href="jcopyright.doc.html">Copyright</a> &#169 2000 Sun Microsystems, Inc.
+All rights reserved</i>
+<br>
+Please send any comments or corrections to <a href="mailto:jls@java.sun.com">jls@java.sun.com</a>
+</font>
+</body></html>
