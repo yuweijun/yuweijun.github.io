@@ -1,27 +1,21 @@
 #!/usr/bin/env ruby
-
 # converts vim chinese documentation to simple html
 # author: yuweijun@live.com
 # date: Fri, 18 Dec 2015 20:34:44 +0800
-
 def mylength str
     length = str.length
     str.unpack("U*").each do |char|
       length = length + 1 if char > 255
     end
-
     length
 end
-
 def myexpand line
   tabstop = 8
   line = line.gsub(/([^\t]*)(\t+)/) do |match|
     $1 + (' ' * (tabstop * $2.length - (mylength($1) % tabstop)))
   end
-
   line
 end
-
 def mark_anchors anchors, file
   filename = file.sub(/\.cnx/, '')
   outfile = filename + '.html'
@@ -31,15 +25,12 @@ def mark_anchors anchors, file
     end
   end
 end
-
 def vim2html anchors, file
   filename = file.sub(/\.cnx/, '')
   outfile = filename + '.html'
-
   lines = []
   IO.foreach(file) do |line|
     line = myexpand(line)
-
     if ( /^=+\s*$/ =~ line )
       line = "\n</div>\n\n<hr class=\"doubleline\" />\n<div class=\"pre\">\n";
     elsif ( /^\s*-+\s*$/ =~ line )
@@ -54,27 +45,25 @@ def vim2html anchors, file
       line = line.sub(/(\s>)$/, "\n").sub(/^<(\s{3,})/, '\1')
       line = line.gsub(/>/, '&gt;').gsub(/</, '&lt;')
     end
-
     lines << line
   end
-
-  document = lines.join.gsub(/\n{3,}/, "\n\n")
-  document = document.gsub(/(\s+vim\w*\s+?)/, '<code class="vim">\1</code>')
+  document = lines.join.gsub(/\n{3,}/,                   "\n\n")
+  document = document.gsub(/(\s+vim\w*\s+?)/,            '<code class="vim">\1</code>')
+  document = document.gsub(/(&lt;[-\w]+&gt;)/,           '<code class="keys">\1</code>')
+  document = document.gsub(/(CTRL-.)/,                   '<code class="ctrl-keys">\1</code>')
   document = document.gsub(/(\s+:[\w.,!^\/\[\]\(\)$]+)/, '<code class="help">\1</code>')
-  document = document.gsub(/\*([\w.\-]*?)\*/, '*<span id="\1" class="anchor">\1</span>*')
-
+  document = document.gsub(/\*([\w.\-]*?)\*/,            '*<span id="\1" class="anchor">\1</span>*')
   document = document.gsub(/\|(\w\S+?)\|/) do |m|
     anchor = anchors[$1] || '#'
     "|<a href=\"#{anchor}\">#{$1}</a>|"
   end
-
   html = <<EOF
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>vim中文手册</title>
-    <meta name="description" content="vim7.4中文帮助文档">
+    <meta name="description" content="vim8.0 中文帮助文档">
     <meta name="viewport" content="width=device-width">
     <link rel="stylesheet" href="vim.css" type="text/css">
 </head>
@@ -86,10 +75,12 @@ def vim2html anchors, file
         </div>
     </header>
     <div class="page-content">
-        <h2 class="vim-chapter">Vim documentation: #{filename}</h2>
-        <div class="vim-document">
-            <div class="pre">
+        <div class="wrap">
+            <h2 class="vim-chapter">Vim documentation: #{filename}</h2>
+            <div class="vim-document">
+                <div class="pre">
 #{document}
+                </div>
             </div>
         </div>
     </div>
@@ -104,22 +95,16 @@ def vim2html anchors, file
 </body>
 </html>
 EOF
-
   File.open(outfile, "w") do |io|
     io.puts html
   end
-
 end
-
 anchors = {}
 Dir.glob('*.cnx').each_with_index do |file, index|
   mark_anchors(anchors, file)
 end
-
 Dir.glob('*.cnx').each_with_index do |file, index|
   puts "#{index + 1}. processing #{file} ...\n";
   vim2html(anchors, file)
 end
-
 puts "done.\n"
-
