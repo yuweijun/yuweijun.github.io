@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>~/github.com/yuweijun/yuweijun.github.io/vim-zh/usr_04.cnx.html</title>
+<meta name="Generator" content="Vim/8.2">
+<meta name="plugin-version" content="vim8.1_v2">
+<meta name="syntax" content="help">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,prevent_copy=,use_input_for_pc=fallback">
+<meta name="colorscheme" content="molokai">
+<style>
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #d0d0d0; background-color: #121212; }
+body { font-family: monospace; color: #d0d0d0; background-color: #121212; }
+* { font-size: 1em; }
+.String { color: #afaf87; }
+.Type { color: #5fd7ff; }
+.PreProc { color: #87ff00; }
+.Identifier { color: #ff8700; }
+.Comment { color: #5f5f5f; }
+.Special { color: #5fd7ff; }
+.Ignore { color: #808080; background-color: #080808; padding-bottom: 1px; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="Ignore">*</span><span class="String">usr_04.txt</span><span class="Ignore">*</span>	For <span class="Identifier">Vim version 8.0.</span>  最近更新: 2017年8月
+
+		     VIM 用户手册 - by Bram Moolenaar
+		     译者: Nek_in <span class="String"><a href="http://vimcdoc.sf.net">http://vimcdoc.sf.net</a></span>
+
+			     作小改动
+
+
+本章介绍几种修正和移动文本的方法，这包括三种修改文本的基本方法: 操作符－动作，
+可视模式以及文本对象。
+
+<span class="Ignore">|</span><span class="Identifier">04.1</span><span class="Ignore">|</span>	操作符与动作
+<span class="Ignore">|</span><span class="Identifier">04.2</span><span class="Ignore">|</span>	改变文本
+<span class="Ignore">|</span><span class="Identifier">04.3</span><span class="Ignore">|</span>	重复一个修改
+<span class="Ignore">|</span><span class="Identifier">04.4</span><span class="Ignore">|</span>	可视模式
+<span class="Ignore">|</span><span class="Identifier">04.5</span><span class="Ignore">|</span>	移动文本
+<span class="Ignore">|</span><span class="Identifier">04.6</span><span class="Ignore">|</span>	拷贝文本
+<span class="Ignore">|</span><span class="Identifier">04.7</span><span class="Ignore">|</span>	使用剪贴板
+<span class="Ignore">|</span><span class="Identifier">04.8</span><span class="Ignore">|</span>	文本对象
+<span class="Ignore">|</span><span class="Identifier">04.9</span><span class="Ignore">|</span>	替换模式
+<span class="Ignore">|</span><span class="Identifier">04.10</span><span class="Ignore">|</span>	结论
+
+下一章:  <span class="Ignore">|</span><span class="Identifier">usr_05.txt</span><span class="Ignore">|</span>  选项设置
+前一章:  <span class="Ignore">|</span><span class="Identifier">usr_03.txt</span><span class="Ignore">|</span>  移动
+  目录:  <span class="Ignore">|</span><span class="Identifier">usr_toc.txt</span><span class="Ignore">|</span>
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">04.1</span><span class="Ignore">*</span>	操作符与动作
+
+在第二章你已经学过使用 &quot;x&quot; 命令来删除一个字符以及通过计数前缀，例如 &quot;4x&quot; 去删
+除多个字符。
+    &quot;dw&quot; 命令删除一个单词。你可能认出来了，&quot;w&quot; 是词移动命令。实际上，&quot;d&quot; 命令
+后面可以跟任何 &quot;动作&quot; (motion) 命令，它会删除从当前位置到光标移动到的目标位置
+的全部内容。
+    例如 &quot;4w&quot; 命令能够向后移动四个单词。所以 &quot;d4w&quot; 命令删除 4 个单词。
+
+	<span class="PreProc">To err is human. To really foul up you need a computer.</span><span class="Ignore"> ~</span>
+			 ------------------&gt;
+				 d4w
+
+	<span class="PreProc">To err is human. you need a computer.</span><span class="Ignore"> ~</span>
+
+Vim 只删除从当前位置到 &quot;动作&quot; 把光标移动到的位置的前一个位置。这是因为 Vim 认
+为你可能不想删掉一个单词的第一个字符。如果你用 &quot;e&quot; 命令作为动作来移动到单词结
+尾，Vim 这时认为你是想删掉整个单词 (包括最后一个字符):
+
+	<span class="PreProc">To err is human. you need a computer.</span><span class="Ignore"> ~</span>
+			--------&gt;
+			   d2e
+
+	<span class="PreProc">To err is human. a computer.</span><span class="Ignore"> ~</span>
+
+是否包括光标所在的字符取决于你使用的移动命令。在参考手册中，当不包括这个字符
+时，称为 &quot;非包含的&quot; (exclusive)，而包括这个字符时，称为 &quot;包含的&quot; (inclusive)。
+
+&quot;$&quot; 命令移动到行尾。所以，&quot;d$&quot; 命令从当前的位置一直删除到本行行尾。这是一个
+&quot;包含的&quot; 命令，所以，这行的最后一个字符也会被删除:
+
+	<span class="PreProc">To err is human. a computer.</span><span class="Ignore"> ~</span>
+		       ------------&gt;
+			    d$
+
+	<span class="PreProc">To err is human</span><span class="Ignore"> ~</span>
+
+以上定义了一个命令组合模式: 操作符－动作。你首先输入一个操作符命令，例如，&quot;d&quot;
+就是一个删除操作符。然后你输入一个动作命令，例如 &quot;4l&quot; 或者 &quot;w&quot;。这种方法使你可
+以在任何你能越过的文本上执行各种操作。
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">04.2</span><span class="Ignore">*</span>	修改文本
+
+另一个操作符命令是 &quot;c&quot;，表示修改，change。它的作用方式与 &quot;d&quot; 操作符相似，只是
+完成后会切换到插入模式。例如，&quot;cw&quot; 修改一个词，更精确的说，它删除一个词，并切
+换到插入模式。
+
+	<span class="PreProc">To err is human</span><span class="Ignore"> ~</span>
+	   -------&gt;
+	     c2wbe<span class="Special">&lt;Esc&gt;</span>
+
+	<span class="PreProc">To be human</span><span class="Ignore"> ~</span>
+
+这里 &quot;c2wbe<span class="Special">&lt;Esc&gt;</span>&quot; 包括如下操作:
+
+	c	修改操作符
+	2w	移动两个单词的距离 (与操作符合起来，它删除两个单词并进入插入模
+		式)
+	be	插入 be 这个单词
+	<span class="Special">&lt;Esc&gt;</span>	切换回普通模式
+
+如果你留意，你会发现一个奇怪的地方: human 前面的空格没有被删除。有一句谚语说
+道: 任何问题都有一个简单，清楚但错误的回答。&quot;cw&quot; 命令就属于这种情况。c 操作符
+在很多地方都和 d 一样，但有一个例外，&quot;cw&quot;。它实际上象 &quot;ce&quot; 一样，删除到单词
+尾。这样单词后面的空格就不包括在内了。这要追溯到使用 Vi 的旧日子。由于很多人已
+经习惯了这种方式，这个不一致之处就留在 Vim 里了。
+
+
+更 多 的 修 改 命 令
+
+像 &quot;dd&quot; 可以删除一行一样，&quot;cc&quot; 修改一整行。但它会保留这一行的缩进 (前导空格)。
+
+&quot;d$&quot; 删除到行尾；&quot;c$&quot; 则修改到行尾。这相当于先用 &quot;d$&quot; 删除一行再用 &quot;a&quot; 启动插
+入模式，以便加入新的文字。
+
+
+快 捷 键
+
+有些 &quot;操作符－动作&quot; 命令由于经常被使用，所以被设置为单字符命令:
+
+	x  表示  dl  (删除当前光标下的字符)
+	X  表示  dh  (删除光标左边的字符)
+	D  表示  d$  (删除到行尾)
+	C  表示  c$  (修改到行尾)
+	s  表示  cl  (修改一个字符)
+	S  表示  cc  (修改一整行)
+
+
+在 什 么 地 方 加 入 计 数 前 缀
+
+命令 &quot;3dw&quot; 和 &quot;d3w&quot; 都是删除 3 个单词。如果你非要寻根问底，那么: &quot;3dw&quot; 表示删
+除一个单词 3 次，而 &quot;d3w&quot; 表示删除三个单词一次。这是一个没有分别的分别。实际上
+你可以放两个计数前缀，例如，&quot;3d2w&quot; 删除两个单词三次，共计六个单词。
+
+
+替 换 单 个 字 符
+
+&quot;r&quot; 命令不是操作符。它只是等你输入一个字符然后用这个字符替换当前光标上的字符。
+你可以用 &quot;cl&quot; 命令或者 &quot;s&quot; 命令完成相同的功能，但 &quot;r&quot; 命令不需要使用 <span class="Special">&lt;Esc&gt;</span> 退
+出插入状态:
+
+	<span class="PreProc">there is somerhing grong here</span><span class="Ignore"> ~</span>
+	rT	     rt    rw
+
+	<span class="PreProc">There is something wrong here</span><span class="Ignore"> ~</span>
+
+通过计数前缀，&quot;r&quot; 命令可以使多个字符被同一个字符替换，例如:
+
+	<span class="PreProc">There is something wrong here</span><span class="Ignore"> ~</span>
+			   5rx
+
+	<span class="PreProc">There is something xxxxx here</span><span class="Ignore"> ~</span>
+
+要用换行符替换一个字符可以用命令 &quot;r<span class="Special">&lt;Enter&gt;</span>&quot;。这会删除一个字符并插入一个换行
+符。在这里使用计数前缀会删除多个字符但只插入一个换行符: &quot;4r<span class="Special">&lt;Enter&gt;</span>&quot; 用一个换行
+符替换四个字符。
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">04.3</span><span class="Ignore">*</span>	重复一个修改
+
+&quot;.&quot; 是 Vim 中一个非常简单而有用的命令。它重复最后一次的修改操作。例如，假设你
+在编辑一个 HTML 文件，你想删除所有的 <span class="Special">&lt;B&gt;</span> 标记。你把光标移到第一个 &quot;&lt;&quot; 上，然后
+用 &quot;df&gt;&quot; 命令删除 <span class="Special">&lt;B&gt;</span>。然后你就可以移到 &lt;/B&gt; 的 &lt; 上面用 &quot;.&quot; 命令删除它。&quot;.&quot;
+命令执行最后一次的修改命令 (在本例中，就是 &quot;df&gt;&quot;)。要删除下一个 <span class="Special">&lt;B&gt;</span> 标记，移动
+到下一个 &lt; 的位置，再执行 &quot;.&quot; 命令即可。
+
+			      <span class="PreProc">To &lt;B&gt;generate&lt;/B&gt; a table of &lt;B&gt;contents</span><span class="Ignore"> ~</span>
+	f&lt;   找第一个 &lt;	      ---&gt;
+	df&gt;  删除到 &gt;	         --&gt;
+	f&lt;   找下一个 &lt;	           ---------&gt;
+	.    重复 df&gt;			    ---&gt;
+	f&lt;   找下一个 &lt;			       -------------&gt;
+	.    重复 df &gt;					    --&gt;
+
+&quot;.&quot; 命令重复任何除 &quot;u&quot; (撤销)，<span class="Special">CTRL-R</span> (重做) 和冒号命令外的修改。
+
+再举一个例子: 你想把 &quot;four&quot; 修改成 &quot;five&quot;。有好几个地方都要作这种修改。你可以
+用如下命令快速完成这个操作:
+
+	/four<span class="Special">&lt;Enter&gt;</span>	找到第一个 &quot;four&quot;
+	cwfive<span class="Special">&lt;Esc&gt;</span>	修改成 &quot;five&quot;
+	n		找下一个 &quot;four&quot;
+	.		重复修改到 &quot;five&quot; 的操作
+	n		找下一个 &quot;four&quot;
+	.		重复修改
+			如此类推......
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">04.4</span><span class="Ignore">*</span>	可视模式
+
+要删除一些简单的东西，用 &quot;操作符－动作&quot; 命令可以完成得很好。但很多情况下，并不
+容易确定用什么命令可以移到你想修改的地方。这时候，你就需要可视模式了。
+
+你可以用 &quot;v&quot; 命令启动可视模式。你可以移动光标到需要的地方。当你这样做的时候，
+中间的文本会被高亮显示。最后执行一下 &quot;操作符&quot; 命令即可。
+    例如，要从一个单词的一半删除到下一个单词的一半:
+
+		<span class="PreProc">This is an examination sample of visual mode</span><span class="Ignore"> ~</span>
+			       ----------&gt;
+				 velllld
+
+		<span class="PreProc">This is an example of visual mode</span><span class="Ignore"> ~</span>
+
+但你这样做的时候，你不需要真的算要按 l 多少次，你可以在按 &quot;d&quot; 前清楚得看到将要
+被删除的是哪些文本。
+
+如果任何时候你改了主意，只用按一下 <span class="Special">&lt;Esc&gt;</span> 就能退出可视模式。
+
+
+按 行 选 择
+
+如果你想对整行做操作，可以使用 &quot;V&quot; 命令来启动可视模式。你会发现在你作任何移动
+之前，整行都被高亮显示了。左右移动不会有任何效果。而通过上下移动，你可以一次选
+择多行。
+    例如，用 &quot;Vjj&quot; 可以选中三行:
+
+			  +------------------------+
+			  | text more text	   |
+		       &gt;&gt; | more text more text    | |
+	      选中的行 &gt;&gt; | text text text	   | | Vjj
+		       &gt;&gt; | text more		   | V
+			  | more text more	   |
+			  +------------------------+
+
+列 块 选 择
+
+如果你要处理一个矩形块内的文本，可以使用 <span class="Special">CTRL-V</span> 启动可视模式。这在处理表格时非
+常有用。
+
+		name		Q1	Q2	Q3
+		pierre		123	455	234
+		john		0	90	39
+		steve		392	63	334
+
+要删除中间 &quot;Q2&quot; 这一栏，把光标移动到 &quot;Q2&quot; 的 &quot;Q&quot; 上面。按 <span class="Special">CTRL-V</span> 启动列块可视
+模式。现在用 &quot;3j&quot; 向下移动三行，然后用 &quot;w&quot; 移到下一个单词。你可以看到最后一栏
+的第一个字符也被包括进来了。要去掉它，用 &quot;h&quot; 命令即可。现在按 &quot;d&quot;，中间一栏就
+被删除了。
+
+
+移 动 到 另 一 端
+
+如果你在可视模式下选中了一些文字，然后你又发现你需要改变被选择的文字的另一端，
+用 &quot;o&quot; 命令即可 (提示: &quot;o&quot; 表示 other end)，光标会移动到被选中文字的另一端，现
+在你可以移动光标去改变选中文字的开始点了。再按 &quot;o&quot; 光标还会回到另一端。
+
+当使用列块可视模式的时候，你会有四个角，&quot;o&quot; 只是把你移到对角上。而用 &quot;O&quot; 则能
+移到同一行的另一个角上。
+
+备注: &quot;o&quot; 和 &quot;O&quot; 在可视模式下与在普通模式下的作用有很大的不同；在普通模式下，
+它们的作用是在光标后或前加入新的一行。
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">04.5</span><span class="Ignore">*</span>	移动文本
+
+当你用 &quot;d&quot;，&quot;x&quot; 或者其它命令删除文本的时候，这些文字会被存起来。你可以用 p 命
+令重新粘贴出来 (p 在 Vim 中表示 put，放置)。
+    看看下面的例子。首先，你会在你要删除的那一行上输入 &quot;dd&quot; 删除一整行，然后移
+动到你要重新插入这行的地方输入 &quot;p&quot; (put)，这样这一行就会被插入到光标下方。
+
+	a line		a line	      a line
+	line 2	  dd	line 3	  p   line 3
+	line 3			      line 2
+
+由于你删除的是一整行，&quot;p&quot; 命令把该行插入到光标下方。如果你删除的是一行的一部分
+(例如一个单词)，&quot;p&quot; 命令会把它插入到光标的后面。
+
+	<span class="PreProc">Some more boring try text to out commands.</span><span class="Ignore"> ~</span>
+			 ----&gt;
+			  dw
+
+	<span class="PreProc">Some more boring text to out commands.</span><span class="Ignore"> ~</span>
+			 --------&gt;
+			    welp
+
+	<span class="PreProc">Some more boring text to try out commands.</span><span class="Ignore"> ~</span>
+
+
+关 于 粘 贴 的 更 多 知 识
+
+&quot;P&quot; 命令象 &quot;p&quot; 一样也是插入字符，但插入点在光标前面。当你用 &quot;dd&quot; 删除一行，
+&quot;P&quot; 会把它插入到光标所在行的前一行。而当你用 &quot;dw&quot; 删除一个单词，&quot;P&quot; 会把它插入
+到光标前面。
+
+你可以执行这个命令多次，每次会插入相同的文本。
+
+&quot;p&quot; 和 &quot;P&quot; 命令接受计数前缀，被插入的文本就会被插入指定的次数。所以 &quot;dd&quot; 后加
+一个 &quot;3p&quot; 会把删除行的三个拷贝插入到文本中。
+
+
+交 换 两 个 字 符
+
+经常发生这样的情况，当你输入字符的时候，你的手指比脑子转得快 (或者相反？)。这
+样的结果是你经常把 &quot;the&quot; 敲成 &quot;teh&quot;。Vim 让你可以很容易得修正这种错误。只要把
+光标移到 &quot;teh&quot; 的 &quot;e&quot; 上，然后执行 &quot;xp&quot; 即可。这个工作过程是: &quot;x&quot; 删除一个字
+符，保存到寄存器。&quot;p&quot; 把这个被保存的字符插入到光标的后面，也就是在 &quot;h&quot; 的后面
+了。
+
+	<span class="PreProc">teh     th     the</span><span class="Ignore"> ~</span>
+	 x       p
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">04.6</span><span class="Ignore">*</span>	拷贝文本
+
+要把文本从一个地方拷贝到另一个地方，你可以先删除它，然后用 &quot;u&quot; 命令恢复，再用
+&quot;p&quot; 拷到另一个地方。这里还有一种简单的办法: 抽出 (yank)。&quot;y&quot; 命令可以把文字拷
+贝到寄存器中。然后用 &quot;p&quot; 命令粘贴到别处。
+    yanking 是 Vim 中拷贝命令的名字。由于 &quot;c&quot; 已经被用于表示 change 了，所以拷
+贝 (copy) 就不能再用 &quot;c&quot; 了。但 &quot;y&quot; 还是可用的。把这个命令称为 &quot;yanking&quot; 是为
+了更容易记住 &quot;y&quot; 这个键。(译者注: 这里只是把原文译出以作参考，&quot;抽出&quot; 文本毕竟
+是不妥的。后文中将统一使用 &quot;拷贝&quot;。中文可不存在 change 和 copy 的问题。)
+
+由于 &quot;y&quot; 是一个操作符，所以 &quot;yw&quot; 命令就是拷贝一个单词了。当然了，计数前缀也是
+有效的。要拷贝两个单词，就可以用 &quot;y2w&quot;。例如:
+
+	<span class="PreProc">let sqr = LongVariable *</span><span class="Ignore"> ~</span>
+		 --------------&gt;
+		       y2w
+
+	<span class="PreProc">let sqr = LongVariable *</span><span class="Ignore"> ~</span>
+			       p
+
+	<span class="PreProc">let sqr = LongVariable * LongVariable</span><span class="Ignore"> ~</span>
+
+注意: &quot;yw&quot; 命令包括单词后面的空白字符。如果你不想要这个字符，改用 &quot;ye&quot; 命令。
+
+&quot;yy&quot; 命令拷贝一整行，就像 &quot;dd&quot; 删除一整行一样。出乎意料地是，&quot;D&quot; 删除到行尾而
+&quot;Y&quot; 却是拷贝一整行。要注意这个区别！&quot;y$&quot; 拷贝到行尾。
+
+	a text line   yy	a text line	       a text line
+	line 2			line 2		p      line 2
+	last line		last line	       a text line
+						       last line
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">04.7</span><span class="Ignore">*</span>	使用剪贴板
+
+如果你使用 Vim 的 GUI 版本 (gvim)，你可以在 &quot;Edit&quot; 菜单中找到 &quot;Copy&quot; 项。你可
+以先用可视模式选中一些文本，然后使用 Edit/Copy 菜单。现在被选中的文本被拷进了
+剪贴板。你可以把它粘贴到其它程序，或者在 Vim 内部使用。
+
+如果你已经从其它程序中拷贝了一些文字到剪贴板，你可以在 Vim 中用 Edit/Paste 菜
+单粘贴进来，这在普通模式和插入模式中都是有效的。如果在可视模式，被选中的文字会
+被替换掉。
+
+&quot;Cut&quot; 菜单项会在把文字拷进剪贴板前删除它。&quot;Copy&quot;，&quot;Cut&quot; 和 &quot;Paste&quot; 命令在弹出
+菜单中也有 (当然了，前提是有弹出式菜单)。如果你的 Vim 有工具条，在工具条上也能
+找到这些命令。
+
+如果你用的不是 GUI，或者你根本不喜欢用菜单，你只能用其它办法了。你还是可以用普
+通的 &quot;y&quot; (yank) 和 &quot;p&quot; (put) 命令，但在前面必须加上 &quot;* (一个双引号加一个星
+号)。例如，要拷贝一行到剪贴板中:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	&quot;*yy</span>
+
+要粘贴回来:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	&quot;*p</span>
+
+这仅在支持剪贴板的 Vim 版本中才能工作。关于剪贴板的更多内容请参见 <span class="Ignore">|</span><span class="Identifier">09.3</span><span class="Ignore">|</span> 和
+<span class="Ignore">|</span><span class="Identifier">clipboard</span><span class="Ignore">|</span>。
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">04.8</span><span class="Ignore">*</span>	文本对象
+
+如果你在一个单词的中间而又想删掉这个单词，在你用 &quot;dw&quot; 前，你必须先移到这个单词
+的开始处。这里还有一个更简单的方法: &quot;daw&quot;。
+
+	<span class="PreProc">this is some example text.</span><span class="Ignore"> ~</span>
+		       daw
+
+	<span class="PreProc">this is some text.</span><span class="Ignore"> ~</span>
+
+&quot;daw&quot; 的 &quot;d&quot; 是删除操作符。&quot;aw&quot; 是一个文本对象。提示: &quot;aw&quot; 表示 &quot;A Word&quot; (一个
+单词)，这样，&quot;daw&quot; 就是 &quot;Delete A Word&quot; (删除一个单词)。确切地说，该单词后的空
+格字符也被删除掉了。
+
+使用文本对象是 Vim 中执行修改的第三种方法。我们已经有 &quot;操作符－动作&quot; 和可视模
+式两种方法了。现在我们又有了 &quot;操作符－文本对象&quot;。
+    这种方法与 &quot;操作符－动作&quot; 很相似，但它不是操作于从当前位置到移动目标间的内
+容，而是对光标所在位置的 &quot;文本对象&quot; 进行操作。文本对象是作为一个整体来处理的。
+现在光标在对象中的位置无关紧要。
+
+用 &quot;cis&quot; 可以改变一个句子。看下面的句子:
+
+	<span class="PreProc">Hello there.  This</span><span class="Ignore"> ~</span>
+	<span class="PreProc">is an example.  Just</span><span class="Ignore"> ~</span>
+	<span class="PreProc">some text.</span><span class="Ignore"> ~</span>
+
+移动到第二行的开始处。现在使用 &quot;cis&quot;:
+
+	<span class="PreProc">Hello there.    Just</span><span class="Ignore"> ~</span>
+	<span class="PreProc">some text.</span><span class="Ignore"> ~</span>
+
+现在你输入新的句子 &quot;Another line.&quot;:
+
+	<span class="PreProc">Hello there.  Another line.  Just</span><span class="Ignore"> ~</span>
+	<span class="PreProc">some text.</span><span class="Ignore"> ~</span>
+
+&quot;cis&quot; 包括 &quot;c&quot; (change，修改) 操作符和 &quot;is&quot; 文本对象。这表示 &quot;Inner Sentence&quot;
+(内含句子)。还有一个文本对象是 &quot;as&quot;，区别是 &quot;as&quot; 包括句子后面的空白字符而 &quot;is&quot;
+不包括。如果你要删除一个句子，而且你还想同时删除句子后面空白字符，就用 &quot;das&quot;；
+如果你想保留空白字符而替换一个句子，则使用 &quot;cis&quot;。
+
+你还可以在可视模式下使用文本对象。这样会选中一个文本对象，而且继续留在可视模
+式，你可以继续多次执行文本对象命令。例如，先用 &quot;v&quot; 启动可视模式，再用 &quot;as&quot; 就
+可以选中一个句子。现在重复执行 &quot;as&quot;，就会继续选中更多的句子。最后你可以使用一
+个操作符去处理这些被选中的句子。
+
+你可以在这里找到一个详细的文本对象的列表: <span class="Ignore">|</span><span class="Identifier">text-objects</span><span class="Ignore">|</span>。
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">04.9</span><span class="Ignore">*</span>	替换模式
+
+&quot;R&quot; 命令启动替换模式。在这个模式下，你输入的每个字符都会覆盖当前光标上的字符。
+这会一直持续下去，直到你输入 <span class="Special">&lt;Esc&gt;</span>。
+    在下面的例子中，你在 &quot;text&quot; 的第一个 &quot;t&quot; 上启动替换模式:
+
+	<span class="PreProc">This is text.</span><span class="Ignore"> ~</span>
+		Rinteresting.<span class="Special">&lt;Esc&gt;</span>
+
+	<span class="PreProc">This is interesting.</span><span class="Ignore"> ~</span>
+
+你可能会注意到，这是用十二个字符替换一行中的五个字符。如果超出行的范围，&quot;R&quot; 命
+令自动进行行扩展，而不是替换到下一行。
+
+你可以通过 <span class="Special">&lt;Insert&gt;</span> 在插入模式和替换模式间切换。
+
+但当你使用 <span class="Special">&lt;BS&gt;</span> (退格键) 进行修正时，你会发现原来被替换的字符又回来了。这就好
+像一个 &quot;撤消&quot; 命令一样。
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">04.10</span><span class="Ignore">*</span>	结论
+
+操作符，移动命令和文本对象可以有各种组合。现在你已经知道它是怎么工作了，你可以
+用 <span class="Special">N</span> 个操作符加上 M 个移动命令，组合出 <span class="Special">N</span>*M 个命令！
+
+你可以在这里找到一个操作符的列表: <span class="Ignore">|</span><span class="Identifier">operator</span><span class="Ignore">|</span>
+
+还有很多方法可以删除文本。这是一些经常用到的:
+
+x	删除光标下的字符 (&quot;dl&quot; 的缩写)
+X	删除光标前的字符 (&quot;dh&quot; 的缩写)
+D	从当前位置删除到行尾 (&quot;d$&quot; 的缩写)
+dw	从当前位置删除到下一个单词开头
+db	从当前位置删除到前一个单词的开头
+diw	删除光标上的单词 (不包括空白字符)
+daw	删除光标上的单词 (包括空白字符)
+dG	删除到文件末
+dgg	删除到文件首
+
+如果你用 &quot;c&quot; 代替 &quot;d&quot;，这会变成修改命令；而改用 &quot;y&quot;，则变成拷贝命令，等等等
+等。
+
+还有一些常用的进行修改的命令，放在哪一章都不合适，列在这里:
+
+	~	修改光标下字符的大小写，并移动到下一个字符。这不是一个操作符
+		(除非设置了 <span class="Type">'tildeop'</span>)，所以你不能连接一个动作命令。这个命令在
+		可视模式下也有效，它会改变被选中的所有文本的大小写。
+
+	I	移到当前行的第一个非空字符并启动插入模式。
+
+	A	移动到行尾并启动插入模式。
+
+<span class="PreProc">==============================================================================</span>
+
+下一章: <span class="Ignore">|</span><span class="Identifier">usr_05.txt</span><span class="Ignore">|</span>  设置选项
+
+版权: 参见 <span class="Ignore">|</span><span class="Identifier">manual-copyright</span><span class="Ignore">|</span>  vim&#0058;tw=78:ts=8:ft=help:norl:
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

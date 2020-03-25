@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>~/github.com/yuweijun/yuweijun.github.io/vim-zh/spell.cnx.html</title>
+<meta name="Generator" content="Vim/8.2">
+<meta name="plugin-version" content="vim8.1_v2">
+<meta name="syntax" content="help">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,prevent_copy=,use_input_for_pc=fallback">
+<meta name="colorscheme" content="molokai">
+<style>
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #d0d0d0; background-color: #121212; }
+body { font-family: monospace; color: #d0d0d0; background-color: #121212; }
+* { font-size: 1em; }
+.String { color: #afaf87; }
+.Type { color: #5fd7ff; }
+.Statement { color: #d7005f; font-weight: bold; }
+.PreProc { color: #87ff00; }
+.Identifier { color: #ff8700; }
+.Comment { color: #5f5f5f; }
+.Special { color: #5fd7ff; }
+.Ignore { color: #808080; background-color: #080808; padding-bottom: 1px; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="Ignore">*</span><span class="String">spell.txt</span><span class="Ignore">*</span>	For <span class="Identifier">Vim version 8.0.</span>  最近更新: 2017年8月
+
+
+		  VIM 参考手册	  by Bram Moolenaar
+				译者: Willis
+				<span class="String"><a href="http://vimcdoc.sf.net">http://vimcdoc.sf.net</a></span>
+
+
+拼写检查						<span class="Ignore">*</span><span class="String">spell</span><span class="Ignore">*</span>
+
+1. 快速入门			<span class="Ignore">|</span><span class="Identifier">spell-quickstart</span><span class="Ignore">|</span>
+2. 拼写检查评注			<span class="Ignore">|</span><span class="Identifier">spell-remarks</span><span class="Ignore">|</span>
+3. 生成拼写文件			<span class="Ignore">|</span><span class="Identifier">spell-mkspell</span><span class="Ignore">|</span>
+4. 拼写文件格式			<span class="Ignore">|</span><span class="Identifier">spell-file-format</span><span class="Ignore">|</span>
+
+<span class="Special">{Vi 无此功能}</span>
+
+如果编译时没有加入 <span class="Ignore">|</span><span class="Identifier">+syntax</span><span class="Ignore">|</span> 特性，不能使用拼写检查。
+
+备注: 另有一个 vimspell 插件。如果你安装了，通过 &quot;:help vimspell&quot; 可以了解它。
+不过你可能更想把这个插件删掉而用 <span class="Type">'spell'</span> 选项。后者更好。
+
+<span class="PreProc">==============================================================================</span>
+1. 快速入门					<span class="Ignore">*</span><span class="String">spell-quickstart</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E756</span><span class="Ignore">*</span>
+
+此命令打开拼写检查:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:setlocal spell spelllang=en_us</span>
+
+它打开 <span class="Type">'spell'</span> 选项并指定检查美国英语。
+
+有问题的单词使用下面的高亮:
+	SpellBad	不能识别的单词 (坏词) 			<span class="Ignore">|</span><span class="Identifier">hl-SpellBad</span><span class="Ignore">|</span>
+	SpellCap	开头没有大写的单词			<span class="Ignore">|</span><span class="Identifier">hl-SpellCap</span><span class="Ignore">|</span>
+	SpellRare	偏僻词					<span class="Ignore">|</span><span class="Identifier">hl-SpellRare</span><span class="Ignore">|</span>
+	SpellLocal	不符合所选区域的拼写方式		<span class="Ignore">|</span><span class="Identifier">hl-SpellLocal</span><span class="Ignore">|</span>
+
+Vim 只检查单词的拼写，不做语法检查。
+
+如果 <span class="Type">'mousemodel'</span> 选项设为 &quot;popup&quot; 并且光标在拼写错误的单词上，或者它被设为
+&quot;popup_setpos&quot; 而鼠标指针在拼写错误的单词上，那么弹出的菜单包含一个子菜单用来
+替换这个坏词。注意: 这减慢了弹出菜单出现的速度。GTK 的 备注: 直到菜单出现为止
+不要释放鼠标右键，否则会有问题。
+
+要搜索下一个拼写有问题的单词:
+
+							<span class="Ignore">*</span><span class="String">]s</span><span class="Ignore">*</span>
+]s			移动到光标之后下一个拼写有问题的单词。命令前的计数可以
+			用来重复。适用 <span class="Type">'wrapscan'</span>。
+
+							<span class="Ignore">*</span><span class="String">[s</span><span class="Ignore">*</span>
+[s			类似于 &quot;]s&quot; 但反向搜索。寻找光标之前拼写有问题的单词。
+			不能识别分散在两行的单词，因而可能停在不被高亮为坏词的
+			单词上。但不会停在行首没有大写开头的单词上。
+
+							<span class="Ignore">*</span><span class="String">]S</span><span class="Ignore">*</span>
+]S			类似于 &quot;]s&quot; 但只检查坏词，不检查偏僻词或其它区域的词。
+
+							<span class="Ignore">*</span><span class="String">[S</span><span class="Ignore">*</span>
+[S			类似于 &quot;]S&quot; 但反向搜索。
+
+
+要加入词汇到自定义的单词列表:
+
+							<span class="Ignore">*</span><span class="String">zg</span><span class="Ignore">*</span>
+zg			把光标所在的单词作为一个好 (good) 词加入到 <span class="Type">'spellfile'</span>
+			的第一个名字对应的文件。命令前加上计数指示使用
+			<span class="Type">'spellfile'</span> 的第几个项目。计数 2 使用第二个项目。
+
+			可视模式下把选择的字符序列作为一个单词 (包括空白！)。
+			如果光标在标为坏词的文本上，使用标注的文本。
+			否则使用非单词字符分隔的光标所在的单词。
+
+			如果该单词在其它拼写文件里被显式标注为坏词，结果无法预
+			测。
+
+							<span class="Ignore">*</span><span class="String">zG</span><span class="Ignore">*</span>
+zG			同 &quot;zg&quot; 但加入单词到内部单词列表 <span class="Ignore">|</span><span class="Identifier">internal-wordlist</span><span class="Ignore">|</span>。
+
+							<span class="Ignore">*</span><span class="String">zw</span><span class="Ignore">*</span>
+zw			类似于 &quot;zg&quot; 但标记单词为坏 (错误: wrong) 词。
+			如果单词已经在 <span class="Type">'spellfile'</span> 里出现，把它变为注释行。
+			<span class="Ignore">|</span><span class="Identifier">spellfile-cleanup</span><span class="Ignore">|</span> 说明如何清理这些行。
+
+							<span class="Ignore">*</span><span class="String">zW</span><span class="Ignore">*</span>
+zW			同 &quot;zw&quot; 但加入单词到内部单词列表 <span class="Ignore">|</span><span class="Identifier">internal-wordlist</span><span class="Ignore">|</span>。
+
+zuw							<span class="Ignore">*</span><span class="String">zug</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">zuw</span><span class="Ignore">*</span>
+zug			撤销 <span class="Ignore">|</span><span class="Identifier">zw</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">zg</span><span class="Ignore">|</span>，从 <span class="Type">'spellfile'</span> 里删除单词。计数的使
+			用方法同 <span class="Ignore">|</span><span class="Identifier">zg</span><span class="Ignore">|</span>。
+
+zuW							<span class="Ignore">*</span><span class="String">zuG</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">zuW</span><span class="Ignore">*</span>
+zuG			撤销 <span class="Ignore">|</span><span class="Identifier">zW</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">zG</span><span class="Ignore">|</span>，从内部单词列表里删除单词。计数的使
+			用方法同 <span class="Ignore">|</span><span class="Identifier">zg</span><span class="Ignore">|</span> (译者注: ？)。
+
+							<span class="Ignore">*</span><span class="String">:spe</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:spellgood</span><span class="Ignore">*</span>
+:<span class="Special">[count]</span>spe[llgood] <span class="Special">{word}</span>
+			把 <span class="Special">{word}</span> 作为一个好词加入到 <span class="Type">'spellfile'</span>，类似 <span class="Ignore">|</span><span class="Identifier">zg</span><span class="Ignore">|</span>。
+			如果没有计数，使用第一个名字项目，计数为 2 使用第二个
+			项目，等等。
+
+:spe[llgood]! <span class="Special">{word}</span>	把 <span class="Special">{word}</span> 作为一个好词加入到内部单词列表。类似 <span class="Ignore">|</span><span class="Identifier">zG</span><span class="Ignore">|</span>。
+
+							<span class="Ignore">*</span><span class="String">:spellw</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:spellwrong</span><span class="Ignore">*</span>
+:<span class="Special">[count]</span>spellw[rong] <span class="Special">{word}</span>
+			把 <span class="Special">{word}</span> 作为一个坏 (错误: wrong) 词加入到
+			<span class="Type">'spellfile'</span>，类似 <span class="Ignore">|</span><span class="Identifier">zw</span><span class="Ignore">|</span>。如果没有计数，使用第一个名字项
+			目，计数为 2 使用第二个项目，等等。
+
+:spellw[rong]! <span class="Special">{word}</span>	把 <span class="Special">{word}</span> 作为一个坏 (错误: wrong) 词加入到内部单词列
+			表。类似 <span class="Ignore">|</span><span class="Identifier">zW</span><span class="Ignore">|</span>。
+
+:<span class="Special">[count]</span>spellu[ndo] <span class="Special">{word}</span>				<span class="Ignore">*</span><span class="String">:spellu</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:spellundo</span><span class="Ignore">*</span>
+			类似于 <span class="Ignore">|</span><span class="Identifier">zuw</span><span class="Ignore">|</span>，<span class="Special">[count]</span> 的使用同 <span class="Ignore">|</span><span class="Identifier">:spellgood</span><span class="Ignore">|</span>。
+
+:spellu[ndo]! <span class="Special">{word}</span>	类似于 <span class="Ignore">|</span><span class="Identifier">zuW</span><span class="Ignore">|</span>，<span class="Special">[count]</span> 的使用同 <span class="Ignore">|</span><span class="Identifier">:spellgood</span><span class="Ignore">|</span>。
+
+
+用上面的命令加入单词到 <span class="Type">'spellfile'</span> 后，相关联的 &quot;.spl&quot; 文件会自动更新并重新载
+入。如果手动修改 <span class="Type">'spellfile'</span>，你需要用 <span class="Ignore">|</span><span class="Identifier">:mkspell</span><span class="Ignore">|</span> 命令。以下命令多数情况下应该
+能够工作:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:edit &lt;'spellfile' 里的文件&gt;</span>
+<span class="Ignore">&lt;</span>	(修改拼写文件)<span class="Ignore"> &gt;</span>
+<span class="Comment">	:mkspell! %</span>
+
+有关 <span class="Type">'spellfile'</span> 格式的详情见 <span class="Ignore">|</span><span class="Identifier">spell-wordlist-format</span><span class="Ignore">|</span>。
+
+							<span class="Ignore">*</span><span class="String">internal-wordlist</span><span class="Ignore">*</span>
+置位 <span class="Type">'spell'</span> 时，所有缓冲区使用同一个内部单词列表。它不会被保存，退出 Vim 时就
+会丢失。设置 <span class="Type">'encoding'</span> 时它也被清空。
+
+
+要列出坏词的拼写建议:
+							<span class="Ignore">*</span><span class="String">z=</span><span class="Ignore">*</span>
+z=			为光标所在/之后的单词提供正确拼写单词的建议。即使单词
+			没有被高亮为坏词，它也可用来寻找替代的单词，比如当该单
+			词之后的单词是坏词。
+			可视模式下使用高亮文本作为要被替代的单词。
+			结果按和被替代的单词的相似度排序。
+			可能需时很久。如果等不及，你可以按 <span class="Special">CTRL-C</span>。
+
+			如果命令没有给出计数，列出所有替代，可以输入编号进行选
+			择，如果不想替换，输入 <span class="Special">&lt;Enter&gt;</span>。你可以用鼠标点击你希望
+			的选择 (鼠标必须可用于普通模式，而且不能有回绕行)。点
+			击第一行 (标题) 取消操作。
+
+			通常，建议列表用来替换高亮的坏词。有时它们也包含其它文
+			本，这种情况也同时列出替换文本，出现在一个 &quot;&lt;&quot; 之后。
+
+			如果使用计数，直接使用该建议，不再提示。例如，&quot;1z=&quot; 总
+			是使用第一个建议。
+
+			如果 <span class="Type">'verbose'</span> 非零，除了建议以外，同时显示指示和坏词
+			相似程度的评分 (分数愈高差别越大)。
+			如果单词被替换，重复命令 &quot;.&quot; 会重复单词的替换。这相当
+			于 &quot;ciw&quot;，跟好词，然后跟 <span class="Special">&lt;Esc&gt;</span>。_不_能用于泰语和其它不
+			用空格分隔单词的语言。
+
+					<span class="Ignore">*</span><span class="String">:spellr</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:spellrepall</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E752</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E753</span><span class="Ignore">*</span>
+:spellr[epall]		在当前窗口重复 <span class="Ignore">|</span><span class="Identifier">z=</span><span class="Ignore">|</span> 进行的替换，即把所有的匹配用替换过
+			的那个单词替换。
+
+插入模式下，如果光标在坏词之后，用 <span class="Special">CTRL-X</span> s 可以寻找建议。这使用插入模式补全的
+工作方式。<span class="Special">CTRL-N</span> 得到下一个建议，<span class="Special">CTRL-P</span> 往回走。<span class="Ignore">|</span><span class="Identifier">i_CTRL-X_s</span><span class="Ignore">|</span>
+
+<span class="Type">'spellsuggest'</span> 选项影响建议列表的生成和排序方式。见 <span class="Ignore">|</span><span class="Identifier">'spellsuggest'</span><span class="Ignore">|</span>。
+
+<span class="Type">'spellcapcheck'</span> 选项用来检查句子第一个单词是否以大写字母开头。这不用于文件的首
+个单词。如果句子之后立即换行，下一行的高亮可能被延迟。如果需要的话，用
+<span class="Ignore">|</span><span class="Identifier">CTRL-L</span><span class="Ignore">|</span>。另见 <span class="Ignore">|</span><span class="Identifier">set-spc-auto</span><span class="Ignore">|</span> 了解如何在设置 <span class="Type">'spelllang'</span> 时自动设置本选项。
+
+Vim 计算好词的使用次数并用来对建议进行排序: 出现过的单词有较小的奖励，经常见到
+的单词有较大的奖励。字缀文件里 COMMON 项目也用来定义常用词，这样新文件或短文件
+都能使用此机制 <span class="Ignore">|</span><span class="Identifier">spell-COMMON</span><span class="Ignore">|</span>。
+
+<span class="PreProc">==============================================================================</span>
+2. 拼写建议的评注					<span class="Ignore">*</span><span class="String">spell-remarks</span><span class="Ignore">*</span>
+
+性 能
+
+Vim 进行在线拼写检查。要快速工作就需要把单词列表载入内存。这需要很大的内存 (1
+兆字节或更多)。载入单词列表产生的延迟也很显著，这个过程发生在置位 <span class="Type">'spell'</span> 和已
+经置位了 <span class="Type">'spell'</span> 再设置 <span class="Type">'spelllang'</span> 的时候。要最大程度减少延迟，每个单词列表只
+载入一次。<span class="Type">'spelllang'</span> 清空或者 <span class="Type">'spell'</span> 复位时都不删除它。但设置 <span class="Type">'encoding'</span> 时
+会重载所有的单词列表，这时你也会注意到明显的延迟。
+
+
+区 域
+
+不同的区域可能使用同一单词不同的拼写形式。例如，英语 (至少) 有以下变种:
+
+	en		所有区域
+	en_au		澳大利亚
+	en_ca		加拿大
+	en_gb		英国
+	en_nz		新西兰
+	en_us		美国
+
+不用于指定区域但用于其它区域的单词使用 SpellLocal 高亮 <span class="Ignore">|</span><span class="Identifier">hl-SpellLocal</span><span class="Ignore">|</span>。
+
+语言和区域名总用小写。
+
+用 <span class="Ignore">|</span><span class="Identifier">zg</span><span class="Ignore">|</span> 和其它命令加入单词时总为所有区域加入单词。如果不想这样，你需要手动修改
+<span class="Type">'spellfile'</span>。见 <span class="Ignore">|</span><span class="Identifier">spell-wordlist-format</span><span class="Ignore">|</span>。注意 只有所有 <span class="Type">'spelllang'</span> 所有项目
+(不包括指定 .spl 名字的文件) 都指定相同区域时，才使用 <span class="Type">'spellfile'</span> 文件指定的区
+域。
+
+							<span class="Ignore">*</span><span class="String">spell-german</span><span class="Ignore">*</span>
+特例: 德语使用如下特殊区域:
+	de		接受所有的德语单词
+	de_de		旧式和新式拼写
+	de_19		旧式拼写
+	de_20		新式拼写
+	de_at		奥地利
+	de_ch		瑞士
+
+							<span class="Ignore">*</span><span class="String">spell-russian</span><span class="Ignore">*</span>
+特例: 俄语使用如下特殊区域:
+	ru		接受所有的俄语单词
+	ru_ru		&quot;IE&quot; 字母拼写
+	ru_yo		&quot;YO&quot; 字母拼写
+
+							<span class="Ignore">*</span><span class="String">spell-yiddish</span><span class="Ignore">*</span>
+意第绪语 (yiddish) 需要 &quot;utf-8&quot; 编码，因为它使用了特殊字符。如果使用 latin1，
+Vim 会使用转译的 (罗马化的) 意第绪语。如果你想使用 utf-8 的转译意第绪语，用
+&quot;yi-tr&quot;。见下表:
+	<span class="Type">'encoding'</span>	<span class="Type">'spelllang'</span>
+	utf-8		yi		意第绪语
+	latin1		yi		转译的意第绪语
+	utf-8		yi-tr		转译的意第绪语
+
+							<span class="Ignore">*</span><span class="String">spell-cjk</span><span class="Ignore">*</span>
+中文、日文或其它东亚语字符通常被标为错误，因为拼写检查不支持这些语种。如果
+<span class="Type">'spelllang'</span> 包含 &quot;cjk&quot;，不把它们标为错误。这可用于编辑带有若干亚洲单词的文本的
+拼写检查。
+
+
+拼 写 文 件						<span class="Ignore">*</span><span class="String">spell-load</span><span class="Ignore">*</span>
+
+Vim 在 <span class="Type">'runtimepath'</span> 里的 &quot;spell&quot; 子目录查找拼写文件。名字规则是: LL.EEE.spl，
+其中:
+	LL	语言名
+	EEE	<span class="Type">'encoding'</span> 值
+
+&quot;LL&quot; 的值来自 <span class="Type">'spelllang'</span>，但不包括区域名。例如:
+	<span class="PreProc">'spelllang'	LL</span><span class="Ignore"> ~</span>
+	en_us		en
+	en-rare		en-rare
+	medical_ca	medical
+
+只载入 <span class="Type">'runtimepath'</span> 里第一个可用的文件。如果成功，载入文件名为 LL.EEE.add.spl
+的附加文件。所有找到的都被使用。
+
+如果找不到拼写文件，激活 <span class="Ignore">|</span><span class="Identifier">SpellFileMissing</span><span class="Ignore">|</span> 自动命令事件。它可能会启动
+<span class="Ignore">|</span><span class="Identifier">spellfile.vim</span><span class="Ignore">|</span> 插件提供你机会来下载拼写文件。
+
+另外，载入和 <span class="Type">'spellfile'</span> 的名字相关的文件，也就是 <span class="Ignore">|</span><span class="Identifier">zg</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">zw</span><span class="Ignore">|</span> 用来加入好词和
+坏词的文件。
+
+例外:
+- 如果 <span class="Type">'encoding'</span> 是 &quot;iso-8859-15&quot;，Vim 使用 &quot;latin1&quot;。对拼写来说，欧元符号没
+  有作用。
+- 如果 <span class="Type">'encoding'</span> 没有对应的拼写文件，Vim 尝试用 &quot;ascii&quot; 代替。这只能用于单词
+  几乎全是 ASCII 字符构成的语言，例如英语。可用 <span class="Type">'encoding'</span> 不是 &quot;latin1&quot;，如
+  iso-8859-2，但要编辑英文文本的场合。 &quot;.add&quot; 文件使用和找到的主拼写文件相同的
+  名字。
+
+例如，如果设置如下:
+	<span class="Type">'runtimepath'</span> 是 &quot;~/.vim,/usr/share/vim70,~/.vim/after&quot;
+	<span class="Type">'encoding'</span>    是 &quot;iso-8859-2&quot;
+	<span class="Type">'spelllang'</span>   是 &quot;pl&quot;
+
+Vim 会寻找:
+1. ~/.vim/spell/pl.iso-8859-2.spl
+2. /usr/share/vim70/spell/pl.iso-8859-2.spl
+3. ~/.vim/spell/pl.iso-8859-2.add.spl
+4. /usr/share/vim70/spell/pl.iso-8859-2.add.spl
+5. ~/.vim/after/spell/pl.iso-8859-2.add.spl
+
+这里假设没找到 1 但找到了 2。
+
+如果 <span class="Type">'encoding'</span> 为 &quot;latin1&quot;，Vim 会寻找:
+1. ~/.vim/spell/pl.latin1.spl
+2. /usr/share/vim70/spell/pl.latin1.spl
+3. ~/.vim/after/spell/pl.latin1.spl
+4. ~/.vim/spell/pl.ascii.spl
+5. /usr/share/vim70/spell/pl.ascii.spl
+6. ~/.vim/after/spell/pl.ascii.spl
+
+这里假设以上文件都找不到 (如果去掉所有的非 ASCII 字符，波兰语无法阅读)。
+
+目前不支持 EBCDIC 编码的拼写检查。
+
+当前的 <span class="Type">'encoding'</span> 下不一定有可用的拼写文件。<span class="Ignore">|</span><span class="Identifier">spell-mkspell</span><span class="Ignore">|</span> 说明如何建立拼写文
+件。用 &quot;iconv&quot; 转换拼写文件_不能_工作！
+
+备注: VMS 上 &quot;.<span class="Special">{enc}</span>.spl&quot; 被换名为 &quot;_<span class="Special">{enc}</span>.spl&quot;，否则文件名会有问题。
+
+						    <span class="Ignore">*</span><span class="String">spell-sug-file</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E781</span><span class="Ignore">*</span>
+如果存在和 &quot;.spl&quot; 同名但以 &quot;.sug&quot; 结尾的文件，使用该文件来给出更好的建议。直到
+需要建议的时候才载入该文件，以减少内存开销。
+
+				    <span class="Ignore">*</span><span class="String">E758</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E759</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E778</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E779</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E780</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E782</span><span class="Ignore">*</span>
+载入拼写文件时，Vim 检查它的格式是否正确。如果有错，该文件可能已经被清空或修改
+过，也可能它本来是为其它 Vim 版本设计的。
+
+
+清 理 拼 写 文 件					<span class="Ignore">*</span><span class="String">spellfile-cleanup</span><span class="Ignore">*</span>
+
+<span class="Ignore">|</span><span class="Identifier">zw</span><span class="Ignore">|</span> 命令会把 <span class="Type">'spellfile'</span> 的已有项目变成注释行。这避免了每次都写入一个新文件，
+但文件因而只会增长而不会缩短。要清理所有 &quot;.add&quot; 拼写文件的注释行，执行:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:runtime spell/cleanadd.vim</span>
+
+它删除所有除了 &quot;##&quot; 开头的注释行。&quot;##&quot; 行可以用来假如你想保留的注释。
+
+你可以随时调用此脚本。系统提供了一个变量，用于跳过对最近刚修改过的文件的清理。
+它设置文件修改以后隔多长时间才需要清理，以秒计。例如，如果只要清理那些最近一个
+小时没有修改过的文件:<span class="Ignore"> &gt;</span>
+<span class="Comment">      let g:spell_clean_limit = 60 * 60</span>
+缺省值为一秒。
+
+
+单 词
+
+Vim 使用固定的方法来识别单词，和 <span class="Type">'iskeyword'</span> 相互独立。所以该方法适用于帮助文
+件和 <span class="Type">'iskeyword'</span> 里包含 '-' 等字符的语言。单词字符仍然和 <span class="Type">'encoding'</span> 有关。
+
+单词字符表格保存在主 .spl 文件里。所以它和生成文件时的当前 locale 有关！不过，
+.add.spl 文件不包含单词列表。
+
+数位开头的单词总是忽略该数位，除非能够识别整个单词。这样，如果 &quot;3D&quot; 是单词而
+&quot;D&quot; 不是，那么识别 &quot;3D&quot; 为一个单词，但如果 &quot;3D&quot; 不是单词，只把 &quot;D&quot; 标识为坏
+词。能识别 0x12ab 和 0X12AB 形式的十六进制数。
+
+
+单 词 组 合
+
+拼写检查的单词可以包含空格。这可以用来识别不能单独使用的单词，例如 &quot;et al.&quot;。
+也可以用来识别 &quot;the the&quot; 这样的错误并高亮之。
+
+空格的个数无关紧要。多数情况下换行符也可以出现。不过，这使得判断从哪里开始检查
+拼写错误出现困难。如果你修改了一行而且只有该行被重画，Vim 不会去看上一行，所以
+如果 &quot;et&quot; 出现在上一行的尾部，&quot;al.&quot; 会被标记为错误。如果你输入 &quot;the<span class="Special">&lt;CR&gt;</span>the&quot;，
+直到第一行被重画，高亮并不出现。要立即重画，用 <span class="Ignore">|</span><span class="Identifier">CTRL-L</span><span class="Ignore">|</span>。&quot;[s&quot; 也会停在带换行符
+的单词组合上。
+
+如果遇到换行符，Vim 跳过之后的 '*'、'&gt;' 和 '&quot;' 这样的字符。这使得拼写检查可以
+在 C、外壳脚本和 Vim 代码里的注释进行。
+
+
+语 法 高 亮						<span class="Ignore">*</span><span class="String">spell-syntax</span><span class="Ignore">*</span>
+
+使用语法高亮的文件可以指定应在哪里进行拼写检查:
+
+1.  所有地方				缺省
+2.  在特定项目里			使用 &quot;contains=@Spell&quot;
+3.  除了特定项目的所有地方		使用 &quot;contains=@NoSpell&quot;
+
+第二个方法里，加入 @NoSpell 簇的项目又会屏蔽拼写检查。这可用来，比如说，给程序
+注释加上 @Spell，而给不应检查拼写的项目加上 @NoSpell。
+另见 <span class="Ignore">|</span><span class="Identifier">:syn-spell</span><span class="Ignore">|</span> 了解如何处理不在语法项目里的文本。
+
+
+VIM 脚 本
+
+如果你想编写和拼写有关的 Vim 脚本，以下函数可能有用:
+
+    spellbadword()	寻找光标所在的坏词
+    spellsuggest()	得到拼写建议列表
+    soundfold()		得到单词按发音折叠的等价形式
+
+
+自 动 设 置 <span class="Type">'spellcapcheck'</span>				<span class="Ignore">*</span><span class="String">set-spc-auto</span><span class="Ignore">*</span>
+
+一旦 <span class="Type">'spelllang'</span> 选项被成功设置，Vim 会执行 <span class="Type">'runtimepath'</span> 的 &quot;spell/LANG.vim&quot;
+文件。&quot;LANG&quot; 是 <span class="Type">'spelllang'</span> 中第一个逗号、句号或下划线之前的值。这可用来设置语
+言特定的选项，尤其是 <span class="Type">'spellcapcheck'</span>。
+
+发布中包含了若干这样的文件。用此命令可以看看它们做了什么:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:next $VIMRUNTIME/spell/*.vim</span>
+<span class="Ignore">&lt;</span>
+注意 如果 <span class="Type">'spellcapcheck'</span> 被修改而不同于缺省值，这些脚本不对它进行修改。这时假
+设用户已经有其它的偏好值。
+
+
+双 重 评 分						<span class="Ignore">*</span><span class="String">spell-double-scoring</span><span class="Ignore">*</span>
+
+<span class="Type">'spellsuggest'</span> 选项可用来选择 &quot;双重&quot; 评分。该机制基于以下原则: 有两种不同类型
+的拼写错误:
+
+1. 你知道如何拼写单词，但有些输入错误。这种类型会导致较小的编辑距离 (交换/省略
+   /插入的字符数) 和一个发音可能完全不同的单词。
+
+2. 你不知道如何拼写单词，所以输入发音类似的形式。这时编辑距离可能很大，但经过
+   按发音折叠以后单词可以很相似。
+
+既然两种错误的评分可以非常不同，我们为每种错误使用一个列表，并把它们合并。
+
+按发音折叠较慢，而通晓语言的用户也不太会犯第二种错误。所以设置 <span class="Type">'spellsuggest'</span>
+可以让用户选择自己偏好的建议评分方法。
+
+<span class="PreProc">==============================================================================</span>
+3. 生成拼写文件						<span class="Ignore">*</span><span class="String">spell-mkspell</span><span class="Ignore">*</span>
+
+Vim 的拼写文件使用二进制文件格式。这大大加快了单词列表的载入，并减小了文件的大
+小。
+						    <span class="Ignore">*</span><span class="String">.aff</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">.dic</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">Myspell</span><span class="Ignore">*</span>
+你可以用 Myspell 使用的 .aff 和 .dic 文件构造 Vim 的拼写文件。OpenOffice.org
+和 Mozilla 使用 Myspell。OpenOffice .oxt 文件是包含 .aff 和 .dic 文件的 zip 压
+缩包。你可以在此找到那些文件:
+	<span class="String"><a href="http://extensions.services.openoffice.org/dictionary">http://extensions.services.openoffice.org/dictionary</a></span>
+如果不行，这里可以找到较旧的 OpenOffice 2 文件:
+	<span class="String"><a href="http://wiki.services.openoffice.org/wiki/Dictionaries">http://wiki.services.openoffice.org/wiki/Dictionaries</a></span>
+你也可以使用简单单词列表列表。效果相同，这取决于你能找到什么格式的单词列表。
+
+如果你安装 Aap (来自 <span class="String">www.a-a-p.org</span>)，可以利用 runtime/spell/??/ 目录的若干构造
+文件 (recipe)。Aap 会自己下载文件，应用 Vim 必需的补丁并构造 .spl 文件。
+
+确信你正确设置了当前 locale，否则 Vim 不知道什么字符是大写字母，什么字符是小写
+的。如果不知道 locale (例如，在 Unix 上使用 MS-Windows 代码页)，在 .aff 文件里
+增加表格 <span class="Ignore">|</span><span class="Identifier">spell-affix-chars</span><span class="Ignore">|</span>。如果 .aff 文件没有定义表格，使用当前激活的拼写的
+单词表格。如果拼写也没有激活，Vim 只好试图进行一些猜测。
+
+							<span class="Ignore">*</span><span class="String">:mksp</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:mkspell</span><span class="Ignore">*</span>
+:mksp[ell][!] <span class="Special">[-ascii]</span> <span class="Special">{outname}</span> <span class="Special">{inname}</span> ...
+			从单词列表生成 Vim 的拼写文件。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">		:mkspell /tmp/nl nl_NL.words</span>
+<span class="Ignore">&lt;</span>								<span class="Ignore">*</span><span class="String">E751</span><span class="Ignore">*</span>
+			如果 <span class="Special">{outname}</span> 以 &quot;.spl&quot; 结尾，它被用作文件名。否则，
+			它指定诸如 &quot;en&quot; 这样的语言名，不带区域名。要写入的文件
+			名是 &quot;<span class="Special">{outname}</span>.<span class="Special">{encoding}</span>.spl&quot;，其中 <span class="Special">{encoding}</span> 是
+			<span class="Type">'encoding'</span> 选项的值。
+
+			如果输出文件已存在，必须用 [!] 才能进行覆盖。
+
+			如果给出 <span class="Special">[-ascii]</span> 参数，跳过包含非 ASCII 字符的单词。
+			产生的文件名以 &quot;ascii.spl&quot; 结尾。
+
+			输入可以是 Myspell 格式的文件 <span class="Special">{inname}</span>.aff 和
+			<span class="Special">{inname}</span>.dic。如果 <span class="Special">{inname}</span>.aff 不存在，输入也可以用文
+			件名为 <span class="Special">{inname}</span> 的普通单词列表文件。
+
+			可以给出多个 <span class="Special">{inname}</span> 参数，把多个区域合并到一个 Vim
+			拼写文件。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">		:mkspell ~/.vim/spell/en /tmp/en_US /tmp/en_CA /tmp/en_AU</span>
+<span class="Ignore">&lt;</span>			合并美加澳三地的英语单词列表成为单个 en.spl 文件。
+			至多可以合并八个区域。 <span class="Ignore">*</span><span class="String">E754</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E755</span><span class="Ignore">*</span>
+			使用第一个包含 REP 和 SAL 项目的 .aff 文件的这些项目。
+			<span class="Ignore">|</span><span class="Identifier">spell-REP</span><span class="Ignore">|</span> <span class="Ignore">|</span><span class="Identifier">spell-SAL</span><span class="Ignore">|</span>
+
+								<span class="Ignore">*</span><span class="String">E845</span><span class="Ignore">*</span>
+			该命令需要大量内存，用于寻找最优单词树 (波兰语、意大利
+			语和匈牙利语需要几百兆字节)。最终结果因为使用压缩的缘
+			故会小得多。为了避免内存溢出，压缩会时不时进行。使用
+			<span class="Type">'mkspellmem'</span> 选项可以对此行为进行调节。
+
+			拼写文件写回后，在缓冲区使用时会自动重新载入。
+
+:mksp[ell] <span class="Special">[-ascii]</span> <span class="Special">{name}</span>.<span class="Special">{enc}</span>.add
+			类似于上面的 &quot;:mkspell&quot;，使用 <span class="Special">{name}</span>.<span class="Special">{enc}</span>.add 作为输
+			入文件，并在相同目录产生在后面附加 &quot;.spl&quot; 的输出文件。
+
+:mksp[ell] <span class="Special">[-ascii]</span> <span class="Special">{name}</span>
+			类似于上面的 &quot;:mkspell&quot;，使用 <span class="Special">{name}</span> 作为输入文件，并
+			在相同目录产生在后面附加 &quot;.<span class="Special">{enc}</span>.spl&quot; 的输出文件。
+
+Vim 会报告重复单词的个数。这可能是单词列表里的错误，但有时一个基本字可以加上不
+同的前缀和后缀以免把它们合并在一起 (例如，捷克语就这么用)。如果你想让 Vim 报告
+所有的重复单词，设置 <span class="Type">'verbose'</span> 选项。
+
+如果为了 Vim 的使用，你想修改 Myspell 单词列表，我们建议以下步骤:
+
+1. 从 Myspell 获取 xx_YY.aff 和 xx_YY.dic 文件。
+2. 把这些文件备份为 xx_YY.orig.aff 和 xx_YY.orig.dic。
+3. 修改 xx_YY.aff 和 xx_YY.dic 文件以删除坏词、增加新词、定义 FOL/LOW/UPP 的单
+   词字符，等等。可以考虑使用发布中的 &quot;*.diff&quot; 文件。
+4. 用正确的 locale 启动 Vim，然后用 <span class="Ignore">|</span><span class="Identifier">:mkspell</span><span class="Ignore">|</span> 生成 Vim 拼写文件。
+5. 如果拼写文件被写到 <span class="Type">'runtimepath'</span> 里的 spell 目录，这个命令可以测试该文件:
+   &quot;:set spell spelllang=xx&quot;。如果要写到别处，用 &quot;:set spelllang=xx.enc.spl&quot;。
+
+如果 Myspell 的文件有更新，你可以把差异合并进来:
+1. 取得新的 Myspell 文件，假设名为 xx_YY.new.aff 和 xx_UU.new.dic。
+2. 用 Vimdiff 来对改变的内容进行比较:<span class="Ignore"> &gt;</span>
+<span class="Comment">	vimdiff xx_YY.orig.dic xx_YY.new.dic</span>
+3. 选择 xx_YY.dic 里你喜欢的改变。xx_YY.aff 可能也需要修改。
+4. 把 xx_YY.new.dic 换名为 xx_YY.orig.dic，xx_YY.new.aff 换为 xx_YY.orig.aff。
+
+
+拼 写 文 件 版 本					<span class="Ignore">*</span><span class="String">E770</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E771</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E772</span><span class="Ignore">*</span>
+
+拼写检查是 Vim 较新的一个特性，因此将来 .spl 文件格式可能会修改以支持更多的语
+言。Vim 会检查拼写文件的合法性并报告可能的错误。
+
+	<span class="PreProc">E771: Old spell file, needs to be updated</span><span class="Ignore"> ~</span>
+拼写文件比你的 Vim 版本要旧。你需要更新 .spl 文件。
+
+	<span class="PreProc">E772: Spell file is for newer version of Vim</span><span class="Ignore"> ~</span>
+拼写文件比你的 Vim 版本要新。你需要更新 Vim。
+
+	<span class="PreProc">E770: Unsupported section in spell file</span><span class="Ignore"> ~</span>
+这意味着拼写文件是为 Vim 的后来版本设计的，因为它包含了拼写文件需要的 (但目前
+不支持的) 一个小节。这种情况下最好升级 Vim。
+
+
+拼 写 文 件 转 储
+
+如果为了某些原因你需要检查当前使用的拼写文件支持哪些单词，用此命令:
+
+							<span class="Ignore">*</span><span class="String">:spelldump</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:spelld</span><span class="Ignore">*</span>
+:spelld[ump]		打开新窗口，用当前所有的合法单词填充。不包含复合词。
+			注意: 对某些语言结果可能很大，甚至会使 Vim 溢出内存。
+
+:spelld[ump]!		类似于 &quot;:spelldump&quot;，同时包含单词计数，也就是在更新屏
+			幕时找到每个单词的个数。COMMON 项目里的单词的初始计数
+			为 10。
+
+使用单词列表格式 <span class="Ignore">|</span><span class="Identifier">spell-wordlist-format</span><span class="Ignore">|</span>。你可以用 &quot;:mkspell&quot; 来阅读它并生成
+包含所有单词的 .spl 文件。
+
+如果 <span class="Type">'spelllang'</span> 里的所有项目使用相同区域或者不使用任何区域，转储的单词里包含
+区域信息。否则，只包含当前区域里的单词，并且不生成 &quot;/regions&quot; 行。
+
+该 .spl 文件里，带有 .spl 文件名的注释行头部出现在所有生成的单词之前。
+
+
+拼 写 文 件 丢 失		<span class="Ignore">*</span><span class="String">spell-SpellFileMissing</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">spellfile.vim</span><span class="Ignore">*</span>
+
+如果使用语言的拼写文件不存在，报错。但如果激活了 &quot;spellfile.vim&quot; 插件，它会提
+供你下载拼写文件的机会。你只要按照指示去做就可以了，它会告诉你把文件写到哪里
+(为此，<span class="Type">'runtimepath'</span> 中必须要有一个可写的目录)。
+
+包含在该插件里用于寻找拼写文件的缺省位置使用 Vim 的 ftp 服务器。如果你想用其它
+位置或者其它协议，设置 g:spellfile_URL 变量为保存拼写文件目录的位置。<span class="Ignore">|</span><span class="Identifier">netrw</span><span class="Ignore">|</span>
+插件用来得到该文件，那里提供了 URL 的格式说明。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">	let g:spellfile_URL = '<a href="http://ftp.vim.org/vim/runtime/spell">http://ftp.vim.org/vim/runtime/spell</a>'</span>
+你可能需要转义字符。
+
+关于下载语言，该插件只会询问你一次。如果你想再做一次，重启 Vim 或者设置
+g:spellfile_URL 为其它值 (比如，在前面加一个空格)。
+
+如果不想使用 &quot;spellfile.vim&quot; 插件，在 vimrc 文件里加入:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	let loaded_spellfile_plugin = 1</span>
+
+除了用插件以外，定义 <span class="Ignore">|</span><span class="Identifier">SpellFileMissing</span><span class="Ignore">|</span> 自动命令也可以让你自己处理丢失的文件。
+你可以这么做:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:au SpellFileMissing * call Download_spell_file(expand('&lt;amatch&gt;'))</span>
+
+这里 <span class="Special">&lt;amatch&gt;</span> 项目包含语言名。另一个重要的值是 <span class="Type">'encoding'</span>，因为每个编码都有自
+己的拼写文件。有两个例外:
+- ISO-8859-15 (latin9) 使用名字 &quot;latin1&quot; (两者的区别只在于一些不在字典单词里的
+  字符上)。
+- 某些大多数单词里只使用 ASCII 字符的语言也可以使用名字 &quot;ascii&quot;。
+
+缺省 &quot;spellfile.vim&quot; 插件使用此自动命令，如果在它之后你要定义自动命令，用
+&quot;:au! SpellFileMissing&quot; 可以否决它的设置。如果你在插件之前定义自动命令，该插件
+会注意到这一点而不做任何事。
+							<span class="Ignore">*</span><span class="String">E797</span><span class="Ignore">*</span>
+注意 SpellFileMissing 自动命令不能改变或破坏用户正在编辑的缓冲区。
+
+<span class="PreProc">==============================================================================</span>
+4. 拼写文件格式						<span class="Ignore">*</span><span class="String">spell-file-format</span><span class="Ignore">*</span>
+
+这里包含用户为建立并维护单词列表使用的文件格式。
+
+注意 我们这里避免使用单词 &quot;字典&quot;。这是因为拼写检查的目标和编写 (成册的) 字典有
+所不同。对于拼写，我们需要正确单词的列表，这些单词因而不会被高亮。字典里不会包
+含人名和公司名，但单词列表里会。有些古老的词汇现在已经罕用，而它们往往是常用词
+的错误拼写。它们在字典出现，但不在单词列表里。
+
+有两种格式: 直接的单词列表和使用字缀压缩 (affix compression) 的列表。Myspell
+(Mozilla 和 OpenOffice.Org) 使用字缀压缩的文件。它需要两个文件，分别带 .aff 和
+.dic 扩展名。
+
+
+直 接 单 词 列 表 格 式					<span class="Ignore">*</span><span class="String">spell-wordlist-format</span><span class="Ignore">*</span>
+
+每行一个单词。就需要这么多。
+
+此外，还识别以下项目:
+
+- 忽略空行和空白行。
+
+	<span class="PreProc"># comment</span><span class="Ignore"> ~</span>
+- 忽略 # 开头的行 (注释行)。
+
+	<span class="PreProc">/encoding=utf-8</span><span class="Ignore"> ~</span>
+- 在任何单词之前的以 &quot;/encoding=&quot; 开头的行指定文件的编码。'=' 之后是编码名。它
+  告诉 Vim 如何设定从指定编码到 <span class="Type">'encoding'</span> 的转换。这样，同一单词列表可用于多
+  个目标编码。
+
+	<span class="PreProc">/regions=usca</span><span class="Ignore"> ~</span>
+- &quot;/regions=&quot; 开头的行指定支持的一到多个区域名。每个区域名必须是两个 ASCII 字
+  符。第一个区域是区域 1。所以 &quot;/regions=usca&quot; 包含区域 1 &quot;us&quot; 和区域 2 &quot;ca&quot;。
+  附加单词列表的区域名必须和主单词列表的相同！
+
+- 其它 '/' 开头的行保留将来使用。忽略不识别的行。但你会得到警告，让你知道发生
+  了一些事。
+
+- 单词后面可以跟 &quot;/&quot; 加以下的项目:
+    =		大小写必须准确匹配。
+    ?		偏僻词。
+    !		坏 (错误) 词。
+    digit	包含该单词的合法区域。如果不指定区域，该词在所有区域均合法。
+
+示例:
+
+	# 这是示例单词列表			注释
+	/encoding=latin1			文件编码
+	/regions=uscagb				区域 &quot;us&quot;、&quot;ca&quot; 和 &quot;gb&quot;
+	example					所有区域可用的单词
+	blah/12					区域 &quot;us&quot; 和 &quot;ca&quot; 可用的单词
+	vim/!					坏词
+	Campbell/?3				区域 3 &quot;gb&quot; 的偏僻词
+	's mornings/=				保持大小写的单词
+
+注意 如果使用 &quot;/=&quot;，不能接受再次出现的同一单词但使用全大写的形式。这和混合大小
+写的单词不同，后者自动标注为保持大小写，但可以用全大写的形式出现。
+
+
+.AFF 和 .DIC 文 件 格 式				<span class="Ignore">*</span><span class="String">aff-dic-format</span><span class="Ignore">*</span>
+
+有两个文件: 基本单词列表和字缀文件。字缀文件指定语言的设定，也可以包含字缀。字
+缀用于修改基本单词来得到完整的单词列表。这样显著地减少了单词的数目，对波兰语这
+样的语言尤其如此。这被称为字缀压缩。
+
+基本单词列表和字缀文件用 &quot;:mkspell&quot; 命令合并以产生二进制的拼写文件。因为已经经
+过预处理，此文件的载入很快。二进制文件格式在源代码中描述 (src/spell.c)。但只有
+开发者需要知道它的信息。
+
+预处理过程也使得我们在构造 Vim 单词列表之前可以接受 Myspell 语言文件并进行一定
+修改。这个工具可以在 &quot;src/spell&quot; 目录里找到。
+
+字缀和单词列表文件基于 Myspell 使用的文件 (Mozilla 和 OpenOffice.org 的拼写检
+查器)。这里给出它们的描述:
+	<span class="String"><a href="http://lingucomponent.openoffice.org/affix.readme">http://lingucomponent.openoffice.org/affix.readme</a></span> <span class="Ignore">~</span>
+注意字缀是大小写敏感的，上面的描述里对此并不明确。
+
+Vim 支持不少附加成分。下面给出描述 <span class="Ignore">|</span><span class="Identifier">spell-affix-vim</span><span class="Ignore">|</span>。已经作出努力，使文件格式
+和其它拼写检查器使用的兼容，因此常常可以直接使用相同的文件。比 Myspell 提供更
+多功能的另一开发项目是 Hunspell ( <span class="String"><a href="http://hunspell.sf.net">http://hunspell.sf.net</a></span> )。
+
+
+单 词 列 表 格 式				<span class="Ignore">*</span><span class="String">spell-dic-format</span><span class="Ignore">*</span>
+
+简单例子，附注行号:
+
+	<span class="PreProc">1	1234</span><span class="Ignore"> ~</span>
+	<span class="PreProc">2	aan</span><span class="Ignore"> ~</span>
+	<span class="PreProc">3	Als</span><span class="Ignore"> ~</span>
+	<span class="PreProc">4	Etten-Leur</span><span class="Ignore"> ~</span>
+	<span class="PreProc">5	et al.</span><span class="Ignore"> ~</span>
+	<span class="PreProc">6	's-Gravenhage</span><span class="Ignore"> ~</span>
+	<span class="PreProc">7	's-Gravenhaags</span><span class="Ignore"> ~</span>
+	<span class="PreProc">8	# 区域间有差异的词</span><span class="Ignore"> ~</span>
+	<span class="PreProc">9	kado/1</span><span class="Ignore"> ~</span>
+	<span class="PreProc">10	cadeau/2</span><span class="Ignore"> ~</span>
+	<span class="PreProc">11	TCP,IP</span><span class="Ignore"> ~</span>
+	<span class="PreProc">12	/使用 S 字缀可以加上 's'</span><span class="Ignore"> ~</span>
+	<span class="PreProc">13	bedel/S</span><span class="Ignore"> ~</span>
+
+第一行包含单词个数。Vim 忽略，但如果没有会报错。 <span class="Ignore">*</span><span class="String">E760</span><span class="Ignore">*</span>
+
+其后，每个单词一行。忽略行尾的空格，其它地方出现的空格仍然有意义。字缀文件指定
+编码 <span class="Ignore">|</span><span class="Identifier">spell-SET</span><span class="Ignore">|</span>。
+
+注释行以 '#' 或 '/' 开始。参见示例行 8 和 12。注意 _不能_在单词之后加上注释:
+
+		<span class="PreProc">someword   # 这里的注释会出错！</span><span class="Ignore"> ~</span>
+
+单词之后有一个可选的斜杠与标志位。多数标志位是用来指示该词可以使用哪些字缀的字
+母。.aff 文件的 SFX 和 PFX 说明它们的用法，见 <span class="Ignore">|</span><span class="Identifier">spell-SFX</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">spell-PFX</span><span class="Ignore">|</span>。Vim
+也允许使用由字缀文件的 FLAG 项目里指定的其它标志位类型 <span class="Ignore">|</span><span class="Identifier">spell-FLAG</span><span class="Ignore">|</span>。
+
+如果单词只有小写字母，同时匹配第一个字母大写的形式。
+
+如果单词里包含大写字母，相应位置必须大写。不能匹配同一位置使用小写形式的相同单
+词。同样，也不能匹配将其它位置 (本是小写) 的字母变成大写的形式。
+
+总能接受全部大写的单词形式。
+
+	<span class="PreProc">单词列表	匹配			不匹配</span><span class="Ignore"> ~</span>
+	als		als Als ALS		ALs AlS aLs aLS
+	Als		Als  ALS		als ALs AlS aLs aLS
+	ALS		ALS			als Als ALs AlS aLs aLS
+	AlS		AlS ALS			als Als ALs aLs aLS
+
+可以用 KEEPCASE 的字缀标识符来指定某个单词只能接受大小写完全匹配的形式，见下
+<span class="Ignore">|</span><span class="Identifier">spell-KEEPCASE</span><span class="Ignore">|</span>。
+
+注意: 行 5 和 7 使用了非单词字符。你可以在单词里包含任何字符。检查文本时，单词
+只有在前后都是非单词字符的时候才可能匹配。Myspell 也许不能用非单词字符开始的单
+词。
+
+行 12 (译者注: 应为行 11) 定义单词 &quot;TCP/IP&quot;。因为斜杠有特殊含义，这里使用逗号
+代替。它定义在字缀文件的 SLASH 项目里，见 <span class="Ignore">|</span><span class="Identifier">spell-SLASH</span><span class="Ignore">|</span>。注意 没有这个 SLASH
+项目，匹配的单词将是 &quot;TCP,IP&quot;。
+
+
+字 缀 文 件 格 式			<span class="Ignore">*</span><span class="String">spell-aff-format</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">spell-affix-vim</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">spell-affix-comment</span><span class="Ignore">*</span>
+.aff 文件的注释行以 '#' 开始:
+
+	<span class="PreProc"># 注释行</span><span class="Ignore"> ~</span>
+
+带有固定数目参数的项目之后可以有注释，但不能有包含空白的参数。注释必须以 &quot;#&quot;
+字符开始。例如:
+
+	<span class="PreProc">KEEPCASE =  # fix case for words with this flag</span><span class="Ignore"> ~</span>
+
+
+编 码								<span class="Ignore">*</span><span class="String">spell-SET</span><span class="Ignore">*</span>
+
+字缀文件可以使用任何 &quot;iconv&quot; 支持的编码。但在有些情况下，调用 <span class="Ignore">|</span><span class="Identifier">:mkspell</span><span class="Ignore">|</span> 时必
+须设置正确的当前 locale。加入 FOL/LOW/UPP 行可以取消这个限制 <span class="Ignore">|</span><span class="Identifier">spell-FOL</span><span class="Ignore">|</span>。
+
+编码应该在任何依赖于编码的内容之前指定。此编码将同时应用于字缀文件和字典文件。
+用 SET 行设置编码:
+
+	<span class="PreProc">SET utf-8</span><span class="Ignore"> ~</span>
+
+此编码可以和 &quot;:mkspell&quot; 使用时的 <span class="Type">'encoding'</span> 选项值不同。Vim 这时会把所有内容转
+换为 <span class="Type">'encoding'</span> 并生成适用于 <span class="Type">'encoding'</span> 的拼写文件。如果有些使用的字符不能转换
+为 <span class="Type">'encoding'</span>，报错。
+							<span class="Ignore">*</span><span class="String">spell-affix-mbyte</span><span class="Ignore">*</span>
+如果使用多字节编码，可以使用更多不同的字缀标志位。Myspell 不支持这些，因而你也
+许又不愿意这样用。为了兼容性起见，使用 8 位编码。
+
+
+信 息
+
+字缀文件的这些项目可以用来为拼写文件加入信息。这里没有格式的限制，但正确的编码
+仍然是必要的。
+
+				<span class="Ignore">*</span><span class="String">spell-NAME</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">spell-VERSION</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">spell-HOME</span><span class="Ignore">*</span>
+				<span class="Ignore">*</span><span class="String">spell-AUTHOR</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">spell-EMAIL</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">spell-COPYRIGHT</span><span class="Ignore">*</span>
+	NAME		语言名
+	VERSION		1.0.1  with fixes
+	HOME		<span class="String"><a href="http://www.myhome.eu">http://www.myhome.eu</a></span>
+	AUTHOR		John Doe
+	EMAIL		john AT Doe DOT net
+	COPYRIGHT	LGPL
+
+这些字段被按原样放到 .spl 文件里。<span class="Ignore">|</span><span class="Identifier">:spellinfo</span><span class="Ignore">|</span> 命令可以查看这些信息。
+
+							<span class="Ignore">*</span><span class="String">:spellinfo</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:spelli</span><span class="Ignore">*</span>
+:spelli[nfo]		显示当前缓冲区使用的拼写文件的信息。
+
+
+字 符 表 格
+							<span class="Ignore">*</span><span class="String">spell-affix-chars</span><span class="Ignore">*</span>
+如果使用 8 位编码，字缀文件应该定义哪些字符是单词字符。这是因为使用 &quot;:mkspell&quot;
+的系统可能不支持此编码的 locale，因而 isalpha() 不一定工作。Unix 上用 &quot;cp1250&quot;
+编码就是如此。
+						<span class="Ignore">*</span><span class="String">E761</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E762</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">spell-FOL</span><span class="Ignore">*</span>
+						<span class="Ignore">*</span><span class="String">spell-LOW</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">spell-UPP</span><span class="Ignore">*</span>
+字缀文件需要如下三行。简单的例子:
+
+	<span class="PreProc">FOL  áëñ</span><span class="Ignore"> ~</span>
+	<span class="PreProc">LOW  áëñ</span><span class="Ignore"> ~</span>
+	<span class="PreProc">UPP  ÁËÑ</span><span class="Ignore"> ~</span>
+
+这三行必须使用完全相同的字符数。
+
+&quot;FOL&quot; 行指定大小写合并字母。在忽略大小写的情况下，它们用来比较单词。多数编码里
+和小写字母行完全相同。
+
+&quot;LOW&quot; 行指定小写字母。多数情况下和 &quot;FOL&quot; 行等同。
+
+&quot;UPP&quot; 行指定大写字母。也就是，如果一个字符和 &quot;FOL&quot; 相同位置的字符不同，它就是
+大写字母。
+
+德语的 sharp s ß 是个特例。它的大写形式是 &quot;SS&quot;。在 FOL/LOW/UPP 行里应该包含它
+以识别为单词字符，但在所有三行上，用 ß 字符代替。
+
+这里应该省略 ASCII 字符。不管怎么指定，Vim 总是以相同的方式处理它们。
+如果编码为 UTF-8，不需要指定单词字符。
+
+							<span class="Ignore">*</span><span class="String">E763</span><span class="Ignore">*</span>
+Vim 允许在相同文件里为多种语言进行拼写检查。它们在 <span class="Type">'spelllang'</span> 选项里列出。为
+此，相同编码的所有拼写文件必须使用相同的单词字符，否则不能保证它们合并使用而不
+产生错误。
+
+如果你得到 E763 警告说单词表格不一致，可能需要更新 .spl 文件。如果你是下载得到
+的文件，下载所有拼写文件的最新版本。如果只用一种语言，如德语，请同时下载最近的
+英语拼写文件。否则重新用 <span class="Ignore">|</span><span class="Identifier">:mkspell</span><span class="Ignore">|</span> 生成 .spl 文件。如果还有错误，请检查所用的
+.aff 文件里的 FOL、LOW 和 UPP 三行。
+
+用 &quot;-ascii&quot; 参数生成的 XX.ascii.spl 拼写文件不包含字符表格，所以它可以和任何编
+码的拼写文件合并使用。.add.spl 文件同样如此。
+
+
+词中字符
+							<span class="Ignore">*</span><span class="String">spell-midword</span><span class="Ignore">*</span>
+有些字符只有在两个平常的单词字符之间才被认为是单词字符。单引号是一例: 我们经常
+把文本放在单引号里，所以它不应该被认为是单词字符，但出现在单词字符之间的单引号
+又应该算。这样做的目的是为了识别诸如 they'are 这样的拼写错误。正确的形式应该是
+they're，但既然 &quot;they&quot; 和 &quot;are&quot; 本身都是单词，不这么做就发现不了此错误。
+
+.aff 文件里用 MIDWORD 定义这些字符。例如:
+
+	<span class="PreProc">MIDWORD	'-</span><span class="Ignore"> ~</span>
+
+
+标 志 位 类 型						<span class="Ignore">*</span><span class="String">spell-FLAG</span><span class="Ignore">*</span>
+
+标志位用来指定单词可用的字缀和其它属性。通常使用单字符的标志位。这限制了可用的
+标志位数，尤其是对 8 位编码而言。如果需要更多的字缀，可使用 FLAG 项目。可能的
+值包括:
+
+	FLAG long	使用两字符标志位
+	FLAG num	使用数值，从 1 到 65000
+	FLAG caplong	使用不含 A-Z 的单字符标志位和 A-Z 开始的两字符标志位
+
+如用 &quot;FLAG num&quot;，代表字缀的数值列表需要用逗号分隔: &quot;234,2143,1435&quot;。此方法效率
+不高，但方便程序自动生成文件。
+
+如用 &quot;caplong&quot;，两字符标志位都以大写字母开头: &quot;Aa&quot;、&quot;B1&quot;、&quot;BB&quot; 等。一般用法是
+单字符标志位用于常用项目，而两字符标志位用于不常用的项目。
+
+注意: 如果使用 utf-8，标志位只能使用不超过 65000 的字符值。
+
+注意: 即使使用 &quot;num&quot; 或 &quot;long&quot;，复合词和前缀的标志位限定在大约 250 个。
+
+后 缀
+					    <span class="Ignore">*</span><span class="String">spell-PFX</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">spell-SFX</span><span class="Ignore">*</span>
+支持常见的 PFX (前缀) 和 SFX (后缀) 行 (见 Myspell 文档或 Aspell 手册:
+<span class="String"><a href="http://aspell.net/man-html/Affix-Compression.html">http://aspell.net/man-html/Affix-Compression.html</a></span>)。
+
+小结:
+	<span class="PreProc">SFX L Y 2</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SFX L 0 re [^x]</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SFX L 0 ro x</span><span class="Ignore"> ~</span>
+
+第一行是标题行，包含四个字段:
+	SFX <span class="Special">{flag}</span> <span class="Special">{combine}</span> <span class="Special">{count}</span>
+
+<span class="Special">{flag}</span>		后缀使用的名字。多数是单个字符，但其它形式也是可能的，见
+		<span class="Ignore">|</span><span class="Identifier">spell-FLAG</span><span class="Ignore">|</span>。
+
+<span class="Special">{combine}</span>	可为 'Y' 或 '<span class="Special">N</span>'。如果为 'Y'，加上后缀的单词可以有前缀。如果为
+		'<span class="Special">N</span>'，不再允许前缀。
+
+<span class="Special">{count}</span>		后面跟随的行数。如果不正确，报错。
+
+PFX 使用的字段完全相同。
+
+后面跟随的行使用的基本格式是:
+	SFX <span class="Special">{flag}</span> <span class="Special">{strip}</span> <span class="Special">{add}</span> <span class="Special">{condition}</span> <span class="Special">{extra}</span>
+
+<span class="Special">{flag}</span>		必须和首行使用的 <span class="Special">{flag}</span> 相同。
+
+<span class="Special">{strip}</span>		从基本字删除的字符序列。并不检查是否真有这些字符，只使用其长度
+		(以字节计)。最好和 <span class="Special">{condition}</span> 匹配，否则会发生奇怪的行为。如
+		果 <span class="Special">{strip}</span> 长度等于或大于基本字的长度，不能使用该后缀。如果
+		<span class="Special">{strip}</span> 为 0 (零)，不删除任何字符。
+
+<span class="Special">{add}</span>		加入基本字的字符序列，发生在删除 <span class="Special">{strip}</span> 之后。可选后跟 '/' 带
+		标志位。这些标志位应用于加上字缀的单词。见 <span class="Ignore">|</span><span class="Identifier">spell-affix-flags</span><span class="Ignore">|</span>
+
+<span class="Special">{condition}</span>	简单模式。基本字只有匹配此模式才能使用该后缀。常用于不同结尾的
+		单词使用单个后缀字符时使用不同的 <span class="Special">{add}</span> 和 <span class="Special">{strip}</span> 字段的情况。
+		如果 <span class="Special">{condition}</span> 为一个 . (句号)，没有任何条件。
+		此模式可以包含:
+		- 按本义出现的字符。
+		- [] 里的字符集。[abc] 匹配 a、b 和 c。可使用连字符表示范围
+		  <span class="Special">[a-c]</span>，但只用于 Vim。
+		- ^ 开始的字符集取反指定的字符。[^abc] 匹配任何除了 a、b 和 c
+		  以外的字符。
+
+<span class="Special">{extra}</span>		可选的附加文本:
+		    # 注释		忽略注释
+		    -			Hunspell 使用，忽略
+
+PFX 使用相同的字段，但 <span class="Special">{strip}</span>、<span class="Special">{add}</span> 和 <span class="Special">{condition}</span> 应用于单词的头部。
+
+注意: Myspell 忽略相关信息之后的任何附加文本。Vim 需要这些文本之前有 &quot;#&quot;，这样
+不会错过可能的错误。例如:
+
+	<span class="PreProc">SFX F 0 in   [^i]n	# Spion &gt; Spionin </span><span class="Ignore"> ~</span>
+	<span class="PreProc">SFX F 0 nen  in		# Bauerin &gt; Bauerinnen</span><span class="Ignore"> ~</span>
+
+不过要避免为 Myspell 写成的 affix 文件产生许多错误，可加上 IGNOREEXTA 标志位。
+
+Myspell 看来允许同一个字缀名使用多于一次。因为这种使用方法可能是因为不小心造成
+的错误，Vim 检查 (标题行上) 额外的 &quot;S&quot; 标志。Myspell 使用此特性的字缀文件看来
+都有此标志位。例如:
+
+	<span class="PreProc">SFX a Y 1 S</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SFX a 0 an .</span><span class="Ignore"> ~</span>
+
+	<span class="PreProc">SFX a Y 2 S</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SFX a 0 en .</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SFX a 0 on .</span><span class="Ignore"> ~</span>
+
+
+字 缀 标 志 位						<span class="Ignore">*</span><span class="String">spell-affix-flags</span><span class="Ignore">*</span>
+
+此特性来自 Hunspell: 字缀可以指定标志位，和基本字标志位的使用方法类似。这些标
+志位适用于基本字加上字缀后的单词 (但有限制)。例如:
+
+	<span class="PreProc">SFX S Y 1</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SFX S 0 s .</span><span class="Ignore"> ~</span>
+
+	<span class="PreProc">SFX A Y 1</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SFX A 0 able/S .</span><span class="Ignore"> ~</span>
+
+如果字典文件包含 &quot;drink/AS&quot;，以下单词是合法的:
+
+	drink
+	drinks		使用 S 后缀
+	drinkable	使用 A 后缀
+	drinkables	使用 A 后缀然后 S 后缀
+
+一般来说，后缀标志位和基本字标志位都应用于加上后缀后的单词。但只能用基本字标志
+位指定一个字缀，唯一的特例是可以同时使用一个前缀和一个后缀，条件是两者都支持组
+合 (combine)。
+
+特别地，字缀的标志位可用于:
+- 后缀的后缀，见上例。只能用一次，这样一个单词可用两个后缀 (加上一个前缀)。
+- 使带该字缀的单词成为偏僻词。<span class="Ignore">|</span><span class="Identifier">spell-RARE</span><span class="Ignore">|</span> 标志位。
+- 禁止带该字缀的单词进行复合。<span class="Ignore">|</span><span class="Identifier">spell-COMPOUNDFORBIDFLAG</span><span class="Ignore">|</span> 标志位。
+- 允许带该字缀的单词在字缀的这边进行复合。<span class="Ignore">|</span><span class="Identifier">spell-COMPOUNDPERMITFLAG</span><span class="Ignore">|</span> 标志位。
+- 使用 NEEDCOMPOUND 标志位: 加上字缀的单词只能用作复合词的一部分。
+  <span class="Ignore">|</span><span class="Identifier">spell-NEEDCOMPOUND</span><span class="Ignore">|</span>
+- 复合词标志位: 加上字缀的单词可已出现在复合词的尾部、中间、头部等位置。这些标
+  志位和基本字标志位合并。<span class="Ignore">|</span><span class="Identifier">spell-compound</span><span class="Ignore">|</span>
+- NEEDAFFIX: 需要另一个字缀来构成一个合法的单词。
+- CIRCUMFIX，下面立即解释。
+
+
+<span class="Statement">IGNOREEXTRA						</span><span class="Ignore">*</span><span class="String">spell-IGNOREEXTRA</span><span class="Ignore">*</span>
+
+通常 Vim 对不以 '#' 开始的额外字段报错，以确保不会错过任何错误。不过，有些为
+Myspell 或 Hunspell 而生成的文件可能带有不少有额外字段的项目。用 IGNOREEXTRA
+标志位可避免过多的错误。
+
+
+<span class="Statement">CIRCUMFIX						</span><span class="Ignore">*</span><span class="String">spell-CIRCUMFIX</span><span class="Ignore">*</span>
+
+CIRCUMFIX (环缀) 标志位意味着必须同时加入一个前缀和一个后缀。如果使用有
+CIRCUMFIX 标志位的前缀，只能加入带有 CIRCUMFIX 标志位的后缀。反之亦然。
+(译者注: CIRCUMFIX 的使用方法和 KEEPCASE <span class="Ignore">|</span><span class="Identifier">spell-KEEPCASE</span><span class="Ignore">|</span> 等相同。)
+一个替代的方法是只指定后缀，并为该后缀指定两个标志位: 所需前缀和 NEEDAFFIX 标
+志位。<span class="Ignore">|</span><span class="Identifier">spell-NEEDAFFIX</span><span class="Ignore">|</span>
+
+
+<span class="Statement">PFXPOSTPONE						</span><span class="Ignore">*</span><span class="String">spell-PFXPOSTPONE</span><span class="Ignore">*</span>
+
+如果字缀文件有许多前缀，而它们又应用于许多单词，你无法在内存里构造完整的单词列
+表。希伯来语正是如此 (包含所有单词的列表将超过 1 Gbyte)。这种情况下必须延迟前
+缀的应用。此方法使拼写检查变慢。.aff 文件用此关键字指示使用此方法:
+
+	<span class="PreProc">PFXPOSTPONE</span><span class="Ignore"> ~</span>
+
+只能延迟没有删除字符串并且没有标志位的前缀。带有删除字符串或标志位的前缀仍然会
+被包含在单词列表里。但如果该删除字符串只有一个字符并等于附加字符串的最后一个字
+符但以小写形式出现的话例外。此时如果使用该删除字符串，后面的单词可以用大写字母
+开始。
+
+
+带 斜 杠 的 单 词					<span class="Ignore">*</span><span class="String">spell-SLASH</span><span class="Ignore">*</span>
+
+.dic 文件使用斜杠分隔基本字与字缀字符以及其它标志位。不幸的是，这意味着你不能
+在单词里使用斜杠。这样，&quot;TCP/IP&quot; 不是一个单词，而是 &quot;TCP&quot; 并带标志位 &quot;IP&quot;。要
+在单词里包含斜杠，在它之前加上反斜杠。如果罕见地你想在单词里用反斜杠，用两个反
+斜杠就可以。其它反斜杠的使用方式为将来的扩展保留。
+(译者注: 此处似乎不需要特别的 SLASH 项目，但 <span class="Ignore">|</span><span class="Identifier">spell-dic-format</span><span class="Ignore">|</span> 有相关暗示)
+
+
+保 持 大 小 写 的 单 词					<span class="Ignore">*</span><span class="String">spell-KEEPCASE</span><span class="Ignore">*</span>
+
+字缀文件可用 KEEPCASE 行定义使单词保持大小写的字缀名。例如:
+
+	<span class="PreProc">KEEPCASE =</span><span class="Ignore"> ~</span>
+
+Myspell 不支持此标志位。此标志位的出现意味着大小写相关。
+这可用于句首出现的单词不需要首字母大写的情况。例如:
+
+    <span class="PreProc">单词列表	    匹配		    不匹配</span><span class="Ignore"> ~</span>
+    's morgens/=    's morgens		    'S morgens 's Morgens 'S MORGENS
+    's Morgens	    's Morgens 'S MORGENS   'S morgens 's morgens
+
+此标志位也可用来避免匹配单词的全大写字母形式。
+
+
+偏 僻 词						<span class="Ignore">*</span><span class="String">spell-RARE</span><span class="Ignore">*</span>
+
+字缀文件可用 RARE 行来定义偏僻词使用的字缀名。例如:
+
+	<span class="PreProc">RARE ?</span><span class="Ignore"> ~</span>
+
+偏僻词和坏词的高亮方法不同。它用来标识对语言而言正确但几乎没人用的单词，因而这
+可能是其它单词输入错误的结果。如果相同单词已经被认为是好词，它不再被高亮为偏僻
+词。
+
+此标志位也用于字缀，这时，基本字不罕见，但加上字缀后却是 <span class="Ignore">|</span><span class="Identifier">spell-affix-flags</span><span class="Ignore">|</span>。
+不过，如果其它方式已经使该词以好词出现 (例如，属于其它区域)，它不会被标记为偏
+僻词。
+
+
+坏 词							<span class="Ignore">*</span><span class="String">spell-BAD</span><span class="Ignore">*</span>
+
+字缀文件可以使用 BAD 行来定义坏词使用的字缀名。例如:
+
+	<span class="PreProc">BAD !</span><span class="Ignore"> ~</span>
+
+它可以用来排除本来是好词的单词。例如，.dic 文件里的 &quot;the the&quot;:
+
+	<span class="PreProc">the the/!</span><span class="Ignore"> ~</span>
+
+一旦一个单词被标为坏词，即使遇到相同的词被标为好词的情况，也不能再撤销。
+
+此标志位也可用于带字缀的单词，因而可以用来标注一系列相关的词为坏词。
+
+							<span class="Ignore">*</span><span class="String">spell-FORBIDDENWORD</span><span class="Ignore">*</span>
+FORBIDDENWORD 等同于 BAD。为了保持和 Hunspell 的兼容而设。
+
+							<span class="Ignore">*</span><span class="String">spell-NEEDAFFIX</span><span class="Ignore">*</span>
+NEEDAFFIX 标志位用来指定单词必须使用字缀。该单词本身不被认为是好词 (除非有空字
+缀)。例如:
+
+	<span class="PreProc">NEEDAFFIX +</span><span class="Ignore"> ~</span>
+
+
+复 合 词						<span class="Ignore">*</span><span class="String">spell-compound</span><span class="Ignore">*</span>
+
+复合词是通过连接 .dic 文件里出现的单词而成的更长的词。要指定那些单词可以连接，
+要用一个字符。该字符放在单词之后的字缀列表里。这里我们把这个字符叫做标志位。显
+然，这些标志位必须不能和任何字缀标识符冲突。
+
+							<span class="Ignore">*</span><span class="String">spell-COMPOUNDFLAG</span><span class="Ignore">*</span>
+Myspell 兼容方法使用 COMPOUNDFLAG 指定的标志位。带该标志位的所有单词可以用任何
+顺序进行合并。这样无法实现哪个单词必须出现在前等控制。例如:
+	<span class="PreProc">COMPOUNDFLAG c</span><span class="Ignore"> ~</span>
+
+							<span class="Ignore">*</span><span class="String">spell-COMPOUNDRULE</span><span class="Ignore">*</span>
+更高级的方式是用带有多种标志位的多种项目来指定如何构成复合词。这和 Myspell 3.0
+不兼容。让我们从下例开始:
+	<span class="PreProc">COMPOUNDRULE c+</span><span class="Ignore"> ~</span>
+	<span class="PreProc">COMPOUNDRULE se</span><span class="Ignore"> ~</span>
+
+第一行定义带有 &quot;c&quot; 标志位的单词可以用任何顺序进行来连接。第二行定义由一个带有
+&quot;s&quot; 标志位和一个带有 &quot;e&quot; 标志位的单词可以构成复合词。假定使用下面的字典:
+	<span class="PreProc">bork/c</span><span class="Ignore"> ~</span>
+	<span class="PreProc">onion/s</span><span class="Ignore"> ~</span>
+	<span class="PreProc">soup/e</span><span class="Ignore"> ~</span>
+
+你可以构造以下单词:
+	bork
+	borkbork
+	borkborkbork
+	(等等)
+	onion
+	soup
+	onionsoup
+
+COMPOUNDRULE 项目可以出现多次。它的参数包含一或多个组。每组可以是:
+	一个标志位			例如，c
+	[] 里多选一的标志位		例如，[abc]
+可选地，后面可跟:
+	*	该组出现零或多次，例如，sm*e
+	+	该组出现一或多次，例如，c+
+	?	该组出现零或一次，例如，x?
+
+这和正规表达式的语法相似 (但不完全相同！)。一些例子如下，这里同时列出它们所要
+求的标志位序列:
+    COMPOUNDRULE x+	   x xx xxx 等
+    COMPOUNDRULE yz	   yz
+    COMPOUNDRULE x+z	   xz xxz xxxz 等
+    COMPOUNDRULE yx+	   yx yxx yxxx 等
+    COMPOUNDRULE xy?z	   xz xyz
+
+    COMPOUNDRULE <span class="Special">[abc]</span>z    az bz cz
+    COMPOUNDRULE <span class="Special">[abc]</span>+z   az aaz abaz bz baz bcbz cz caz cbaz 等
+    COMPOUNDRULE a[xyz]+   ax axx axyz ay ayx ayzz az azy azxy 等
+    COMPOUNDRULE sm*e	   se sme smme smmme 等
+    COMPOUNDRULE s[xyz]*e  se sxe sxye sxyxe sye syze sze szye szyxe  等
+
+特别例子: 复合词需要由两个单词和一个连字符构成:
+	.aff 文件:
+	    <span class="PreProc">COMPOUNDRULE sde</span><span class="Ignore"> ~</span>
+	    <span class="PreProc">NEEDAFFIX x</span><span class="Ignore"> ~</span>
+	    <span class="PreProc">COMPOUNDWORDMAX 3</span><span class="Ignore"> ~</span>
+	    <span class="PreProc">COMPOUNDMIN 1</span><span class="Ignore"> ~</span>
+	.dic 文件:
+	    <span class="PreProc">start/s</span><span class="Ignore"> ~</span>
+	    <span class="PreProc">end/e</span><span class="Ignore"> ~</span>
+	    <span class="PreProc">-/xd</span><span class="Ignore"> ~</span>
+
+这样，单词 &quot;start-end&quot; 可以接受但 &quot;startend&quot; 不行。
+
+还有一个隐含的规则，如果没有更多标志位，带前缀的单词不能在另一个单词之后复合，
+同样，带有后缀的单词不能在另一个单词之前复合。也就是，字缀不能出现在复合词的中
+间。这一规则用 <span class="Ignore">|</span><span class="Identifier">spell-COMPOUNDPERMITFLAG</span><span class="Ignore">|</span> 可以改变。
+
+							<span class="Ignore">*</span><span class="String">spell-NEEDCOMPOUND</span><span class="Ignore">*</span>
+NEEDCOMPOUND 标志位要求单词必须用作复合词的一部分。该单词本身不作为好词。例如:
+
+	<span class="PreProc">NEEDCOMPOUND &amp;</span><span class="Ignore"> ~</span>
+
+							<span class="Ignore">*</span><span class="String">spell-ONLYINCOMPOUND</span><span class="Ignore">*</span>
+ONLYINCOMPOUND 等同于 NEEDCOMPOUND。为保持和 Hunspell 兼容性而设。
+
+							<span class="Ignore">*</span><span class="String">spell-COMPOUNDMIN</span><span class="Ignore">*</span>
+用于复合词的最短字符长度用 COMPOUNDMIN 指定。例如:
+	<span class="PreProc">COMPOUNDMIN 5</span><span class="Ignore"> ~</span>
+
+如果省略，没有最短长度。显然，不给短词加上复合用的标志位就可以了。保留此特性是
+为了和 Myspell 兼容。
+
+							<span class="Ignore">*</span><span class="String">spell-COMPOUNDWORDMAX</span><span class="Ignore">*</span>
+用于复合词的最大单词长度用 COMPOUNDMAX 指定。例如:
+	<span class="PreProc">COMPOUNDWORDMAX 3</span><span class="Ignore"> ~</span>
+
+如果省略，没有最大长度。适用于所有的复合词。
+
+要设置带有特定标志位的单词的限制，确信在 COMPOUNDRULE 出现的项目不允许太多的单
+词。
+
+							<span class="Ignore">*</span><span class="String">spell-COMPOUNDSYLMAX</span><span class="Ignore">*</span>
+复合词包含的最大音节数用 COMPOUNDSYLMAX 指定。例如:
+	<span class="PreProc">COMPOUNDSYLMAX 6</span><span class="Ignore"> ~</span>
+
+如果没有 SYLLABLE 项目，没有任何效果。如果没有 COMPOUNDSYLMAX，没有音节数的限
+制。
+
+如果同时定义了 COMPOUNDWORDMAX 和 COMPOUNDSYLMAX，接受满足其中任何一个条件的单
+词，也就是说，或者不超过 COMPOUNDWORDMAX 个单词，或者不超过 COMPOUNDSYLMAX 个
+音节。
+
+						    <span class="Ignore">*</span><span class="String">spell-COMPOUNDFORBIDFLAG</span><span class="Ignore">*</span>
+COMPOUNDFORBIDFLAG 指定可用于字缀的标志位。它意味着加上字缀的单词不能用于复合
+词。例如:
+	字缀文件:
+		<span class="PreProc">COMPOUNDFLAG c</span><span class="Ignore"> ~</span>
+		<span class="PreProc">COMPOUNDFORBIDFLAG x</span><span class="Ignore"> ~</span>
+		<span class="PreProc">SFX a Y 2</span><span class="Ignore"> ~</span>
+		<span class="PreProc">SFX a 0 s   .</span><span class="Ignore"> ~</span>
+		<span class="PreProc">SFX a 0 ize/x .</span><span class="Ignore"> ~</span>
+	字典:
+		<span class="PreProc">word/c</span><span class="Ignore"> ~</span>
+		<span class="PreProc">util/ac</span><span class="Ignore"> ~</span>
+
+允许 &quot;wordutil&quot; 和 &quot;wordutils&quot;，但不允许 &quot;wordutilize&quot;。
+备注: 这还不能用于延迟前缀。
+
+						    <span class="Ignore">*</span><span class="String">spell-COMPOUNDPERMITFLAG</span><span class="Ignore">*</span>
+COMPOUNDPERMITFLAG 指定可用于字缀的标志位。它意味着加上字缀的单词可以用于复合
+词，其中该字缀可以出现在单词中间。没有此标志位，这是不允许的。
+备注: 这还不能用于延迟前缀。
+
+						    <span class="Ignore">*</span><span class="String">spell-COMPOUNDROOT</span><span class="Ignore">*</span>
+COMPOUNDROOT 标志位用来指定字典里已经是复合词的单词。检查复合词规则时，它可以
+被计算为两个单词。也可用于字缀，使得该字缀成为一个复合词。
+
+						<span class="Ignore">*</span><span class="String">spell-CHECKCOMPOUNDPATTERN</span><span class="Ignore">*</span>
+CHECKCOMPOUNDPATTERN 用于定义这样的模式，在两个词复合的位置匹配时禁止该复合
+词。示例:
+	<span class="PreProc">CHECKCOMPOUNDPATTERN o e</span><span class="Ignore"> ~</span>
+
+如果第一个词以 &quot;o&quot; 结尾而第二个词以 &quot;e&quot; 开始，禁止它们的复合。
+
+虽然名字叫模式，参数必须是普通的文本而不是什么模式。总是忽略大小写。
+
+不支持 Hunspell 带三个参数和标志位的功能。
+
+							<span class="Ignore">*</span><span class="String">spell-NOCOMPOUNDSUGS</span><span class="Ignore">*</span>
+此项目指定不使用复合词作为提示。这可用于复合词用于很短甚至单个字符的单词上。如
+从数位中提取数值的场合。没有此标志位，提示的建立会花大部分时间在尝试各种奇奇怪
+怪的复合词上。
+
+	<span class="PreProc">NOCOMPOUNDSUGS</span><span class="Ignore"> ~</span>
+
+							<span class="Ignore">*</span><span class="String">spell-SYLLABLE</span><span class="Ignore">*</span>
+SYLLABLE 项目定义用于计算单词音节数的字符或字符序列。例如:
+	<span class="PreProc">SYLLABLE aáeéiíoóöõuúüûy/aa/au/ea/ee/ei/ie/oa/oe/oo/ou/uu/ui</span><span class="Ignore"> ~</span>
+
+第一个斜杠之前是当作一个音节的字符的集合，即使它们被重复和混合也是如此，直到下
+一个字符不属于此集合为止。该斜杠之后列出当作一个音节的字符序列。它们比使用集合
+里的字符优先。用上面这个示例，&quot;ideeen&quot; 有三个音节，分别包含 &quot;i&quot;、&quot;ee&quot; 和 &quot;e&quot;。
+
+这里只需要包含大小写合并字母。
+
+上面已经提到了另一个限制复合的方法: 为字缀加上 <span class="Ignore">|</span><span class="Identifier">spell-COMPOUNDFORBIDFLAG</span><span class="Ignore">|</span> 标志
+位，这样所有带有该字缀的单词都不用于复合。
+
+
+无 限 复 合						<span class="Ignore">*</span><span class="String">spell-NOBREAK</span><span class="Ignore">*</span>
+
+有些语言，比如泰语，使用的单词之间没有空格。这就像所有单词都进行了复合。要指定
+此行为，使用字缀文件的 NOBREAK 项目，没有参数:
+	<span class="PreProc">NOBREAK</span><span class="Ignore"> ~</span>
+
+Vim 会试图判断哪里单词结束而下一个单词开始。如果有拼写错误，这不一定能做得很
+好。
+
+
+							<span class="Ignore">*</span><span class="String">spell-COMMON</span><span class="Ignore">*</span>
+可用 COMMON 项目指定常用词。编辑短文件时，它会提供更好的建议。例如:
+
+	<span class="PreProc">COMMON  the of to and a in is it you that he was for on are</span><span class="Ignore"> ~</span>
+
+这些单词必须用空格分隔，一行至多 25 个。
+如果 &quot;:mkspell&quot; 命令指定多个区域，所有区域的常用词进行合并并用于所有区域。
+
+							<span class="Ignore">*</span><span class="String">spell-NOSPLITSUGS</span><span class="Ignore">*</span>
+此项目指示不要分割单词来提供建议。分割单词的建议只有在相近词很少时才会出现。
+
+	<span class="PreProc">NOSPLITSUGS</span><span class="Ignore"> ~</span>
+
+							<span class="Ignore">*</span><span class="String">spell-NOSUGGEST</span><span class="Ignore">*</span>
+NOSUGGEST 指定的标志位可用来不参与建议的单词。可用于不洁词汇。
+
+	<span class="PreProc">NOSUGGEST %</span><span class="Ignore"> ~</span>
+
+
+替 换							<span class="Ignore">*</span><span class="String">spell-REP</span><span class="Ignore">*</span>
+
+字缀文件可用 REP 项目来定义常见错误。用于提供拼写建议。这些项目定义 &quot;从&quot; 一个
+文本替换 &quot;到&quot; 的另一个文本。例如:
+
+	<span class="PreProc">REP 4</span><span class="Ignore"> ~</span>
+	<span class="PreProc">REP f ph</span><span class="Ignore"> ~</span>
+	<span class="PreProc">REP ph f</span><span class="Ignore"> ~</span>
+	<span class="PreProc">REP k ch</span><span class="Ignore"> ~</span>
+	<span class="PreProc">REP ch k</span><span class="Ignore"> ~</span>
+
+第一行指定后面跟随的 REP 行数。Vim 忽略该计数，但此行仍然要存在 (为了和
+Myspell 兼容)。
+
+不要包含简单的单字符替换或交换。但你要指定的话 Vim 还是会去做。如果你喜欢，可
+以包含整个单词，但用 <span class="Type">'spellsuggest'</span> 里的 &quot;file:&quot; 项目可能更好。
+
+下划线可用来包含空格:
+
+	<span class="PreProc">REP the_the the</span><span class="Ignore"> ~</span>
+
+
+相 近 字 符						<span class="Ignore">*</span><span class="String">spell-MAP</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E783</span><span class="Ignore">*</span>
+
+字缀文件可用 MAP 项目定义非常相近的字母。多用于带有不同重音的同一字母。替换这
+些字母的建议会得到更高的优先级。例如:
+
+	<span class="PreProc">MAP 2</span><span class="Ignore"> ~</span>
+	<span class="PreProc">MAP eéëêè</span><span class="Ignore"> ~</span>
+	<span class="PreProc">MAP uüùúû</span><span class="Ignore"> ~</span>
+
+第一行指定后面跟随的 MAP 行数。Vim 忽略该计数，但该行仍然要存在。
+
+每个字母只能在一个 MAP 项目里出现。如果第一个字母是 ASCII 或至少是不带重音的那
+个，效率会稍稍提高。
+
+
+.SUG 文 件						<span class="Ignore">*</span><span class="String">spell-NOSUGFILE</span><span class="Ignore">*</span>
+
+如果字缀文件指定按发音折叠，&quot;:mkspell&quot; 通常会和 .spl 文件一起产生 .sug 文件。
+该文件用于快速寻找发音相近形式的建议。代价是大量的内存开销 (开销取决于单词数，
+<span class="Ignore">|</span><span class="Identifier">:mkspell</span><span class="Ignore">|</span> 完成时会显示这方面大概的估计)。
+
+如果不想生成 .sug 文件，在字缀文件里使用项目:
+
+	<span class="PreProc">NOSUGFILE</span><span class="Ignore"> ~</span>
+
+如果只是不想用，用户可以简单地忽略 .sug 文件。
+
+
+<span class="Statement">SOUND-A-LIKE						</span><span class="Ignore">*</span><span class="String">spell-SAL</span><span class="Ignore">*</span>
+
+字缀文件可用 SAL (sound-a-like，发音相近) 项目来定义要使用的发音相近机制。主要
+项目定义 &quot;从&quot; 一个文本替换 &quot;到&quot; 的另一个文本。简单的例子:
+
+	<span class="PreProc">SAL CIA			 X</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SAL CH			 X</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SAL C			 K</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SAL K			 K</span><span class="Ignore"> ~</span>
+
+这里有一些规则，它们可能会变得很复杂。具体如何工作的解释可见 Aspell 手册:
+	<span class="String"><a href="http://aspell.net/man-html/Phonetic-Code.html">http://aspell.net/man-html/Phonetic-Code.html</a></span>
+
+还有一些特殊项目:
+
+	<span class="PreProc">SAL followup		true</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SAL collapse_result	true</span><span class="Ignore"> ~</span>
+	<span class="PreProc">SAL remove_accents	true</span><span class="Ignore"> ~</span>
+
+&quot;1&quot; 的含义和 &quot;true&quot; 相同。其它值代表 &quot;false&quot;。
+
+
+简 单 按 发 音 折 叠				<span class="Ignore">*</span><span class="String">spell-SOFOFROM</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">spell-SOFOTO</span><span class="Ignore">*</span>
+
+SAL 机制复杂又费时。一个稍简单的机制是把所有的字符映射为其它字符，这样发音相近
+的字符被映射为同一字符。同时也可用于大小写合并。你不能同时使用 SAL 项目和简单
+按发音折叠项目。
+
+这个机制需要两个项目: 一个指定被映射的字符，一个指定映射到的字符。它们必须包含
+相同数目的字符。例如:
+
+    <span class="PreProc">SOFOFROM abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ</span><span class="Ignore"> ~</span>
+    <span class="PreProc">SOFOTO   ebctefghejklnnepkrstevvkesebctefghejklnnepkrstevvkes</span><span class="Ignore"> ~</span>
+
+这个例子里所有元音被映射为同一个字符 'e'。另一个方法是完全省略所有的元音。一些
+发音几乎相同的字符经常会被混用，比如 'm' 和 'n'，它们也被映射到同一个字符上。
+不要过于极端，否则所有单词看起来都差不多了。
+
+不出现在 SOFOFROM 里的字符被省略，除了所有的空白被为单个空格替换以外。SOFOFORM
+里相同字符的序列被替换为一个字符。
+
+你可以用 <span class="Ignore">|</span><span class="Identifier">soundfold()</span><span class="Ignore">|</span> 函数测试结果。也可以设置 <span class="Type">'verbose'</span> 选项来看看 <span class="Ignore">|</span><span class="Identifier">z=</span><span class="Ignore">|</span> 命令
+输出的评分。
+
+
+不 支 持 的 项 目				<span class="Ignore">*</span><span class="String">spell-affix-not-supported</span><span class="Ignore">*</span>
+
+这些项目出现在其它拼写检查器使用的字缀文件里。Vim 里忽略它们，不支持也不用其它
+方法定义。
+
+ACCENT		(Hunspell)				<span class="Ignore">*</span><span class="String">spell-ACCENT</span><span class="Ignore">*</span>
+		用 MAP 代替。<span class="Ignore">|</span><span class="Identifier">spell-MAP</span><span class="Ignore">|</span>
+
+BREAK		(Hunspell)				<span class="Ignore">*</span><span class="String">spell-BREAK</span><span class="Ignore">*</span>
+		定义分切点。还不清楚这是怎么工作的。
+		不支持。
+
+CHECKCOMPOUNDCASE  (Hunspell)			<span class="Ignore">*</span><span class="String">spell-CHECKCOMPOUNDCASE</span><span class="Ignore">*</span>
+		不允许复合词边界上有大写字母。不支持。
+
+CHECKCOMPOUNDDUP  (Hunspell)			<span class="Ignore">*</span><span class="String">spell-CHECKCOMPOUNDDUP</span><span class="Ignore">*</span>
+		不允许复合词里使用同一单词两次。不支持。
+
+CHECKCOMPOUNDREP  (Hunspell)			<span class="Ignore">*</span><span class="String">spell-CHECKCOMPOUNDREP</span><span class="Ignore">*</span>
+		有关 REP 项目和复合词。不支持。
+
+CHECKCOMPOUNDTRIPLE  (Hunspell)			<span class="Ignore">*</span><span class="String">spell-CHECKCOMPOUNDTRIPLE</span><span class="Ignore">*</span>
+		禁止复合时出现三个相同的字符。不支持。
+
+COMPLEXPREFIXES  (Hunspell)				<span class="Ignore">*</span><span class="String">spell-COMPLEXPREFIXES</span><span class="Ignore">*</span>
+		允许使用两个前缀。不支持。
+
+COMPOUND	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-COMPOUND</span><span class="Ignore">*</span>
+		先是包含 COMPOUND 项目总数的一行，然后跟随那么多数目带有模式的
+		COMPOUND 行。
+		删除带有计数的第一行，把其它行换名为 COMPOUNDRULE。
+		<span class="Ignore">|</span><span class="Identifier">spell-COMPOUNDRULE</span><span class="Ignore">|</span>
+
+COMPOUNDFIRST	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-COMPOUNDFIRST</span><span class="Ignore">*</span>
+		用 COMPOUNDRULE 代替。<span class="Ignore">|</span><span class="Identifier">spell-COMPOUNDRULE</span><span class="Ignore">|</span>
+
+COMPOUNDBEGIN	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-COMPOUNDBEGIN</span><span class="Ignore">*</span>
+		用 COMPOUNDRULE 代替。<span class="Ignore">|</span><span class="Identifier">spell-COMPOUNDRULE</span><span class="Ignore">|</span>
+
+COMPOUNDEND	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-COMPOUNDEND</span><span class="Ignore">*</span>
+		用 COMPOUNDRULE 代替。<span class="Ignore">|</span><span class="Identifier">spell-COMPOUNDRULE</span><span class="Ignore">|</span>
+
+COMPOUNDMIDDLE	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-COMPOUNDMIDDLE</span><span class="Ignore">*</span>
+		用 COMPOUNDRULE 代替。<span class="Ignore">|</span><span class="Identifier">spell-COMPOUNDRULE</span><span class="Ignore">|</span>
+
+COMPOUNDRULES	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-COMPOUNDRULES</span><span class="Ignore">*</span>
+		紧跟其后的 COMPOUNDRULE 行的数目。忽略，但参数必须是数值。
+
+COMPOUNDSYLLABLE  (Hunspell)			<span class="Ignore">*</span><span class="String">spell-COMPOUNDSYLLABLE</span><span class="Ignore">*</span>
+		用 SYLLABLE 和 COMPOUNDSYLMAX 代替。<span class="Ignore">|</span><span class="Identifier">spell-SYLLABLE</span><span class="Ignore">|</span>
+		<span class="Ignore">|</span><span class="Identifier">spell-COMPOUNDSYLMAX</span><span class="Ignore">|</span>
+
+KEY		(Hunspell)				<span class="Ignore">*</span><span class="String">spell-KEY</span><span class="Ignore">*</span>
+		定义键盘上互相靠近的字符。
+		用于给出更好的建议。不支持。
+
+LANG		(Hunspell)				<span class="Ignore">*</span><span class="String">spell-LANG</span><span class="Ignore">*</span>
+		指定语言特定的行为。实际上把部分有关语言的知识放进了程序里。因
+		而 Vim 不支持。必须分别指定每个语言属性。
+
+LEMMA_PRESENT	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-LEMMA_PRESENT</span><span class="Ignore">*</span>
+		只用于词态学分析。
+
+MAXNGRAMSUGS	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-MAXNGRAMSUGS</span><span class="Ignore">*</span>
+		设置 n-元组建议的数目。不支持。
+
+PSEUDOROOT	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-PSEUDOROOT</span><span class="Ignore">*</span>
+		用 NEEDAFFIX 代替。<span class="Ignore">|</span><span class="Identifier">spell-NEEDAFFIX</span><span class="Ignore">|</span>
+
+SUGSWITHDOTS	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-SUGSWITHDOTS</span><span class="Ignore">*</span>
+		给建议加上句号。Vim 不需要。
+
+SYLLABLENUM	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-SYLLABLENUM</span><span class="Ignore">*</span>
+		不支持。
+
+TRY		(Myspell、Hunspell 以及其它)		<span class="Ignore">*</span><span class="String">spell-TRY</span><span class="Ignore">*</span>
+		Vim 不使用 TRY 项目并忽略它们。要提供建议，使用单词里的实际字
+		符，这样效率高很多。
+
+WORDCHARS	(Hunspell)				<span class="Ignore">*</span><span class="String">spell-WORDCHARS</span><span class="Ignore">*</span>
+		用于识别单词。Vim 不需要，因为没有检查单词之前分隔单词的必要
+		(我们用 trie 树代替了哈希表)。
+
+ vim&#0058;tw=78:sw=4:ts=8:ft=help:norl:
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

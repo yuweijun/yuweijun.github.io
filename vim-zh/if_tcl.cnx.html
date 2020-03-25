@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>~/github.com/yuweijun/yuweijun.github.io/vim-zh/if_tcl.cnx.html</title>
+<meta name="Generator" content="Vim/8.2">
+<meta name="plugin-version" content="vim8.1_v2">
+<meta name="syntax" content="help">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,prevent_copy=,use_input_for_pc=fallback">
+<meta name="colorscheme" content="molokai">
+<style>
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #d0d0d0; background-color: #121212; }
+body { font-family: monospace; color: #d0d0d0; background-color: #121212; }
+* { font-size: 1em; }
+.String { color: #afaf87; }
+.Type { color: #5fd7ff; }
+.PreProc { color: #87ff00; }
+.Identifier { color: #ff8700; }
+.Comment { color: #5f5f5f; }
+.Special { color: #5fd7ff; }
+.Ignore { color: #808080; background-color: #080808; padding-bottom: 1px; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="Ignore">*</span><span class="String">if_tcl.txt</span><span class="Ignore">*</span>    For <span class="Identifier">Vim version 8.0.</span>  最近更新: 2017年7月
+
+
+		  VIM 参考手册	  by Ingo Wilken
+				译者: Willis
+				<span class="String"><a href="http://vimcdoc.sf.net">http://vimcdoc.sf.net</a></span>
+
+
+Vim 的 Tcl 接口				<span class="Ignore">*</span><span class="String">tcl</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">Tcl</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">TCL</span><span class="Ignore">*</span>
+
+1. 命令					<span class="Ignore">|</span><span class="Identifier">tcl-ex-commands</span><span class="Ignore">|</span>
+2. Tcl 命令				<span class="Ignore">|</span><span class="Identifier">tcl-commands</span><span class="Ignore">|</span>
+3. Tcl 变量				<span class="Ignore">|</span><span class="Identifier">tcl-variables</span><span class="Ignore">|</span>
+4. Tcl 窗口命令				<span class="Ignore">|</span><span class="Identifier">tcl-window-cmds</span><span class="Ignore">|</span>
+5. Tcl 缓冲区命令			<span class="Ignore">|</span><span class="Identifier">tcl-buffer-cmds</span><span class="Ignore">|</span>
+6. 杂项；Tcl 的输出			<span class="Ignore">|</span><span class="Identifier">tcl-misc</span><span class="Ignore">|</span> <span class="Ignore">|</span><span class="Identifier">tcl-output</span><span class="Ignore">|</span>
+7. 已知漏洞和问题			<span class="Ignore">|</span><span class="Identifier">tcl-bugs</span><span class="Ignore">|</span>
+8. 示例					<span class="Ignore">|</span><span class="Identifier">tcl-examples</span><span class="Ignore">|</span>
+9. 动态调入				<span class="Ignore">|</span><span class="Identifier">tcl-dynamic</span><span class="Ignore">|</span>
+
+<span class="Special">{Vi 没有这些命令}</span> <span class="Ignore">*</span><span class="String">E280</span><span class="Ignore">*</span>
+
+只有在 Vim 编译时加入 <span class="Ignore">|</span><span class="Identifier">+tcl</span><span class="Ignore">|</span> 特性时，才有 Tcl 接口。
+
+警告: 可能还有没发现的漏洞。请把漏洞报告、意见、建议等等发送到
+&lt;Ingo.Wilken@informatik.uni-oldenburg.de&gt;
+
+<span class="PreProc">==============================================================================</span>
+1. 命令					<span class="Ignore">*</span><span class="String">tcl-ex-commands</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E571</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E572</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">:tcl</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:tc</span><span class="Ignore">*</span>
+:tc[l] <span class="Special">{cmd}</span>		执行 Tcl 命令 <span class="Special">{cmd}</span>。测试 <span class="Ignore">`</span><span class="Comment">:tcl</span><span class="Ignore">`</span> 是否可用的简单检查:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:tcl puts &quot;Hello&quot;</span>
+
+:<span class="Special">[range]</span>tc[l] &lt;&lt; <span class="Special">{endmarker}</span>
+<span class="Special">{script}</span>
+<span class="Special">{endmarker}</span>
+			执行 Tcl 脚本 <span class="Special">{script}</span>。
+			注意: 如果编译时没有加入 Tcl 特性，该命令不会工作。要
+			避免错误，参见 <span class="Ignore">|</span><span class="Identifier">script-here</span><span class="Ignore">|</span>。
+
+<span class="Special">{endmarker}</span> _不能_有前导空白。若 &quot;&lt;&lt;&quot; 之后省略 <span class="Special">{endmarker}</span>，<span class="Special">{script}</span> 之后必须
+由句号 '.' 结束，类似于 <span class="Ignore">|</span><span class="Identifier">:append</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">:insert</span><span class="Ignore">|</span> 命令。
+这种形式的 <span class="Ignore">|</span><span class="Identifier">:tcl</span><span class="Ignore">|</span> 命令主要用于在 Vim 脚本里包含 tcl 代码。
+
+示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">	function! DefineDate()</span>
+<span class="Comment">	    tcl &lt;&lt; EOF</span>
+<span class="Comment">	    proc date {} {</span>
+<span class="Comment">		return [clock format [clock seconds]]</span>
+<span class="Comment">	    }</span>
+<span class="Comment">	EOF</span>
+<span class="Comment">	endfunction</span>
+<span class="Ignore">&lt;</span>
+要看运行的 Tcl 版本:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:tcl puts [info patchlevel]</span>
+<span class="Ignore">&lt;</span>
+
+							<span class="Ignore">*</span><span class="String">:tcldo</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:tcld</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>tcld[o] <span class="Special">{cmd}</span>	对 <span class="Special">[range]</span> 范围内的每行执行 Tcl 命令 <span class="Special">{cmd}</span>。执行过程
+			中，变量 &quot;line&quot; 被赋值为每行的文本，&quot;lnum&quot; 为相应的行
+			号。改变 &quot;line&quot; 会改变文本，但是你不能用此命令增加或者
+			删除行。如果 <span class="Special">{cmd}</span> 有错，整个命令被中断。缺省的范围
+			<span class="Special">[range]</span> 是整个文件，&quot;1,$&quot;。参见 <span class="Ignore">|</span><span class="Identifier">tcl-var-line</span><span class="Ignore">|</span> 和
+			<span class="Ignore">|</span><span class="Identifier">tcl-var-lnum</span><span class="Ignore">|</span>。 <span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:tclfile</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:tclf</span><span class="Ignore">*</span>
+:tclf[ile] <span class="Special">{file}</span>	执行 Tcl 脚本文件 <span class="Special">{file}</span>。它和 &quot;:tcl source <span class="Special">{file}</span>&quot; 相
+			当，但可用文件名自动补全功能。 <span class="Special">{Vi 无此功能}</span>
+
+
+注意 Tcl 对象 (类似于变量) 在命令之间保持值不变。就像在 Tcl 外壳里使用那样。
+
+<span class="Ignore">|</span><span class="Identifier">sandbox</span><span class="Ignore">|</span> 里不能执行 Tcl 命令。
+
+<span class="PreProc">==============================================================================</span>
+2. Tcl 命令						<span class="Ignore">*</span><span class="String">tcl-commands</span><span class="Ignore">*</span>
+
+Tcl 完全通过 &quot;::vim&quot; 命名空间的命令访问 vim 的功能。已实现以下功能:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	::vim::beep			# 猜猜看。</span>
+<span class="Comment">	::vim::buffer {n}		# 为单个缓冲区建立 Tcl 命令。</span>
+<span class="Comment">	::vim::buffer list		# 为所有缓冲区建立 Tcl 命令。</span>
+<span class="Comment">	::vim::command [-quiet] {cmd}	# 执行 Ex 命令。</span>
+<span class="Comment">	::vim::expr {expr}		# 使用 Vim 的表达式计算器。</span>
+<span class="Comment">	::vim::option {opt}		# 得到 vim 选项值。</span>
+<span class="Comment">	::vim::option {opt} {val}	# 设置 vim 选项值。</span>
+<span class="Comment">	::vim::window list		# 为所有窗口建立 Tcl 命令。</span>
+
+命令:
+	::vim::beep					<span class="Ignore">*</span><span class="String">tcl-beep</span><span class="Ignore">*</span>
+	鸣笛。没有返回值。
+
+	::vim::buffer <span class="Special">{n}</span>				<span class="Ignore">*</span><span class="String">tcl-buffer</span><span class="Ignore">*</span>
+	::vim::buffer exists <span class="Special">{n}</span>
+	::vim::buffer list
+	提供对 vim 缓冲区的访问。如果给出整数参数，为相应的缓冲区建立缓冲区命
+	令 (参见 <span class="Ignore">|</span><span class="Identifier">tcl-buffer-cmds</span><span class="Ignore">|</span>)，并返回其名称作为结果。非法的缓冲区号会产
+	生标准 Tcl 错误。要测试哪些缓冲区号合法，可用 Vim 的内部函数:<span class="Ignore"> &gt;</span>
+<span class="Comment">		set nbufs [::vim::expr bufnr(&quot;$&quot;)]</span>
+<span class="Comment">		set isvalid [::vim::expr &quot;bufexists($n)&quot;]</span>
+<span class="Ignore">&lt;</span>	&quot;list&quot; 选项则为每个合法的缓冲区建立缓冲区命令，并返回所有命令名称的列
+	表作为结果。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">		set bufs [::vim::buffer list]</span>
+<span class="Comment">		foreach b $bufs { $b append end &quot;The End!&quot; }</span>
+<span class="Ignore">&lt;</span>	&quot;exists&quot; 选项检查给定序号的缓冲区是否存在。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">		if { [::vim::buffer exists $n] } { ::vim::command &quot;:e #$n&quot; }</span>
+<span class="Ignore">&lt;</span>	该命令将来也许会被某个变量代替。要得到当前缓冲区，另见
+	<span class="Ignore">|</span><span class="Identifier">tcl-var-current</span><span class="Ignore">|</span>。
+
+	::vim::command <span class="Special">{cmd}</span>				<span class="Ignore">*</span><span class="String">tcl-command</span><span class="Ignore">*</span>
+	::vim::command -quiet <span class="Special">{cmd}</span>
+	执行 vim (ex 模式) 的 <span class="Special">{cmd}</span> 命令。任何涉及缓冲区或者窗口的 Ex 命令均
+	使用当前缓冲区/窗口。除了标准的 Tcl 错误代码外，不会返回任何其他的结
+	果。在命令执行完毕后，&quot;::vim::current&quot; 变量被更新。
+	&quot;-quiet&quot; 标志位屏蔽 vim 产生的任何错误信息。
+	例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">		::vim::command &quot;set ts=8&quot;</span>
+<span class="Comment">		::vim::command &quot;%s/foo/bar/g&quot;</span>
+<span class="Ignore">&lt;</span>	要执行普通模式下的命令，使用 &quot;normal&quot; (参见 <span class="Ignore">|</span><span class="Identifier">:normal</span><span class="Ignore">|</span>):<span class="Ignore"> &gt;</span>
+<span class="Comment">		set cmd &quot;jj&quot;</span>
+<span class="Comment">		::vim::command &quot;normal $cmd&quot;</span>
+<span class="Ignore">&lt;</span>	另见 <span class="Ignore">|</span><span class="Identifier">tcl-window-command</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">tcl-buffer-command</span><span class="Ignore">|</span>。
+
+	::vim::expr <span class="Special">{expr}</span>				<span class="Ignore">*</span><span class="String">tcl-expr</span><span class="Ignore">*</span>
+	使用 vim 的内部表达式计算器计算表达式 <span class="Special">{expr}</span> (参见 <span class="Ignore">|</span><span class="Identifier">expression</span><span class="Ignore">|</span>)。任何
+	查询缓冲区或窗口属性的表达式均使用当前缓冲区/窗口。结果以字符串形式返
+	回。列表 <span class="Ignore">|</span><span class="Identifier">List</span><span class="Ignore">|</span> 通过连接项目并在项目间插入换行符来转化为字符串。
+	例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">		set perl_available [::vim::expr has(&quot;perl&quot;)]</span>
+<span class="Ignore">&lt;</span>	另见 <span class="Ignore">|</span><span class="Identifier">tcl-window-expr</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">tcl-buffer-expr</span><span class="Ignore">|</span>。
+
+	::vim::option <span class="Special">{opt}</span>				<span class="Ignore">*</span><span class="String">tcl-option</span><span class="Ignore">*</span>
+	::vim::option <span class="Special">{opt}</span> <span class="Special">{value}</span>
+	如果没有第二个参数，查询 vim 选项之值。不然，设置 vim 选项值为
+	<span class="Special">{value}</span>，并返回原先的值作为结果。任何标为 &quot;局部于缓冲区&quot; 或 &quot;局部于窗
+	口&quot; 的选项只影响当前的缓冲区/窗口。该命令不会改变全局值，而应该用
+	&quot;:set&quot; 命令。对于布尔值，<span class="Special">{value}</span> 必须是 &quot;0&quot; 或者 &quot;1&quot;，或者以下的关键字
+	&quot;on&quot;、&quot;off&quot; 或者 &quot;toggle&quot;。选项列表请参见 <span class="Ignore">|</span><span class="Identifier">option-summary</span><span class="Ignore">|</span>。
+	示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">		::vim::option ts 8</span>
+<span class="Ignore">&lt;</span>	另见 <span class="Ignore">|</span><span class="Identifier">tcl-window-option</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">tcl-buffer-option</span><span class="Ignore">|</span>。
+
+	::vim::window <span class="Special">{option}</span>				<span class="Ignore">*</span><span class="String">tcl-window</span><span class="Ignore">*</span>
+	提供对 vim 窗口的访问。目前，只实现了 &quot;list&quot; 选项，即为每个窗口建立窗
+	口命令 (参见 <span class="Ignore">|</span><span class="Identifier">tcl-window-cmds</span><span class="Ignore">|</span>)，并返回所有命令名称的列表作为结果。
+	示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">		set wins [::vim::window list]</span>
+<span class="Comment">		foreach w $wins { $w height 4 }</span>
+<span class="Ignore">&lt;</span>	该命令将来也许会被某个变量代替。要得到当前窗口，另见
+	<span class="Ignore">|</span><span class="Identifier">tcl-var-current</span><span class="Ignore">|</span>。
+
+<span class="PreProc">==============================================================================</span>
+3. Tcl 变量						<span class="Ignore">*</span><span class="String">tcl-variables</span><span class="Ignore">*</span>
+
+::vim 命名空间包含若干变量。Tcl 解释器调用时，它们被建立并赋予它们的当前值。<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	::vim::current		# &quot;当前&quot; 对象的数组</span>
+<span class="Comment">	::vim::lbase		# 第一行的行号</span>
+<span class="Comment">	::vim::range		# 当前范围行号的数组</span>
+<span class="Comment">	line			# 当前行号的字符串表示 (只限于 :tcldo)</span>
+<span class="Comment">	lnum			# 当前行号 (只限于 :tcldo)</span>
+
+命令:
+	::vim::current					<span class="Ignore">*</span><span class="String">tcl-var-current</span><span class="Ignore">*</span>
+	这是一个提供对各种 vim &quot;当前&quot; 对象访问的数组。每次 &quot;::vim::command&quot; 执
+	行后都会更新该数组的内容，因为命令的执行可能改变 vim 的当前设定 (例
+	如，删除当前缓冲区)。
+	其中，&quot;buffer&quot; 元素包含当前缓冲区的缓冲区命令名，可用来直接调用缓冲区
+	命令 (参见 <span class="Ignore">|</span><span class="Identifier">tcl-buffer-cmds</span><span class="Ignore">|</span>)。该元素只读。
+	示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">		$::vim::current(buffer) insert begin &quot;Hello world&quot;</span>
+<span class="Ignore">&lt;</span>	&quot;window&quot; 元素则包含当前窗口的窗口命令名。可用来直接调用窗口命令 (参见
+	<span class="Ignore">|</span><span class="Identifier">tcl-window-cmds</span><span class="Ignore">|</span>)。该元素只读。
+	示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">		$::vim::current(window) height 10</span>
+<span class="Ignore">&lt;</span>
+	::vim::lbase					<span class="Ignore">*</span><span class="String">tcl-var-lbase</span><span class="Ignore">*</span>
+	该变量控制 Tcl 如何看待行号。如果设为 '1'，行号与列号从 1 开始。这样，
+	Tcl 命令和 vim 表达式行号的使用方式一致。如果设为 '0'，则行号与列号从
+	0 开始。如果你倾向于把缓冲区看成 Tcl 的列表或者把行看成 Tcl 字符串，
+	那么 Tcl 中标准的返回索引的命令 (例如 &quot;lsort&quot; 或 &quot;string first&quot;) 就适
+	用于这种设置。缺省值为 '1'。目前，任何非零的值都被看成 '1'，但你的脚本
+	不应依赖于此假定。另见 <span class="Ignore">|</span><span class="Identifier">tcl-linenumbers</span><span class="Ignore">|</span>。
+
+	::vim::range					<span class="Ignore">*</span><span class="String">tcl-var-range</span><span class="Ignore">*</span>
+	这是一个由三个元素组成的数组: &quot;start&quot;、&quot;begin&quot; 和 &quot;end&quot;。它包含当前行
+	范围的起始和结尾行号。&quot;begin&quot; 等价于 &quot;start&quot;。该变量只读。参见
+	<span class="Ignore">|</span><span class="Identifier">tcl-examples</span><span class="Ignore">|</span>。
+
+	line						<span class="Ignore">*</span><span class="String">tcl-var-line</span><span class="Ignore">*</span>
+	lnum						<span class="Ignore">*</span><span class="String">tcl-var-lnum</span><span class="Ignore">*</span>
+	这些全局变量只在 &quot;:tcldo&quot; 这个 Ex 命令执行时可用。 它们分别包含文本和
+	数字形式的当前行号。当 &quot;:tcldo&quot; 激活的 Tcl 命令执行完毕时，当前行被设
+	为 &quot;line&quot; 变量的内容，除非该变量被 Tcl 命令删除 (unset)。 &quot;lnum&quot; 变量
+	是只读的。这些变量不在 &quot;::vim&quot; 命名空间里，这是为了 &quot;:tcldo&quot; 里使用时
+	能减少点输入 (将来的版本里可能会改变)。 另见 <span class="Ignore">|</span><span class="Identifier">tcl-linenumbers</span><span class="Ignore">|</span>。
+
+<span class="PreProc">==============================================================================</span>
+4. Tcl 窗口命令						<span class="Ignore">*</span><span class="String">tcl-window-cmds</span><span class="Ignore">*</span>
+
+窗口命令代表 vim 的窗口。以下若干命令可以创建之:
+	::vim::window list			<span class="Ignore">|</span><span class="Identifier">tcl-window</span><span class="Ignore">|</span>
+	缓冲区命令的 &quot;windows&quot; 选项		<span class="Ignore">|</span><span class="Identifier">tcl-buffer-windows</span><span class="Ignore">|</span>
+::vim::current(window) 变量包含当前窗口的窗口命令名。当 vim 窗口关闭时， 对应
+的窗口命令自动被删除。
+
+让我们假设窗口命令名保存在 Tcl 变量 &quot;win&quot; 中，亦即，$win 调用该命令。那么可以
+使用以下的选项:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	$win buffer		# 创建窗口对应缓冲区的 Tcl 命令。</span>
+<span class="Comment">	$win command {cmd}	# 使用窗口的上下文，执行 Ex 命令。</span>
+<span class="Comment">	$win cursor		# 得到当前的光标位置。</span>
+<span class="Comment">	$win cursor {var}	# 把光标位置保存在数组变量里。</span>
+<span class="Comment">	$win cursor {row} {col}	# 设置光标位置。</span>
+<span class="Comment">	$win delcmd {cmd}	# 在窗口被关闭前，执行 Tcl 命令。</span>
+<span class="Comment">	$win expr {expr}	# 使用窗口的上下文，计算 vim 表达式。</span>
+<span class="Comment">	$win height		# 报告窗口的高度。</span>
+<span class="Comment">	$win height {n}		# 设置窗口的高度。</span>
+<span class="Comment">	$win option {opt} [val]	# 使用窗口的上下文，得到/设置 vim 选项。</span>
+
+选项:
+	$win buffer					<span class="Ignore">*</span><span class="String">tcl-window-buffer</span><span class="Ignore">*</span>
+	创建窗口对应缓冲区的 Tcl 命令，并返回其名字作为结果。该名字应该被存在
+	变量里:<span class="Ignore"> &gt;</span>
+<span class="Comment">		set buf [$win buffer]</span>
+<span class="Ignore">&lt;</span>	$buf 现在成为合法的 Tcl 命令。参见 <span class="Ignore">|</span><span class="Identifier">tcl-buffer-cmds</span><span class="Ignore">|</span> 了解其可用选项。
+
+	$win cursor					<span class="Ignore">*</span><span class="String">tcl-window-cursor</span><span class="Ignore">*</span>
+	$win cursor <span class="Special">{var}</span>
+	$win cursor <span class="Special">{row}</span> <span class="Special">{col}</span>
+	在没有参数的情况下，报告 (字符串形式的) 当前的光标位置。该形式可以被转
+	换成 Tcl 的数组变量:<span class="Ignore"> &gt;</span>
+<span class="Comment">		array set here [$win cursor]</span>
+<span class="Ignore">&lt;</span>	&quot;here(row)&quot; 和 &quot;here(column)&quot; 现在包含了光标位置。
+	在有一个参数的情况下，该参数被解释为 Tcl 数组变量名，该数组变量应该有
+	两个元素: &quot;row&quot; 和 &quot;column&quot;。它们用来设置光标的新位置:<span class="Ignore"> &gt;</span>
+<span class="Comment">		$win cursor here	;# 不是 $here !</span>
+<span class="Ignore">&lt;</span>	在有两个参数的情况下，设置光标到对应的行和列:<span class="Ignore"> &gt;</span>
+<span class="Comment">		$win cursor $here(row) $here(column)</span>
+<span class="Ignore">&lt;</span>	非法的位置产生标准 Tcl 错误，但可用 &quot;catch&quot; 捕获。行号和列号的值和
+	&quot;::vim::lbase&quot; 有关。参见 <span class="Ignore">|</span><span class="Identifier">tcl-var-lbase</span><span class="Ignore">|</span>。
+
+	$win delcmd <span class="Special">{cmd}</span>				<span class="Ignore">*</span><span class="String">tcl-window-delcmd</span><span class="Ignore">*</span>
+	注册窗口的关闭回调函数 <span class="Special">{cmd}</span>。该命令 (在全局范围下) 在窗口被关闭前调
+	用。复杂的命令应该用 &quot;list&quot; 构造:<span class="Ignore"> &gt;</span>
+<span class="Comment">		$win delcmd [list puts vimerr &quot;window deleted&quot;]</span>
+<span class="Ignore">&lt;</span>	另见 <span class="Ignore">|</span><span class="Identifier">tcl-buffer-delcmd</span><span class="Ignore">|</span>。
+
+	$win height					<span class="Ignore">*</span><span class="String">tcl-window-height</span><span class="Ignore">*</span>
+	$win height <span class="Special">{n}</span>
+	在没有参数的情况下，报告当前的窗口高度。在有参数的情况下，设置窗口高度
+为 <span class="Special">{n}</span>，并报告新的高度 (有可能和 <span class="Special">{n}</span> 不同)。
+
+	$win command <span class="Special">[-quiet]</span> <span class="Special">{cmd}</span>			<span class="Ignore">*</span><span class="String">tcl-window-command</span><span class="Ignore">*</span>
+	$win expr <span class="Special">{expr}</span>				<span class="Ignore">*</span><span class="String">tcl-window-expr</span><span class="Ignore">*</span>
+	$win option <span class="Special">{opt}</span> <span class="Special">[val]</span>				<span class="Ignore">*</span><span class="String">tcl-window-option</span><span class="Ignore">*</span>
+	它们和 &quot;::vim::command&quot; 类似，只不过执行在 $win 代表的窗口的上下文下，
+	而不是当前窗口。例如，设置 &quot;局部于窗口&quot; 的选项涉及的是 $win 窗口。任何
+	涉及或查询缓冲区的命令使用的该窗口所显示的缓冲区 (亦即，&quot;$win buffer&quot;
+	所指定的缓冲区)。参见 <span class="Ignore">|</span><span class="Identifier">tcl-command</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">tcl-expr</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">tcl-option</span><span class="Ignore">|</span>。
+	示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">		$win option number on</span>
+
+<span class="PreProc">==============================================================================</span>
+5. Tcl 缓冲区命令					<span class="Ignore">*</span><span class="String">tcl-buffer-cmds</span><span class="Ignore">*</span>
+
+缓冲区命令代表 vim 的缓冲区。以下若干命令可以创建之:
+	::vim::buffer <span class="Special">{N}</span>			<span class="Ignore">|</span><span class="Identifier">tcl-buffer</span><span class="Ignore">|</span>
+	::vim::buffer list			<span class="Ignore">|</span><span class="Identifier">tcl-buffer</span><span class="Ignore">|</span>
+	&quot;buffer&quot; option of a window command	<span class="Ignore">|</span><span class="Identifier">tcl-window-buffer</span><span class="Ignore">|</span>
+::vim::current(buffer) 变量包含当前缓冲区的缓冲区命令名。vim 缓冲区被删除时，
+对应的缓冲区命令自动被删除。缓冲区一旦改变，缓冲区里的所有的位置标记会进行自动
+调整。Tcl 命令对缓冲区内容所做的任何改变都可以通过 vim 的 &quot;undo&quot; 命令撤销 (参
+见 <span class="Ignore">|</span><span class="Identifier">undo</span><span class="Ignore">|</span>)。
+
+让我们假设缓冲区命令名保存在 Tcl 变量 &quot;buf&quot; 中，亦即，$buf 调用该命令。那么可
+以使用以下的选项:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	$buf append {n} {str}	# 在缓冲区的第 {n} 行之后添加一行内容。</span>
+<span class="Comment">	$buf command {cmd}	# 使用缓冲区上下文。执行 Ex 命令。</span>
+<span class="Comment">	$buf count		# 报告缓冲区的行数。</span>
+<span class="Comment">	$buf delcmd {cmd}	# 在缓冲区被删除前，执行 Tcl 命令。</span>
+<span class="Comment">	$buf delete {n}		# 删除一行。</span>
+<span class="Comment">	$buf delete {n} {m}	# 删除多行。</span>
+<span class="Comment">	$buf expr {expr}	# 使用窗口的上下文，计算 vim 表达式。</span>
+<span class="Comment">	$buf get {n}		# 得到字符串形式的一行内容。</span>
+<span class="Comment">	$buf get {n} {m}	# 得到列表形式的多行内容。</span>
+<span class="Comment">	$buf insert {n} {str}	# 在缓冲区里插入一行，使之成为第 {n} 行。</span>
+<span class="Comment">	$buf last		# 报告缓冲区末行的行号。</span>
+<span class="Comment">	$buf mark {mark}	# 报告缓冲区位置标记的位置。</span>
+<span class="Comment">	$buf name		# 报告缓冲区使用的文件名。</span>
+<span class="Comment">	$buf number		# 报告缓冲区号。</span>
+<span class="Comment">	$buf option {opt} [val]	# 使用缓冲区的上下文，得到/设置 vim 选项。</span>
+<span class="Comment">	$buf set {n} {text}	# 替换一行。</span>
+<span class="Comment">	$buf set {n} {m} {list}	# 替换多行。</span>
+<span class="Comment">	$buf windows		# 创建缓冲区对应窗口的 Tcl 命令。</span>
+<span class="Ignore">&lt;</span>
+							<span class="Ignore">*</span><span class="String">tcl-linenumbers</span><span class="Ignore">*</span>
+多数缓冲区命令需要行号作为参数。Tcl 如何处理这些数字取决于 &quot;::vim::lbase&quot; 变量
+(参见 <span class="Ignore">|</span><span class="Identifier">tcl-var-lbase</span><span class="Ignore">|</span>)。除了数字形式的行号以外，还可以使用如下的关键字:
+&quot;top&quot;、&quot;start&quot;、&quot;begin&quot;、&quot;first&quot; (以上均代表首行)，&quot;bottom&quot;、&quot;end&quot; 和 &quot;last&quot;
+(以上均代表末行)。
+
+选项:
+	$buf append <span class="Special">{n}</span> <span class="Special">{str}</span>				<span class="Ignore">*</span><span class="String">tcl-buffer-append</span><span class="Ignore">*</span>
+	$buf insert <span class="Special">{n}</span> <span class="Special">{str}</span>				<span class="Ignore">*</span><span class="String">tcl-buffer-insert</span><span class="Ignore">*</span>
+	往缓冲区中加入一行。如果使用 &quot;insert&quot; 选项，字符串成为新的第 <span class="Special">{n}</span> 行。
+	而如果使用 &quot;append&quot;，它被插入在第 <span class="Special">{n}</span> 行之后。
+	例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">		$buf insert top &quot;This is the beginning.&quot;</span>
+<span class="Comment">		$buf append end &quot;This is the end.&quot;</span>
+<span class="Ignore">&lt;</span>	要往缓冲区里加入多行，可以使用循环:<span class="Ignore"> &gt;</span>
+<span class="Comment">		foreach line $list { $buf append $num $line ; incr num }</span>
+<span class="Ignore">&lt;</span>
+	$buf count					<span class="Ignore">*</span><span class="String">tcl-buffer-count</span><span class="Ignore">*</span>
+	报告缓冲区的行数。
+
+	$buf delcmd <span class="Special">{cmd}</span>				<span class="Ignore">*</span><span class="String">tcl-buffer-delcmd</span><span class="Ignore">*</span>
+	注册缓冲区的删除回调函数 <span class="Special">{cmd}</span>。该命令 (在全局范围下) 在缓冲区被删除前
+	调用。复杂的命令应该用 &quot;list&quot; 构造:<span class="Ignore"> &gt;</span>
+<span class="Comment">		$buf delcmd [list puts vimerr &quot;buffer [$buf number] gone&quot;]</span>
+<span class="Ignore">&lt;</span>	另见 <span class="Ignore">|</span><span class="Identifier">tcl-window-delcmd</span><span class="Ignore">|</span>。
+
+	$buf delete <span class="Special">{n}</span>					<span class="Ignore">*</span><span class="String">tcl-buffer-delete</span><span class="Ignore">*</span>
+	$buf delete <span class="Special">{n}</span> <span class="Special">{m}</span>
+	删除缓冲区的第 <span class="Special">{n}</span> 行或者第 <span class="Special">{n}</span> 到 <span class="Special">{m}</span> 行。以下例子删除除了末行以外的
+	所有内容:<span class="Ignore"> &gt;</span>
+<span class="Comment">		$buf delete first [expr [$buf last] - 1]</span>
+<span class="Ignore">&lt;</span>
+	$buf get <span class="Special">{n}</span>					<span class="Ignore">*</span><span class="String">tcl-buffer-get</span><span class="Ignore">*</span>
+	$buf get <span class="Special">{n}</span> <span class="Special">{m}</span>
+	从缓冲区里取得一行或多行。如果是前者，结果是字符串。如果是后者，结果是
+	字符串列表。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">		set topline [$buf get top]</span>
+<span class="Ignore">&lt;</span>
+	$buf last					<span class="Ignore">*</span><span class="String">tcl-buffer-last</span><span class="Ignore">*</span>
+	报告末行的行号。行号和 &quot;::vim::lbase&quot; 有关。参见 <span class="Ignore">|</span><span class="Identifier">tcl-var-lbase</span><span class="Ignore">|</span>。
+
+	$buf mark <span class="Special">{mark}</span>				<span class="Ignore">*</span><span class="String">tcl-buffer-mark</span><span class="Ignore">*</span>
+	报告命名位置标记的位置。结果以字符串形式出现，类似于窗口命令的
+	&quot;cursor&quot; 选项的光标位置 (参见 <span class="Ignore">|</span><span class="Identifier">tcl-window-cursor</span><span class="Ignore">|</span>)。它可以被转换成 Tcl
+	数组变量:<span class="Ignore"> &gt;</span>
+<span class="Comment">		array set mpos [$buf mark &quot;a&quot;]</span>
+<span class="Ignore">&lt;</span>	&quot;mpos(column)&quot; 和 &quot;mpos(row)&quot; 现在包含了标记的位置。如果标记没有设置，
+	产生标准 Tcl 错误。
+
+	$buf name
+	报告缓冲区使用的文件名。如果是无名缓冲区，返回空字符串。
+
+	$buf number
+	报告缓冲区号。参见 <span class="Ignore">|</span><span class="Identifier">:buffers</span><span class="Ignore">|</span>。
+	以下示例从 vim 里删除一个缓冲区:<span class="Ignore"> &gt;</span>
+<span class="Comment">		::vim::command &quot;bdelete [$buf number]&quot;</span>
+<span class="Ignore">&lt;</span>
+	$buf set <span class="Special">{n}</span> <span class="Special">{string}</span>				<span class="Ignore">*</span><span class="String">tcl-buffer-set</span><span class="Ignore">*</span>
+	$buf set <span class="Special">{n}</span> <span class="Special">{m}</span> <span class="Special">{list}</span>
+	替换缓冲区里的一行或多行。如果列表 <span class="Special">{list}</span> 里包含超过被替换的行数，多余
+	的部分被插入。如果不足，则未替换的部分从缓冲区里删除。
+
+	$buf windows					<span class="Ignore">*</span><span class="String">tcl-buffer-windows</span><span class="Ignore">*</span>
+	创建缓冲区对应的所有的窗口命令，返回所有命令名字的列表。
+	示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">		set winlist [$buf windows]</span>
+<span class="Comment">		foreach win $winlist { $win height 4 }</span>
+<span class="Ignore">&lt;</span>	参见 <span class="Ignore">|</span><span class="Identifier">tcl-window-cmds</span><span class="Ignore">|</span> 了解窗口命令可用的选项。
+
+	$buf command <span class="Special">[-quiet]</span> <span class="Special">{cmd}</span>			<span class="Ignore">*</span><span class="String">tcl-buffer-command</span><span class="Ignore">*</span>
+	$buf expr <span class="Special">{expr}</span>				<span class="Ignore">*</span><span class="String">tcl-buffer-expr</span><span class="Ignore">*</span>
+	$buf option <span class="Special">{opt}</span> <span class="Special">[val]</span>				<span class="Ignore">*</span><span class="String">tcl-buffer-option</span><span class="Ignore">*</span>
+	它们和 &quot;::vim::command&quot; 类似，只不过执行在 $buf 代表的缓冲区的上下文
+	下， 而不是当前缓冲区。例如，设置 &quot;局部于缓冲区&quot; 的选项涉及的是 $buf
+	缓冲区。任何涉及或查询窗口的命令使用的该缓冲区所处的窗口列表的第一个窗
+	口 (亦即，&quot;$buf windows&quot; 所指定的首个窗口)。参见 <span class="Ignore">|</span><span class="Identifier">tcl-command</span><span class="Ignore">|</span>、
+	<span class="Ignore">|</span><span class="Identifier">tcl-expr</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">tcl-option</span><span class="Ignore">|</span>。
+	示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">		if { [$buf option modified] } { $buf command &quot;w&quot; }</span>
+
+<span class="PreProc">==============================================================================</span>
+6. 杂项；Tcl 的输出				<span class="Ignore">*</span><span class="String">tcl-misc</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">tcl-output</span><span class="Ignore">*</span>
+
+标准 Tcl 命令 &quot;exit&quot; 和 &quot;catch&quot; 被定制的版本所取代。 &quot;exit&quot; 终止当前 Tcl 脚本
+并返回 vim，并关闭 Tcl 解释器。 下一个 &quot;:tcl&quot; 的调用相应的创建一个新的 Tcl 解
+释器。&quot;exit&quot; 并_不_终止 vim！&quot;catch&quot; 和原先的工作方式相同，只不过，它不能防止
+脚本从 &quot;exit&quot; 退出。退出时，非零的结束代码使得执行 Tcl 脚本的 Ex 命令生成一个
+错误。
+
+在 Tcl 里，有两个新的 I/O 流: &quot;vimout&quot; 和 &quot;vimerr&quot;。所有其上的输出都在 vim 的
+消息区域分别作为消息和错误显示。标准的 Tcl 输出流 stdout 和 stderr 被映射为
+vimout 和 vimerr。从而，正常的 &quot;puts&quot; 命令可以用来在 vim 里显示消息。
+
+<span class="PreProc">==============================================================================</span>
+7. 已知的漏洞和问题					<span class="Ignore">*</span><span class="String">tcl-bugs</span><span class="Ignore">*</span>
+
+在 Tcl 里调用另一个 Tcl 的 Ex 命令 (通过 &quot;::vim::command&quot;) 可能有意想不到的副
+作用。该命令创建的新的解释器和标准的解释器的能力相同。因而，在安全的子解释器里
+使得 &quot;::vim::command&quot; 可用使得该子解释器不再安全。 (为了防止这一点而防止嵌套的
+:tcl* 调用很容易，但不切实际。因为根据具体的 vim 的配置，&quot;::vim::command&quot; 可以
+在任何其他的脚本语言里执行任何代码。) 在这个新的解释器里 &quot;exit&quot; 不会影响旧的解
+释器；它只会终止新的解释器，而旧解释器的脚本处理继续进行。
+
+现在还不支持从标准输入读入。
+
+<span class="PreProc">==============================================================================</span>
+8. 示例:						<span class="Ignore">*</span><span class="String">tcl-examples</span><span class="Ignore">*</span>
+
+这里提供若干简短 (但可能有用) 的 Tcl 脚本。
+
+此脚本对整个缓冲区进行排序 (不妨假设缓冲区内容包含名字或类似事物的列表):<span class="Ignore"> &gt;</span>
+<span class="Comment">	set buf $::vim::current(buffer)</span>
+<span class="Comment">	set lines [$buf get top bottom]</span>
+<span class="Comment">	set lines [lsort -dictionary $lines]</span>
+<span class="Comment">	$buf set top bottom $lines</span>
+
+此脚本对缓冲区的行进行倒排。注意 &quot;::vim::lbase&quot; 和 &quot;$buf last&quot; 的正确使用，以
+适用行号的所有可能情况。<span class="Ignore"> &gt;</span>
+<span class="Comment">	set buf $::vim::current(buffer)</span>
+<span class="Comment">	set t $::vim::lbase</span>
+<span class="Comment">	set b [$buf last]</span>
+<span class="Comment">	while { $t &lt; $b } {</span>
+<span class="Comment">		set tl [$buf get $t]</span>
+<span class="Comment">		set bl [$buf get $b]</span>
+<span class="Comment">		$buf set $t $bl</span>
+<span class="Comment">		$buf set $b $tl</span>
+<span class="Comment">		incr t</span>
+<span class="Comment">		incr b -1</span>
+<span class="Comment">	}</span>
+
+此脚本为当前范围的每行加上连续的行号:<span class="Ignore"> &gt;</span>
+<span class="Comment">	set buf $::vim::current(buffer)</span>
+<span class="Comment">	set i $::vim::range(start)</span>
+<span class="Comment">	set n 1</span>
+<span class="Comment">	while { $i &lt;= $::vim::range(end) } {</span>
+<span class="Comment">		set line [$buf get $i]</span>
+<span class="Comment">		$buf set $i &quot;$n\t$line&quot;</span>
+<span class="Comment">		incr i ; incr n</span>
+<span class="Comment">	}</span>
+
+用 &quot;:tcldo&quot; 可以更快地以两个 Ex 命令完成同样的工作:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:tcl set n 1</span>
+<span class="Comment">	:[range]tcldo set line &quot;$n\t$line&quot; ; incr n</span>
+
+此过程为每个缓冲区执行相同的 Ex 命令 (从 Ron Aaron 偷来的主意):<span class="Ignore"> &gt;</span>
+<span class="Comment">	proc eachbuf { cmd } {</span>
+<span class="Comment">		foreach b [::vim::buffer list] {</span>
+<span class="Comment">			$b command $cmd</span>
+<span class="Comment">		}</span>
+<span class="Comment">	}</span>
+使用方法为:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:tcl eachbuf %s/foo/bar/g</span>
+小心使用 Tcl 的字符串和反斜杠替换，很麻烦。如果不确定，不妨在 Ex 命令前后括上
+花括号。
+
+
+如果你想为 vim 永久地加入若干 Tcl 过程，只要把它们放在一个文件里 (例如在 Unix
+机器上，&quot;~/.vimrc.tcl&quot;)，并在启动文件里 (在 Unix 上通常是 &quot;~/.vimrc&quot;) 加入:<span class="Ignore"> &gt;</span>
+<span class="Comment">	if has(&quot;tcl&quot;)</span>
+<span class="Comment">		tclfile ~/.vimrc.tcl</span>
+<span class="Comment">	endif</span>
+
+<span class="PreProc">==============================================================================</span>
+9. 动态调入						<span class="Ignore">*</span><span class="String">tcl-dynamic</span><span class="Ignore">*</span>
+
+MS-Windows 和 Unix 上，可以动态调入 Tcl 库。<span class="Ignore">|</span><span class="Identifier">:version</span><span class="Ignore">|</span> 输出这时应包括
+<span class="Ignore">|</span><span class="Identifier">+tcl/dyn</span><span class="Ignore">|</span>。
+
+这意味着 Vim 只有在必要时才寻找 Tcl DLL 或共享库文件。如果不使用 Tcl 接口，你
+就不需要它。这样，即使没有该文件，你也可使用 Vim。
+
+
+<span class="PreProc">MS-Windows</span><span class="Ignore"> ~</span>
+
+要使用 Tcl 接口，Tcl DLL 必须在搜索路径上。控制台窗口里输入 &quot;path&quot; 可以看到
+(搜索路径) 当前使用的目录。也可用 <span class="Type">'tcldll'</span> 选项指定 Tcl DLL。
+
+DLL 的名字必须匹配 Vim 编译时所使用的 Tcl 版本。目前，该名字为 &quot;tcl86.dll&quot;，也
+就是 Tcl 8.6。要确信这一点，编辑 &quot;gvim.exe&quot; 文件并查找 &quot;tcl\d*.dll\c&quot;。
+
+
+<span class="PreProc">Unix</span><span class="Ignore"> ~</span>
+
+<span class="Type">'tcldll'</span> 选项可用来指定 Tcl 共享库文件，而不用编译时指定的 DYNAMIC_TCL_DLL 文
+件。共享库的版本必须和 Vim 编译使用的 Tcl 版本保持一致。
+
+<span class="PreProc">==============================================================================</span>
+ vim&#0058;tw=78:ts=8:ft=help:norl:
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

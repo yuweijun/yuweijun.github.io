@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>~/github.com/yuweijun/yuweijun.github.io/vim-zh/if_mzsch.cnx.html</title>
+<meta name="Generator" content="Vim/8.2">
+<meta name="plugin-version" content="vim8.1_v2">
+<meta name="syntax" content="help">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,prevent_copy=,use_input_for_pc=fallback">
+<meta name="colorscheme" content="molokai">
+<style>
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #d0d0d0; background-color: #121212; }
+body { font-family: monospace; color: #d0d0d0; background-color: #121212; }
+* { font-size: 1em; }
+.String { color: #afaf87; }
+.Type { color: #5fd7ff; }
+.PreProc { color: #87ff00; }
+.Identifier { color: #ff8700; }
+.Comment { color: #5f5f5f; }
+.Special { color: #5fd7ff; }
+.Ignore { color: #808080; background-color: #080808; padding-bottom: 1px; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="Ignore">*</span><span class="String">if_mzsch.txt</span><span class="Ignore">*</span>  For <span class="Identifier">Vim version 8.0.</span>  最近更新: 2017年7月
+
+
+		  VIM 参考手册	  by Bram Moolenaar
+				译者: Willis
+				<span class="String"><a href="http://vimcdoc.sf.net">http://vimcdoc.sf.net</a></span>
+
+
+Vim 的 MzScheme 接口					<span class="Ignore">*</span><span class="String">mzscheme</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">MzScheme</span><span class="Ignore">*</span>
+
+1. 命令					<span class="Ignore">|</span><span class="Identifier">mzscheme-commands</span><span class="Ignore">|</span>
+2. 示例					<span class="Ignore">|</span><span class="Identifier">mzscheme-examples</span><span class="Ignore">|</span>
+3. 线程					<span class="Ignore">|</span><span class="Identifier">mzscheme-threads</span><span class="Ignore">|</span>
+4. MzScheme 对 Vim 的访问		<span class="Ignore">|</span><span class="Identifier">mzscheme-vim</span><span class="Ignore">|</span>
+5. mzeval() Vim 函数			<span class="Ignore">|</span><span class="Identifier">mzscheme-mzeval</span><span class="Ignore">|</span>
+6. 使用函数引用				<span class="Ignore">|</span><span class="Identifier">mzscheme-funcref</span><span class="Ignore">|</span>
+7. 动态调入				<span class="Ignore">|</span><span class="Identifier">mzscheme-dynamic</span><span class="Ignore">|</span>
+8. MzScheme 设置			<span class="Ignore">|</span><span class="Identifier">mzscheme-setup</span><span class="Ignore">|</span>
+
+<span class="Special">{Vi 无此功能}</span>
+
+只有 Vim 编译时加入 <span class="Ignore">|</span><span class="Identifier">+mzscheme</span><span class="Ignore">|</span> 特性后才能使用 MzScheme 接口。
+
+来自于 Brent Fulgham 的工作。
+动态调入部分则由 Sergey Khorev 加入。
+
+MzScheme 和 PLT Scheme 已经重新命名为 Racket。详情可查阅
+<span class="String"><a href="http://racket-lang.org">http://racket-lang.org</a></span>。
+
+Racket 5.x 版本直至 5.3.1 (包含) 的 futures 和 places 和 Vim 创建的进程不能一
+同工作。
+最简单的解决方法是自己编译 Racket，关闭以下这些特性:<span class="Ignore"> &gt;</span>
+<span class="Comment">  ./configure --disable-futures --disable-places --prefix=your-install-prefix</span>
+
+要加快进程的速度，也可考虑使用 --disable-gracket 和 --disable-docs。
+
+<span class="PreProc">==============================================================================</span>
+1. 命令	    						<span class="Ignore">*</span><span class="String">mzscheme-commands</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">:mzscheme</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:mz</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>mz[scheme] <span class="Special">{stmt}</span>
+			执行 MzScheme 语句 <span class="Special">{stmt}</span>。<span class="Special">{Vi 无此功能}</span>
+
+:<span class="Special">[range]</span>mz[scheme] &lt;&lt; <span class="Special">{endmarker}</span>
+<span class="Special">{script}</span>
+<span class="Special">{endmarker}</span>
+			执行内含 MzScheme 脚本 <span class="Special">{script}</span>。
+			注意: 如果编译时不带 MzScheme 特性，此命令会失败。要避
+			免错误，见 <span class="Ignore">|</span><span class="Identifier">script-here</span><span class="Ignore">|</span>。
+
+							<span class="Ignore">*</span><span class="String">:mzfile</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:mzf</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>mzf[ile] <span class="Special">{file}</span>	执行 <span class="Special">{file}</span> 文件里的 MzScheme 脚本。<span class="Special">{Vi 无此功能}</span>
+
+这些命令基本上做同样的一件事 - 执行一段 MzScheme 代码。执行期间，&quot;当前行范围&quot;
+设为给定的行范围。
+
+:mzscheme 执行的代码来自命令行。
+:mzfile 执行的代码来自给定文件的内容。
+
+MzScheme 接口定义从 exn 派生的 exn:vim 例外。若干 Vim 错误抛出此例外。
+
+编译时，MzScheme 接口记住当前的 MzScheme collection 路径。如果你想指定额外的路
+径，使用 'current-library-collection-paths' 参数，例如，要附加 (cons) 用户的局
+部 MzScheme collection 路径:<span class="Ignore"> &gt;</span>
+<span class="Comment">    :mz &lt;&lt; EOF</span>
+<span class="Comment">    (current-library-collection-paths</span>
+<span class="Comment">	(cons</span>
+<span class="Comment">	    (build-path (find-system-path 'addon-dir) (version) &quot;collects&quot;)</span>
+<span class="Comment">	    (current-library-collection-paths)))</span>
+<span class="Comment">    EOF</span>
+<span class="Ignore">&lt;</span>
+
+vimext 模块提供所有的功能。
+
+exn:vim 无需显式导入 (import)。
+
+为了避免和 MzScheme 冲突，require 模块时考虑使用 prefix。
+例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:mzscheme (require (prefix vim- vimext))</span>
+<span class="Ignore">&lt;</span>
+下面的例子都使用此命名方案。
+
+							<span class="Ignore">*</span><span class="String">mzscheme-sandbox</span><span class="Ignore">*</span>
+在沙盘 <span class="Ignore">|</span><span class="Identifier">sandbox</span><span class="Ignore">|</span> 里执行时，对一些文件系统和 Vim 接口的过程的访问受到限制。
+
+<span class="PreProc">==============================================================================</span>
+2. 示例	    						<span class="Ignore">*</span><span class="String">mzscheme-examples</span><span class="Ignore">*</span>
+<span class="Ignore">&gt;</span>
+<span class="Comment">	:mzscheme (display &quot;Hello&quot;)</span>
+<span class="Comment">	:mz (display (string-append &quot;Using MzScheme version &quot; (version)))</span>
+<span class="Comment">	:mzscheme (require (prefix vim- vimext)) ; 用于 MzScheme &lt; 4.x</span>
+<span class="Comment">	:mzscheme (require (prefix-in vim- 'vimext)) ; MzScheme 4.x</span>
+<span class="Comment">	:mzscheme (vim-set-buff-line 10 &quot;This is line #10&quot;)</span>
+
+要看运行的 MzScheme 版本:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:mzscheme (display (version))</span>
+<span class="Ignore">&lt;</span>
+内含脚本的使用:<span class="Ignore"> &gt;</span>
+<span class="Comment">	function! &lt;SID&gt;SetFirstLine()</span>
+<span class="Comment">	    :mz &lt;&lt; EOF</span>
+<span class="Comment">	    (display &quot;!!!&quot;)</span>
+<span class="Comment">	    (require (prefix vim- vimext))</span>
+<span class="Comment">	    ; 更新的版本 (require (prefix-in vim- 'vimext))</span>
+<span class="Comment">	    (vim-set-buff-line 1 &quot;This is line #1&quot;)</span>
+<span class="Comment">	    (vim-beep)</span>
+<span class="Comment">	    EOF</span>
+<span class="Comment">	endfunction</span>
+
+<span class="Comment">	nmap &lt;F9&gt; :call &lt;SID&gt;SetFirstLine() &lt;CR&gt;</span>
+<span class="Ignore">&lt;</span>
+文件执行:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:mzfile supascript.scm</span>
+<span class="Ignore">&lt;</span>
+Vim 例外处理:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:mz &lt;&lt; EOF</span>
+<span class="Comment">	(require (prefix vim- vimext))</span>
+<span class="Comment">	; 更新的版本 (require (prefix-in vim- 'vimext))</span>
+<span class="Comment">	(with-handlers</span>
+<span class="Comment">	  ([exn:vim? (lambda (e) (display (exn-message e)))])</span>
+<span class="Comment">	  (vim-eval &quot;nonsense-string&quot;))</span>
+<span class="Comment">	EOF</span>
+<span class="Ignore">&lt;</span>
+vimext 模块自动实例化 (可以放在 <span class="Ignore">|</span><span class="Identifier">vimrc</span><span class="Ignore">|</span> 里):<span class="Ignore"> &gt;</span>
+<span class="Comment">    function! MzRequire()</span>
+<span class="Comment">	:redir =&gt; l:mzversion</span>
+<span class="Comment">	:mz (version)</span>
+<span class="Comment">	:redir END</span>
+<span class="Comment">	if strpart(l:mzversion, 1, 1) &lt; &quot;4&quot;</span>
+<span class="Comment">	    &quot; MzScheme 版本号 &lt; 4.x:</span>
+<span class="Comment">	    :mz (require (prefix vim- vimext))</span>
+<span class="Comment">	else</span>
+<span class="Comment">	    &quot; 更新的版本:</span>
+<span class="Comment">	    :mz (require (prefix-in vim- 'vimext))</span>
+<span class="Comment">	endif</span>
+<span class="Comment">    endfunction</span>
+
+<span class="Comment">    if has(&quot;mzscheme&quot;)</span>
+<span class="Comment">	silent call MzRequire()</span>
+<span class="Comment">    endif</span>
+<span class="Ignore">&lt;</span>
+<span class="PreProc">==============================================================================</span>
+3. 线程	    						<span class="Ignore">*</span><span class="String">mzscheme-threads</span><span class="Ignore">*</span>
+
+MzScheme 接口支持线程。它们和操作系统的线程相互独立，因此调度是必要的。
+<span class="Type">'mzquantum'</span> 选项决定 Vim 应每隔多久轮询可用的 MzScheme 线程。
+备注
+Vim 控制台版本的线程调度不如 GUI 版本的可靠。
+
+<span class="PreProc">==============================================================================</span>
+4. MzScheme 对 Vim 的访问				<span class="Ignore">*</span><span class="String">mzscheme-vim</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">mzscheme-vimext</span><span class="Ignore">*</span>
+<span class="Type">'vimext'</span> 模块提供对 MzScheme 接口定义的例程的访问。
+
+通用
+<span class="PreProc">------</span>
+    (command <span class="Special">{command-string}</span>)	    执行 Vim &quot;:Ex&quot; 风格的命令。
+    (eval <span class="Special">{expr-string}</span>)	    计算 vim 表达式，返回相应的 MzScheme 对
+                                    象: <span class="Ignore">|</span><span class="Identifier">List</span><span class="Ignore">|</span> 返回 Scheme 列表，<span class="Ignore">|</span><span class="Identifier">Dictionary</span><span class="Ignore">|</span>
+				    返回 哈希表，<span class="Ignore">|</span><span class="Identifier">Funcref</span><span class="Ignore">|</span> 返回函数 (另见
+				    <span class="Ignore">|</span><span class="Identifier">mzscheme-funcref</span><span class="Ignore">|</span>)
+				    注意 这和 MzScheme 的 eval 有冲突，可用
+				    模块限定符避免之。
+    (range-start)		    Scheme 命令传递的行范围的开始行
+    (range-end)			    和结束行。
+    (beep)			    响铃
+    (get-option <span class="Special">{option-name}</span> <span class="Special">[buffer-or-window]</span>) 得到 Vim 选项值 (局部或全局
+				    值，见 set-option)。
+    (set-option <span class="Special">{string}</span> <span class="Special">[buffer-or-window]</span>)
+				    设置 Vim 选项。字符串 <span class="Special">{string}</span> 使用设置选
+				    项形式 (optname=optval 或 optname+=optval
+				    等)。如果带 <span class="Special">{buffer}</span> 或 <span class="Special">{window}</span>，设置局部
+				    选项。<span class="Special">{buffer-or-window}</span> 也可以使用符号
+				    'global，这时就会使用 <span class="Ignore">|</span><span class="Identifier">:setglobal</span><span class="Ignore">|</span>。
+
+缓冲区							 <span class="Ignore">*</span><span class="String">mzscheme-buffer</span><span class="Ignore">*</span>
+<span class="PreProc">-------</span>
+    (buff? <span class="Special">{object}</span>)		    对象是缓冲区么？
+    (buff-valid? <span class="Special">{object}</span>)	    对象是合法的缓冲区 (也就是，对应真正 Vim
+			            缓冲区) 么？
+    (get-buff-line <span class="Special">{linenr}</span> <span class="Special">[buffer]</span>)
+				    得到缓冲区的行。
+    (set-buff-line <span class="Special">{linenr}</span> <span class="Special">{string}</span> <span class="Special">[buffer]</span>)
+				    设置缓冲区的行。如果 <span class="Special">{string}</span> 是 #f，删除
+				    得到的行。[buffer] 参数可选。如果省略，使
+				    用当前缓冲区。
+    (get-buff-line-list <span class="Special">{start}</span> <span class="Special">{end}</span> <span class="Special">[buffer]</span>)
+				    得到缓冲区的行列表。<span class="Special">{Start}</span> 和 <span class="Special">{end}</span> 从 1
+				    开始。包含第 <span class="Special">{Start}</span> 和 <span class="Special">{end}</span> 行。
+    (set-buff-line-list <span class="Special">{start}</span> <span class="Special">{end}</span> <span class="Special">{string-list}</span> <span class="Special">[buffer]</span>)
+				    设置缓冲区的行列表。如果字符串列表
+				    <span class="Special">{string-list}</span> 是 #f 或 null，删除所有行。
+				    如果列表短于 <span class="Special">{end}</span>-<span class="Special">{start}</span>，删除其余行。
+    (get-buff-name <span class="Special">[buffer]</span>)	    得到缓冲区的文本名。
+    (get-buff-num <span class="Special">[buffer]</span>)	    得到缓冲区的编号。
+    (get-buff-size <span class="Special">[buffer]</span>)	    得到缓冲区的行数。
+    (insert-buff-line-list <span class="Special">{linenr}</span> <span class="Special">{string/string-list}</span> <span class="Special">[buffer]</span>)
+				    在缓冲区第 <span class="Special">{linenr}</span> 行之后插入行列表。如果
+				    <span class="Special">{linenr}</span> 为 0，在缓冲区开头插入。
+    (curr-buff)			    得到当前缓冲区。使用其它的 MzScheme 接口历
+				    程来修改当前缓冲区。
+    (buff-count)		    得到编辑器的缓冲区总数。
+    (get-next-buff <span class="Special">[buffer]</span>)	    得到下一个缓冲区。
+    (get-prev-buff <span class="Special">[buffer]</span>)	    得到前一个缓冲区。如果没有更多缓冲区，返回
+				    #f。
+    (open-buff <span class="Special">{filename}</span>)	    打开新缓冲区 (编辑文件 &quot;name&quot;)。
+    (get-buff-by-name <span class="Special">{buffername}</span>) 根据文件名得到缓冲区，如果没有此缓冲区，返
+				    回 #f。
+    (get-buff-by-num <span class="Special">{buffernum}</span>)   根据缓冲区号得到缓冲区 (如果没有对应此编号
+				    的缓冲区，返回 #f)。
+
+窗口							    <span class="Ignore">*</span><span class="String">mzscheme-window</span><span class="Ignore">*</span>
+<span class="PreProc">------</span>
+    (win? <span class="Special">{object}</span>)		    对象是窗口么？
+    (win-valid? <span class="Special">{object}</span>)	    对象是合法的窗口 (也就是，对应真正 Vim 窗
+				    口) 么？
+    (curr-win)			    得到当前窗口。
+    (win-count)			    得到窗口总数。
+    (get-win-num <span class="Special">[window]</span>)	    得到窗口的编号。
+    (get-win-by-num <span class="Special">{windownum}</span>)    根据窗口号得到窗口。
+    (get-win-buffer <span class="Special">[window]</span>)	    得到给定窗口的缓冲区。
+    (get-win-height <span class="Special">[window]</span>)
+    (set-win-height <span class="Special">{height}</span> <span class="Special">[window]</span>)  取得/设置 窗口高度。
+    (get-win-width <span class="Special">[window]</span>)
+    (set-win-width <span class="Special">{width}</span> <span class="Special">[window]</span>)取得/设置 窗口宽度。
+    (get-win-list <span class="Special">[buffer]</span>)	    得到对应特定缓冲区的窗口列表。
+    (get-cursor <span class="Special">[window]</span>)	    得到窗口的光标位置，以组对 (行号 . 列号)
+				    形式出现。
+    (set-cursor (line . col) <span class="Special">[window]</span>)  设置光标位置。
+
+<span class="PreProc">==============================================================================</span>
+5. mzeval() Vim 函数					    <span class="Ignore">*</span><span class="String">mzscheme-mzeval</span><span class="Ignore">*</span>
+
+使用 <span class="Ignore">|</span><span class="Identifier">mzeval()</span><span class="Ignore">|</span> 函数可以提供另一方向的接口，它计算 MzScheme 表达式并把结果赋给
+Vim 脚本。
+
+<span class="PreProc">==============================================================================</span>
+6. 使用函数引用						    <span class="Ignore">*</span><span class="String">mzscheme-funcref</span><span class="Ignore">*</span>
+
+MzScheme 接口允许使用 <span class="Ignore">|</span><span class="Identifier">Funcref</span><span class="Ignore">|</span> 来从 Scheme 里直接调用 Vim 的函数。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">    function! MyAdd2(arg)</span>
+<span class="Comment">	return a:arg + 2</span>
+<span class="Comment">    endfunction</span>
+<span class="Comment">    mz (define f2 (vim-eval &quot;function(\&quot;MyAdd2\&quot;)&quot;))</span>
+<span class="Comment">    mz (f2 7)</span>
+<span class="Ignore">&lt;</span> 或 :<span class="Ignore"> &gt;</span>
+<span class="Comment">    :mz (define indent (vim-eval &quot;function('indent')&quot;))</span>
+<span class="Comment">    &quot; return Vim indent for line 12</span>
+<span class="Comment">    :mz (indent 12)</span>
+<span class="Ignore">&lt;</span>
+
+<span class="PreProc">==============================================================================</span>
+7. 动态调入					<span class="Ignore">*</span><span class="String">mzscheme-dynamic</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E815</span><span class="Ignore">*</span>
+
+MS-Windows 上，可以动态调入 MzScheme 库。<span class="Ignore">|</span><span class="Identifier">:version</span><span class="Ignore">|</span> 输出这时应包括
+<span class="Ignore">|</span><span class="Identifier">+mzscheme/dyn</span><span class="Ignore">|</span>。
+
+这意味着 Vim 只有在必要时才寻找 MzScheme DLL 文件。如果不使用 MzScheme 接口，
+你就不需要它们。这样，即使没有这些 DLL 文件，你也可使用 Vim。
+注意 新版的 MzScheme (Racket) 需要通过 scheme_main_setup 进行早期 (蹦床式的)
+的初始化。这样如果可能的话 Vim 总能在启动时载入 MzScheme DLL。
+
+要使用 MzScheme 接口，MzScheme DLL 必须在搜索路径上。控制台窗口里输入 &quot;path&quot;
+可以看到 (搜索路径) 当前使用的目录。
+
+DLL 的名字必须匹配 Vim 编译时所使用的 MzScheme 版本。对于 MzScheme 209 版本，
+它们的名字分别为 &quot;libmzsch209_000.dll&quot; 和 &quot;libmzgc209_000.dll&quot;。要确信这一点，
+察看 &quot;:version&quot; 命令的输出，注意 &quot;Compilation&quot; 信息中的 -DDYNAMIC_MZSCH_DLL=
+&quot;内容&quot; 和 -DDYNAMIC_MZGC_DLL=&quot;内容&quot;。
+
+例如，如果 MzScheme (Racket) 安装在 C:\Racket63，可能需要以下的环境变量设置:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">  PATH=%PATH%;C:\Racket63\lib</span>
+<span class="Comment">  PLTCOLLECTS=C:\Racket63\collects</span>
+<span class="Comment">  PLTCONFIGDIR=C:\Racket63\etc</span>
+<span class="Ignore">&lt;</span>
+<span class="PreProc">==============================================================================</span>
+8. MzScheme 设置				    <span class="Ignore">*</span><span class="String">mzscheme-setup</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E895</span><span class="Ignore">*</span>
+
+Vim 的 if_mzsch 核心部分需要 &quot;racket/base&quot; 模块 (如果不存在，&quot;scheme/base&quot; 作
+作为后备)，测试需要 &quot;r5rs&quot; 模块，Vim 编译时需要 &quot;raco ctool&quot; 命令。如果
+MzScheme 没有这些，可以通过 MzScheme 的 raco 命令安装:
+<span class="Ignore">&gt;</span>
+<span class="Comment">  raco pkg install scheme-lib       # scheme/base 模块</span>
+<span class="Comment">  raco pkg install r5rs-lib         # r5rs 模块</span>
+<span class="Comment">  raco pkg install cext-lib         # raco ctool 命令</span>
+<span class="Ignore">&lt;</span>
+<span class="PreProc">======================================================================</span>
+  vim&#0058;tw=78:ts=8:sts=4:ft=help:norl:
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

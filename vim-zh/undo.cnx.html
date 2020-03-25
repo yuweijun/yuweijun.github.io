@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>~/github.com/yuweijun/yuweijun.github.io/vim-zh/undo.cnx.html</title>
+<meta name="Generator" content="Vim/8.2">
+<meta name="plugin-version" content="vim8.1_v2">
+<meta name="syntax" content="help">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,prevent_copy=,use_input_for_pc=fallback">
+<meta name="colorscheme" content="molokai">
+<style>
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #d0d0d0; background-color: #121212; }
+body { font-family: monospace; color: #d0d0d0; background-color: #121212; }
+* { font-size: 1em; }
+.String { color: #afaf87; }
+.Type { color: #5fd7ff; }
+.PreProc { color: #87ff00; }
+.Identifier { color: #ff8700; }
+.Comment { color: #5f5f5f; }
+.Special { color: #5fd7ff; }
+.Ignore { color: #808080; background-color: #080808; padding-bottom: 1px; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="Ignore">*</span><span class="String">undo.txt</span><span class="Ignore">*</span>      For <span class="Identifier">Vim version 8.0.</span>  最近更新: 2017年8月
+
+
+		  VIM 参考手册    by Bram Moolenaar
+			译者: jwdu, tocer <span class="String"><a href="http://vimcdoc.sf.net">http://vimcdoc.sf.net</a></span>
+
+撤销和重做							<span class="Ignore">*</span><span class="String">undo-redo</span><span class="Ignore">*</span>
+
+在用户手册的 <span class="Ignore">|</span><span class="Identifier">02.5</span><span class="Ignore">|</span> 节对它们的基本操作有解释。
+
+1. 撤销和重做操作的命令		<span class="Ignore">|</span><span class="Identifier">undo-commands</span><span class="Ignore">|</span>
+2. 撤销操作的两种方法		<span class="Ignore">|</span><span class="Identifier">undo-two-ways</span><span class="Ignore">|</span>
+3. 撤销块			<span class="Ignore">|</span><span class="Identifier">undo-blocks</span><span class="Ignore">|</span>
+4. 撤销分支			<span class="Ignore">|</span><span class="Identifier">undo-branches</span><span class="Ignore">|</span>
+5. 撤销的持久性 		<span class="Ignore">|</span><span class="Identifier">undo-persistence</span><span class="Ignore">|</span>
+6. 撤销操作的解释		<span class="Ignore">|</span><span class="Identifier">undo-remarks</span><span class="Ignore">|</span>
+
+<span class="PreProc">==============================================================================</span>
+1. 撤销和重做命令					<span class="Ignore">*</span><span class="String">undo-commands</span><span class="Ignore">*</span>
+
+<span class="Special">&lt;Undo&gt;</span>		或					<span class="Ignore">*</span><span class="String">undo</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">&lt;Undo&gt;</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">u</span><span class="Ignore">*</span>
+u			撤销 <span class="Special">[count]</span> 次更改。 		<span class="Special">{Vi: 仅有一级}</span>
+
+							<span class="Ignore">*</span><span class="String">:u</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:un</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:undo</span><span class="Ignore">*</span>
+:u[ndo]			撤销一次更改。  		<span class="Special">{Vi: 仅有一级}</span>
+
+								<span class="Ignore">*</span><span class="String">E830</span><span class="Ignore">*</span>
+:u[ndo] <span class="Special">{N}</span>		转到改变号 <span class="Special">{N}</span> 之后。<span class="Special">{N}</span> 的含义参见 <span class="Ignore">|</span><span class="Identifier">undo-branches</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">CTRL-R</span><span class="Ignore">*</span>
+<span class="Special">CTRL-R</span>			重做 <span class="Special">[count]</span> 次被撤销的更改。	<span class="Special">{Vi: 刷新屏幕}</span>
+
+							<span class="Ignore">*</span><span class="String">:red</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:redo</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">redo</span><span class="Ignore">*</span>
+:red[o]			重做一个被撤销的更改。		<span class="Special">{Vi: 没有 redo}</span>
+
+							<span class="Ignore">*</span><span class="String">U</span><span class="Ignore">*</span>
+U			撤销最近对特定行所作的一系列更改，也就是最近作改变的
+			那行。<span class="Ignore">|</span><span class="Identifier">U</span><span class="Ignore">|</span> 自己也算一次改变，因此 <span class="Ignore">|</span><span class="Identifier">U</span><span class="Ignore">|</span> 会撤销之前的
+			<span class="Ignore">|</span><span class="Identifier">U</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi: 仅当这些修改不超出最近作改变那行的范围}</span>
+
+由于最近所作的更改是被记住的，因此，你可以应用上面的撤销和重做命令把文件倒转到
+你所作每次更改以前的状态。当然，你也可以重新应用这些修改，把文件重做到执行撤销
+操作以前的状态。
+
+对于撤销/重做 (undo/redo) 来说，&quot;U&quot; 命令和其他命令是同等对待的。所以 &quot;u&quot; 可以
+撤销一个 &quot;U&quot; 命令、'<span class="Special">CTRL-R</span>' 也可以重做对 &quot;U&quot; 命令的撤销。当 &quot;U&quot;、&quot;u&quot; 和
+'<span class="Special">CTRL-R</span>' 三个命令混合使用时，你将注意到 &quot;U&quot; 命令决意将被该行还原到前一个 &quot;U&quot;
+命令之前的状态。这或许会令你困惑。多试试，你会习惯的。
+&quot;U&quot; 命令总是把缓冲区标记为已改变。即使它把修改过的缓冲区重做到未改变的状态也是
+如此。为此，只有使用 &quot;u&quot; 命令，才能令缓冲区正确地回复到未改变的标记。
+
+<span class="PreProc">==============================================================================</span>
+2. 撤销操作的两种方法					<span class="Ignore">*</span><span class="String">undo-two-ways</span><span class="Ignore">*</span>
+
+撤销和重做的工作模式依赖于 <span class="Type">'cpoptions'</span> 中 'u' 标志位。这里有两种模式，Vim 模式
+(不包含 'u') 和 Vi-兼容模式 (包含 'u')。在 Vim 模式下，&quot;uu&quot; 命令撤销两次改变，
+在 Vi-兼容模式下，&quot;uu&quot; 命令什么也不做 (撤销第一次撤销)。
+
+不包含 'u' 的 Vim 模式:
+及时的撤销命令可以回到先前的状态。你也可以使用重做命令再次前进。不过，如果在撤
+销命令后你做了一个新的改变，重做上次的撤销便不再可能。
+
+包含 'u' 的 Vi-兼容模式:
+撤销命令撤销包含以前的撤销命令在内的任何更改。重做命令重复前一个撤销命令。但它
+_不_用来重复改变命令。为此请用 &quot;.&quot; 命令。
+
+<span class="PreProc">举例		Vim 模式		Vi-兼容模式</span><span class="Ignore">	~</span>
+&quot;uu&quot;		两次撤销		空操作
+&quot;u <span class="Special">CTRL-R</span>&quot;	空操作			两次撤销
+
+原理:	Nvi 使用 &quot;.&quot; 命令而不是 <span class="Special">CTRL-R</span>。不幸的是，这不是 Vi 兼容的。例如
+	&quot;dwdwu.&quot; 命令，在 Vi 中删除两个词，但在 Nvi 中，它什么也不做。
+
+<span class="PreProc">==============================================================================</span>
+3. 撤销块						<span class="Ignore">*</span><span class="String">undo-blocks</span><span class="Ignore">*</span>
+
+单个 undo 命令通常撤掉一个输入的命令，不论这个命令造成多少改变。这个可以撤销的
+改变序列构成了一个撤销块。所以如果键入的命令调用一个函数，那么在这个函数中的所
+有命令全部被撤销。
+
+如果你想编写一个函数或脚本，它不包含新的可撤销之改变，而合并到之前的改变中，用
+以下命令:
+
+						<span class="Ignore">*</span><span class="String">:undoj</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:undojoin</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E790</span><span class="Ignore">*</span>
+:undoj[oin]		把其后的改变和以前的撤销块进行合并。
+			警告: 小心使用。它会阻止用户合理地撤销改变。不要在撤销
+			或重做后使用。
+			<span class="Special">{Vi 无此功能}</span>
+
+这最适用于在改变的过程中需要提示用户的场合。例如调用 <span class="Ignore">|</span><span class="Identifier">getchar()</span><span class="Ignore">|</span> 的函数。确保
+在这之前有一个相关的必须与之合并的改变。
+
+这条命令不能单独工作，因为下一个键击会再次造成新改变。但你可以这么做:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:undojoin | delete</span>
+
+在此之后，&quot;u&quot; 命令会同时撤销 delete 命令和前一次改变。
+
+要反过来，把一个改动分成两个撤销块，在插入模式下用 <span class="Special">CTRL-G</span> u。可用于使某个插入
+命令部分可撤销。譬如可分拆到每个句子。<span class="Ignore">|</span><span class="Identifier">i_CTRL-G_u</span><span class="Ignore">|</span>
+设置 <span class="Type">'undolevels'</span> 的值也会破坏撤销。即使新值和旧值相同。
+
+<span class="PreProc">==============================================================================</span>
+4. 撤销分支					<span class="Ignore">*</span><span class="String">undo-branches</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">undo-tree</span><span class="Ignore">*</span>
+
+上面我们只讨论了单线的撤销/重做。但你也可以进行分支。考虑你先撤销了若干改变，
+然后又进行了一些其它的改变。此时，被撤销的改变就成为一个分支。下面的命令使你能
+够到达那个分支。
+
+这在用户手册中有解释: <span class="Ignore">|</span><span class="Identifier">usr_32.txt</span><span class="Ignore">|</span>。
+
+							<span class="Ignore">*</span><span class="String">:undol</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:undolist</span><span class="Ignore">*</span>
+:undol[ist]		列出改变树的所有叶结点。例如:
+			   <span class="PreProc">number changes  when               saved</span><span class="Ignore"> ~</span>
+			       88      88  2010/01/04 14:25:53
+			      108     107  08/07 12:47:51
+			      136      46  13:33:01             7
+			      166     164  3 seconds ago
+
+			&quot;number&quot; 列是改变号。这个编号持续增加，用于标识特定可
+			撤销的改变，参见 <span class="Ignore">|</span><span class="Identifier">:undo</span><span class="Ignore">|</span>。
+			&quot;changes&quot; 列是树的根结点到此叶结点所需的改变数目。
+			&quot;when&quot; 列是此改变发生的日期时间。四种可能的格式是:
+			    <span class="Special">N</span> seconds ago
+			    HH:MM:SS             时分秒
+			    MM/DD HH:MM:SS       同上，还有月日
+			    YYYY/MM/DD HH:MM:SS  同上，还有年
+			&quot;save&quot; 列给出此改变是否已写入硬盘和第几次写入文件。可
+			用于 <span class="Ignore">|</span><span class="Identifier">:later</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">:earlier</span><span class="Ignore">|</span> 命令。
+			要更详细的信息可用 <span class="Ignore">|</span><span class="Identifier">undotree()</span><span class="Ignore">|</span> 函数。
+
+							<span class="Ignore">*</span><span class="String">g-</span><span class="Ignore">*</span>
+g-			转到较早的文本状态。如果带计数，重复那么多次。
+			<span class="Special">{Vi 无此功能}</span>
+							<span class="Ignore">*</span><span class="String">:ea</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:earlier</span><span class="Ignore">*</span>
+:earlier <span class="Special">{count}</span>	转到 <span class="Special">{count}</span> 次较早的文本状态。
+:earlier <span class="Special">{N}</span>s		转到大约 <span class="Special">{N}</span> 秒钟之前的较早的文本状态。
+:earlier <span class="Special">{N}</span>m		转到大约 <span class="Special">{N}</span> 分钟之前的较早的文本状态。
+:earlier <span class="Special">{N}</span>h		转到大约 <span class="Special">{N}</span> 小时之前的较早的文本状态。
+:earlier <span class="Special">{N}</span>d		转到大约 <span class="Special">{N}</span> 天之前的较早的文本状态。
+
+:earlier <span class="Special">{N}</span>f		转到 <span class="Special">{N}</span> 次文件写入之前的较早的文本状态。
+			如果上次写入之后有改动，&quot;:earlier 1f&quot; 会恢复文本到上次
+			写入时的状态。否则会转到再上一次写入时的状态。
+			如果在第一次文件写入的状态，甚至于从未写入过文件，
+			&quot;:earlier 1f&quot; 会转到首次改变之前的状态。
+
+							<span class="Ignore">*</span><span class="String">g+</span><span class="Ignore">*</span>
+g+			转到较新的文本状态。如果带计数，重复那么多次。
+			<span class="Special">{Vi 无此功能}</span>
+							<span class="Ignore">*</span><span class="String">:lat</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:later</span><span class="Ignore">*</span>
+:later <span class="Special">{count}</span>	转到 <span class="Special">{count}</span> 次较新的文本状态。
+:later <span class="Special">{N}</span>s		转到大约 <span class="Special">{N}</span> 秒钟之后的较新的文本状态。
+:later <span class="Special">{N}</span>m		转到大约 <span class="Special">{N}</span> 分钟之后的较新的文本状态。
+:later <span class="Special">{N}</span>h		转到大约 <span class="Special">{N}</span> 小时之后的较新的文本状态。
+:later <span class="Special">{N}</span>d		转到大约 <span class="Special">{N}</span> 天之后的较新的文本状态。
+
+:later <span class="Special">{N}</span>f		转到 <span class="Special">{N}</span> 次文件写入之后较新的文本状态。
+			若在在最后一次文件写入的状态，&quot;:later 1f&quot; 会转到最新的
+			文本状态。
+
+注意 如果由于 <span class="Type">'undolevels'</span> 选项，撤销信息被清空，那么文本状态将无法访问。
+
+在不同时间点上移动的时候，不要奇怪一个时间点会同时发生多个改变。通过撤销树跳转
+然后又做了新的改变后就会发生这种情况。
+
+示 例
+
+从这一行开始:
+	<span class="PreProc">one two three</span><span class="Ignore"> ~</span>
+
+按三次 &quot;x&quot; 删除第一个单词:
+	<span class="PreProc">ne two three</span><span class="Ignore"> ~</span>
+	<span class="PreProc">e two three</span><span class="Ignore"> ~</span>
+	 <span class="PreProc">two three</span><span class="Ignore"> ~</span>
+
+现在按 &quot;u&quot; 三次撤销:
+	<span class="PreProc">e two three</span><span class="Ignore"> ~</span>
+	<span class="PreProc">ne two three</span><span class="Ignore"> ~</span>
+	<span class="PreProc">one two three</span><span class="Ignore"> ~</span>
+
+按三次 &quot;x&quot; 删除第二个单词:
+	<span class="PreProc">one wo three</span><span class="Ignore"> ~</span>
+	<span class="PreProc">one o three</span><span class="Ignore"> ~</span>
+	<span class="PreProc">one  three</span><span class="Ignore"> ~</span>
+
+现在按 &quot;g-&quot; 三次撤销:
+	<span class="PreProc">one o three</span><span class="Ignore"> ~</span>
+	<span class="PreProc">one wo three</span><span class="Ignore"> ~</span>
+	 <span class="PreProc">two three</span><span class="Ignore"> ~</span>
+
+现在，回到第一个撤销分支，也就是在删除 &quot;one&quot; 之后。重复 &quot;g-&quot; 会回到原始文本:
+	<span class="PreProc">e two three</span><span class="Ignore"> ~</span>
+	<span class="PreProc">ne two three</span><span class="Ignore"> ~</span>
+	<span class="PreProc">one two three</span><span class="Ignore"> ~</span>
+
+使用 &quot;:later 1h&quot; 跳到最后一次改变:
+	<span class="PreProc">one  three</span><span class="Ignore"> ~</span>
+
+使用 &quot;:earlier 1h&quot; 再次回到开始:
+	<span class="PreProc">one two three</span><span class="Ignore"> ~</span>
+
+
+注意 使用 &quot;u&quot; 和 <span class="Special">CTRL-R</span> 无法得到全部可能的文本状态，但是重复 &quot;g-&quot; 和 &quot;g+&quot; 却可
+以。
+
+<span class="PreProc">==============================================================================</span>
+5. 撤销的持久性			<span class="Ignore">*</span><span class="String">undo-persistence</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">persistent-undo</span><span class="Ignore">*</span>
+
+卸载缓冲区时，Vim 通常会删除该缓冲区建立的撤销树。通过设置 <span class="Type">'undofile'</span> 选项，
+Vim 会在写入文件时自动保存撤销历史，而重新编辑文件时，恢复撤销历史。
+
+<span class="Type">'undofile'</span> 选项在写入文件之后检查，而发生在 BufWritePost 自动命令之前。要控制
+哪些文件需要保存撤销信息，可以使用 BufWritePre 自动命令:<span class="Ignore"> &gt;</span>
+<span class="Comment">	au BufWritePre /tmp/* setlocal noundofile</span>
+
+Vim 把撤销树保存在一个独立的撤销文件里，每个编辑的文件对应一个，使用一个简单的
+方案来对应文件系统的路径到撤销文件名。Vim 会检测是否某个撤销文件不再和写它时的
+那个文件同步 (使用文件内容的哈希值)，如果文件内容在撤销文件写入后有改动，忽略
+撤销文件，以防止文件遭破坏。如果撤销文件的拥有者和正在编辑文件的不同，也忽略
+之，除非撤销文件的拥有者是当前用户。设置 <span class="Type">'verbose'</span> 可获取关于打开文件的消息。
+
+撤销文件通常保存在文件本身相同的目录里。这可以用 <span class="Type">'undodir'</span> 选项改变。
+
+如果文件被加密，撤销文件的文件也会加密。使用相同的密钥和方法。<span class="Ignore">|</span><span class="Identifier">encryption</span><span class="Ignore">|</span>
+
+你也可以用 &quot;:wundo&quot; 和 &quot;:rundo&quot; 来相应地保存和恢复撤销历史:
+							<span class="Ignore">*</span><span class="String">:wundo</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:rundo</span><span class="Ignore">*</span>
+:wundo[!] <span class="Special">{file}</span>
+		把撤销历史写入 <span class="Special">{file}</span>。
+		如果 <span class="Special">{file}</span> 已存在而看起来不像撤销文件 (文件头部的魔术数字不
+		符)，此命令失败。除非加上 !。
+		如果文件存在且看起来像撤销文件，覆盖之。如果没有撤销历史，不
+		写入任何东西。
+		实现细节: 覆盖操作如此执行，先删除已有的文件，然后建立同名的
+		文件。所以，不能在写保护目录里覆盖已有的撤销文件。
+		<span class="Special">{Vi 无此功能}</span>
+
+:rundo <span class="Special">{file}</span>	从 <span class="Special">{file}</span> 读出撤销历史。
+		<span class="Special">{Vi 无此功能}</span>
+
+你可以在自动命令中用这些命令来显式指定历史文件名。例如:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	au BufReadPost * call ReadUndo()</span>
+<span class="Comment">	au BufWritePost * call WriteUndo()</span>
+<span class="Comment">	func ReadUndo()</span>
+<span class="Comment">	  if filereadable(expand('%:h'). '/UNDO/' . expand('%:t'))</span>
+<span class="Comment">	    rundo %:h/UNDO/%:t</span>
+<span class="Comment">	  endif</span>
+<span class="Comment">	endfunc</span>
+<span class="Comment">	func WriteUndo()</span>
+<span class="Comment">	  let dirname = expand('%:h') . '/UNDO'</span>
+<span class="Comment">	  if !isdirectory(dirname)</span>
+<span class="Comment">	    call mkdir(dirname)</span>
+<span class="Comment">	  endif</span>
+<span class="Comment">	  wundo %:h/UNDO/%:t</span>
+<span class="Comment">	endfunc</span>
+
+此时，应该关闭 <span class="Type">'undofile'</span>，否则每次写入文件时会有两个撤销文件。
+
+可以用 <span class="Ignore">|</span><span class="Identifier">undofile()</span><span class="Ignore">|</span> 函数来确定 Vim 会使用的文件名。
+
+注意: 读写文件时，如果设置了 <span class="Type">'undofile'</span>，大部分的错误信息会被屏蔽，除非设置了
+<span class="Type">'verbose'</span>。而 :wundo 和 :rundo 会得到更到的错误信息，如文件不能读或写等。
+
+注意: Vim 从不删除撤销文件。你需要自己进行清除。
+
+读出已经存在的撤销文件可能会有以下的失败原因:
+<span class="Ignore">*</span><span class="String">E822</span><span class="Ignore">*</span>	不能打开，文件许可权限不许可。
+<span class="Ignore">*</span><span class="String">E823</span><span class="Ignore">*</span>	文件头的魔术数字不符。通常这意味着这不是一个撤销文件。
+<span class="Ignore">*</span><span class="String">E824</span><span class="Ignore">*</span>	撤销文件的版本号说明它是由更新的 Vim 版本写入的。需要更新的版本来读。
+	如果你想保留该文件中的撤销信息，不要写入缓冲区。
+&quot;File contents changed, cannot use undo info&quot;
+	文件文本和撤销文件写入时的不同。这意味着不再能使用该撤销文件，否则会破
+	坏文本。这也可能是因为 <span class="Type">'encoding'</span> 和撤销文件写入时的不同。
+<span class="Ignore">*</span><span class="String">E825</span><span class="Ignore">*</span>	撤销文件没有合法的内容，不能使用。
+<span class="Ignore">*</span><span class="String">E826</span><span class="Ignore">*</span>	撤销文件经过加密而解密失败。
+<span class="Ignore">*</span><span class="String">E827</span><span class="Ignore">*</span>	撤销文件经过加密而此版本的 Vim 不支持加密。用别的 Vim 打开该文件。
+<span class="Ignore">*</span><span class="String">E832</span><span class="Ignore">*</span>	撤销文件经过加密而 <span class="Type">'key'</span> 没有设置，文本文件本身没有加密。这可能是因为
+	文本文件本来是由 Vim 用加密方式写入的，后来又用非加密方式进行了覆盖。
+	最好删除该撤销文件。
+&quot;Not reading undo file, owner differs&quot;
+	撤销文件的拥有者和文本文件的拥有者不同。因为安全原因，不使用该撤销文
+	件。
+
+写入撤销文件可能会有以下的失败原因:
+<span class="Ignore">*</span><span class="String">E828</span><span class="Ignore">*</span>	待写入的文件不能建立。可能你没有该目录的写入权限。
+&quot;Cannot write undo file in any directory in <span class="Type">'undodir'</span>&quot;
+	<span class="Type">'undodir'</span> 里没有一个可用的目录。
+&quot;Will not overwrite with undo file, cannot read&quot;
+	待写入的撤销文件已经存在，但不能读回。你需要先删除或改名。
+&quot;Will not overwrite, this is not an undo file&quot;
+	待写入的撤销文件已经存在，但开头没有正确的魔术数字。你需要先删除或改
+	名。
+&quot;Skipping undo file write, nothing to undo&quot;
+	没有可写的撤销信息，没有任何改变，或者 <span class="Type">'undolevels'</span> 为负。
+<span class="Ignore">*</span><span class="String">E829</span><span class="Ignore">*</span>	写入撤销文件时有错。可以多试几次。
+
+<span class="PreProc">==============================================================================</span>
+6. 撤销操作的解释					<span class="Ignore">*</span><span class="String">undo-remarks</span><span class="Ignore">*</span>
+
+能记忆的最大改变次数由 <span class="Type">'undolevels'</span> 选项决定。如果它的值是零，我们总是运行在
+Vi-兼容模式。如果它的值是负的，任何撤销都是不可能的。这只有在内存紧张的时候适
+用。
+
+							<span class="Ignore">*</span><span class="String">clear-undo</span><span class="Ignore">*</span>
+如果设置 <span class="Type">'undolevels'</span> 为 -1，撤销信息不会立即清除。当有新改变时才会。要强迫清
+除撤销信息，可以用:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:let old_undolevels = &amp;undolevels</span>
+<span class="Comment">	:set undolevels=-1</span>
+<span class="Comment">	:exe &quot;normal a \&lt;BS&gt;\&lt;Esc&gt;&quot;</span>
+<span class="Comment">	:let &amp;undolevels = old_undolevels</span>
+<span class="Comment">	:unlet old_undolevels</span>
+
+当前缓冲区的位置标记 ('a 至 'z) 随文本一起被保存和复原。<span class="Special">{Vi 的做法稍有不同}</span>
+
+当所有的改变都被撤销时，缓冲区被标记为未改变。这时可以使用 &quot;:q&quot; 而不一定是
+&quot;:q!&quot; 退出 Vim 。<span class="Special">{Vi 并非如此}</span> 注意未改变是相对文件的最后写入而言的。在写入
+&quot;:w&quot; 后紧跟的撤销 &quot;u&quot;，实际上改变了被写入以后缓冲区的状态。因此，此时缓冲区应
+被视为已改变。
+
+当使用手动 <span class="Ignore">|</span><span class="Identifier">folding</span><span class="Ignore">|</span> 时，折叠不会被保存和复原。只有完全发生折叠内部的改变才不
+会影响该折叠，因为它开头和最后一行没有改变。
+
+数字编号的寄存器也可以被用作撤销删除操作。你每一次删除文本，该文本被放在 &quot;1 寄
+存器中。同样的，&quot;1 寄存器的内容被移到 &quot;2 寄存器，依次类推。&quot;9 寄存器的内容则会
+丢失。现在，你可以通过命令 '&quot;1P' 得到最近删除的文本。(如果被删除的内容来自最近
+的删除或复制操作，'P' 或 'p' 同样也可得到你要的结果，因为他们会复制未命名寄存
+器的内容)。使用 '&quot;3P' 可以得到三个删除操作之前的文本。
+
+							<span class="Ignore">*</span><span class="String">redo-register</span><span class="Ignore">*</span>
+如果你想得到多于一处被删除文本的内容，你可以使用重复命令 &quot;.&quot; 一个特殊的特性:
+它会递增所使用寄存器内的序号。所以，你如果先使用 &quot;&quot;1P&quot; ，那么接下来的 &quot;.&quot; 就意
+味着 '&quot;2P 。重复这样的操作，所有编号的寄存器都会被插入。
+
+例如: 如果你用 'dd....' 删除了内容 (五行文本)，那么用 '&quot;1P....' 可以恢复之。
+
+如果你不知道被删除的内容在哪一个寄存器，你可以用 <span class="Ignore">|</span><span class="Identifier">:display</span><span class="Ignore">|</span> 命令。还有一个方法
+就是先试第一个寄存器 '&quot;1P' ，如果不对，用 'u.' 命令。这将会移走第一次放进的内
+容，然后在第二个寄存器上重复 put 命令。重复使用 'u.' 直到你得到想要的内容为
+止。
+
+ vim&#0058;tw=78:ts=8:ft=help:norl:
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

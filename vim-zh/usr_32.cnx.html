@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>~/github.com/yuweijun/yuweijun.github.io/vim-zh/usr_32.cnx.html</title>
+<meta name="Generator" content="Vim/8.2">
+<meta name="plugin-version" content="vim8.1_v2">
+<meta name="syntax" content="help">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,prevent_copy=,use_input_for_pc=fallback">
+<meta name="colorscheme" content="molokai">
+<style>
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #d0d0d0; background-color: #121212; }
+body { font-family: monospace; color: #d0d0d0; background-color: #121212; }
+* { font-size: 1em; }
+.String { color: #afaf87; }
+.PreProc { color: #87ff00; }
+.Identifier { color: #ff8700; }
+.Comment { color: #5f5f5f; }
+.Ignore { color: #808080; background-color: #080808; padding-bottom: 1px; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="Ignore">*</span><span class="String">usr_32.txt</span><span class="Ignore">*</span>	For <span class="Identifier">Vim version 8.0.</span>  最近更新: 2010年7月
+
+		     VIM 用户手册 - by Bram Moolenaar
+		     译者: Willis <span class="String"><a href="http://vimcdoc.sf.net">http://vimcdoc.sf.net</a></span>
+
+			      撤销树
+
+
+Vim 提供了多层撤销功能。如果你撤销了一些改变然后又进行了一些新的改变，你就在撤
+销树里建立了一个分支。本文本讨论如何在分支间来回移动。
+
+<span class="Ignore">|</span><span class="Identifier">32.1</span><span class="Ignore">|</span>	撤销到文件写入时的状态
+<span class="Ignore">|</span><span class="Identifier">32.2</span><span class="Ignore">|</span>	为每次改变进行编号
+<span class="Ignore">|</span><span class="Identifier">32.3</span><span class="Ignore">|</span>	撤销树内任意跳转
+<span class="Ignore">|</span><span class="Identifier">32.4</span><span class="Ignore">|</span>	时间旅行
+
+           后一章: <span class="Ignore">|</span><span class="Identifier">usr_40.txt</span><span class="Ignore">|</span>  创建新的命令
+           前一章: <span class="Ignore">|</span><span class="Identifier">usr_31.txt</span><span class="Ignore">|</span>  利用 GUI
+             目录: <span class="Ignore">|</span><span class="Identifier">usr_toc.txt</span><span class="Ignore">|</span>
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">32.1</span><span class="Ignore">*</span>	撤销到文件写入时的状态
+
+有时你做了一些改变，然后发现还是想恢复到最近写入文件时的状态。没问题，用下面的
+命令就可以:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:earlier 1f</span>
+
+这里，&quot;f&quot; 代表 &quot;file&quot; (文件)。
+
+可以重复此命令，回到更遥远的过去。使用不同于 1 的计数值可以回去得快一些。
+
+如果回去太久了，可以这样往前:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:later 1f</span>
+
+注意 这些命令真的是依据时间序列进行的。如果你在撤销一些改变后又进行过改变，这
+一点很有区别。下一节有所解释。
+
+另外也请 注意 我们说的是文本写入。要把撤销信息写入文件见 <span class="Ignore">|</span><span class="Identifier">undo-persistence</span><span class="Ignore">|</span>。
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">32.2</span><span class="Ignore">*</span>	为每次改变进行编号
+
+<span class="Ignore">|</span><span class="Identifier">02.5</span><span class="Ignore">|</span> 一节，我们只讨论了单线的撤销/重做。其实，可以出现分支。当你撤销了一些改
+变，又进行了一些新的改变，新的改变构成了撤销树的一个分支。
+
+让我们从文本 &quot;one&quot; 开始。第一个要做的改变是附加 &quot; too&quot;。然后移动到第一个 'o'
+上并修改为 'w'。这时我们有了两个改变，分别编号为 1 和 2，而文本有三个状态:
+
+		<span class="PreProc">one</span><span class="Ignore"> ~</span>
+		 |
+	      改变 1
+		 |
+	      <span class="PreProc">one too</span><span class="Ignore"> ~</span>
+		 |
+	      改变 2
+		 |
+	      <span class="PreProc">one two</span><span class="Ignore"> ~</span>
+
+如果我们撤销一次改变，回到 &quot;one too&quot;，然后把 &quot;one&quot; 换成 &quot;me&quot;，我们就在撤销树里
+建立了一个分支:
+
+		<span class="PreProc">one</span><span class="Ignore"> ~</span>
+		 |
+	      改变 1
+		 |
+	      <span class="PreProc">one too</span><span class="Ignore"> ~</span>
+	      /     \
+	 改变 2    改变 3
+	    |         |
+	 <span class="PreProc">one two    me too</span><span class="Ignore"> ~</span>
+
+现在你可以用 <span class="Ignore">|</span><span class="Identifier">u</span><span class="Ignore">|</span> 命令来撤销。如果你做两次，你得到的是 &quot;one&quot;。用 <span class="Ignore">|</span><span class="Identifier">CTRL-R</span><span class="Ignore">|</span> 来重
+做，你会到达 &quot;one too&quot;。多做一次 <span class="Ignore">|</span><span class="Identifier">CTRL-R</span><span class="Ignore">|</span> 又把你带到 &quot;me too&quot;。现在我们看到，
+撤销/重做使用最近使用的分支，在树内上下移动。
+
+这里重要的是改变发生的顺序。这里说的改变不考虑撤销和重做。每次改变后，你会得到
+一个新的文本状态。
+
+注意 只有改变被编号，上面显示的文本没有标识符。通常，通过它上方的改变号来引用
+它。但有时也通过他下方的某个改变之一来引用。特别是在树内往上移动的时候，这样你
+可以知道哪个改变刚刚被撤销掉。
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">32.3</span><span class="Ignore">*</span>	撤销树内任意跳转
+
+那么你现在怎么能到 &quot;one two&quot; 呢？你可以用这个命令:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:undo 2</span>
+
+文本现在成为了 &quot;one two&quot;，因为它在改变号 2 之下。用 <span class="Ignore">|</span><span class="Identifier">:undo</span><span class="Ignore">|</span> 命令可以跳转到树内
+任何改变之下的文本。
+
+现在再进行一项改变: 把 &quot;one&quot; 改成 &quot;not&quot;:
+
+		<span class="PreProc">one</span><span class="Ignore"> ~</span>
+		 |
+	      改变 1
+		 |
+	      <span class="PreProc">one too</span><span class="Ignore"> ~</span>
+	      /     \
+	 改变 2    改变 3
+	    |	      |
+	 <span class="PreProc">one two    me too</span><span class="Ignore"> ~</span>
+	    |
+	 改变 4
+	    |
+	 <span class="PreProc">not two</span><span class="Ignore"> ~</span>
+
+现在你又改了主意想回到 &quot;me too&quot; 了。用 <span class="Ignore">|</span><span class="Identifier">g-</span><span class="Ignore">|</span> 命令。它在时间点上往后退，也就是
+说，它不是在树内上下移动，而是回到之前所在的改变。
+
+你可以重复 <span class="Ignore">|</span><span class="Identifier">g-</span><span class="Ignore">|</span>，这样你会看到文本的变化过程:
+	<span class="PreProc">me too</span><span class="Ignore"> ~</span>
+	<span class="PreProc">one two</span><span class="Ignore"> ~</span>
+	<span class="PreProc">one too</span><span class="Ignore"> ~</span>
+	<span class="PreProc">one</span><span class="Ignore"> ~</span>
+
+用 <span class="Ignore">|</span><span class="Identifier">g+</span><span class="Ignore">|</span> 时间点上往前进:
+	<span class="PreProc">one</span><span class="Ignore"> ~</span>
+	<span class="PreProc">one too</span><span class="Ignore"> ~</span>
+	<span class="PreProc">one two</span><span class="Ignore"> ~</span>
+	<span class="PreProc">me too</span><span class="Ignore"> ~</span>
+	<span class="PreProc">not two</span><span class="Ignore"> ~</span>
+
+<span class="Ignore">|</span><span class="Identifier">:undo</span><span class="Ignore">|</span> 用于你知道你要跳转到哪个改变的场合。<span class="Ignore">|</span><span class="Identifier">g-</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">g+</span><span class="Ignore">|</span> 用于你不知道具体要到
+达的改变号的情况。
+
+你可以在 <span class="Ignore">|</span><span class="Identifier">g-</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">g+</span><span class="Ignore">|</span> 之前加上计数来重复执行。
+
+<span class="PreProc">==============================================================================</span>
+<span class="Ignore">*</span><span class="String">32.4</span><span class="Ignore">*</span>	时间旅行
+
+如果你在文本上工作了一段时间，撤销树变得相当大。这时你可能想回到几分钟之前的文
+本上。
+
+要看撤销树里有什么分支，用:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:undolist</span>
+<span class="Ignore">&lt;</span>	<span class="PreProc">number changes  time</span><span class="Ignore"> ~</span>
+	     3       2  16 seconds ago
+	     4       3  5 seconds ago
+
+这里你可以看到每个分支上叶结点的编号，还有改变发生的时间。假定我们在改变号 4
+下方的 &quot;not two&quot; 那里，你可以这样回到十秒前:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:earlier 10s</span>
+
+取决于改变发生了多长时间，你回到达树内的某个位置。<span class="Ignore">|</span><span class="Identifier">:earlier</span><span class="Ignore">|</span> 命令参数可以用
+&quot;m&quot; 代表分钟，&quot;h&quot; 代表小时，&quot;d&quot; 代表天。用一个很大的数，你可以一路回到很久以
+前:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:earlier 100d</span>
+
+要 (再次) 进入未来世界，用 <span class="Ignore">|</span><span class="Identifier">:later</span><span class="Ignore">|</span> 命令:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:later 1m</span>
+
+参数可以用 &quot;s&quot;、&quot;m&quot; 和 &quot;h&quot;，和 <span class="Ignore">|</span><span class="Identifier">:earlier</span><span class="Ignore">|</span> 完全类似。
+
+要看到更多的细节，或者要对信息进行操作，可以用 <span class="Ignore">|</span><span class="Identifier">undotree()</span><span class="Ignore">|</span> 函数。要看看它返回
+什么:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:echo undotree()</span>
+
+<span class="PreProc">==============================================================================</span>
+
+下一章: <span class="Ignore">|</span><span class="Identifier">usr_40.txt</span><span class="Ignore">|</span>  创建新的命令
+
+版权: 参见 <span class="Ignore">|</span><span class="Identifier">manual-copyright</span><span class="Ignore">|</span>  vim&#0058;tw=78:ts=8:ft=help:norl:
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

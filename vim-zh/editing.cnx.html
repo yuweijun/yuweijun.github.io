@@ -1,0 +1,1471 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>~/github.com/yuweijun/yuweijun.github.io/vim-zh/editing.cnx.html</title>
+<meta name="Generator" content="Vim/8.2">
+<meta name="plugin-version" content="vim8.1_v2">
+<meta name="syntax" content="help">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,prevent_copy=,use_input_for_pc=fallback">
+<meta name="colorscheme" content="molokai">
+<style>
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #d0d0d0; background-color: #121212; }
+body { font-family: monospace; color: #d0d0d0; background-color: #121212; }
+* { font-size: 1em; }
+.String { color: #afaf87; }
+.Type { color: #5fd7ff; }
+.Todo { color: #ffffff; background-color: #080808; padding-bottom: 1px; font-weight: bold; }
+.PreProc { color: #87ff00; }
+.Identifier { color: #ff8700; }
+.Comment { color: #5f5f5f; }
+.Special { color: #5fd7ff; }
+.Ignore { color: #808080; background-color: #080808; padding-bottom: 1px; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="Ignore">*</span><span class="String">editing.txt</span><span class="Ignore">*</span>   For <span class="Identifier">Vim version 8.0.</span>  最近更新: 2017年7月
+
+
+		  VIM 参考手册    by Bram Moolenaar
+				译者: Willis
+				<span class="String"><a href="http://vimcdoc.sf.net">http://vimcdoc.sf.net</a></span>
+
+
+编辑文件						<span class="Ignore">*</span><span class="String">edit-files</span><span class="Ignore">*</span>
+
+1.  简介			<span class="Ignore">|</span><span class="Identifier">edit-intro</span><span class="Ignore">|</span>
+2.  编辑单个文件		<span class="Ignore">|</span><span class="Identifier">edit-a-file</span><span class="Ignore">|</span>
+3.  参数列表			<span class="Ignore">|</span><span class="Identifier">argument-list</span><span class="Ignore">|</span>
+4.  写入			<span class="Ignore">|</span><span class="Identifier">writing</span><span class="Ignore">|</span>
+5.  写入并退出			<span class="Ignore">|</span><span class="Identifier">write-quit</span><span class="Ignore">|</span>
+6.  对话框			<span class="Ignore">|</span><span class="Identifier">edit-dialogs</span><span class="Ignore">|</span>
+7.  当前目录			<span class="Ignore">|</span><span class="Identifier">current-directory</span><span class="Ignore">|</span>
+8.  编辑二进制文件		<span class="Ignore">|</span><span class="Identifier">edit-binary</span><span class="Ignore">|</span>
+9.  加密			<span class="Ignore">|</span><span class="Identifier">encryption</span><span class="Ignore">|</span>
+10. 修改时间			<span class="Ignore">|</span><span class="Identifier">timestamps</span><span class="Ignore">|</span>
+11. 文件搜索			<span class="Ignore">|</span><span class="Identifier">file-searching</span><span class="Ignore">|</span>
+
+<span class="PreProc">==============================================================================</span>
+1. 简介							<span class="Ignore">*</span><span class="String">edit-intro</span><span class="Ignore">*</span>
+
+用 Vim 编辑一个文件意味着:
+
+1. 把该文件读到缓冲区
+2. 用编辑器命令修改缓冲区
+3. 把缓冲区内容写回文件
+
+							<span class="Ignore">*</span><span class="String">current-file</span><span class="Ignore">*</span>
+只要你不保存缓冲区，原来的文件保持不变。如果你开始编辑一个文件 (把它的内容读到
+缓冲区里)，该文件名被认作 &quot;当前文件名&quot;，或者说当前缓冲区的名字。命令行上，可以
+用 &quot;%&quot; 来引用它 <span class="Ignore">|</span><span class="Identifier">:_%</span><span class="Ignore">|</span>。
+
+							<span class="Ignore">*</span><span class="String">alternate-file</span><span class="Ignore">*</span>
+如果已经有了另外一个当前文件名，它会成为轮换文件名。命令行上，可以用 &quot;#&quot; 引用
+它 <span class="Ignore">|</span><span class="Identifier">:_#</span><span class="Ignore">|</span>。你还可以用 <span class="Ignore">|</span><span class="Identifier">CTRL-^</span><span class="Ignore">|</span> 命令在当前和轮换文件之间切换。不过，轮换文件名在
+使用 <span class="Ignore">|</span><span class="Identifier">:keepalt</span><span class="Ignore">|</span> 期间不予改变。
+每个窗口分别记住自己的轮换文件名。
+
+							<span class="Ignore">*</span><span class="String">:keepalt</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:keepa</span><span class="Ignore">*</span>
+:keepalt <span class="Special">{cmd}</span>		执行 <span class="Special">{cmd}</span>，在此期间保持当前轮换文件名不变。注意 间接
+			调用的命令 (比如通过函数) 仍然可以设置轮换文件名。
+			<span class="Special">{Vi 无此功能}</span>
+
+所有文件名都会被记录在缓冲区列表里。在你输入文件名以便编辑 (例如，用 &quot;:e 文件
+名&quot;) 或者写回 (例如，用 &quot;:w 文件名&quot;) 时，此文件名被加入该列表。你可以用缓冲区
+列表来记住编辑过什么文件并用 <span class="Special">CTRL-^</span> 命令快速的从一个文件切换到另一个 (例如，以
+便复制文本)。先敲入文件的编号再敲入 <span class="Special">CTRL-^</span>。<span class="Special">{Vi: 只有一个轮换文件名}</span>
+
+<span class="Special">CTRL-G</span>		或				<span class="Ignore">*</span><span class="String">CTRL-G</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:f</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:fi</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:file</span><span class="Ignore">*</span>
+:f[ile]			显示当前文件名 (如同输入的那样，除非使用过 &quot;:cd&quot;)、光
+			标位置 (除非置位了 <span class="Type">'ruler'</span> 选项) 和文件状态 (只读、已
+			修改、读入错误、新文件)。参见 <span class="Type">'shortmess'</span> 选项，了解如
+			何可以简化该消息。 <span class="Special">{Vi 不包括列号}</span>
+
+:f[ile]!		和 <span class="Ignore">|</span><span class="Identifier">:file</span><span class="Ignore">|</span> 类似，但即使 <span class="Type">'shortmess'</span> 要求截短文件名，也
+			不这么做。
+
+<span class="Special">{count}CTRL-G</span>		和 <span class="Special">CTRL-G</span> 类似，但显示当前文件名的完整路径。如果计数大
+			于 1，则同时给出当前缓冲区号。<span class="Special">{Vi 无此功能}</span>
+
+					<span class="Ignore">*</span><span class="String">g_CTRL-G</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">word-count</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">byte-count</span><span class="Ignore">*</span>
+g <span class="Special">CTRL-G</span>		显示当前光标位置，以五种方式表达: 列、行、单词、字符和
+			字节计数。如果字符数和字节数相同，省略字符位置。
+			如果当前行有字符占据多于一个位置 (<span class="Special">&lt;Tab&gt;</span> 或其他特殊字
+			符)，&quot;实际&quot; 列和屏幕列同时显示，以连字号分隔。参见
+			<span class="Type">'ruler'</span> 选项和 <span class="Ignore">|</span><span class="Identifier">wordcount()</span><span class="Ignore">|</span> 函数。
+			<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">v_g_CTRL-G</span><span class="Ignore">*</span>
+<span class="Special">{Visual}</span>g <span class="Special">CTRL-G</span>	和 &quot;g <span class="Special">CTRL-G</span>&quot; 类似，但显示可视选择区域的单词、字符、行
+			和字节计数。在面向列块模式里，列数也同时显示。(关于
+			<span class="Special">{Visual}</span> 见 <span class="Ignore">|</span><span class="Identifier">Visual-mode</span><span class="Ignore">|</span>。) <span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:file_f</span><span class="Ignore">*</span>
+:f[ile][!] <span class="Special">{name}</span>	设置当前文件名为 <span class="Special">{name}</span>。可选的 ! 避免截短消息，就像
+			<span class="Ignore">|</span><span class="Identifier">:file</span><span class="Ignore">|</span> 那样。
+			如果缓冲区已有名字，该名字成为 <span class="Ignore">|</span><span class="Identifier">alternate-file</span><span class="Ignore">|</span> 轮换
+			文件名。新建一个列表外缓冲区来记住这个旧名字。
+							<span class="Ignore">*</span><span class="String">:0file</span><span class="Ignore">*</span>
+:0f[ile][!]		删除当前缓冲区的名字。可选的 ! 避免截短消息，就像
+			<span class="Ignore">|</span><span class="Identifier">:file</span><span class="Ignore">|</span> 那样。<span class="Special">{Vi 无此功能}</span>
+
+:buffers
+:files
+:ls			列出当前已知的文件名。见 'windows.txt' <span class="Ignore">|</span><span class="Identifier">:files</span><span class="Ignore">|</span>
+			<span class="Ignore">|</span><span class="Identifier">:buffers</span><span class="Ignore">|</span> <span class="Ignore">|</span><span class="Identifier">:ls</span><span class="Ignore">|</span>。<span class="Special">{Vi 无此功能}</span>
+
+vim 会记住你输入文件名的完整路径。大多数情况下，文件名只以你输入的方式显示。但
+&quot;:cd&quot; 命令 <span class="Ignore">|</span><span class="Identifier">:cd</span><span class="Ignore">|</span> 使用后，就会看到完整路径名。
+
+							<span class="Ignore">*</span><span class="String">home-replace</span><span class="Ignore">*</span>
+如果设置了环境变量 $HOME，而文件名以该字符串开始，它的显示会把 HOME 替换成
+&quot;~&quot;。这么做是为了使文件名的显示较为简洁。在读写文件时仍然使用完整路径名，&quot;~&quot;
+只供显示文件名用。如果要替换名字实质上只有 &quot;~&quot; 的文件，会使用 &quot;~/&quot; (为了避免
+设为 $HOME 的选项和设为 '~' 时的 <span class="Type">'backupext'</span> 混淆)。
+
+保存缓冲区时，缺省使用当前文件名。这样，如果你给出 &quot;ZZ&quot; 或者 &quot;:wq&quot; 命令，原有
+的文件被覆盖。如果你不想如此，给 &quot;:write&quot; 命令给出一个文件名参数，你可以把缓冲
+区写到另外一个文件里。例如:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	vim testfile</span>
+<span class="Comment">	[用编辑器命令修改缓冲区]</span>
+<span class="Comment">	:w newfile</span>
+<span class="Comment">	:q</span>
+
+这会建立文件 &quot;newfile&quot;，它是 &quot;testfile&quot; 经过修改的版本。&quot;testfile&quot; 文件保持不
+变。无论如何，如果置位 <span class="Type">'backup'</span> 选项，Vim 会在原来的文件被覆盖之前改名或复制。
+如果你以后发现你需要原来的版本，你可以用这个备份文件。也可参见 <span class="Type">'patchmode'</span> 选
+项。备份文件名通常是原来的文件加上 <span class="Type">'backupext'</span> 后缀。缺省的 &quot;~&quot; 比较奇特，目的
+是为了防止意外覆盖现存的文件。如果你喜欢 &quot;.bak&quot;，修改 <span class="Type">'backupext'</span> 选项。在
+MS-DOS 机器上，当 Vim 检测到正在使用的是 MS-DOS 或类似的文件系统 (例如，
+messydos 或者 crossdos) 或者打开了 <span class="Type">'shortname'</span> 选项，多余的点号被替换成 '_'。
+通过设置 <span class="Type">'backupdir'</span>，备份文件也可存在别的目录下。
+
+							<span class="Ignore">*</span><span class="String">auto-shortname</span><span class="Ignore">*</span>
+技术上:	在 Amiga 上文件名可以长达 30 个字符。但在 MS-DOS 兼容的文件系统上只能
+	用 8+3 个字符。Vim 试图在创建 .swp 文件的时候检测文件系统的类型。如果
+	怀疑是一个类似 MS-DOS 的文件系统，则置位一个标志位，它和设置
+	<span class="Type">'shortname'</span> 选项有相同的效果。一旦你开始编辑一个新文件，该标志位被复
+	位。在根据当前文件名创建 &quot;.swp&quot; 和 &quot;.~&quot; 文件时，该标志位起作用。但如果
+	你在一个正常的文件系统上编辑文件，而写到一个类似于 MS-DOS 的文件系统，
+	该标志位不会被置位。这种情况下，创建 &quot;.~&quot; 文件可能会失败，你会得到一个
+	错误消息。这种情况下，用 <span class="Type">'shortname'</span> 选项。
+
+当你开始编辑而不给出文件名，会给出 &quot;No File&quot; 消息。如果 &quot;:write&quot; 命令带一个文
+件名参数，当前文件名被设为那个名字。这只有在 <span class="Type">'cpoptions'</span> 里带 'F' 标志位 (缺省
+的确是如此) 时才会发生 <span class="Ignore">|</span><span class="Identifier">cpo-F</span><span class="Ignore">|</span>。这对在空缓冲区里编辑文本后写入到文件有用。如果
+<span class="Type">'cpoptions'</span> 里包含 'f' 标志位 (缺省_不_包含) <span class="Ignore">|</span><span class="Identifier">cpo-f</span><span class="Ignore">|</span>，在执行 &quot;:read file&quot; 时，
+文件名被设置。这可用来先不带参数启动 Vim 再用 &quot;:read file&quot; 编辑文件。
+如果设置了文件名而 <span class="Type">'filetype'</span> 为空，激活文件类型检测的自动事件。
+							<span class="Ignore">*</span><span class="String">not-edited</span><span class="Ignore">*</span>
+因为设置文件名并不是真正编辑该文件，你不会覆盖它。这可由设置 &quot;notedited&quot; 标志
+位来完成。你可由 <span class="Special">CTRL-O</span> 或 &quot;:file&quot; 命令看到该标志位是否设置。如果 &quot;notedited&quot;
+标志位已设置，它会包括 &quot;[Not edited]&quot;。当将缓冲区写回当前文件名 (用 &quot;:w!&quot;)
+时，&quot;notedited&quot; 标志位被重设。
+
+							<span class="Ignore">*</span><span class="String">abandon</span><span class="Ignore">*</span>
+Vim 记住你是否修改了缓冲区。你所作的修改不会不小心丢失。如果试图不写回而退出，
+或开始编辑别的文件，Vim 会拒绝。要绕过这重保护，在命令后加上 '!'。这样，修改就
+会丢失。例如: &quot;:q&quot; 在缓冲区修改后不会工作，但 &quot;:q!&quot; 会。要知道缓冲区是否修改，
+用 &quot;<span class="Special">CTRL-G</span>&quot; 命令。如果缓冲区被修改，消息里会有字符串 &quot;[Modified]&quot; 或者 &quot;+&quot;，
+后者如果 <span class="Type">'shortmess'</span> 有 'm' 标志位。
+
+如果你想不经提示而自动写回改动，打开 <span class="Type">'autowriteall'</span> 选项。<span class="Type">'autowrite'</span> 是相关的
+Vi-兼容选项，它并非对所有命令有效。
+
+如果想保留修改了的缓冲区但不写回，打开 <span class="Type">'hidden'</span> 选项。参见 <span class="Ignore">|</span><span class="Identifier">hidden-buffer</span><span class="Ignore">|</span>。有
+些命令即便 <span class="Type">'hidden'</span> 没有置位也会如此，具体须参见各个命令的帮助。
+
+<span class="PreProc">==============================================================================</span>
+2. 编辑单个文件						<span class="Ignore">*</span><span class="String">edit-a-file</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">:e</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:edit</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">reload</span><span class="Ignore">*</span>
+:e[dit] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>	编辑当前文件。可用于在它被 Vim 之外的程序所改变的时候
+			重新编辑当前文件。 如果当前缓冲区已经被修改而且没有置
+			位 <span class="Type">'autowriteall'</span>，或者文件不能被写入，本命令失败。
+			另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi: 无 ++opt}</span>
+
+							<span class="Ignore">*</span><span class="String">:edit!</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">discard</span><span class="Ignore">*</span>
+:e[dit]! <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>
+			总是编辑当前文件。放弃当前缓冲区任何已有的改变。如果你
+			想从头来过，这就会很有用。
+			另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi: 无 ++opt}</span>
+
+							<span class="Ignore">*</span><span class="String">:edit_f</span><span class="Ignore">*</span>
+:e[dit] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{file}</span>
+			编辑文件 <span class="Special">{file}</span>。
+			如果当前缓冲区已被修改，这会失败，除非置位了 <span class="Type">'hidden'</span>
+			或者 <span class="Type">'autowriteall'</span> 并且文件能够写入。
+			另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi: 无 ++opt}</span>
+
+							<span class="Ignore">*</span><span class="String">:edit!_f</span><span class="Ignore">*</span>
+:e[dit]! <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{file}</span>
+			总是编辑文件 <span class="Special">{file}</span>。放弃当前缓冲区任何已有的改变。
+			另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi: 无 ++opt}</span>
+
+:e[dit] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> #<span class="Special">[count]</span>
+			编辑第 <span class="Special">[count]</span> 个缓冲区 (根据 :files 显示的结果)。
+			该命令和 <span class="Special">[count]</span> <span class="Special">CTRL-^</span> 一样，但是 &quot;:e #&quot; 在轮换缓冲区
+			没有文件名时不能工作，而 <span class="Special">CTRL-^</span> 则可以。
+			另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi: 无 ++opt}</span>
+
+							<span class="Ignore">*</span><span class="String">:ene</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:enew</span><span class="Ignore">*</span>
+:ene[w]			编辑一个新的无名缓冲区。如果当前缓冲区已被修改，这会失
+			败，除非置位了 <span class="Type">'hidden'</span> 或者 <span class="Type">'autowriteall'</span> 并且文件能
+			够写入。
+			如果 <span class="Type">'fileformats'</span> 非空，其给出的第一个格式将用于新的
+			缓冲区上。如果 <span class="Type">'fileformats'</span> 为空，则使用当前缓冲区的
+			<span class="Type">'fileformat'</span>。
+			<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:ene!</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:enew!</span><span class="Ignore">*</span>
+:ene[w]!		编辑新的无名缓冲区。放弃当前缓冲区任何已有的改变。
+			<span class="Type">'fileformat'</span> 的设置类似于 <span class="Ignore">|</span><span class="Identifier">:enew</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:fin</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:find</span><span class="Ignore">*</span>
+:fin[d][!] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{file}</span>
+			在 <span class="Type">'path'</span> 里找到 <span class="Special">{file}</span>，然后编辑 <span class="Ignore">|</span><span class="Identifier">:edit</span><span class="Ignore">|</span> 它。
+			<span class="Special">{Vi 无此功能}</span> {仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+file_in_path</span><span class="Ignore">|</span> 特性才有
+			效}
+
+:<span class="Special">{count}</span>fin[d][!] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{file}</span>
+			和 &quot;:find&quot; 类似，但使用 <span class="Type">'path'</span> 的第 <span class="Special">{count}</span> 个匹配。这
+			样，&quot;:2find file&quot; 会找到 <span class="Type">'path'</span> 里的第二个 &quot;file&quot;。如
+			果 <span class="Type">'path'</span> 里文件的匹配不足所需之数，你会得到一个错误消
+			息。
+
+							<span class="Ignore">*</span><span class="String">:ex</span><span class="Ignore">*</span>
+:ex <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">[file]</span>
+			和 <span class="Ignore">|</span><span class="Identifier">:edit</span><span class="Ignore">|</span> 相同。
+
+							<span class="Ignore">*</span><span class="String">:vi</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:visual</span><span class="Ignore">*</span>
+:vi[sual][!] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">[file]</span>
+			用于 Ex 模式时: 退出 <span class="Ignore">|</span><span class="Identifier">Ex-mode</span><span class="Ignore">|</span>，回到普通模式。否则和
+			<span class="Ignore">|</span><span class="Identifier">:edit</span><span class="Ignore">|</span> 相同。
+
+							<span class="Ignore">*</span><span class="String">:vie</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:view</span><span class="Ignore">*</span>
+:vie[w][!] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> file
+			用于 Ex 模式时: 退出 <span class="Ignore">|</span><span class="Identifier">Ex-mode</span><span class="Ignore">|</span>，回到普通模式。否则和
+			<span class="Ignore">|</span><span class="Identifier">:edit</span><span class="Ignore">|</span> 相同，但为本缓冲区置位 <span class="Type">'readonly'</span> 选项。<span class="Special">{Vi 无</span>
+			<span class="Special">此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">CTRL-^</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">CTRL-6</span><span class="Ignore">*</span>
+<span class="Special">CTRL-^</span>			编辑轮换文件。
+			多数情况下，轮换文件就是上次编辑的文件。这是切换两个文
+			件的一个快速方法。这和 &quot;:e #&quot; 等价，但也能用在没有文件
+			名的情况。
+
+			如果 <span class="Type">'autowrite'</span> 或 <span class="Type">'autowriteall'</span> 选项打开并且缓冲区
+			被修改，则写入文件。
+			大多数情况下，^ 字符在键 6 之上，同时按 CTRL 和 6 会给
+			出我们叫 <span class="Special">CTRL-^</span> 的键码。但在有的非-US 的键盘上 <span class="Special">CTRL-^</span>
+			须以不同的方式生成。
+
+<span class="Special">[count]CTRL-^</span>		编辑缓冲区列表里第 <span class="Special">[count]</span> 个文件 (和 &quot;:e #<span class="Special">[count]</span>&quot; 等
+			价)。这是切换文件的一个快速方法。
+			详情见上面 <span class="Ignore">|</span><span class="Identifier">CTRL-^</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi 无此功能}</span>
+
+<span class="Special">[count]</span>]f						<span class="Ignore">*</span><span class="String">]f</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">[f</span><span class="Ignore">*</span>
+<span class="Special">[count]</span>[f		和 &quot;gf&quot; 一样。它本身已被淘汰。
+
+							<span class="Ignore">*</span><span class="String">gf</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E446</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E447</span><span class="Ignore">*</span>
+<span class="Special">[count]</span>gf		编辑光标之上或之后的文件名。助记: &quot;goto file&quot;。
+			使用 <span class="Type">'isfname'</span> 选项来决定组成文件名的字符。拖尾的标点
+			符号 &quot;.,:;!&quot; 被忽略。空格的转义 &quot;\ &quot; 缩为一个空格。
+			在 <span class="Type">'path'</span> 选项组成的目录名列表查找文件。关于相对路径和
+			通配符，可见 <span class="Type">'path'</span> 选项。
+			设置 <span class="Type">'suffixesadd'</span> 选项可以用来查找文件所要附加的后
+			缀。如果文件找不到，用 <span class="Type">'includeexpr'</span> 来修改名字，然后
+			再试一次。
+			如果给出 <span class="Special">[count]</span>，<span class="Type">'path'</span> 里找到的第 count 个文件被编
+			辑。
+			如果 Vim 拒绝放弃 <span class="Ignore">|</span><span class="Identifier">abandon</span><span class="Ignore">|</span> 当前文件，该命令失败。
+			如果你想在新窗口里编辑文件，用 <span class="Ignore">|</span><span class="Identifier">CTRL-W_CTRL-F</span><span class="Ignore">|</span>。
+			如果你想编辑新文件，用:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:e &lt;cfile&gt;</span>
+<span class="Ignore">&lt;</span>			想使得 gf 总是如此工作，可以如此:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:map gf :e &lt;cfile&gt;&lt;CR&gt;</span>
+<span class="Ignore">&lt;</span>			如果名字是一个超文本链接，也就是看来像
+			&quot;type://machine/path&quot; 这样的，你需要 <span class="Ignore">|</span><span class="Identifier">netrw</span><span class="Ignore">|</span> 插件。
+			对 Unix 而言，'~' 字符被扩展，比如在 &quot;~user/file&quot; 的场
+			合。环境变量也得到扩展 <span class="Ignore">|</span><span class="Identifier">expand-env</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi 无此功能}</span>
+			{仅在编译时加入 <span class="Ignore">|</span><span class="Identifier">+file_in_path</span><span class="Ignore">|</span> 特性才有效}
+
+							<span class="Ignore">*</span><span class="String">v_gf</span><span class="Ignore">*</span>
+<span class="Special">{Visual}[count]</span>gf	和 &quot;gf&quot; 相同，但是高亮文本被用来作为要编辑的文件名。
+			<span class="Type">'isfname'</span> 被忽略。开头的空白被忽略，除此以外，所有的空
+			白和特殊字符被包括在文件名里。
+			(<span class="Special">{Visual}</span> 可参见 <span class="Ignore">|</span><span class="Identifier">Visual-mode</span><span class="Ignore">|</span>。)
+			<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">gF</span><span class="Ignore">*</span>
+<span class="Special">[count]</span>gF		和 &quot;gf&quot; 相同，但如果文件名后面跟随着数值，那么光标将定
+			位在该文件名的该行上。文件名和数值之间必须以一个非文件
+			名 (见 <span class="Type">'isfname'</span>) 和非数字字符分隔。文件名、分隔符和数
+			值之间的空白被忽略。
+			例如:
+				<span class="PreProc">eval.c:10</span><span class="Ignore"> ~</span>
+				<span class="PreProc">eval.c @ 20</span><span class="Ignore"> ~</span>
+				<span class="PreProc">eval.c (30)</span><span class="Ignore"> ~</span>
+				<span class="PreProc">eval.c 40</span><span class="Ignore"> ~</span>
+
+							<span class="Ignore">*</span><span class="String">v_gF</span><span class="Ignore">*</span>
+<span class="Special">{Visual}[count]</span>gF	和 &quot;v_gf&quot; 相同。
+
+这些命令用来开始编辑单独一个文件。这意味着该文件被读入缓冲区里并设置当前文件
+名。打开哪个文件和当前目录有关，见 <span class="Ignore">|</span><span class="Identifier">:cd</span><span class="Ignore">|</span>。
+
+关于文件读入以后给出的消息，参见 <span class="Ignore">|</span><span class="Identifier">read-messages</span><span class="Ignore">|</span>。
+
+如果你把缓冲区内容弄乱了想从头开始编辑，你可以用 &quot;:e!&quot; 命令。&quot;:e&quot; 命令只有在你
+改变当前文件名的时候有用。
+
+							<span class="Ignore">*</span><span class="String">:filename</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">{file}</span><span class="Ignore">*</span>
+除了这里说明的事项以外，<span class="Ignore">|</span><span class="Identifier">cmdline-special</span><span class="Ignore">|</span> 也提到更多特殊项目，它们在期待文件名
+时可用。
+
+注意 除了 Unix 以外的系统: 在使用接受单个文件名的名字时 (如 &quot;:edit file&quot;)，文
+件名里可以有空格，但是拖尾的空格被忽略。这可用于允许文件名有内含的空格的系统
+(如 MS-Windows 和 Amiga)。示例: 命令 &quot;:e   Long File Name &quot; 会编辑文件 &quot;Long
+File Name&quot;。在使用能接受多于一个文件名的命令时 (如 &quot;:next file1 file2&quot;)，内含
+的空格必须以反斜杠转义。
+
+						<span class="Ignore">*</span><span class="String">wildcard</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">wildcards</span><span class="Ignore">*</span>
+<span class="Special">{file}</span> 里的通配符被扩展，但和文件补全一样，也适用 <span class="Type">'wildignore'</span> 和 <span class="Type">'suffixes'</span>。
+具体支持什么通配符由系统决定。以下是一些通用的字符:
+	?	匹配一个字符
+	*	匹配任何东西，包括什么都没有
+	**	匹配任何东西，包括什么都没有，递归进入目录
+	<span class="Special">[abc]</span>	匹配 'a'、'b' 或 'c'
+
+要避免通配符的特殊含义，在前面加上反斜杠。不过，在 MS-Windows 上，反斜杠是路径
+分隔符，&quot;path\[abc]&quot; 在 <span class="Type">'isfname'</span> 选项里有 &quot;[&quot; 的时候还是被看作通配符。一个简
+单避免该问题的方法是用 &quot;path\[[]abc]&quot;。这样这匹配文件名 &quot;path[abc]&quot;。
+
+					<span class="Ignore">*</span><span class="String">starstar-wildcard</span><span class="Ignore">*</span>
+在 Unix、Win32、Mac OS/X 和一些其它系统上，可以扩展 &quot;**&quot;。它允许你在目录树里搜
+索。最大深度可以到 100 层目录。
+注意 有些命令的工作方式略有不同。见 <span class="Ignore">|</span><span class="Identifier">file-searching</span><span class="Ignore">|</span>。
+例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:n **/*.txt</span>
+找到文件:
+	<span class="PreProc">aaa.txt</span><span class="Ignore"> ~</span>
+	<span class="PreProc">subdir/bbb.txt</span><span class="Ignore"> ~</span>
+	<span class="PreProc">a/b/c/d/ccc.txt</span><span class="Ignore"> ~</span>
+紧接着 &quot;**&quot; 之前或之后使用的非通配字符，只匹配第一层目录，而不用于匹配树结构其
+下的目录。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:n /usr/inc**/types.h</span>
+找到文件:
+	<span class="PreProc">/usr/include/types.h</span><span class="Ignore"> ~</span>
+	<span class="PreProc">/usr/include/sys/types.h</span><span class="Ignore"> ~</span>
+	<span class="PreProc">/usr/inc/old/types.h</span><span class="Ignore"> ~</span>
+注意 之所以带 &quot;/sys&quot; 的路径，是因为那一层的名字不需要匹配 &quot;/inc&quot;。也就是说，
+这相当于匹配 &quot;/usr/inc*/*/*...&quot;，而不是 &quot;/usr/inc*/inc*/inc*&quot;。
+
+					<span class="Ignore">*</span><span class="String">backtick-expansion</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">`-expansion</span><span class="Ignore">*</span>
+在 Unix 和一些其它系统上你可以用反引号代替文件名参数。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:next `find . -name ver\\*.c -print`</span>
+<span class="Comment">	:view `ls -t *.patch  \| head -n1`</span>
+星号之前需要有反斜杠，以防 &quot;ver*.c&quot; 在执行 find 程序之前被外壳先扩展。在外壳管
+道符号 &quot;|&quot; 之前的反斜杠使 Vim 不会把它解析为命令的终止。
+该功能对于多数其他系统也使用，但要求反引号必须包围整个项目。你不能在第一个之前
+和最后一个反引号之后有别的文本。
+
+							<span class="Ignore">*</span><span class="String">`=</span><span class="Ignore">*</span>
+在第一个反引号之后紧跟等号，可以使得反引号用来作 Vim 表达式，而非外部命令来扩
+展。例如<span class="Ignore"> &gt;</span>
+<span class="Comment">	:e `=tempname()`</span>
+该表达式里可以包含任何东西，因而可以用来避免 '&quot;'、'|'、'%' 和 '#' 的特殊含义。
+不过，和其它通配符一样，<span class="Type">'wildignore'</span> 也适用。
+
+表达式里的环境变量在执行表达式前先扩展，所以可以这样:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:e `=$HOME . '/.vimrc'`</span>
+此处 $HOME 如果在字符串里，会被按本义使用，所以不能这样:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:e `='$HOME' . '/.vimrc'`</span>
+
+如果表达式结果为字符串，名字以换行符分隔。如果结果是 <span class="Ignore">|</span><span class="Identifier">List</span><span class="Ignore">|</span>，每个项目用作一个
+名字。换行符也分隔名字。
+注意 这样的表达式只有在 Ex 命令期待文件名参数的地方才有效。
+
+							<span class="Ignore">*</span><span class="String">++opt</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">[++opt]</span><span class="Ignore">*</span>
+<span class="Special">[++opt]</span> 参数可以用来为某个命令强制指定 <span class="Type">'fileformat'</span>、<span class="Type">'fileencoding'</span> 或
+<span class="Type">'binary'</span> 的值，并指定遇到坏字符的行为。其形式是:<span class="Ignore"> &gt;</span>
+<span class="Comment">	++{optname}</span>
+或:<span class="Ignore"> &gt;</span>
+<span class="Comment">	++{optname}={value}</span>
+
+其中 <span class="Special">{optname}</span> 是以下之一:	    <span class="Ignore">*</span><span class="String">++ff</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">++enc</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">++bin</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">++nobin</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">++edit</span><span class="Ignore">*</span>
+    ff     或  fileformat   超越 <span class="Type">'fileformat'</span> 之值
+    enc    或  encoding	    超越 <span class="Type">'fileencoding'</span> 之值
+    bin    或  binary	    置位 <span class="Type">'binary'</span>
+    nobin  或  nobinary	    复位 <span class="Type">'binary'</span>
+    bad			    指定坏字符的行为
+    edit		    只用于 <span class="Ignore">|</span><span class="Identifier">:read</span><span class="Ignore">|</span>: 保持选项的值，就像编辑文件那样
+
+<span class="Special">{value}</span> 不能包含空白。它可以是这些选项任何可取之值。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:e ++ff=unix</span>
+再次编辑相同的文件，但指定 <span class="Type">'fileformat'</span> 为 &quot;unix&quot;。<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:w ++enc=latin1 newfile</span>
+把当前缓冲区写入到 &quot;newfile&quot;，以 latin1 编码。
+
+可以用多个 ++opt 参数，以空格分隔。它们都必须在任何 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span> 参数之前。
+
+								<span class="Ignore">*</span><span class="String">++bad</span><span class="Ignore">*</span>
+参数 &quot;++bad=&quot; 指定遇到不能转化或者包含非法字节的字符时的行为。它可以是以下三种
+形式之一:
+    ++bad=X      单字节的字符，替代每个坏字符。
+    ++bad=keep   保留坏字符，不予转化。注意 这可能使得你的文本里出现非法字节！
+    ++bad=drop   删除坏字符。
+
+缺省就像用了 &quot;++bad=?&quot; 一样: 每个坏字符被问号代替。有些地方会使用一个倒转的问
+号 (0xBF)。
+
+注意 不是所有的命令都接受 ++bad 参数，但也不会报错，例如 <span class="Ignore">|</span><span class="Identifier">:write</span><span class="Ignore">|</span>。
+
+注意 在读入文件时，<span class="Type">'fileformat'</span> 和 <span class="Type">'fileencoding'</span> 选项会被设为实际所用的格式。
+在写回时，这不会发生。因此下一次写会使用选项的旧值。<span class="Type">'binary'</span> 选项也同样如此。
+
+							<span class="Ignore">*</span><span class="String">+cmd</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">[+cmd]</span><span class="Ignore">*</span>
+<span class="Special">[+cmd]</span> 参数可以用来在新打开的文件定位光标或执行任何其他命令:
+	+		从最后一行开始。
+	+<span class="Special">{num}</span>		从第 <span class="Special">{num}</span> 行开始。
+	+/<span class="Special">{pat}</span>		从匹配 <span class="Special">{pat}</span> 的第一行开始。
+	+<span class="Special">{command}</span>	打开新文件以后执行 <span class="Special">{command}</span>。
+			<span class="Special">{command}</span> 可以是任何 Ex 命令。
+要在 <span class="Special">{pat}</span> 或 <span class="Special">{command}</span> 里包含空白，在它之前加上反斜杠。反斜杠本身则要加倍。<span class="Ignore"> &gt;</span>
+<span class="Comment">	:edit  +/The\ book	     file</span>
+<span class="Comment">	:edit  +/dir\ dirname\\      file</span>
+<span class="Comment">	:edit  +set\ dir=c:\\\\temp  file</span>
+注意 最后一个例子里反斜杠减半两次: 一次用于 &quot;+cmd&quot; 参数，一次用于 &quot;:set&quot; 命
+令。
+
+							<span class="Ignore">*</span><span class="String">file-formats</span><span class="Ignore">*</span>
+<span class="Type">'fileformat'</span> 选项指定文件里的换行符 (<span class="Special">&lt;EOL&gt;</span>) 风格:
+<span class="PreProc">'fileformat'    字符		   名字			</span><span class="Ignore">	~</span>
+  &quot;dos&quot;		<span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 或 <span class="Special">&lt;NL&gt;</span>   DOS 格式		<span class="Ignore">*</span><span class="String">DOS-format</span><span class="Ignore">*</span>
+  &quot;unix&quot;	<span class="Special">&lt;NL&gt;</span>		   Unix 格式		<span class="Ignore">*</span><span class="String">Unix-format</span><span class="Ignore">*</span>
+  &quot;mac&quot;		<span class="Special">&lt;CR&gt;</span>		   Mac 格式		<span class="Ignore">*</span><span class="String">Mac-format</span><span class="Ignore">*</span>
+以前还使用 <span class="Type">'textmode'</span> 。现在已经废弃了。
+
+在读入文件时，以上列出的字符被解释为换行符。DOS 格式 (MS-DOS、OS/2 和 Win32 缺
+省值) 把 <span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 和 <span class="Special">&lt;NL&gt;</span> 都解释为换行符。 注意 在以 DOS 格式写入文件时，
+会在每个单独的 <span class="Special">&lt;NL&gt;</span> 之后加上 <span class="Special">&lt;CR&gt;</span> 字符。另见 <span class="Ignore">|</span><span class="Identifier">file-read</span><span class="Ignore">|</span>。
+
+当写入文件时，换行符用以上列出的字符写入。DOS 格式使用 <span class="Special">&lt;CR&gt;&lt;NL&gt;</span>。另见
+<span class="Ignore">|</span><span class="Identifier">DOS-format-write</span><span class="Ignore">|</span>。
+
+你可以从 DOS 格式读入文件再以 Unix 格式写回。这样所有的 <span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 对会被换成
+<span class="Special">&lt;NL&gt;</span> (假设 <span class="Type">'fileformats'</span> 包括 &quot;dos&quot;):<span class="Ignore"> &gt;</span>
+<span class="Comment">	:e file</span>
+<span class="Comment">	:set fileformat=unix</span>
+<span class="Comment">	:w</span>
+反之，如果你从 Unix 格式读入文件再以 DOS 格式写回。所有的 <span class="Special">&lt;NL&gt;</span> 字符会被换成
+<span class="Special">&lt;CR&gt;&lt;NL&gt;</span> (假设 <span class="Type">'fileformats'</span> 包括 &quot;unix&quot;):<span class="Ignore"> &gt;</span>
+<span class="Comment">	:e file</span>
+<span class="Comment">	:set fileformat=dos</span>
+<span class="Comment">	:w</span>
+如果你开始编辑新文件而 <span class="Type">'fileformats'</span> 选顶非空 (缺省)，Vim 会测试文件以何种格式
+分隔行。如果设为 &quot;unix,dos&quot;，Vim 会检查每行是带 <span class="Special">&lt;NL&gt;</span> (Unix 和 Amiga) 还是带
+<span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 对 (MS-DOS)。只有当_所有_行都以 <span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 结尾，<span class="Type">'fileformat'</span> 才被设为
+&quot;dos&quot;，否则，它被设为 &quot;unix&quot;。如果 <span class="Type">'fileformats'</span> 包含 &quot;mac&quot; 而且文件不含 <span class="Special">&lt;NL&gt;</span>
+字符，<span class="Type">'fileformat'</span> 设为 &quot;mac&quot;。
+
+如果 <span class="Type">'fileformat'</span> 选项在非 MS-DOS 的系统上设为 &quot;dos&quot;，消息 &quot;[dos format]&quot; 会提
+示你发生了不同寻常的事情。 在 MS-DOS 系统上，如果 <span class="Type">'fileformat'</span> 设为 &quot;unix&quot;，你
+也会得到消息 &quot;[unix format]&quot;。除了 Macintosh 以外的所有的系统中，如果
+<span class="Type">'fileformat'</span> 设为 &quot;mac&quot;，你会得到消息 &quot;[mac format]&quot;。
+
+如果 <span class="Type">'fileformats'</span> 选项为空而使用了 DOS 格式，但是在读入文件时发现某些行不以
+<span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 结尾，&quot;[CR missing]&quot; 会在文件消息里列出。
+如果 <span class="Type">'fileformats'</span> 选项为空而使用了 Mac 格式，但是在读入文件时发现某些行有
+<span class="Special">&lt;NL&gt;</span>，&quot;[NL missing]&quot; 会在文件消息里列出。
+
+如果新文件不存在，则当 <span class="Type">'fileformats'</span> 为空时使用当前缓冲区的 <span class="Type">'fileformat'</span>，否则
+使用 <span class="Type">'fileformats'</span> 的第一个格式。
+
+在开始编辑二进制、可执行或 Vim 脚本文件时，你应该置位 <span class="Type">'binary'</span> 选项。一个简单
+的方式是以 &quot;-b&quot; 选项启动 Vim。该选项可以避免使用 <span class="Type">'fileformat'</span>。如果不设，你会
+有单个 <span class="Special">&lt;NL&gt;</span> 字符被莫名其妙地换成 <span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 的风险。
+
+你可以用 <span class="Type">'key'</span> 选项在写回时给文件加密。它提供了相当安全性，防止别人读到你的文
+件。<span class="Ignore">|</span><span class="Identifier">encryption</span><span class="Ignore">|</span>
+
+
+<span class="PreProc">==============================================================================</span>
+3. 参数列表					<span class="Ignore">*</span><span class="String">argument-list</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">arglist</span><span class="Ignore">*</span>
+
+如果你在启动 Vim 的时候给出多个文件名，这些文件将被记住，即参数列表。你可以跳
+转到该列表里的任何一个文件。
+
+不要把它和 <span class="Ignore">|</span><span class="Identifier">:buffers</span><span class="Ignore">|</span> 命令里的缓冲区列表混淆。参数列表在 Vi 里已经存在，但
+缓冲区列表是 Vim 新加入的。参数列表里的文件名也会在缓冲区列表里存在 (除非你用
+<span class="Ignore">|</span><span class="Identifier">:bdel</span><span class="Ignore">|</span> 或 <span class="Ignore">|</span><span class="Identifier">:bwipe</span><span class="Ignore">|</span> 将其删除)，但不在参数列表而出现在缓冲区列表的名字很常见。
+
+该主题在用户手册的 <span class="Ignore">|</span><span class="Identifier">07.2</span><span class="Ignore">|</span> 一节已有介绍。
+
+只有一个全局参数列表，所有窗口缺省都使用它。但可以创建局部于窗口的新参数列表，
+见 <span class="Ignore">|</span><span class="Identifier">:arglocal</span><span class="Ignore">|</span>。
+
+下面的命令使用参数列表，还有表达式函数 <span class="Ignore">|</span><span class="Identifier">argc()</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">argv()</span><span class="Ignore">|</span>。他们均作用于当前
+窗口的参数列表。
+
+							<span class="Ignore">*</span><span class="String">:ar</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:args</span><span class="Ignore">*</span>
+:ar[gs]			显示参数列表，当前文件以方括号表示。
+
+:ar[gs] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{arglist}</span>			<span class="Ignore">*</span><span class="String">:args_f</span><span class="Ignore">*</span>
+			定义 <span class="Special">{arglist}</span> 为新的参数列表并编辑其中的第一个。如果
+			已经作了修改而 vim 不能放弃 <span class="Ignore">|</span><span class="Identifier">abandon</span><span class="Ignore">|</span> 当前的缓冲区，该
+			命令失败。
+			另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi: 无 ++opt}</span>
+
+:ar[gs]! <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{arglist}</span>			<span class="Ignore">*</span><span class="String">:args_f!</span><span class="Ignore">*</span>
+			定义 <span class="Special">{arglist}</span> 为新的参数列表并编辑其中的第一个。忽略
+			任何对当前缓冲区的改动。
+			另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi: 无 ++opt}</span>
+
+:<span class="Special">[count]</span>arge[dit][!] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{name}</span>		<span class="Ignore">*</span><span class="String">:arge</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:argedit</span><span class="Ignore">*</span>
+			将 <span class="Special">{name}</span> 加到参数列表里，并编辑之。
+			如果 <span class="Special">{name}</span> 已经在参数列表里存在，只编辑之。
+			这和用 <span class="Ignore">|</span><span class="Identifier">:argadd</span><span class="Ignore">|</span> 然后 <span class="Ignore">|</span><span class="Identifier">:edit</span><span class="Ignore">|</span> 类似。
+			注意 这里只允许单个文件名，文件名里的空格是允许的，就
+			像 <span class="Ignore">|</span><span class="Identifier">:edit</span><span class="Ignore">|</span> 一样。
+			<span class="Special">[count]</span> 的用法和 <span class="Ignore">|</span><span class="Identifier">:argadd</span><span class="Ignore">|</span> 一样。
+			如果当前文件不能被放弃 <span class="Ignore">|</span><span class="Identifier">abandon</span><span class="Ignore">|</span>，[!] 是必需的。
+			另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi: 无 ++opt}</span>
+
+:<span class="Special">[count]</span>arga[dd] <span class="Special">{name}</span> ..			<span class="Ignore">*</span><span class="String">:arga</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:argadd</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E479</span><span class="Ignore">*</span>
+:<span class="Special">[count]</span>arga[dd]
+			将若干文件名 <span class="Special">{name}</span> 等加到参数列表里。如果 <span class="Special">{name}</span> 省
+			略，把当前缓冲区名字加入参数列表。
+			如果忽略 <span class="Special">[count]</span>， <span class="Special">{name}</span> 等加入到参数列表的当前项之
+			后。不然，加到第 <span class="Special">[count]</span> 个文件之后。如果参数列表是
+			&quot;a b c&quot;，而 &quot;b&quot; 是当前参数，那么以下命令会导致:
+				<span class="PreProc">命令		新的参数列表</span><span class="Ignore"> ~</span>
+				:argadd x	a b x c
+				:0argadd x	x a b c
+				:1argadd x	a x b c
+				:$argadd x	a b c x
+			在末项之后:
+				:+2argadd y	a b c x y
+			这里不会检查重复项，因此一个文件可能加入参数列表两次。
+			不改变当前编辑的文件。
+			<span class="Special">{Vi 无此功能}</span> {仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+listcmds</span><span class="Ignore">|</span> 特性才有效}
+			注意: 你也可以使用这个方法:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:args ## x</span>
+<span class="Ignore">&lt;</span>			这会加入 &quot;x&quot; 项并对新的列表排序。
+
+:argd[elete] <span class="Special">{pattern}</span> ..			<span class="Ignore">*</span><span class="String">:argd</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:argdelete</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E480</span><span class="Ignore">*</span>
+			从参数列表里删除匹配 <span class="Special">{pattern}</span> (可有多个) 的文件。
+			<span class="Special">{pattern}</span> 为文件模式，见 <span class="Ignore">|</span><span class="Identifier">file-pattern</span><span class="Ignore">|</span>。&quot;%&quot; 可以用来
+			删除当前入口项。
+			即使该命令从参数列表里删除了当前编辑文件，该文件保持被
+			编辑。
+			例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:argdel *.obj</span>
+<span class="Ignore">&lt;</span>			<span class="Special">{Vi 无此功能}</span> {仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+listcmds</span><span class="Ignore">|</span> 特性才有效}
+
+:<span class="Special">[range]</span>argd[elete]	从参数列表里删除 <span class="Special">[range]</span> 范围里的文件。
+			例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:10,$argdel</span>
+<span class="Ignore">&lt;</span>			删除第 10 个和其后的参数，保留 1-9。<span class="Ignore"> &gt;</span>
+<span class="Comment">				:$argd</span>
+<span class="Ignore">&lt;</span>			只删除最后一个。<span class="Ignore"> &gt;</span>
+<span class="Comment">				:argd</span>
+<span class="Comment">				:.argd</span>
+<span class="Ignore">&lt;</span>			删除当前参数。<span class="Ignore"> &gt;</span>
+<span class="Comment">				:%argd</span>
+<span class="Ignore">&lt;</span>			删除参数列表里所有文件。
+			如果该范围的最后一个数字过大，删除直到最后一个参数为
+			止。
+			<span class="Special">{Vi 无此功能}</span> {仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+listcmds</span><span class="Ignore">|</span> 特性才有效}
+
+							<span class="Ignore">*</span><span class="String">:argu</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:argument</span><span class="Ignore">*</span>
+:<span class="Special">[count]</span>argu[ment] <span class="Special">[count]</span> <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>
+			编辑参数列表里的第 <span class="Special">[count]</span> 个文件。在忽略 <span class="Special">[count]</span> 的时
+			候，编辑当前入口项。如果已经作了修改而 vim 不能放弃
+			<span class="Ignore">|</span><span class="Identifier">abandon</span><span class="Ignore">|</span> 当前的缓冲区，该命令失败。
+			另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi 无此功能}</span> {仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+listcmds</span><span class="Ignore">|</span> 特性才有效}
+
+:<span class="Special">[count]</span>argu[ment]! <span class="Special">[count]</span> <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>
+			编辑参数列表里的第 <span class="Special">[count]</span> 个文件。忽略任何对当前缓冲
+			区的已有修改。在忽略 <span class="Special">[count]</span> 的时候，编辑当前入口项。
+			另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi 无此功能}</span> {仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+listcmds</span><span class="Ignore">|</span> 特性才有效}
+
+:<span class="Special">[count]</span>n[ext] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>			<span class="Ignore">*</span><span class="String">:n</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:ne</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:next</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E165</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E163</span><span class="Ignore">*</span>
+			编辑向后第 <span class="Special">[count]</span> 个文件。如果已经作了修改而 vim 不能
+			放弃 <span class="Ignore">|</span><span class="Identifier">abandon</span><span class="Ignore">|</span> 当前的缓冲区，该命令失败。另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span>
+			和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 没有 count 和 ++opt}</span>
+
+:<span class="Special">[count]</span>n[ext]! <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>
+			编辑向后第 <span class="Special">[count]</span> 个文件。忽略任何对当前缓冲区的已有
+			修改。另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 没有 count 和 ++opt}</span>
+
+:n[ext] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{arglist}</span>			<span class="Ignore">*</span><span class="String">:next_f</span><span class="Ignore">*</span>
+			和 <span class="Ignore">|</span><span class="Identifier">:args_f</span><span class="Ignore">|</span> 相同。
+
+:n[ext]! <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{arglist}</span>
+			和 <span class="Ignore">|</span><span class="Identifier">:args_f!</span><span class="Ignore">|</span> 相同。
+
+:<span class="Special">[count]N</span>[ext] <span class="Special">[count]</span> <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>			<span class="Ignore">*</span><span class="String">:Next</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:N</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E164</span><span class="Ignore">*</span>
+			编辑向前第 <span class="Special">[count]</span> 个文件。如果已经作了修改而 vim 不能
+			放弃 <span class="Ignore">|</span><span class="Identifier">abandon</span><span class="Ignore">|</span> 当前的缓冲区，该命令失败。另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span>
+			和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 没有 count 和 ++opt}</span>
+
+:<span class="Special">[count]N</span>[ext]! <span class="Special">[count]</span> <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>
+			编辑向前第 <span class="Special">[count]</span> 个文件。忽略任何对当前缓冲区的已有
+			修改。另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 没有 count 和 ++opt}</span>
+
+:<span class="Special">[count]</span>prev[ious] <span class="Special">[count]</span> <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>		<span class="Ignore">*</span><span class="String">:prev</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:previous</span><span class="Ignore">*</span>
+			和 :Next 相同。另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi: 只有在某些</span>
+			<span class="Special">版本存在}</span>
+
+							<span class="Ignore">*</span><span class="String">:rew</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:rewind</span><span class="Ignore">*</span>
+:rew[ind] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>
+			开始编辑参数列表的第一个文件。如果已经作了修改而 vim
+			不能放弃 <span class="Ignore">|</span><span class="Identifier">abandon</span><span class="Ignore">|</span> 当前的缓冲区，该命令失败。另见
+			<span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 没有 ++opt}</span>
+
+:rew[ind]! <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>
+			开始编辑参数列表的第一个文件。忽略任何对当前缓冲区的已
+			有修改。另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 没有 ++opt}</span>
+
+							<span class="Ignore">*</span><span class="String">:fir</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:first</span><span class="Ignore">*</span>
+:fir[st][!] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>
+			&quot;:rewind&quot; 的别名。<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:la</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:last</span><span class="Ignore">*</span>
+:la[st] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>
+			开始编辑参数列表的最后一个文件。如果已经作了修改而 vim
+			不能放弃 <span class="Ignore">|</span><span class="Identifier">abandon</span><span class="Ignore">|</span> 当前的缓冲区，该命令失败。另见
+			<span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 无此功能}</span>
+
+:la[st]! <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span>
+			开始编辑参数列表的最后一个文件。忽略任何对当前缓冲区的
+			已有修改。另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:wn</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:wnext</span><span class="Ignore">*</span>
+:<span class="Special">[count]</span>wn[ext] <span class="Special">[++opt]</span>
+			写回当前文件并开始编辑向后第 <span class="Special">[count]</span> 个文件。另见
+			<span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 无此功能}</span>
+
+:<span class="Special">[count]</span>wn[ext] <span class="Special">[++opt]</span> <span class="Special">{file}</span>
+			写入当前文件到 <span class="Special">{file}</span> 并开始编辑向后第 <span class="Special">[count]</span> 个文
+			件，除非 <span class="Special">{file}</span> 已经存在并且 <span class="Type">'writeany'</span> 选项被关闭。另
+			见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 无此功能}</span>
+
+:<span class="Special">[count]</span>wn[ext]! <span class="Special">[++opt]</span> <span class="Special">{file}</span>
+			写入当前文件到 <span class="Special">{file}</span> 并开始编辑向后第 <span class="Special">[count]</span> 个文
+			件。另见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+cmd</span><span class="Ignore">|</span>。<span class="Special">{Vi 无此功能}</span>
+
+:<span class="Special">[count]</span>wN[ext][!] <span class="Special">[++opt]</span> <span class="Special">[file]</span>		<span class="Ignore">*</span><span class="String">:wN</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:wNext</span><span class="Ignore">*</span>
+:<span class="Special">[count]</span>wp[revious][!] <span class="Special">[++opt]</span> <span class="Special">[file]</span>		<span class="Ignore">*</span><span class="String">:wp</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:wprevious</span><span class="Ignore">*</span>
+			和 :wnext 相同，向前编辑而不是向后。<span class="Special">{Vi 无此功能}</span>
+
+以上命令的 <span class="Special">[count]</span> 缺省为一。对有些命令可以使用两个计数。后者 (右面那个) 被使
+用。
+
+如果没有给出 <span class="Special">[+cmd]</span> 参数，光标定位于文件最后一个已知的位置。如果置位了
+<span class="Type">'startofline'</span>，光标会定位于该行第一个非空白字符，不然，则使用最后一个已知列。
+如果没有最后已知的光标位置，光标会定位在第一行 (Ex 模式下则是最后一行)。
+
+							<span class="Ignore">*</span><span class="String">{arglist}</span><span class="Ignore">*</span>
+参数列表里的通配符会扩展，文件名会排序。这样你可以用命令 &quot;vim *.c&quot; 编辑所有的
+C 文件。在 Vim 里面，&quot;:n *.c&quot; 命令会做同样的事。
+
+空白用来分隔文件名。在空格或制表前加上反斜杠可以在文件名里使用它们。例如，要编
+辑单个文件 &quot;foo bar&quot;:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:next foo\ bar</span>
+
+在 Unix 和一些其它系统上你还可以使用反引号，例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:next `find . -name \\*.c -print`</span>
+星号之前的反斜杠是必要的，它用来防止 &quot;*.c&quot; 在执行 find 程序之前被外壳扩展。
+
+							<span class="Ignore">*</span><span class="String">arglist-position</span><span class="Ignore">*</span>
+如果有参数列表，你可以在窗口的标题上看到正在编辑哪个文件 (如果有一个窗口，而且
+<span class="Type">'title'</span> 被置位)，或者通过 &quot;<span class="Special">CTRL-G</span>&quot; 命令，在文件消息里看到。你会看到类似于
+	(file 4 of 11)
+的东西。如果 <span class="Type">'shortmess'</span> 包含 'f'，它会成为
+	(4 of 11)
+如果你还没有编辑参数列表当前位置的文件，它会是
+	(file (4) of 11)
+这表示你在参数列表的第四个位置，不过还没有开始编辑之。这发生于你刚做 &quot;:e file&quot;
+的时候。
+
+
+局 部 参 数 列 表
+
+<span class="Special">{Vi 无此功能}</span>
+{仅在编译时加入 <span class="Ignore">|</span><span class="Identifier">+windows</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">+listcmds</span><span class="Ignore">|</span> 特性时才有效}
+
+							<span class="Ignore">*</span><span class="String">:arglocal</span><span class="Ignore">*</span>
+:argl[ocal]		复制一个全局参数列表的局部备份。并不开始编辑另外一个文
+			件。
+
+:argl[ocal][!] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{arglist}</span>
+			定义一个新的局部于当前窗口的参数列表。除此以外，和
+			<span class="Ignore">|</span><span class="Identifier">:args_f</span><span class="Ignore">|</span> 列表。
+
+							<span class="Ignore">*</span><span class="String">:argglobal</span><span class="Ignore">*</span>
+:argg[lobal]		当前窗口使用全局参数列表。并不开始编辑另外一个文件。
+
+:argg[lobal][!] <span class="Special">[++opt]</span> <span class="Special">[+cmd]</span> <span class="Special">{arglist}</span>
+			当前窗口使用全局参数列表。和 <span class="Ignore">|</span><span class="Identifier">:args_f</span><span class="Ignore">|</span> 一样，定义一个
+			新的全局参数列表。所有使用全局参数列表的窗口都会看到这
+			个新的列表。
+
+可以有多个参数列表。他们可以在窗口之间共享。如果他们共享，在其中一个窗口修改参
+数列表就会改变另一个窗口的列表。
+
+如果一个窗口被分割，新的窗口从原来的窗口继承参数列表。两个窗口因而共享该列表，
+直到其中一个窗口使用 <span class="Ignore">|</span><span class="Identifier">:arglocal</span><span class="Ignore">|</span> 或 <span class="Ignore">|</span><span class="Identifier">:argglobal</span><span class="Ignore">|</span> 来使用另外一个参数列表。
+
+
+使 用 参 数 列 表
+
+						<span class="Ignore">*</span><span class="String">:argdo</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>argdo[!] <span class="Special">{cmd}</span>	对参数列表里的每个文件执行 <span class="Special">{cmd}</span>。如果给出 <span class="Special">[range]</span>，只
+			对给出范围内的参数执行。
+			它的工作方式大致如下:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:rewind</span>
+<span class="Comment">				:{cmd}</span>
+<span class="Comment">				:next</span>
+<span class="Comment">				:{cmd}</span>
+<span class="Comment">				等等</span>
+<span class="Ignore">&lt;</span>			如果当前文件不能被放弃 <span class="Ignore">|</span><span class="Identifier">abandon</span><span class="Ignore">|</span> 而且不存在 [!]，该命
+			令失败。
+			如果一个文件检测到错误，参数列表里的其余文件将不再被操
+			作。
+			参数列表里的最后一个文件 (或发生错误的那个) 成为当前文
+			件。
+			<span class="Special">{cmd}</span> 可以包含 '|'，从而连接多个命令。
+			<span class="Special">{cmd}</span> 不可修改参数列表。
+			注意: 当命令执行时，Syntax 自动命令事件被加到
+			<span class="Type">'eventignore'</span> 里，从而被屏蔽。这样显著提高了编辑每个文
+			件的速度。
+			<span class="Special">{Vi 无此功能}</span> {仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+listcmds</span><span class="Ignore">|</span> 特性才有效}
+			另见 <span class="Ignore">|</span><span class="Identifier">:windo</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:tabdo</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:bufdo</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:cdo</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:ldo</span><span class="Ignore">|</span>、
+			<span class="Ignore">|</span><span class="Identifier">:cfdo</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">:lfdo</span><span class="Ignore">|</span>
+
+示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:args *.c</span>
+<span class="Comment">	:argdo set ff=unix | update</span>
+它把 <span class="Type">'fileformat'</span> 选项设为 &quot;unix&quot;，并写回现在已改变的所有的 *.c 文件。
+
+示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:args *.[ch]</span>
+<span class="Comment">	:argdo %s/\&lt;my_foo\&gt;/My_Foo/ge | update</span>
+它把所有 *.c 和 *.h 文件里的单词 &quot;my_foo&quot; 换成 &quot;My_Foo&quot;。&quot;e&quot; 标志位使得
+&quot;:substitute&quot; 命令对没有使用 &quot;my_foo&quot; 的文件不提示错误。&quot;:update&quot; 只有在发生改
+变的时候才写入文件。
+
+<span class="PreProc">==============================================================================</span>
+4. 写入						<span class="Ignore">*</span><span class="String">writing</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">save-file</span><span class="Ignore">*</span>
+
+注意: 如果 <span class="Type">'write'</span> 选项关闭，你不能写入任何文件。
+
+							<span class="Ignore">*</span><span class="String">:w</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:write</span><span class="Ignore">*</span>
+						<span class="Ignore">*</span><span class="String">E502</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E503</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E504</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E505</span><span class="Ignore">*</span>
+						<span class="Ignore">*</span><span class="String">E512</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E514</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E667</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E796</span><span class="Ignore">*</span>
+:w[rite] <span class="Special">[++opt]</span>	将整个缓冲区写入当前文件。这是保存文件更动最普通的方
+			式。如果置位了 <span class="Type">'readonly'</span> 选项或者其他原因不能写入文
+			件，它会失败。
+			关于 ++opt 可见 <span class="Ignore">|</span><span class="Identifier">++opt</span><span class="Ignore">|</span>，但只有 ++bin、++nobin、++ff
+			和 ++enc 有效。
+
+:w[rite]! <span class="Special">[++opt]</span>	和 &quot;:write&quot; 类似，但即使 <span class="Type">'readonly'</span> 已置位或者有其他原
+			因写入被拒绝，还是强制写入。
+			注意: 这可能会改变文件的权限和所有者，或者破坏 (符号)
+			连接。在 <span class="Type">'cpoptions'</span> 里加上 'W' 标志位可以避免这一点。
+
+:<span class="Special">[range]</span>w[rite][!] <span class="Special">[++opt]</span>
+			将指定行写入当前文件。这是很特别的，因为文件里将不会包
+			含缓冲区的所有行。
+
+							<span class="Ignore">*</span><span class="String">:w_f</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:write_f</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>w[rite] <span class="Special">[++opt]</span>	<span class="Special">{file}</span>
+			将指定行写入文件 <span class="Special">{file}</span>，除非该文件已存在并且未置位
+			<span class="Type">'writeany'</span> 选项。
+
+							<span class="Ignore">*</span><span class="String">:w!</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>w[rite]! <span class="Special">[++opt]</span> <span class="Special">{file}</span>
+			将指定行写入文件 <span class="Special">{file}</span>。覆盖已存在的文件。
+
+						<span class="Ignore">*</span><span class="String">:w_a</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:write_a</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E494</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>w[rite][!] <span class="Special">[++opt]</span> &gt;&gt;
+			将指定行附加到当前文件后。
+
+:<span class="Special">[range]</span>w[rite][!] <span class="Special">[++opt]</span> &gt;&gt; <span class="Special">{file}</span>
+			将指定行附加到文件 <span class="Special">{file}</span> 之后。'!' 强制写入，即使该文
+			件还不存在。
+
+							<span class="Ignore">*</span><span class="String">:w_c</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:write_c</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>w[rite] <span class="Special">[++opt]</span> !<span class="Special">{cmd}</span>
+			执行命令 <span class="Special">{cmd}</span>，以 <span class="Special">[range]</span> 指定的行作为它的标准输入。
+			(注意 ! 之前的空格)。<span class="Special">{cmd}</span> 以 &quot;:!<span class="Special">{cmd}</span>&quot; 类似的方式被执
+			行，任何 '!' 被替换成前一个命令 <span class="Ignore">|</span><span class="Identifier">:!</span><span class="Ignore">|</span>。
+
+&quot;:w&quot; 命令缺省的 <span class="Special">[range]</span> 是整个缓冲区 (1,$)。如果写回整个缓冲区，缓冲区不再被认
+为已改变。用 &quot;:w somefile&quot; 写到别的文件的情形则取决于 <span class="Type">'cpoptions'</span> 的 &quot;+&quot; 标志
+位。如果包含，即便缓冲区本身和其关联的文件可能已不同，该写命令还是复位
+&quot;modified&quot; 标志位。
+
+如果 &quot;:w&quot; 给出一个文件名，它成为轮换文件。这可以用来，比如说，当写入失败而你想
+再迟些再试一次: &quot;:w #&quot;。该功能可以通过从 <span class="Type">'cpoptions'</span> 选项里去掉 'A' 标志位来关
+闭。
+
+							<span class="Ignore">*</span><span class="String">:sav</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:saveas</span><span class="Ignore">*</span>
+:sav[eas][!] <span class="Special">[++opt]</span> <span class="Special">{file}</span>
+			用文件名 <span class="Special">{file}</span> 保存当前缓冲区，并设置当前缓冲区的文件
+			名为 <span class="Special">{file}</span>。前一个名字用作轮换文件名。[!] 用以覆盖已
+			存在的文件。
+			如果 <span class="Type">'filetype'</span> 为空，在写入文件前用新名字进行文件类型
+			检测。
+			如果写操作成功，复位 <span class="Type">'readonly'</span>。
+			<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:up</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:update</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>up[date][!] <span class="Special">[++opt]</span> [&gt;&gt;] <span class="Special">[file]</span>
+			和 &quot;:write&quot; 类似，但只有在缓冲区已修改的时候才写入。
+			<span class="Special">{Vi 无此功能}</span>
+
+
+写 入 多 个 缓 冲 区					<span class="Ignore">*</span><span class="String">buffer-write</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">:wa</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:wall</span><span class="Ignore">*</span>
+:wa[ll]			保存所有已修改的缓冲区。没有文件名的缓冲区会报错。只读
+			的缓冲区不会被写入。<span class="Special">{Vi 无此功能}</span>
+
+:wa[ll]!		保存所有已修改的缓冲区，包括只读的。没有文件名的缓冲区
+			不会写入并报错。<span class="Special">{Vi 无此功能}</span>
+
+
+如果你试图覆盖在别的地方修改的文件，Vim 会警告你。参见 <span class="Ignore">|</span><span class="Identifier">timestamp</span><span class="Ignore">|</span>。
+
+			    <span class="Ignore">*</span><span class="String">backup</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E207</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E506</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E507</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E508</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E509</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E510</span><span class="Ignore">*</span>
+如果你写入已存在的文件 (但非附加) 而打开了 <span class="Type">'backup'</span>、<span class="Type">'writebackup'</span> 或者
+<span class="Type">'patchmode'</span> 选项，原来文件的一个备份会被建立。该文件或者由复制，或者由换名得
+到 (见 <span class="Type">'backupcopy'</span>)。在文件被成功写入后，当置位 <span class="Type">'writebackup'</span> 选项而没有置位
+<span class="Type">'backup'</span> 时，该备份文件被删除。当 <span class="Type">'patchmode'</span> 选项打开时，备份文件可能被改名。
+
+							<span class="Ignore">*</span><span class="String">backup-table</span><span class="Ignore">*</span>
+<span class="PreProc">'backup' 'writebackup'	动作</span><span class="Ignore">	~</span>
+   关	     关		没有备份
+   关	     开		备份当前文件，写入后删除 (缺省)
+   开	     关		删除旧的备份，备份当前文件
+   开	     开		删除旧的备份，备份当前文件
+
+当 <span class="Type">'backupskip'</span> 模式匹配被写入的文件名，备份文件不会被创建。此时，<span class="Type">'backup'</span> 和
+<span class="Type">'writebackup'</span> 被忽略。
+
+如果 <span class="Type">'backup'</span> 选项置位，旧的备份文件 (与新的备份文件同名) 被删除。如果没有置位
+<span class="Type">'backup'</span> 但置位了 <span class="Type">'writebackup'</span>，已有的备份文件不会被删除。文件写入时使用的是
+另外一个文件名。
+
+有些文件系统的崩溃可能导致备份文件和新写入的文件同时丢失 (可能还在但包含不正确
+数据)。这种情况下可以尝试修复功能 <span class="Ignore">|</span><span class="Identifier">:recover</span><span class="Ignore">|</span>，因为交换文件在盘上保持一个同步的
+备份，可能还有用。
+
+<span class="Type">'backupdir'</span> 选项给出的目录用于存放备份文件 (缺省在写入文件的相同目录)。
+
+不管备份文件是否新建，它是否原始文件复制还是换名得来由 <span class="Type">'backupcopy'</span> 选项决定。
+该选项的描述解释了何时使用复制，何时使用换名。
+
+如果备份文件创建失败，写入不会进行。除非命令中加上 '!'。
+
+							<span class="Ignore">*</span><span class="String">write-permissions</span><span class="Ignore">*</span>
+写入新文件时其权限设为可读写。unix 上的掩码是 0666 外加 umask。写入已经读入的
+文件时，Vim 保留原有权限，但清除 s 位。
+
+							<span class="Ignore">*</span><span class="String">write-readonly</span><span class="Ignore">*</span>
+如果 <span class="Type">'cpoptions'</span> 选项里包含 'W'，Vim 拒绝覆盖只读文件。如果没有该标志位，&quot;:w!&quot;
+可以用来覆盖只读文件， 如果系统支持的话 (目录本身必须是可写的)。
+
+							<span class="Ignore">*</span><span class="String">write-fail</span><span class="Ignore">*</span>
+如果新文件写入失败，要小心不要同时丢失了你的修改内容_和_原始的文件。如果没有
+备份文件而写入新文件失败的话，原始的文件已经没有了！除 非 你 写 了 文 件，不
+要 退 出 VIM！如果创建了备份，它保存了原始文件的内容 (如果可能的话)。如果你退
+出 Vim 并丢失了修改的部分，原始的文件很有可能还在。如果原始文件的保存也失败的
+话，你会得到一个错误信息，提示丢失了原始文件。
+
+						<span class="Ignore">*</span><span class="String">DOS-format-write</span><span class="Ignore">*</span>
+如果 <span class="Type">'fileformat'</span> 为 &quot;dos&quot;，<span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 用作换行符 <span class="Special">&lt;EOL&gt;</span>。这是 MS-DOS，Win32 和
+OS/2 的缺省行为。在其他系统中，&quot;[dos format]&quot; 信息会提示你使用了不同寻常的
+<span class="Special">&lt;EOL&gt;</span>。
+						<span class="Ignore">*</span><span class="String">Unix-format-write</span><span class="Ignore">*</span>
+如果 <span class="Type">'fileformat'</span> 为 &quot;unix&quot;，<span class="Special">&lt;NL&gt;</span> 用作换行符 <span class="Special">&lt;EOL&gt;</span>。在 MS-DOS，Win32 和 OS/2
+上会显示 &quot;[unix format]&quot;。
+						<span class="Ignore">*</span><span class="String">Mac-format-write</span><span class="Ignore">*</span>
+如果 <span class="Type">'fileformat'</span> 为 &quot;mac&quot;，<span class="Special">&lt;CR&gt;</span> 用作换行符 <span class="Special">&lt;EOL&gt;</span>。在非 Mac 的系统上会显示
+&quot;[mac format]&quot; 消息。
+
+另见 <span class="Ignore">|</span><span class="Identifier">file-formats</span><span class="Ignore">|</span> 和 <span class="Type">'fileformat'</span> 以及 <span class="Type">'fileformats'</span> 选项。
+
+						<span class="Ignore">*</span><span class="String">ACL</span><span class="Ignore">*</span>
+ACL 代表访问控制表 (Access Control List)。这是控制文件访问权限一个高级方法。在
+新的 MS-Windows 和 Unix 系统上，如果有文件系统的支持，可以使用之。
+   Vim 试图在写入文件时保留 ACL 信息。备份文件会用和原始文件相同的 ACL 信息。
+   ACL 信息也用来检查文件是否只读 (在打开文件时)。
+
+						<span class="Ignore">*</span><span class="String">read-only-share</span><span class="Ignore">*</span>
+当 MS-Windows 共享网络驱动器时，可以指定其为只读。这意味着即使文件本身没有只读
+属性，你也不能写入该文件。Win32 平台上的 Vim 会检测只读的网络驱动器，并标记其
+上的文件为只读。你不能用 <span class="Ignore">|</span><span class="Identifier">:write</span><span class="Ignore">|</span> 修改。
+
+						<span class="Ignore">*</span><span class="String">write-device</span><span class="Ignore">*</span>
+如果文件名其实是设备名，Vim 不会建立备份 (这也不可能)。你需要使用 &quot;!&quot;，因为设
+备已经存在。Unix 上的示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:w! /dev/lpt0</span>
+MS-DOS 或 MS-Windows 上:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:w! lpt0</span>
+Unix 上当文件名不引用一个普通文件或者目录时，检测为设备。fifo 和命令管道对 Vim
+而言视同设备。MS-DOS 和 MS-Windows 上以下名字检测为设备:
+	AUX
+	CON
+	CLOCK$
+	NUL
+	PRN
+	COMn	n=1,2,3... 等
+	LPTn	n=1,2,3... 等
+名字大小写均可。
+
+<span class="PreProc">==============================================================================</span>
+5. 写入并退出						<span class="Ignore">*</span><span class="String">write-quit</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">:q</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:quit</span><span class="Ignore">*</span>
+:q[uit]			退出当前窗口。如果是最后的一个，退出 Vim。如果已经有
+			修改而且 Vim 拒绝放弃 <span class="Ignore">|</span><span class="Identifier">abandon</span><span class="Ignore">|</span> 当前的缓冲区，或者
+			如果参数列表的最后一个文件还没有被编辑，该操作失败。
+			如果有其它标签页，并且退出的是当前标签页的最后一个窗
+			口，关闭当前标签页 <span class="Ignore">|</span><span class="Identifier">tab-page</span><span class="Ignore">|</span>。
+			激活 <span class="Ignore">|</span><span class="Identifier">QuitPre</span><span class="Ignore">|</span> 自动命令事件。
+
+:conf[irm] q[uit]	退出，但如果已经有修改或者参数列表的最后一个文件还未被
+			编辑，给出提示。参见 <span class="Ignore">|</span><span class="Identifier">:confirm</span><span class="Ignore">|</span> 和 <span class="Type">'confirm'</span>。 <span class="Special">{Vi 无</span>
+			<span class="Special">此功能}</span>
+
+:q[uit]!		退出不保存，即使当前缓冲区发生了修改也是。缓冲区被卸
+			载，包括置位 <span class="Type">'hidden'</span> 了的。
+			如果是最后一个窗口并有修改过的隐藏缓冲区，放弃当前缓冲
+			区，第一个修改过的隐藏缓冲区成为当前缓冲区。
+			为了保证总能退出，用 &quot;:qall!&quot;。
+
+:cq[uit]		在任何情形下，退出不保存，并返回一个错误代码。参见
+			<span class="Ignore">|</span><span class="Identifier">:cq</span><span class="Ignore">|</span>。此功能可用于 Manx 的 QuickFix 模式 (参见
+			<span class="Ignore">|</span><span class="Identifier">quickfix</span><span class="Ignore">|</span>)。  <span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:wq</span><span class="Ignore">*</span>
+:wq <span class="Special">[++opt]</span>		写回当前的文件并且退出。如果文件只读或者该缓冲区无名，
+			写回操作将失败。如果参数列表的最后一个文件还没有编辑，
+			那么退出操作将会失败。
+
+:wq! <span class="Special">[++opt]</span>		写回当前的文件并且退出。如果当前缓冲区无名，则写回操作
+			将失败。
+
+:wq <span class="Special">[++opt]</span> <span class="Special">{file}</span>	写入到 <span class="Special">{file}</span> 并且退出。 如果参数列表的最后一个文件还
+			没有编辑， 那么退出操作将会失败。
+
+:wq! <span class="Special">[++opt]</span> <span class="Special">{file}</span>	写入到 <span class="Special">{file}</span> 并且退出。
+
+:<span class="Special">[range]</span>wq[!] <span class="Special">[++opt]</span> <span class="Special">[file]</span>
+			同上，但只写入 <span class="Special">[range]</span> 界定的那些行。
+
+							<span class="Ignore">*</span><span class="String">:x</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:xit</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>x[it][!] <span class="Special">[++opt]</span> <span class="Special">[file]</span>
+			和 &quot;:wq&quot; 类似， 但只有文件已修改时写入才会实际进行。
+			如果 <span class="Type">'hidden'</span> 被设置并且还有其他窗口，当前缓冲区会在
+			写入后被隐藏。
+
+							<span class="Ignore">*</span><span class="String">:exi</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:exit</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>exi[t][!] <span class="Special">[++opt]</span> <span class="Special">[file]</span>
+			同 :xit。
+
+							<span class="Ignore">*</span><span class="String">ZZ</span><span class="Ignore">*</span>
+ZZ			如果文件被修改，写回当前文件。然后退出。(和 :x 相
+			同)。(注意: 如果有当前文件有多个窗口，该文件在被修改
+			时会被写回，当前窗口会被关闭)。
+
+							<span class="Ignore">*</span><span class="String">ZQ</span><span class="Ignore">*</span>
+ZQ			退出，不检查是否发生了修改 (等同于 &quot;:q!&quot;)。
+			<span class="Special">{Vi 无此功能}</span>
+
+多 个 窗 口 和 缓 冲 区					<span class="Ignore">*</span><span class="String">window-exit</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">:qa</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:qall</span><span class="Ignore">*</span>
+:qa[ll]		退出 Vim，除非存在修改过的缓冲区。(可以使用 &quot;:bmod&quot; 跳转
+		到下一个修改过的缓冲区)。如果置位了 <span class="Type">'autowriteall'</span>，所有
+		被修改的缓冲区将被保存，一如调用了 <span class="Ignore">|</span><span class="Identifier">:wqall</span><span class="Ignore">|</span>。<span class="Special">{Vi 无此功能}</span>
+
+:conf[irm] qa[ll]
+		退出 Vim。如果存在修改过的缓冲区，给出提示。参见 <span class="Ignore">|</span><span class="Identifier">:confirm</span><span class="Ignore">|</span>。
+		<span class="Special">{Vi 无此功能}</span>
+
+:qa[ll]!	退出 Vim，不会保存任何的修改。 <span class="Special">{Vi 无此功能}</span>
+		另见 <span class="Ignore">|</span><span class="Identifier">:cquit</span><span class="Ignore">|</span>，功能相同但使用非零的退出值。
+
+							<span class="Ignore">*</span><span class="String">:quita</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:quitall</span><span class="Ignore">*</span>
+:quita[ll][!]	等同于 &quot;:qall&quot;。<span class="Special">{Vi 无此功能}</span>
+
+:wqa[ll] <span class="Special">[++opt]</span>				<span class="Ignore">*</span><span class="String">:wqa</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:wqall</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:xa</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:xall</span><span class="Ignore">*</span>
+:xa[ll]		保存所有修改过的缓冲区并退出 Vim。如果其中有无名的、只读的、
+		或者其他原因写入失败的缓冲区，Vim 不会退出。<span class="Special">{Vi 无此功能}</span>
+
+:conf[irm] wqa[ll] <span class="Special">[++opt]</span>
+:conf[irm] xa[ll]
+		保存所有修改过的缓冲区并退出 Vim。如果其中有只读或者其他原因
+		写入失败的缓冲区，给出提示。参看 <span class="Ignore">|</span><span class="Identifier">:confirm</span><span class="Ignore">|</span>。<span class="Special">{Vi 无此功能}</span>
+
+:wqa[ll]! <span class="Special">[++opt]</span>
+:xa[ll]!	保存所有修改过的缓冲区，甚至包括只读的，然后退出 Vim。不过，
+		如果有无名或者其他原因写入失败的缓冲区，Vim 仍然不会退出。
+		<span class="Special">{Vi 无此功能}</span>
+
+<span class="PreProc">==============================================================================</span>
+6. 对话框						<span class="Ignore">*</span><span class="String">edit-dialogs</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">:confirm</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:conf</span><span class="Ignore">*</span>
+:conf[irm] <span class="Special">{command}</span>	执行 <span class="Special">{command}</span>，如果有操作需要确认，显示对话框。可用于
+			&quot;:q&quot;、&quot;:qa&quot; 和 &quot;:w&quot; 命令 (后者用于超越只读的设定)，和
+			其他会以类似方式失败的命令，如 <span class="Ignore">|</span><span class="Identifier">:only</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:buffer</span><span class="Ignore">|</span>、
+			<span class="Ignore">|</span><span class="Identifier">:bdelete</span><span class="Ignore">|</span> 等。
+
+示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">  :confirm w foo</span>
+<span class="Ignore">&lt;</span>	如果 &quot;foo&quot; 存在请求确认。<span class="Ignore"> &gt;</span>
+<span class="Comment">  :confirm q</span>
+<span class="Ignore">&lt;</span>	如果有改变请求确认。<span class="Ignore"> &gt;</span>
+<span class="Comment">  :confirm qa</span>
+<span class="Ignore">&lt;</span>	如果有任何修改过的未保存的缓冲区存在，对其中的每个缓冲区提示是保存还是
+	放弃。还可以选择 &quot;save all&quot; (保存所有) 或 &quot;abandon all&quot; (放弃所有)。
+
+如果你希望总是用 &quot;:confirm&quot;，置位 <span class="Type">'confirm'</span> 选项。
+
+			<span class="Ignore">*</span><span class="String">:browse</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:bro</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E338</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E614</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E615</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E616</span><span class="Ignore">*</span>
+:bro[wse] <span class="Special">{command}</span>	为 {command| 的参数显示文件选择对话框。目前这可用于
+			<span class="Ignore">|</span><span class="Identifier">:e</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:w</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:wall</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:wq</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:wqall</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:x</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:xall</span><span class="Ignore">|</span>、
+			<span class="Ignore">|</span><span class="Identifier">:exit</span><span class="Ignore">|</span>、 <span class="Ignore">|</span><span class="Identifier">:view</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:sview</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:r</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:saveas</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:sp</span><span class="Ignore">|</span>、
+			<span class="Ignore">|</span><span class="Identifier">:mkexrc</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:mkvimrc</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:mksession</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:mkview</span><span class="Ignore">|</span>、
+			<span class="Ignore">|</span><span class="Identifier">:split</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:vsplit</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:tabe</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:tabnew</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:cfile</span><span class="Ignore">|</span>、
+			<span class="Ignore">|</span><span class="Identifier">:cgetfile</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:caddfile</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:lfile</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:lgetfile</span><span class="Ignore">|</span>、
+			<span class="Ignore">|</span><span class="Identifier">:laddfile</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:diffsplit</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:diffpatch</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:open</span><span class="Ignore">|</span>、
+			<span class="Ignore">|</span><span class="Identifier">:pedit</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:redir</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:source</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:update</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:visual</span><span class="Ignore">|</span>、
+			<span class="Ignore">|</span><span class="Identifier">:vsplit</span><span class="Ignore">|</span>，还有如果置位 <span class="Type">'confirm'</span> 的话，<span class="Ignore">|</span><span class="Identifier">:qall</span><span class="Ignore">|</span>。
+
+			{仅对 Win32、Athena、Motif、GTK 和 Mac GUI 有效}
+			如果不可用 &quot;:browse&quot;，你会得到错误消息。如果 <span class="Ignore">|</span><span class="Identifier">+browse</span><span class="Ignore">|</span>
+			特性不存在或者 <span class="Special">{command}</span> 不支持该 (浏览) 功能，不显示
+			对话框，如常执行 <span class="Special">{command}</span>。
+			&quot;:browse set&quot; 和 <span class="Ignore">|</span><span class="Identifier">:options</span><span class="Ignore">|</span> 类同。
+			关于 &quot;:browse oldfiles&quot;，另见 <span class="Ignore">|</span><span class="Identifier">:oldfiles</span><span class="Ignore">|</span>。
+
+该语法最好通过若干范例说明之:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:browse e $vim/foo</span>
+<span class="Ignore">&lt;</span>		在 $vim/foo 目录里打开浏览器并编辑选择的文件。<span class="Ignore"> &gt;</span>
+<span class="Comment">	:browse e</span>
+<span class="Ignore">&lt;</span>		在 <span class="Type">'browsedir'</span> 指定的目录里打开浏览器并编辑选择的文件。<span class="Ignore"> &gt;</span>
+<span class="Comment">	:browse w</span>
+<span class="Ignore">&lt;</span>		在当前缓冲区所在的目录里打开浏览器。缺省使用当前缓冲区的文件
+		名。把缓冲区写入到指定的文件。<span class="Ignore"> &gt;</span>
+<span class="Comment">	:browse w C:/bar</span>
+<span class="Ignore">&lt;</span>		在 C:/bar 目录里打开浏览器，缺省使用当前缓冲区的文件名，把缓冲
+		区写入到指定的文件。
+另见 <span class="Ignore">|</span><span class="Identifier">'browsedir'</span><span class="Ignore">|</span> 选项。
+如果所用的 Vim 版本不支持浏览，该命令照原样执行。
+
+							<span class="Ignore">*</span><span class="String">browsefilter</span><span class="Ignore">*</span>
+对 MS Windows 和 GTK 而言，你可以修改浏览对话框的过滤 (filter)。设置
+g:browsefilter 或 b:browsefilter 变量，你可以修改全局或局部于缓冲区的过滤设
+置。该变量应设为符合如下格式的字符串 &quot;{过滤标签}\t<span class="Special">{pattern}</span>;<span class="Special">{pattern}</span>\n&quot;，其中
+的 {过滤标签} 是出现 &quot;Files of Type&quot; 组合框里应出现的文字，而 <span class="Special">{pattern}</span> 是过滤
+文件名的模式。可以给出多个模式，以 &quot;;&quot; 分隔。
+
+Motif 使用相同的格式，但只使用第一个模式 (Motif 只提供一个模式，但可以编辑)。
+
+例如，要使得对话框里只显示 Vim 文件，你可以用以下命令:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">     let g:browsefilter = &quot;Vim Scripts\t*.vim\nVim Startup Files\t*vimrc\n&quot;</span>
+
+你可以通过在某个缓冲区上设置 b:browsefilter 变量超越全局过滤的设置。最有可能的
+情况是在文件类型插件里设置 b:browsefilter，以便浏览对话框只显示和当前编辑的文
+件所属类型相关的项目。缺点是: 无法编辑一个新的不同类型的文件。要克服这一点，你
+可以加上 &quot;All Files\t*.*\n&quot; 作为最后的过滤。用户从而拥有访问任何类型文件的选
+择。
+
+如果 Vim 不能实际支持时不想设置 browsefilter，可以测试 has(&quot;browsefilter&quot;):<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	if has(&quot;browsefilter&quot;)</span>
+<span class="Comment">	   let g:browsefilter = &quot;你要的值&quot;</span>
+<span class="Comment">	endif</span>
+
+<span class="PreProc">==============================================================================</span>
+7. 当前目录						<span class="Ignore">*</span><span class="String">current-directory</span><span class="Ignore">*</span>
+
+你也可以用 <span class="Ignore">|</span><span class="Identifier">:cd</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">:lcd</span><span class="Ignore">|</span> 命令换到别的目录，所以你可以不用总是在文件名前输入
+目录名。这也影响到外部命令的执行，例如 &quot;:!ls&quot;。
+
+如果当前缓冲区被修改、<span class="Type">'cpoptions'</span> 里有 '.' 标志位而命令又不使用 &quot;!&quot;，那么改变
+目录会失败。
+
+							<span class="Ignore">*</span><span class="String">:cd</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E747</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E472</span><span class="Ignore">*</span>
+:cd[!]			在非 Unix 系统上: 显示当前目录名。在 Unix 系统上: 改变
+			当前目录到主 (home) 目录。在所有的系统上，用 <span class="Ignore">|</span><span class="Identifier">:pwd</span><span class="Ignore">|</span> 可
+			以显示当前目录。
+
+:cd[!] <span class="Special">{path}</span>		切换当前目录为 <span class="Special">{path}</span>。如果 <span class="Special">{path}</span> 是相对路径，则在
+			<span class="Ignore">|</span><span class="Identifier">'cdpath'</span><span class="Ignore">|</span> 列出的目录搜索之。
+			这不会改变已经打开的文件，因为记住的是它们的完整路径。
+			但 <span class="Ignore">|</span><span class="Identifier">arglist</span><span class="Ignore">|</span> 里的文件则可能会改变！
+			MS-DOS 上这会同时改变当前的驱动器。
+			要改变到当前文件的目录:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:cd %:h</span>
+<span class="Ignore">&lt;</span>
+							<span class="Ignore">*</span><span class="String">:cd-</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E186</span><span class="Ignore">*</span>
+:cd[!] -		切换到上一个当前目录 (在上个 &quot;:cd <span class="Special">{path}</span>&quot; 命令之前)。
+			<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:chd</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:chdir</span><span class="Ignore">*</span>
+:chd[ir][!] <span class="Special">[path]</span>	和 <span class="Ignore">|</span><span class="Identifier">:cd</span><span class="Ignore">|</span> 相同。
+
+							<span class="Ignore">*</span><span class="String">:lc</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:lcd</span><span class="Ignore">*</span>
+:lc[d][!] <span class="Special">{path}</span>	和 <span class="Ignore">|</span><span class="Identifier">:cd</span><span class="Ignore">|</span> 类似，但只设置当前窗口的当前目录。别的窗口的
+			当前目录保持不变。<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:lch</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:lchdir</span><span class="Ignore">*</span>
+:lch[dir][!]		和 <span class="Ignore">|</span><span class="Identifier">:lcd</span><span class="Ignore">|</span> 相同。<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:pw</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:pwd</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E187</span><span class="Ignore">*</span>
+:pw[d]			显示当前目录名。<span class="Special">{Vi: 没有 pwd}</span>
+			另见 <span class="Ignore">|</span><span class="Identifier">getcwd()</span><span class="Ignore">|</span>。
+
+只要没有用过 <span class="Ignore">|</span><span class="Identifier">:lcd</span><span class="Ignore">|</span> 命令，所有窗口共享同一个当前目录。切换到别的窗口的命令因此
+不会改变当前目录。
+当某个窗口用了 <span class="Ignore">|</span><span class="Identifier">:lcd</span><span class="Ignore">|</span> 命令，所指定的目录成为该窗口的当前目录。没用过 <span class="Ignore">|</span><span class="Identifier">:lcd</span><span class="Ignore">|</span> 的
+窗口还是和全局的当前目录同步。跳转到另一个窗口时，当前目录成为上次指定的本地当
+前目录。如果没有指定过，则使用全局当前目录。
+如果使用 <span class="Ignore">|</span><span class="Identifier">:cd</span><span class="Ignore">|</span> 命令，当前窗口会丢失他的本地当前目录，并从此以后使用全局当前目
+录。
+
+<span class="Ignore">|</span><span class="Identifier">:cd</span><span class="Ignore">|</span> 的完整路径名用于其后的文件读写。在某些网络文件系统中，这可能会引起麻烦。
+使用完整路径名的结果是当前使用的文件名还是指向相同的文件。例如: 如果你有文件
+a:test 和 目录 a:vim。命令 &quot;:e test&quot; &quot;:cd vim&quot; &quot;:w&quot; 会覆盖文件 a:test 而不是
+a:vim/test。但如果你使用 &quot;:w test&quot; 文件 a:vim/test 会被覆盖，因为你给出一个新
+的文件名，因而与 &quot;:cd&quot; 之前所指向的文件业已不同。
+
+<span class="PreProc">==============================================================================</span>
+8. 编辑二进制文件					<span class="Ignore">*</span><span class="String">edit-binary</span><span class="Ignore">*</span>
+
+尽管 Vim 是用来编辑文本文件的，它也可用来编辑二进制文件。Vim 的 <span class="Ignore">|</span><span class="Identifier">-b</span><span class="Ignore">|</span> 参数 (b
+代表二进制 (binary)) 使 Vim 以二进制模式进行文件读写操作，并设置二进制文件编辑
+相关的一些选项 (<span class="Type">'binary'</span> 打开，<span class="Type">'textwidth'</span> 为 0，<span class="Type">'modeline'</span> 关闭，<span class="Type">'expandtab'</span>
+关闭)。置位 <span class="Type">'binary'</span> 选项效果相同。不要忘记应在读入文件之前进行该操作。
+
+编辑二进制文件时要注意以下几点:
+- 在编辑可执行文件时，不要修改字符数。只用 &quot;R&quot; 或 &quot;r&quot; 命令来修改文本。不要用
+  &quot;x&quot; 或退格键删除字符。
+- 设置 <span class="Type">'textwidth'</span> 选项为 0。不然，行会被意外的截为两段。
+- 如果 <span class="Special">&lt;EOL&gt;</span> 符不多，行会很长。如果你希望编辑屏幕显示不下的行，重设 <span class="Type">'wrap'</span> 选
+  项，使用横向滚动。如果一行过长 (Amiga 上超过 32767 个字符，32 位系统中则大得
+  多，见 <span class="Ignore">|</span><span class="Identifier">limits</span><span class="Ignore">|</span>)，你不能编辑该行。该行在读入时会被截断。也可能读入发生 &quot;out
+  of memory&quot; 错误。
+- 确保在读入文件_前_置位 <span class="Type">'binary'</span> 选项。不然，<span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 和 <span class="Special">&lt;NL&gt;</span> 都被认为行尾，
+  从而在写回时，<span class="Special">&lt;NL&gt;</span> 会被 <span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 取代。
+- <span class="Special">&lt;Nul&gt;</span> 字符会在屏幕上显示为 ^@。你可以用 &quot;<span class="Special">CTRL-V</span> <span class="Special">CTRL-@</span>&quot; 或 &quot;<span class="Special">CTRL-V</span> 000&quot; 输入
+  之 <span class="Special">{Vi 不能处理文件里的 &lt;Nul&gt; 字符}</span>
+- 插入 <span class="Special">&lt;NL&gt;</span> 字符会截断一行。在将缓冲区写入到文件时，<span class="Special">&lt;NL&gt;</span> 会作为 <span class="Special">&lt;EOL&gt;</span> 被写入。
+- 如果文件尾没有 <span class="Special">&lt;EOL&gt;</span>，Vim 通常会自己加上。置位 <span class="Type">'binary'</span> 选项会禁止这一行
+  为。你也可以读取该选项的值来知道最后一行是否有 <span class="Special">&lt;EOL&gt;</span> (文本上你是看不到的)。
+
+<span class="PreProc">==============================================================================</span>
+9. 加密							<span class="Ignore">*</span><span class="String">encryption</span><span class="Ignore">*</span>
+
+Vim 可用加密的方式写入文件并读回。没有正确的密钥，加密文本不能被读取。
+{仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+cryptv</span><span class="Ignore">|</span> 功能才有效}  <span class="Ignore">*</span><span class="String">E833</span><span class="Ignore">*</span>
+
+交换文件和撤销文件的文本也被加密。 <span class="Ignore">*</span><span class="String">E843</span><span class="Ignore">*</span>
+不过，这是分块进行的，这样可能缩短破解密钥的时间。可以关闭交换文件，但任何崩溃
+会丢失你之前的成果。关闭撤销文件但没有什么大损失。<span class="Ignore"> &gt;</span>
+<span class="Comment">	:set noundofile</span>
+<span class="Comment">	:noswapfile edit secrets</span>
+
+注意: 内存里的文本是不加密的。系统管理员因此可以在你编辑时看到你的文本。用
+&quot;:!filter&quot; 或者 &quot;:w !command&quot; 过滤的文本也是不加密的，这些都可能造成文本泄露。
+<span class="Type">'viminfo'</span> 文件也不加密。
+
+要编辑极度机密的文本:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:set noundofile viminfo=</span>
+<span class="Comment">	:noswapfile edit secrets.txt</span>
+牢记没有交换文件意味着你冒崩溃、停电等事件时丢失工作成果的风险。
+
+_警告_: 如果在输入密钥时发生错误而且写入文件后退出，这些文本就永远丢失了。
+
+使用加密的通常方法是用 &quot;:X&quot; 命令，它会提示你输入一个密钥。其后的一个写入命令会
+使用该密钥加密文件。如果你以后编辑该文件，Vim 会要求你输入密钥。如果你的输入正
+确，文件是可读的，不然，文本会显示为乱码。
+
+							<span class="Ignore">*</span><span class="String">:X</span><span class="Ignore">*</span>
+:X	提示加密密钥。输入时不会反显输入的内容。别人即使看到屏幕，也不能看见你
+	的密钥。输入的字符保存在 <span class="Type">'key'</span> 选项里，它的值用来在写入文件时加密该文
+	件。在写入之前，该文件保持不变。另见 <span class="Ignore">|</span><span class="Identifier">-x</span><span class="Ignore">|</span>。
+
+<span class="Type">'key'</span> 选项里的值在文件写入时使用。如果该选项非空，写入的文件会用它的值作为密钥
+加密。加密过的文件的头部有个魔术数字，使得 Vim 可以识别这是加密文件。
+
+要关闭加密，复位 <span class="Type">'key'</span> 选项为空值:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:set key=</span>
+
+使用 <span class="Type">'cryptmethod'</span> 选项来选择加密方法为以下之一:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:setlocal cm=zip        &quot; 较弱的加密方法，后向兼容</span>
+<span class="Comment">	:setlocal cm=blowfish   &quot; 有漏洞的方法</span>
+<span class="Comment">	:setlocal cm=blowfish2  &quot; 中等强度的方法</span>
+
+必须在写入文件前进行。读入加密文件时，自动设置该选项为文件写入时选择的方法。写
+入前改变 <span class="Type">'cryptmethod'</span> 就可以改变使用的加密方法。
+
+要设置用于新文件的缺省方法，在 <span class="Ignore">|</span><span class="Identifier">vimrc</span><span class="Ignore">|</span> 文件中放入:<span class="Ignore"> &gt;</span>
+<span class="Comment">	set cm=blowfish2</span>
+强烈推荐使用 &quot;blowfish2&quot;。只有在不支持它的旧版本的 Vim 上才用其它方法。
+
+读写文件给出的信息会显示 &quot;[crypted]&quot; 对应 zip，&quot;[blowfish]&quot; 对应 blowfish，等
+等。
+
+写入撤销文件时，撤销文件的文本使用相同的密钥和方法。<span class="Ignore">|</span><span class="Identifier">persistent-undo</span><span class="Ignore">|</span>。
+
+要测试有无 blowfish 支持，使用以下条件:<span class="Ignore"> &gt;</span>
+<span class="Comment">	has('crypt-blowfish')</span>
+<span class="Comment">	has('crypt-blowfish2')</span>
+尽管更早时就有 blowfish 支持，这只可用于 Vim 7.4.1099 开始的版本。所以此条件的
+失败不意味着不支持 blowfish。可以这么测试 blowfish:<span class="Ignore"> &gt;</span>
+<span class="Comment">	v:version &gt;= 703</span>
+对 blowfish2 则可以用:<span class="Ignore"> &gt;</span>
+<span class="Comment">	v:version &gt; 704 || (v:version == 704 &amp;&amp; has('patch401'))</span>
+如果确信你的 Vim 包含了 patch 7.4.237，更简单的检查是:<span class="Ignore"> &gt;</span>
+<span class="Comment">	has('patch-7.4.401')</span>
+<span class="Ignore">&lt;</span>
+						<span class="Ignore">*</span><span class="String">E817</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E818</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E819</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E820</span><span class="Ignore">*</span>
+如果加密过程有错，文本可以写到文件里，但再不能正确读回来了。为此准备了一项测试
+以确定加密顺利完成。如果看到这些错误其中之一，不要以加密方式写入文件！要修正
+之，你需要重新编译 Vim 程序。
+
+<span class="Ignore">*</span><span class="String">E831</span><span class="Ignore">*</span> 这是一个内部错误，&quot;不应该发生&quot;。如果你能重现该错误，请向开发者报告。
+
+读入加密文件时如果 <span class="Type">'key'</span> 选项非空，它被用作解密的密钥。如果该值为空，你会得到
+提示，输入密钥。如果你不输密钥或者密钥不符，该文件以未解密的形式被编辑。使用错
+误的密钥不会有警告 (以增加暴力破解密钥的难度)。
+
+如果要以不同的密钥读入别的文件，设置 <span class="Type">'key'</span> 选项为空串，从而让 Vim 给出提示输入
+新值。不要用 &quot;:set&quot; 命令输入该值，否则别人在你身后就能看到了。
+
+因为 <span class="Type">'key'</span> 选项的值应该是个秘密，永远不要看它的值，也不要在 vimrc 文件里设置。
+
+如果你把如下诸行加到 &quot;/etc/magic&quot;、&quot;/usr/share/misc/magic&quot; 或者你系统支持的
+&quot;magic&quot; 文件里，你的加密文件可以被 &quot;file&quot; 命令识别:<span class="Ignore"> &gt;</span>
+<span class="Comment">     0	string	VimCrypt~	Vim encrypted file</span>
+<span class="Comment">     &gt;9	string	01	- &quot;zip&quot; cryptmethod</span>
+<span class="Comment">     &gt;9	string	02	- &quot;blowfish&quot; cryptmethod</span>
+<span class="Comment">     &gt;9	string	03	- &quot;blowfish2&quot; cryptmethod</span>
+
+注意:
+- 如果用 <span class="Type">'charconvert'</span> 转换，不能实施加密。
+- 你复制或者删除的文本保存在编号的寄存器中。寄存器可以保存在 .viminfo 文件里，
+  从而可以读到。修改你的 <span class="Type">'viminfo'</span> 选项以确保安全。
+- 如果你走开一会儿，别入可能在 Vim 里输入命令，他不可能得到你的密钥。
+- 如果你输入密钥时发生错误，你就无法取回你的文本了！
+- 如果你用 &quot;:set key=value&quot; 命令输入密钥，它会保存在历史里，从而在 viminfo 文
+  件里显示 <span class="Type">'key'</span> 的值。
+- 没有 100% 的安全。Vim 的加密算法没有经过健壮性的严格测试。
+- 用于 <span class="Type">'cryptmethod'</span> 的 &quot;zip&quot; 算法是可以破解的。一个 4 字符的密钥需要大概一个
+  小时，6 字符的密钥需要一天 (在一台 Pentinum 133 PC 上)。这需要你知道文件里一
+  定会出现的若干文本。
+  专家可以依此方法破解任何密钥，如果文本已经被解密，则密钥可以被推算出，而其他
+  以相同密钥加密的文件也能被解出。
+- Pkzip 使用和 <span class="Type">'cryptmethod'</span> 的 &quot;zip&quot; 相同的加密方法，美国政府对其出口不持异
+  议。Pkzip 的公共文件 APPNOTE.TXT 详细描述了这一算法。
+- <span class="Type">'cryptmethod'</span> 的 &quot;blowfish&quot; 实现有漏洞。可以破解文件的前 64 个字节，在有些情
+  况下，甚至更多。不推荐，但 Vim 7.3 和 7.4 里还是最强的方法。&quot;zip&quot; 方法更弱。
+- Vim 起源于荷兰。这是源代码的出处。因此，加密代码并非从美国出口。
+
+<span class="PreProc">==============================================================================</span>
+10. 修改时间					<span class="Ignore">*</span><span class="String">timestamp</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">timestamps</span><span class="Ignore">*</span>
+
+Vim 记住文件开始编辑时的修改时间、模式和大小。这用来防止 (在你自己知道之前) 你
+有同一个文件的不同版本。
+
+在执行了外壳命令 (<span class="Ignore">|</span><span class="Identifier">:!cmd</span><span class="Ignore">|</span> <span class="Ignore">|</span><span class="Identifier">suspend</span><span class="Ignore">|</span> <span class="Ignore">|</span><span class="Identifier">:read!</span><span class="Ignore">|</span> <span class="Ignore">|</span><span class="Identifier">K</span><span class="Ignore">|</span>) 以后，Vim 会对窗口里的所有缓
+冲区的修改时间、模式和大小进行比较。Vim 会对在此期间被修改的文件执行相关的
+<span class="Ignore">|</span><span class="Identifier">FileChangedShell</span><span class="Ignore">|</span> 自动命令或者显示警告。GUI 上，在 Vim 取回输入焦点的时候也会
+发生。
+
+							<span class="Ignore">*</span><span class="String">E321</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E462</span><span class="Ignore">*</span>
+如果你想自动重新载入在 Vim 之外被修改的文件的新内容，置位 <span class="Type">'autoread'</span> 选项。如
+果你已经在 Vim 里修改过这个文件，这不会工作。
+
+如果你不想被询问，也不想自动载入文件，可以这样:<span class="Ignore"> &gt;</span>
+<span class="Comment">	set buftype=nofile</span>
+
+或者，从外壳启动 gvim:<span class="Ignore"> &gt;</span>
+<span class="Comment">	gvim file.log -c &quot;set buftype=nofile&quot;</span>
+
+注意 如果定义了 FileChangedShell 自动命令，你不会得到警告信息或者提示。该自动
+命令应负责处理。
+
+对目录的修改也不会有警告 (例如用 <span class="Ignore">|</span><span class="Identifier">netrw-browse</span><span class="Ignore">|</span>)，除非你开始编辑一个新文件，但
+它在外部被建立为一个目录。
+
+当 Vim 注意到一个文件的修改时间被修改并且该文件正在缓冲区里等待编辑但还未经修
+改，会先检查文件内容是否相同，这是通过再次读入该文件 (到一个隐藏缓冲区，该缓冲
+区事后被立即删除)，并比较两个缓冲区的文本完成的。如果相同，你不会得到警告。
+
+如果你觉得警告不够及时或不够充分，你可以使用如下命令。
+
+							<span class="Ignore">*</span><span class="String">:checkt</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:checktime</span><span class="Ignore">*</span>
+:checkt[ime]		检查是否有缓冲区在 Vim 之外被改变。 该命令检查你是否有
+			文件的两个版本并给出警告。
+			如果它在自动命令、&quot;:global&quot; 命令或者任何非键盘输入中调
+			用，实际的检查会延迟，直到副作用 (重新读入文件) 不会有
+			任何问题。
+			每个已读入的缓冲区会检查相关的文件是否被改变。如果是，
+			则 Vim 会采取行动。如果缓冲区没有修改过而且置位了
+			<span class="Type">'autoread'</span>，缓冲区被重新读入。否则，你会被询问是否重新
+			读入文件。如果文件被删除，你会得到一个错误信息。如果文
+			件过去不存在但现在已经存在，你会得到一个警告。
+			一旦检查过某个文件，他的修改时间被重置。因而，你不会被
+			重复警告。
+
+:<span class="Special">[N]</span>checkt[ime] <span class="Special">{filename}</span>
+:<span class="Special">[N]</span>checkt[ime] <span class="Special">[N]</span>
+			检查某个特定缓冲区的修改时间。该缓冲区可以用名字、编号
+			或者模式指定。
+
+
+							<span class="Ignore">*</span><span class="String">E813</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E814</span><span class="Ignore">*</span>
+如果你指定 Vim 重载缓冲区，如果某可见窗口包含了该缓冲区，重载会在该窗口的上下
+文中进行。否则，会使用一个特殊窗口，这使得大多数的自动命令可以执行。你不能关闭
+这个窗口，还有一些其它特殊的限制。最好不要涉及到本缓冲区之外的对象。例如，设置
+局部于窗口的选项可能会选错窗口。分割窗口来做一些操作，然后关闭新分割的窗口应该
+没问题 (假定其它自动命令没有副作用)。但关闭不相关的窗口和缓冲区就不好了。
+
+在你写入文件的时候，修改时间被检查。如果发生了改变，Vim 会提示你是否要真的覆盖
+该文件:
+
+	<span class="Todo">WARNING</span>: The file has been changed since reading it!!!
+	Do you really want to write to it (y/n)?
+
+如果你按 'y'，Vim 会继续写入文件。如果你按 'n'，写入操作被取消。如果你用 &quot;:wq&quot;
+或者 &quot;ZZ&quot;，Vim 因而不会退出。从而你还有机会写入文件。
+
+通常，该消息意味着有人在编辑会话开始后，写入到该文件里。这可能是别人，这时你可
+能想检查你的修改和别人的修改是否可以合并。将文件写到别的名字然后比较两者的差
+异 (可以用 &quot;diff&quot; 程序)。
+
+当然也有可能你自己在另外一个编辑会话中或者用别的命令 (例如一个过滤命令) 修改了
+该文件。这样，你自己知道希望保留文件的哪个版本。
+
+有一个情况即使在没有任何错误的时候也会得到消息: Win32 系统在夏令时开始的时候。
+Win32 库的一些细节使得 Vim 对小时的变化有些混淆。第二天问题就没有了。
+
+<span class="PreProc">==============================================================================</span>
+11. 文件搜索						<span class="Ignore">*</span><span class="String">file-searching</span><span class="Ignore">*</span>
+
+{仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+path_extra</span><span class="Ignore">|</span> 特性才有效}
+
+文件搜索目前用于 <span class="Type">'path'</span>、<span class="Type">'cdpath'</span> 和 <span class="Type">'tags'</span> 选项和 <span class="Ignore">|</span><span class="Identifier">finddir()</span><span class="Ignore">|</span> 和
+<span class="Ignore">|</span><span class="Identifier">findfile()</span><span class="Ignore">|</span>。其他命令使用 <span class="Ignore">|</span><span class="Identifier">wildcards</span><span class="Ignore">|</span>，则略有不同。
+
+有三种不同类型的搜索:
+
+1) 向下搜索:						<span class="Ignore">*</span><span class="String">starstar</span><span class="Ignore">*</span>
+   向下搜索使用 '*'、'**' 或其他操作系统支持的通配符。'*' 和 '**' 是由 Vim 内
+   部处理的，以适用于所有操作系统。注意 &quot;**&quot; 只在文件名开始处才被当作特殊的通
+   配符。
+
+   '*' 的使用很简单: 匹配 0 个或更多字符。如果用搜索模式，应该是 &quot;.*&quot;。但注意
+   文件搜索不使用 &quot;.&quot; 元字符。
+
+   '**' 则复杂的多:
+      - _只_匹配目录。
+      - 匹配缺省最多可达 30 层的目录。所以你可以用它整个目录树里查找
+      - 最大匹配的层数可以通过在 '**' 之后给出数字限定。
+	这样，'/usr/**2' 可以匹配:<span class="Ignore"> &gt;</span>
+<span class="Comment">		/usr</span>
+<span class="Comment">		/usr/include</span>
+<span class="Comment">		/usr/include/sys</span>
+<span class="Comment">		/usr/include/g++</span>
+<span class="Comment">		/usr/lib</span>
+<span class="Comment">		/usr/lib/X11</span>
+<span class="Comment">		....</span>
+<span class="Ignore">&lt;</span>	它_不_匹配 '/usr/include/g++/std'，因为这已到了第三层。
+	允许的数字范围是 0 ('**0' 被直接去掉) 到 100。如果给定的数字小于 0，则
+	缺省为 30。如果大于 100，则使用 100。系统本身还有路径长度的上限，通常
+	是 256 或 1024 字节。
+      - '**' 只能用于路径的尾部，或者后面紧跟一个路径分隔符，或者后面紧跟一个
+	数字加一个路径分隔符。
+
+   你可以用任何顺序混合 '*' 和 '**':<span class="Ignore"> &gt;</span>
+<span class="Comment">	/usr/*/sys/**</span>
+<span class="Comment">	/usr/*tory/sys/**</span>
+<span class="Comment">	/usr/**2/sys/*</span>
+
+2) 向上搜索:
+   这里，你可以给出一个目录，然后沿着目录树向上搜索一个文件。你可以给出若干终
+   止目录来限制搜索的范围。终止目录附加于路径 (对 <span class="Type">'path'</span> 选项而言) 或文件名
+   (对 <span class="Type">'tags'</span> 选项而言) 之后，中间以 &quot;;&quot; 分隔。如果需要多个终止目录，一一列
+   出，以 ';' 分隔。如果你不想要终止目录 (搜索直到根目录)，只要用 &quot;;&quot;。<span class="Ignore"> &gt;</span>
+<span class="Comment">	/usr/include/sys;/usr</span>
+<span class="Ignore">&lt;</span>   会在以下位置搜索:<span class="Ignore"> &gt;</span>
+<span class="Comment">	   /usr/include/sys</span>
+<span class="Comment">	   /usr/include</span>
+<span class="Comment">	   /usr</span>
+<span class="Ignore">&lt;</span>
+   如果你用相对路径，则向上搜索始于 Vim 的当前目录或当前文件的目录 (如果相对路
+   径始于 &quot;./&quot; 并且 <span class="Type">'cpoptions'</span> 里不含 'd' 的话)。
+
+   如果 Vim 的当前路径是 /u/user_x/work/release 而你用<span class="Ignore"> &gt;</span>
+<span class="Comment">	:set path=include;/u/user_x</span>
+<span class="Ignore">&lt;</span>  然后用 <span class="Ignore">|</span><span class="Identifier">gf</span><span class="Ignore">|</span> 搜索文件，则文件在如下位置搜索:<span class="Ignore"> &gt;</span>
+<span class="Comment">	/u/user_x/work/release/include</span>
+<span class="Comment">	/u/user_x/work/include</span>
+<span class="Comment">	/u/user_x/include</span>
+
+3) 混合向上/向下搜索
+   如果 Vim 当前路径是 /u/user_x/work/release 而你用<span class="Ignore"> &gt;</span>
+<span class="Comment">	set path=**;/u/user_x</span>
+<span class="Ignore">&lt;</span>  然后用 <span class="Ignore">|</span><span class="Identifier">gf</span><span class="Ignore">|</span> 搜索文件，则文件在如下位置搜索:<span class="Ignore"> &gt;</span>
+<span class="Comment">	/u/user_x/work/release/**</span>
+<span class="Comment">	/u/user_x/work/**</span>
+<span class="Comment">	/u/user_x/**</span>
+<span class="Ignore">&lt;</span>
+   _要小心_！这会消耗大量时间，因为对 '/u/user_x/**' 的搜索包括
+   '/u/user_x/work/**' 和 '/u/user_x/work/release/**'。因此
+   '/u/user_x/work/release/**' 被搜索三遍而 '/u/user_x/work/**' 被搜索两遍。
+
+   因而，在上例中你可能想如此设置 path:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:set path=**,/u/user_x/**</span>
+<span class="Ignore">&lt;</span>   这会搜索:
+	<span class="PreProc">/u/user_x/work/release/**</span><span class="Ignore"> ~</span>
+	<span class="PreProc">/u/user_x/**</span><span class="Ignore"> ~</span>
+    它会搜索相同的目录群，但顺序不同。
+
+    注意 &quot;:find&quot;、&quot;:sfind&quot; 和 &quot;:tabfind&quot; 命令的补全目前不接受包含 url、使用带
+    深度限定的双星记号 (/usr/**2) 或向上搜索 (;) 记号的 <span class="Type">'path'</span> 项目。
+
+ vim&#0058;tw=78:ts=8:ft=help:norl:
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

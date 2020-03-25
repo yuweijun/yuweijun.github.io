@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>~/github.com/yuweijun/yuweijun.github.io/vim-zh/if_lua.cnx.html</title>
+<meta name="Generator" content="Vim/8.2">
+<meta name="plugin-version" content="vim8.1_v2">
+<meta name="syntax" content="help">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,prevent_copy=,use_input_for_pc=fallback">
+<meta name="colorscheme" content="molokai">
+<style>
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #d0d0d0; background-color: #121212; }
+body { font-family: monospace; color: #d0d0d0; background-color: #121212; }
+* { font-size: 1em; }
+.String { color: #afaf87; }
+.Type { color: #5fd7ff; }
+.PreProc { color: #87ff00; }
+.Identifier { color: #ff8700; }
+.Comment { color: #5f5f5f; }
+.Special { color: #5fd7ff; }
+.Ignore { color: #808080; background-color: #080808; padding-bottom: 1px; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="Ignore">*</span><span class="String">if_lua.txt</span><span class="Ignore">*</span>    For <span class="Identifier">Vim version 8.0.</span>  最近更新: 2017年7月
+
+
+		  VIM 参考手册    by Luis Carvalho
+				译者: Willis
+				<span class="String"><a href="http://vimcdoc.sf.net">http://vimcdoc.sf.net</a></span>
+
+
+Vim 的 Lua 接口         				<span class="Ignore">*</span><span class="String">lua</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">Lua</span><span class="Ignore">*</span>
+
+1. 命令         		<span class="Ignore">|</span><span class="Identifier">lua-commands</span><span class="Ignore">|</span>
+2. vim 模块             	<span class="Ignore">|</span><span class="Identifier">lua-vim</span><span class="Ignore">|</span>
+3. 列表用户数据			<span class="Ignore">|</span><span class="Identifier">lua-list</span><span class="Ignore">|</span>
+4. 字典用户数据			<span class="Ignore">|</span><span class="Identifier">lua-dict</span><span class="Ignore">|</span>
+5. 函数引用用户数据		<span class="Ignore">|</span><span class="Identifier">lua-funcref</span><span class="Ignore">|</span>
+6. 缓冲区用户数据		<span class="Ignore">|</span><span class="Identifier">lua-buffer</span><span class="Ignore">|</span>
+7. 窗口用户数据			<span class="Ignore">|</span><span class="Identifier">lua-window</span><span class="Ignore">|</span>
+8. luaeval 函数	 		<span class="Ignore">|</span><span class="Identifier">lua-luaeval</span><span class="Ignore">|</span>
+9. 动态调入			<span class="Ignore">|</span><span class="Identifier">lua-dynamic</span><span class="Ignore">|</span>
+
+<span class="Special">{Vi 没有任何以上的命令}</span>
+
+仅当 Vim 编译时加入 <span class="Ignore">|</span><span class="Identifier">+lua</span><span class="Ignore">|</span> 特性时 Lua 接口才可用。
+
+<span class="PreProc">==============================================================================</span>
+1. 命令         					<span class="Ignore">*</span><span class="String">lua-commands</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">:lua</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>lua <span class="Special">{chunk}</span>
+			执行 Lua 语言块 <span class="Special">{chunk}</span>。<span class="Special">{Vi 无此功能}</span>
+
+示例:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	:lua print(&quot;Hello, Vim!&quot;)</span>
+<span class="Comment">	:lua local curbuf = vim.buffer() curbuf[7] = &quot;line #7&quot;</span>
+<span class="Ignore">&lt;</span>
+
+:<span class="Special">[range]</span>lua &lt;&lt; <span class="Special">{endmarker}</span>
+<span class="Special">{script}</span>
+<span class="Special">{endmarker}</span>
+			执行 Lua 脚本 <span class="Special">{script}</span>。<span class="Special">{Vi 无此功能}</span>
+			注意: 如果编译时没有加入 Lua 特性，此命令不能工作。要
+			避免错误，见 <span class="Ignore">|</span><span class="Identifier">script-here</span><span class="Ignore">|</span>。
+
+<span class="Special">{endmarker}</span> 之前_不能_有任何空白。如果 &quot;&lt;&lt;&quot; 之后的 <span class="Special">{endmarker}</span> 省略，<span class="Special">{script}</span>
+之后必须加上句号 '.'，就像 <span class="Ignore">|</span><span class="Identifier">:append</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">:insert</span><span class="Ignore">|</span> 命令那样。
+这种形式的 <span class="Ignore">|</span><span class="Identifier">:lua</span><span class="Ignore">|</span> 命令主要用于在 Vim 脚本中嵌入 Lua 代码。
+
+示例:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	function! CurrentLineInfo()</span>
+<span class="Comment">	lua &lt;&lt; EOF</span>
+<span class="Comment">	local linenr = vim.window().line</span>
+<span class="Comment">	local curline = vim.buffer()[linenr]</span>
+<span class="Comment">	print(string.format(&quot;Current line [%d] has %d chars&quot;,</span>
+<span class="Comment">		linenr, #curline))</span>
+<span class="Comment">	EOF</span>
+<span class="Comment">	endfunction</span>
+<span class="Ignore">&lt;</span>
+要看运行的 Lua 版本:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:lua print(_VERSION)</span>
+
+如果用 LuaJIT，也可以用:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:lua print(jit.version)</span>
+<span class="Ignore">&lt;</span>
+
+							<span class="Ignore">*</span><span class="String">:luado</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>luado <span class="Special">{body}</span>	在 <span class="Special">[range]</span> 行范围的每行执行 Lua 函数
+			&quot;function (line,linenr) <span class="Special">{body}</span> end&quot;，其中，函数参数是
+			每行的文本，结尾的 <span class="Special">&lt;EOL&gt;</span> 不计，和当前的行号。函数返回
+			值为字符串时用来替代当前行的文本。缺省的 <span class="Special">[range]</span> 是整
+			个文件: &quot;1,$&quot;。
+			<span class="Special">{Vi 无此功能}</span>
+
+示例:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	:luado return string.format(&quot;%s\t%d&quot;, line:reverse(), #line)</span>
+
+<span class="Comment">	:lua require&quot;lpeg&quot;</span>
+<span class="Comment">	:lua -- balanced parenthesis grammar:</span>
+<span class="Comment">	:lua bp = lpeg.P{ &quot;(&quot; * ((1 - lpeg.S&quot;()&quot;) + lpeg.V(1))^0 * &quot;)&quot; }</span>
+<span class="Comment">	:luado if bp:match(line) then return &quot;--&gt;\t&quot; .. line end</span>
+<span class="Ignore">&lt;</span>
+
+							<span class="Ignore">*</span><span class="String">:luafile</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>luafile <span class="Special">{file}</span>
+			执行 Lua <span class="Special">{file}</span> 文件中的脚本。<span class="Special">{Vi 无此功能}</span>
+			整个参数用作单个文件名。
+
+示例:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	:luafile script.lua</span>
+<span class="Comment">	:luafile %</span>
+<span class="Ignore">&lt;</span>
+
+以上的命令都可执行一段 Lua 代码块 (chunk)，或从命令行 (:lua 和 :luado)，或从文
+件 (:luafile)，并可给出行范围 <span class="Special">[range]</span>。和 Lua 解释器类似，每个代码块都有自己的
+作用域，所以命令之间只有全局变量可以共享。所有的 Lua 缺省库都可用。此外，Lua
+的 &quot;print&quot; 函数的输出重定向到 Vim 消息区，参数以空格而不是制表符分隔。
+
+Lua 使用 &quot;vim&quot; 模块 (见 <span class="Ignore">|</span><span class="Identifier">lua-vim</span><span class="Ignore">|</span>) 来对 Vim 发出指令以及对缓冲区
+(<span class="Ignore">|</span><span class="Identifier">lua-buffer</span><span class="Ignore">|</span>) 和窗口 (<span class="Ignore">|</span><span class="Identifier">lua-window</span><span class="Ignore">|</span>) 进行管理。不过在 <span class="Ignore">|</span><span class="Identifier">sandbox</span><span class="Ignore">|</span> 中执行命令时，
+修改缓冲区内容、打开新缓冲区和改变光标位置的过程收到限制。
+
+
+<span class="PreProc">==============================================================================</span>
+2. vim 模块						<span class="Ignore">*</span><span class="String">lua-vim</span><span class="Ignore">*</span>
+
+Lua 通过 &quot;vim&quot; 模块和 Vim 进行接口。输入行范围的首末行分别存入 &quot;vim.firstline&quot;
+和 &quot;vim.lastline&quot;。该模块也包含一些对缓冲区、窗口以及当前行查询的例程、Vim 调
+用和命令执行，以及其它各种操作。
+
+	vim.list(<span class="Special">[arg]</span>)		返回空列表或者，如果给出 &quot;arg&quot; 为带有数值键值
+				1, ..., n 的Lua 表 (即 &quot;sequence&quot;)，返回列表
+				l，l[i] = arg[i] 对 i = 1, .., n (见 <span class="Ignore">|</span><span class="Identifier">List</span><span class="Ignore">|</span>)。
+				非数值的键值不用于列表的初始化。转换规则参见
+				<span class="Ignore">|</span><span class="Identifier">lua-eval</span><span class="Ignore">|</span>。示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">					:lua t = {math.pi, false, say = 'hi'}</span>
+<span class="Comment">					:echo luaeval('vim.list(t)')</span>
+<span class="Comment">					:&quot; [3.141593, 0], 'say' 被忽略</span>
+<span class="Ignore">&lt;</span>
+
+	vim.dict(<span class="Special">[arg]</span>)		返回空字典或者，如果给出 &quot;arg&quot; 为 Lua 表，返回
+				字典 d，d[k] = arg[k] 对所有 &quot;arg&quot; 中的字符串
+				键值 k (见 <span class="Ignore">|</span><span class="Identifier">Dictionary</span><span class="Ignore">|</span>)。数值键值转化为字符
+				串。非字符串的键值不用于列表的初始化。转换规则
+				参见 <span class="Ignore">|</span><span class="Identifier">lua-eval</span><span class="Ignore">|</span>。示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">					:lua t = {math.pi, false, say = 'hi'}</span>
+<span class="Comment">					:echo luaeval('vim.dict(t)')</span>
+<span class="Comment">					:&quot; {'say': 'hi'}, 数值键被忽略</span>
+<span class="Ignore">&lt;</span>
+	vim.funcref(<span class="Special">{name}</span>)	返回对应函数名 <span class="Special">{name}</span> 的函数引用 (参见
+				<span class="Ignore">|</span><span class="Identifier">Funcref</span><span class="Ignore">|</span>)。等价于 Vim 的 &quot;function&quot;。
+				_还未实现_
+
+	vim.buffer(<span class="Special">[arg]</span>)	如果 &quot;arg&quot; 是数值，返回缓冲区列表中编号为
+				&quot;arg&quot; 的缓冲区。如果 &quot;arg&quot; 为字符串，返回完整
+				明或简短名为 &quot;arg&quot; 的缓冲区。这两种情况下，如
+				果找不到缓冲区，返回 <span class="Type">'nil'</span>。此外，如果
+				&quot;toboolean(arg)&quot; 为 <span class="Type">'true'</span>，返回缓冲区列表的首
+				个缓冲区，否则返回当前缓冲区。
+
+	vim.window(<span class="Special">[arg]</span>)	如果 &quot;arg&quot; 是数值，返回编号为 &quot;arg&quot; 的窗口，如
+				果找不到，返回 <span class="Type">'nil'</span>。此外，如果
+				&quot;toboolean(arg)&quot; 为 <span class="Type">'true'</span>，返回首个窗口，否则
+				返回当前窗口。
+
+	vim.type(<span class="Special">{arg}</span>)		返回 <span class="Special">{arg}</span> 的类型。等价于 Lua 的 &quot;type&quot; 函数，
+				但若 <span class="Special">{arg}</span> 是列表、字典、缓冲区、窗口则分别返
+				回 &quot;list&quot;、&quot;dict&quot;、&quot;funcref&quot;、&quot;buffer&quot; 或
+				&quot;window&quot;。示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">					:lua l = vim.list()</span>
+<span class="Comment">					:lua print(type(l), vim.type(l))</span>
+<span class="Comment">					:&quot; userdata list</span>
+<span class="Ignore">&lt;</span>
+	vim.command(<span class="Special">{cmd}</span>)	执行 vim (ex 模式) 命令 <span class="Special">{cmd}</span>。
+				示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">					:lua vim.command&quot;set tw=60&quot;</span>
+<span class="Comment">					:lua vim.command&quot;normal ddp&quot;</span>
+<span class="Ignore">&lt;</span>
+	vim.eval(<span class="Special">{expr}</span>)	计算表达式 <span class="Special">{expr}</span> (见 <span class="Ignore">|</span><span class="Identifier">expression</span><span class="Ignore">|</span>)，把结果转
+				化为 Lua 格式并返回。Vim 字符串和数值被直接转
+				为响应的 Lua 字符串和数值类型。Vim 列表和字典
+				被转化为 Lua 的用户数据 (userdata) (见
+				<span class="Ignore">|</span><span class="Identifier">lua-list</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">lua-dict</span><span class="Ignore">|</span>)。
+				示例:<span class="Ignore"> &gt;</span>
+<span class="Comment">					:lua tw = vim.eval&quot;&amp;tw&quot;</span>
+<span class="Comment">					:lua print(vim.eval&quot;{'a': 'one'}&quot;.a)</span>
+<span class="Ignore">&lt;</span>
+	vim.line()		返回当前行 (没有结尾的 <span class="Special">&lt;EOL&gt;</span>)，Lua 字符串。
+
+	vim.beep()		鸣笛。
+
+	vim.open(<span class="Special">{fname}</span>)	为文件 <span class="Special">{fname}</span> 打开新缓冲区并返回之。注意 并不
+				把该缓冲区设为当前缓冲区。
+
+
+<span class="PreProc">==============================================================================</span>
+3. 列表用户数据						<span class="Ignore">*</span><span class="String">lua-list</span><span class="Ignore">*</span>
+
+列表用户数据代表 vim 的列表，其接口尽量和 Vim 的列表语法相近。因为列表为对象，
+Lua 中列表引用的改变会反映在 Vim 中，反之亦然。列表 &quot;l&quot; 有以下属性和方法:
+
+属性
+<span class="PreProc">----------</span>
+	o &quot;#l&quot; 是列表 &quot;l&quot; 的项目数，相当于 Vim 中的 &quot;len(l)&quot;。
+	o &quot;l[k]&quot; 返回 &quot;l&quot; 的第 k 项；&quot;l&quot; 索引从零开始，和 Vim 一样。要修改第 k
+	    项，可用 &quot;l[k] = newitem&quot;；特别地，&quot;l[k] = nil&quot; 删除 &quot;l&quot; 的第 k
+	    项。
+	o &quot;l()&quot; 返回遍历 &quot;l&quot; 的 iterator。
+
+方法
+<span class="PreProc">-------</span>
+	o &quot;l:add(item)&quot; 在 &quot;l&quot; 尾部附加 &quot;item&quot; 项目。
+	o &quot;l:insert(item[, pos])&quot; 在可选的 &quot;pos&quot; 指定的位置上插入 &quot;item&quot; 项
+	    目。&quot;pos&quot; 缺省值为 &quot;0&quot;。
+
+示例:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	:let l = [1, 'item']</span>
+<span class="Comment">	:lua l = vim.eval('l') -- 相同的 'l'</span>
+<span class="Comment">	:lua l:add(vim.list())</span>
+<span class="Comment">	:lua l[0] = math.pi</span>
+<span class="Comment">	:echo l[0] &quot; 3.141593</span>
+<span class="Comment">	:lua l[0] = nil -- 删除第一项</span>
+<span class="Comment">	:lua l:insert(true, 1)</span>
+<span class="Comment">	:lua print(l, #l, l[0], l[1], l[-1])</span>
+<span class="Comment">	:lua for item in l() do print(item) end</span>
+<span class="Ignore">&lt;</span>
+
+<span class="PreProc">==============================================================================</span>
+4. 字典用户数据						<span class="Ignore">*</span><span class="String">lua-dict</span><span class="Ignore">*</span>
+
+和列表用户数据类似，字典用户数据代表 vim 的字典；既然字典也是对象，Lua 和 Vim
+共享对象的引用。字典 &quot;d&quot; 有以下属性:
+
+属性
+<span class="PreProc">----------</span>
+	o &quot;#d&quot; 是字典 &quot;d&quot; 的项目数，相当于 Vim 中的 &quot;len(d)&quot;。
+	o &quot;d.key&quot; 或 &quot;d[<span class="Type">'key'</span>]&quot; 返回 &quot;d&quot; &quot;key&quot; 对应项目的值。要修改其值，可用
+	  &quot;d.key = newvalue&quot;; 特别地，&quot;d[k] = nil&quot; 删除 &quot;d&quot; 中的对应项目。
+	o &quot;d()&quot; 返回遍历 &quot;d&quot; 的 iterator，等价于 Vim 的 &quot;items(d)&quot;。
+
+示例:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	:let d = {'n':10}</span>
+<span class="Comment">	:lua d = vim.eval('d') -- 相同的 'd'</span>
+<span class="Comment">	:lua print(d, d.n, #d)</span>
+<span class="Comment">	:let d.self = d</span>
+<span class="Comment">	:lua for k, v in d() do print(d, k, v) end</span>
+<span class="Comment">	:lua d.x = math.pi</span>
+<span class="Comment">	:lua d.self = nil -- 删除项目</span>
+<span class="Comment">	:echo d</span>
+<span class="Ignore">&lt;</span>
+
+<span class="PreProc">==============================================================================</span>
+5. 函数引用用户数据					<span class="Ignore">*</span><span class="String">lua-funcref</span><span class="Ignore">*</span>
+
+函数引用用户数据代表 Vim 的函数引用变量。定义时带有 &quot;dict&quot; 属性的函数引用需通
+过赋给某字典的一个键值来使其 &quot;self&quot; 对应该字典 (见下例)。函数引用 &quot;f&quot; 有以下属
+性:
+
+属性
+<span class="PreProc">----------</span>
+	o &quot;#f&quot; 是 &quot;f&quot; 引用的函数名
+	o &quot;f(...)&quot; 调用 &quot;f&quot; 引用的函数 (带参数)
+
+示例:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	:function I(x)</span>
+<span class="Comment">	:  return a:x</span>
+<span class="Comment">	:  endfunction</span>
+<span class="Comment">	:let R = function('I')</span>
+<span class="Comment">	:lua i1 = vim.funcref('I')</span>
+<span class="Comment">	:lua i2 = vim.eval('R')</span>
+<span class="Comment">	:lua print(#i1, #i2) -- 都应返回 'I'</span>
+<span class="Comment">	:lua print(i1, i2, #i2(i1) == #i1(i2))</span>
+<span class="Comment">	:function Mylen() dict</span>
+<span class="Comment">	:  return len(self.data)</span>
+<span class="Comment">	:  endfunction</span>
+<span class="Comment">	:let mydict = {'data': [0, 1, 2, 3]}</span>
+<span class="Comment">	:lua d = vim.eval('mydict'); d.len = vim.funcref('Mylen')</span>
+<span class="Comment">	:echo mydict.len()</span>
+<span class="Comment">	:lua l = d.len -- 把 d 视为 'self'</span>
+<span class="Comment">	:lua print(l())</span>
+<span class="Ignore">&lt;</span>
+
++==============================================================================
+6. 缓冲区用户数据					<span class="Ignore">*</span><span class="String">lua-buffer</span><span class="Ignore">*</span>
+
+缓冲区用户数据代表 vim 的缓冲区。缓冲区用户数据 &quot;b&quot; 包含以下属性和方法:
+
+属性
+<span class="PreProc">----------</span>
+	o &quot;b()&quot; 设置 &quot;b&quot; 为当前缓冲区。
+	o &quot;#b&quot; 是缓冲区 &quot;b&quot; 的行数。
+	o &quot;b[k]&quot; 代表行号 k: &quot;b[k] = newline&quot; 把第 &quot;k&quot; 行替换为字符串
+	    &quot;newline&quot;，还有 &quot;b[k] = nil&quot; 删除第 &quot;k&quot; 行。
+	o &quot;b.name&quot; 包含缓冲区 &quot;b&quot; 的简短名 (只读)。
+	o &quot;b.fname&quot; 包含缓冲区 &quot;b&quot; 的完整名 (只读)。
+	o &quot;b.number&quot; 包含缓冲区 &quot;b&quot; 在缓冲区列表的位置 (只读)。
+
+方法
+<span class="PreProc">-------</span>
+	o &quot;b:insert(newline&quot;[, pos]&quot;)&quot; 在缓冲区 &quot;pos&quot; (可选) 位置插入
+	    &quot;newline&quot; 字符串。&quot;pos&quot; 缺省值为 &quot;#b + 1&quot;。如果 &quot;pos == 0&quot;，
+	    &quot;newline&quot; 将成为缓冲区的首行。
+	o &quot;b:next()&quot; 返回缓冲区列表中 &quot;b&quot; 的下一个缓冲区。
+	o &quot;b:previous()&quot; 返回缓冲区列表 &quot;b&quot; 的前一个缓冲区。
+	o &quot;b:isvalid()&quot; 如果缓冲区 &quot;b&quot; 对应 &quot;真正的&quot; (内存没有释放的) Vim 缓
+	    冲区时，返回 <span class="Type">'true'</span> (布尔值)。
+
+示例:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	:lua b = vim.buffer() -- 当前缓冲区</span>
+<span class="Comment">	:lua print(b.name, b.number)</span>
+<span class="Comment">	:lua b[1] = &quot;first line&quot;</span>
+<span class="Comment">	:lua b:insert(&quot;FIRST!&quot;, 0)</span>
+<span class="Comment">	:lua b[1] = nil -- 删除首行</span>
+<span class="Comment">	:lua for i=1,3 do b:insert(math.random()) end</span>
+<span class="Comment">	:3,4lua for i=vim.lastline,vim.firstline,-1 do b[i] = nil end</span>
+<span class="Comment">	:lua vim.open&quot;myfile&quot;() -- 打开缓冲区，设为当前缓冲区</span>
+
+<span class="Comment">	function! ListBuffers()</span>
+<span class="Comment">	lua &lt;&lt; EOF</span>
+<span class="Comment">	local b = vim.buffer(true) -- 列表中的首个缓冲区</span>
+<span class="Comment">	while b ~= nil do</span>
+<span class="Comment">		print(b.number, b.name, #b)</span>
+<span class="Comment">		b = b:next()</span>
+<span class="Comment">	end</span>
+<span class="Comment">	vim.beep()</span>
+<span class="Comment">	EOF</span>
+<span class="Comment">	endfunction</span>
+<span class="Ignore">&lt;</span>
+
+<span class="PreProc">==============================================================================</span>
+7. 窗口用户数据						<span class="Ignore">*</span><span class="String">lua-window</span><span class="Ignore">*</span>
+
+窗口对象代表 vim 窗口。窗口用户数据 &quot;w&quot; 有以下属性和方法:
+
+属性
+<span class="PreProc">----------</span>
+	o &quot;w()&quot; 设置 &quot;w&quot; 为当前窗口。
+	o &quot;w.buffer&quot; 返回窗口 &quot;w&quot; 对应的缓冲区 (只读)。
+	o &quot;w.line&quot; 返回窗口 &quot;w&quot; 的光标行位置。
+	o &quot;w.col&quot; 返回窗口 &quot;w&quot; 的光标列位置。
+	o &quot;w.width&quot; 代表窗口 &quot;w&quot; 的宽度。
+	o &quot;w.height&quot; 代表窗口 &quot;w&quot; 的高度。
+
+方法
+<span class="PreProc">-------</span>
+	o &quot;w:next()&quot; 返回 &quot;w&quot; 的下一个窗口。
+	o &quot;w:previous()&quot; 返回 &quot;w&quot; 的前一个窗口。
+	o &quot;w:isvalid()&quot;  如果窗口 &quot;w&quot; 对应 &quot;真正的&quot; (内存没有释放的) Vim 窗
+	    口，返回 <span class="Type">'true'</span> (布尔值)。
+
+示例:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	:lua w = vim.window() -- 当前窗口</span>
+<span class="Comment">	:lua print(w.buffer.name, w.line, w.col)</span>
+<span class="Comment">	:lua w.width = w.width + math.random(10)</span>
+<span class="Comment">	:lua w.height = 2 * math.random() * w.height</span>
+<span class="Comment">	:lua n,w = 0,vim.window(true) while w~=nil do n,w = n + 1,w:next() end</span>
+<span class="Comment">	:lua print(&quot;有 &quot; .. n .. &quot; 个窗口&quot;)</span>
+<span class="Ignore">&lt;</span>
+
+<span class="PreProc">==============================================================================</span>
+8. luaeval 函数						<span class="Ignore">*</span><span class="String">lua-luaeval</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">lua-eval</span><span class="Ignore">*</span>
+
+和 &quot;vim.eval&quot; 对应，&quot;luaeval&quot; 在 Vim 中接受 Lua 值的传入。&quot;luaeval&quot; 接受一个
+表达式字符串以及一个可选的参数，并返回表达式计算的结果。语义上，等价于在 Lua
+里进行如下的操作:
+<span class="Ignore">&gt;</span>
+<span class="Comment">	local chunkheader = &quot;local _A = select(1, ...) return &quot;</span>
+<span class="Comment">	function luaeval (expstr, arg)</span>
+<span class="Comment">	    local chunk = assert(loadstring(chunkheader .. expstr, &quot;luaeval&quot;))</span>
+<span class="Comment">	    return chunk(arg) -- return typval</span>
+<span class="Comment">	end</span>
+<span class="Ignore">&lt;</span>
+注意 &quot;_A&quot; 接收给 &quot;luaeval&quot; 的参数。Lua 数值，字符串，列表，字典和函数引用用户
+数据转化为 Vim 对应的类型，Lua 布尔型转化为数值。试图转换其他 Lua 类型的企图，
+包括非列表、字典、函数引用的用户数据，会抛出错误。
+
+示例:<span class="Ignore"> &gt;</span>
+
+<span class="Comment">	:echo luaeval('math.pi')</span>
+<span class="Comment">	:lua a = vim.list():add('newlist')</span>
+<span class="Comment">	:let a = luaeval('a')</span>
+<span class="Comment">	:echo a[0] &quot; 'newlist'</span>
+<span class="Comment">	:function Rand(x,y) &quot; random uniform between x and y</span>
+<span class="Comment">	:  return luaeval('(_A.y-_A.x)*math.random()+_A.x', {'x':a:x,'y':a:y})</span>
+<span class="Comment">	:  endfunction</span>
+<span class="Comment">	:echo Rand(1,10)</span>
+
+
+<span class="PreProc">==============================================================================</span>
+9. 动态调入					    <span class="Ignore">*</span><span class="String">lua-dynamic</span><span class="Ignore">*</span>
+
+MS-Windows 和 Unix 上，可以动态调入 Lua 库。此时 <span class="Ignore">|</span><span class="Identifier">:version</span><span class="Ignore">|</span> 输出包含
+<span class="Ignore">|</span><span class="Identifier">+lua/dyn</span><span class="Ignore">|</span>。
+
+这意味着 Vim 只有在必要时才寻找 Lua DLL 或共享文件。如果不使用 Lua 接口，
+你就不需要它们。这样，即使没有这些 DLL 文件，你也可使用 Vim。
+
+
+<span class="PreProc">MS-Windows</span><span class="Ignore"> ~</span>
+
+要使用 Lua 接口，Lua DLL 必须在搜索路径上。控制台窗口里输入 &quot;path&quot; 可以看到
+(搜索路径) 当前使用的目录。也可用 <span class="Type">'luadll'</span> 选项指定 Lua DLL。DLL 的版本必须和
+Vim 编译使用的 Lua 版本保持一致。
+
+
+<span class="PreProc">Unix</span><span class="Ignore"> ~</span>
+
+<span class="Type">'luadll'</span> 选项可用来指定 Lua 共享库文件，而不用编译时指定的 DYNAMIC_LUA_DLL 文
+件。共享库的版本必须和 Vim 编译使用的 Lua 版本保持一致。
+
+
+<span class="PreProc">==============================================================================</span>
+ vim&#0058;tw=78:ts=8:ft=help:norl:
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->

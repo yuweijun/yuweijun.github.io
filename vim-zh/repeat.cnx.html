@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>~/github.com/yuweijun/yuweijun.github.io/vim-zh/repeat.cnx.html</title>
+<meta name="Generator" content="Vim/8.2">
+<meta name="plugin-version" content="vim8.1_v2">
+<meta name="syntax" content="help">
+<meta name="settings" content="use_css,pre_wrap,no_foldcolumn,prevent_copy=,use_input_for_pc=fallback">
+<meta name="colorscheme" content="molokai">
+<style>
+<!--
+pre { white-space: pre-wrap; font-family: monospace; color: #d0d0d0; background-color: #121212; }
+body { font-family: monospace; color: #d0d0d0; background-color: #121212; }
+* { font-size: 1em; }
+.String { color: #afaf87; }
+.Type { color: #5fd7ff; }
+.PreProc { color: #87ff00; }
+.Identifier { color: #ff8700; }
+.Comment { color: #5f5f5f; }
+.Special { color: #5fd7ff; }
+.Ignore { color: #808080; background-color: #080808; padding-bottom: 1px; }
+-->
+</style>
+</head>
+<body>
+<pre id='vimCodeElement'>
+<span class="Ignore">*</span><span class="String">repeat.txt</span><span class="Ignore">*</span>    For <span class="Identifier">Vim version 8.0.</span>  最近更新: 2017年8月
+
+
+		  VIM 参考手册    by Bram Moolenaar
+				译者: Willis
+				<span class="String"><a href="http://vimcdoc.sf.net">http://vimcdoc.sf.net</a></span>
+
+
+重复命令，Vim 脚本和调试				<span class="Ignore">*</span><span class="String">repeating</span><span class="Ignore">*</span>
+
+用户手册第 26 章 <span class="Ignore">|</span><span class="Identifier">usr_26.txt</span><span class="Ignore">|</span> 介绍了重复命令。
+
+1. 单次重复			<span class="Ignore">|</span><span class="Identifier">single-repeat</span><span class="Ignore">|</span>
+2. 多次重复			<span class="Ignore">|</span><span class="Identifier">multi-repeat</span><span class="Ignore">|</span>
+3. 重复组合操作			<span class="Ignore">|</span><span class="Identifier">complex-repeat</span><span class="Ignore">|</span>
+4. 使用 Vim 脚本		<span class="Ignore">|</span><span class="Identifier">using-scripts</span><span class="Ignore">|</span>
+5. 使用 Vim 软件包		<span class="Ignore">|</span><span class="Identifier">packages</span><span class="Ignore">|</span>
+6. 创建 Vim 软件包		<span class="Ignore">|</span><span class="Identifier">package-create</span><span class="Ignore">|</span>
+7. 调试脚本			<span class="Ignore">|</span><span class="Identifier">debug-scripts</span><span class="Ignore">|</span>
+8. 刨视				<span class="Ignore">|</span><span class="Identifier">profiling</span><span class="Ignore">|</span>
+
+<span class="PreProc">==============================================================================</span>
+1. 单次重复						<span class="Ignore">*</span><span class="String">single-repeat</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">.</span><span class="Ignore">*</span>
+.			重复上次改变，有计数前缀的重复 <span class="Special">[count]</span> 次。
+			如果 <span class="Type">'cpoptions'</span> 包括 'y' 标志， 也可以用来重复一个抽
+			出 (yank) 操作。不能重复命令行命令。
+
+简单的改变操作可以用 &quot;.&quot; 重复。如果没有数字前缀，使用上次的改变的重复次数。如
+果输入一个重复次数，就用它取代上次的计数。设置 v:count 和 v:count1。
+
+如果上次改变的操作使用数字编号的寄存器，则逐次递增使用寄存器的序号。一个使用的
+示例可以参见 <span class="Ignore">|</span><span class="Identifier">redo-register</span><span class="Ignore">|</span>。
+
+注意，如果重复的命令涉及可视的选择区域，使用相同_大小_的区域。参见
+<span class="Ignore">|</span><span class="Identifier">visual-repeat</span><span class="Ignore">|</span>。
+
+							<span class="Ignore">*</span><span class="String">@:</span><span class="Ignore">*</span>
+@:			重复上次命令行 <span class="Special">[count]</span> 次。
+			{仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+cmdline_hist</span><span class="Ignore">|</span> 特性才可用}
+
+
+<span class="PreProc">==============================================================================</span>
+2. 多次重复					<span class="Ignore">*</span><span class="String">multi-repeat</span><span class="Ignore">*</span>
+
+						<span class="Ignore">*</span><span class="String">:g</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:global</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E148</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>g[lobal]/<span class="Special">{pattern}</span>/<span class="Special">[cmd]</span>
+			在 <span class="Special">[range]</span> 界定的匹配模式 <span class="Special">{pattern}</span> 的文本行上执行
+			Ex 命令 <span class="Special">[cmd]</span> (缺省是 &quot;:p&quot;)。
+
+:<span class="Special">[range]</span>g[lobal]!/<span class="Special">{pattern}</span>/<span class="Special">[cmd]</span>
+			在 <span class="Special">[range]</span> 界定的_不_匹配模式 <span class="Special">{pattern}</span> 的文本行上执
+			行 Ex 命令 <span class="Special">[cmd]</span> (缺省是 &quot;:p&quot;)。
+
+							<span class="Ignore">*</span><span class="String">:v</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:vglobal</span><span class="Ignore">*</span>
+:<span class="Special">[range]</span>v[global]/<span class="Special">{pattern}</span>/<span class="Special">[cmd]</span>
+			等同于 :g!。
+
+除了用 '/' 来包围 <span class="Special">{pattern}</span> 以外，你可以用任何其它单字节字符，但不包括字母、
+'\'、'&quot;' 或 '|'。这对你想在搜索模式或者替代字符串里包含 '/' 很有用。
+
+模式的定义见 <span class="Ignore">|</span><span class="Identifier">pattern</span><span class="Ignore">|</span>。
+
+注意 <span class="Special">[cmd]</span> 可能包含范围；示例见 collapse 和 edit-paragraph-join。
+
+global 命令先扫描 <span class="Special">[range]</span> 界定的行，然后对每个匹配的行进行标记 (对于一个跨行的
+匹配，则只针对开始的一行)。
+第二次扫描对每个标记的行，就像光标在那行那样，执行指定的 <span class="Special">[cmd]</span> 命令。 &quot;:v&quot; 和
+&quot;:g!&quot; 命令针对未标记的行进行。如果一行被删除，其标记也自动消失。
+缺省的 <span class="Special">[range]</span> 是整个缓冲区 (1,$)。用 &quot;<span class="Special">CTRL-C</span>&quot; 中断该命令。如果某行的执行给
+出错误，该行的执行被中断，但 global 命令仍从下一个被标记或未被标记的行继续。
+								<span class="Ignore">*</span><span class="String">E147</span><span class="Ignore">*</span>
+命令递归使用时，只能作用于一行。此时不能给出范围。可用于找到所有匹配某模式，但
+不匹配另一模式的行:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:g/found/v/notfound/{cmd}</span>
+这会先找到所有包含 &quot;found&quot; 的行，但只当不匹配 &quot;notfound&quot; 时才执行 <span class="Special">{cmd}</span>。
+
+要执行一个非 Ex 的命令， 你可以使用 &quot;:normal&quot; 命令:
+	:g/pat/normal <span class="Special">{commands}</span>
+要确保 <span class="Special">{commands}</span> 以完整的命令结束，不然 Vim 会等待你输入该命令余下的部分，对
+每次匹配都将如此。由于屏幕此时还未更新，你恐怕会因此不知所措。参见 <span class="Ignore">|</span><span class="Identifier">:normal</span><span class="Ignore">|</span>。
+
+撤销/重做命令将会针对整个 global 命令。换而言之，前次上下文标记只有在命令开头
+会设一次 (用 &quot;''&quot; 可以回到 global 之前的光标位置)。
+
+global 命令也设置最近使用的搜索模式和最近使用的替换模式 (后者是 vi 兼容的)，以
+便于全局替换一个字符串:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:g/pat/s//PAT/g</span>
+该命令替换所有的 &quot;pat&quot; 为 &quot;PAT&quot;。同样的功能也可以用:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:%s/pat/PAT/g</span>
+实现。这样省下了两个字符！
+
+Ex 模式下执行 &quot;global&quot; 时，使用 &quot;:visual&quot; 命令是特例。该命令移动到匹配行，进入
+普通模式并在该模式下执行命令，直到你用 <span class="Ignore">|</span><span class="Identifier">Q</span><span class="Ignore">|</span> 回到 Ex 模式为止。对每个匹配行重复
+此操作。此时不能再用 &quot;:global&quot;。要中止，按 <span class="Special">CTRL-C</span> 两次。
+
+<span class="PreProc">==============================================================================</span>
+3. 重复组合操作					<span class="Ignore">*</span><span class="String">complex-repeat</span><span class="Ignore">*</span>
+
+							<span class="Ignore">*</span><span class="String">q</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">recording</span><span class="Ignore">*</span>
+q<span class="Special">{0-9a-zA-Z&quot;}</span>		在寄存器 <span class="Special">{0-9a-zA-Z&quot;}</span> 里记录键入的字符 (大写名字的寄存
+			器表示附加键入的内容)。'q' 命令不能在执行寄存器时使
+			用。同样，在映射和 <span class="Ignore">|</span><span class="Identifier">:normal</span><span class="Ignore">|</span> 里也不能。
+
+			注意: 如果用作记录的寄存器用于 y 和 p，其结果多数不如
+			你的预想，因为 p 会粘贴记录的宏，而 y 会覆盖记录的宏。
+			<span class="Special">{Vi: 没有记录功能}</span>
+
+q			停止记录。(注意 实现细节: 停止记录的 'q' 不会被保存在
+			寄存器里，除非它是映射的结果) <span class="Special">{Vi: 没有记录功能}</span>
+
+							<span class="Ignore">*</span><span class="String">@</span><span class="Ignore">*</span>
+@<span class="Special">{0-9a-z&quot;.=*+}</span>		执行寄存器 <span class="Special">{0-9a-z&quot;.=*+}</span> 的内容 <span class="Special">[count]</span> 次。 注意 不能
+			用寄存器 '%' (当前文件名) 和 '#' (轮换文件名)。
+			寄存器的执行方式与映射类同，<span class="Type">'wildchar'</span> 和 <span class="Type">'wildcharm'</span>
+			的差异适用此处。
+			&quot;@=&quot; 则会提示你输入一个表达式。这个表达式的结果会被执
+			行。
+			参见 <span class="Ignore">|</span><span class="Identifier">@:</span><span class="Ignore">|</span>。<span class="Special">{Vi: 只有命名寄存器可用}</span>
+
+							<span class="Ignore">*</span><span class="String">@@</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E748</span><span class="Ignore">*</span>
+@@			执行上次执行的 @<span class="Special">{0-9a-z&quot;:*}</span> <span class="Special">[count]</span> 次。
+
+:<span class="Special">[addr]</span>*<span class="Special">{0-9a-z&quot;.=+}</span>						<span class="Ignore">*</span><span class="String">:@</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:star</span><span class="Ignore">*</span>
+:<span class="Special">[addr]</span>@<span class="Special">{0-9a-z&quot;.=*+}</span>	把寄存器 <span class="Special">{0-9a-z&quot;.=*+}</span> 里的内容看成一个 Ex 命令执行。
+			首先，把光标放在 <span class="Special">[addr]</span> 行 (缺省是当前行) 上。如果
+			<span class="Type">'cpoptions'</span> 设定了 'e' 标志位而寄存器的内容最后一行没
+			有 <span class="Special">&lt;CR&gt;</span>，会自动加上。
+			注意 &quot;:*&quot; 命令只有在 <span class="Type">'cpoptions'</span> 设置 '*' 标志位时才会
+			识别。如果用 <span class="Type">'nocompatible'</span>，这_并_非缺省。
+			&quot;:@=&quot; 使用最近使用的表达式。表达式执行的结果被当作 Ex
+			命令执行。
+			这些命令里，不识别映射。
+			<span class="Special">{Vi: 只有某些版本有此功能}</span>
+			将来: 会对地址范围里每一行执行寄存器的命令。
+
+							<span class="Ignore">*</span><span class="String">:@:</span><span class="Ignore">*</span>
+:<span class="Special">[addr]</span>@:		先把光标放在 <span class="Special">[addr]</span> 行 (缺省是当前行) 上，然后重复上次
+			的命令行。 <span class="Special">{Vi 无此功能}</span>
+
+:<span class="Special">[addr]</span>@							<span class="Ignore">*</span><span class="String">:@@</span><span class="Ignore">*</span>
+:<span class="Special">[addr]</span>@@		先把光标放在 <span class="Special">[addr]</span> 行 (缺省是当前行) 上，然后重复上次
+			的 :@<span class="Special">{0-9a-z&quot;}</span>。 <span class="Special">{Vi 只有某些版本有此功能}</span>
+
+<span class="PreProc">==============================================================================</span>
+4. 使用 Vim 脚本					<span class="Ignore">*</span><span class="String">using-scripts</span><span class="Ignore">*</span>
+
+参阅用户手册第 41 章 <span class="Ignore">|</span><span class="Identifier">usr_41.txt</span><span class="Ignore">|</span> 了解如何写 Vim 脚本。
+
+					<span class="Ignore">*</span><span class="String">:so</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:source</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">load-vim-script</span><span class="Ignore">*</span>
+:so[urce] <span class="Special">{file}</span>	从 <span class="Special">{file}</span> 里读取 Ex 命令，即 &quot;:&quot; 开头的命令，并执行。
+			激活 <span class="Ignore">|</span><span class="Identifier">SourcePre</span><span class="Ignore">|</span> 自动命令。
+
+:so[urce]! <span class="Special">{file}</span>	从 <span class="Special">{file}</span> 里读取 Vim 命令，就像你在普通模式下键入的命
+			令一样。
+			如果要执行的命令在 <span class="Ignore">|</span><span class="Identifier">:global</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:argdo</span><span class="Ignore">|</span>、<span class="Ignore">|</span><span class="Identifier">:windo</span><span class="Ignore">|</span> 或
+			<span class="Ignore">|</span><span class="Identifier">:bufdo</span><span class="Ignore">|</span> 之后、在循环体内、或者有另外一个命令紧跟其
+			后，那么执行时不会更新屏幕显示。
+			<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:ru</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:runtime</span><span class="Ignore">*</span>
+:ru[ntime][!] <span class="Special">[where]</span> <span class="Special">{file}</span> ..
+			从 <span class="Type">'runtimepath'</span> 和/或 <span class="Type">'packpath'</span> 指定的目录里查找
+			<span class="Special">{file}</span>。从匹配的文件里读取 Ex 命令。如果没有匹配的文
+			件，不报错。
+
+			例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:runtime syntax/c.vim</span>
+
+<span class="Ignore">&lt;</span>			可以指定多个以空格分隔的 <span class="Special">{file}</span> 参数。每个 <span class="Special">{file}</span> 都从
+			<span class="Type">'runtimepath'</span> 指定的第一个目录开始查找，然后是第二个、
+			第三个，等等。<span class="Special">{file}</span> 里可以通过加反斜杠来包含空格 (不
+			过，为了避免麻烦，最好不要在文件名里使用空格)。
+
+			如果使用了 [!]，所有找到的文件都被执行。否则，只执行第
+			一个找到的文件。
+
+			如果 <span class="Special">[where]</span> 省略，只使用 <span class="Type">'runtimepath'</span>。其它可用值是:
+				START	搜索 <span class="Type">'packpath'</span> 里的 &quot;start&quot;
+				OPT 	搜索 <span class="Type">'packpath'</span> 里的 &quot;opt&quot;
+				PACK	搜索 <span class="Type">'packpath'</span> 里的 &quot;start&quot; 和 &quot;opt&quot;
+				ALL	先用 <span class="Type">'runtimepath'</span>，然后搜索
+					<span class="Type">'packpath'</span> 里的 &quot;start&quot; 和 &quot;opt&quot;
+
+			如果 <span class="Special">{file}</span> 包含通配符，它被扩展为所有的匹配文件名。例
+			如:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:runtime! plugin/*.vim</span>
+<span class="Ignore">&lt;</span>			这是 Vim 启动的时候启动插件所使用的命令。类似的:<span class="Ignore"> &gt;</span>
+<span class="Comment">				:runtime plugin/*.vim</span>
+<span class="Ignore">&lt;</span>			只会执行其中的第一个文件。
+
+			当 <span class="Type">'verbose'</span> 至少为一时，如果没有文件找到，会显示信
+			息。
+			当 <span class="Type">'verbose'</span> 至少为二时，对每个搜索到的文件都会提示信
+			息。
+			<span class="Special">{Vi 无此功能}</span>
+
+							<span class="Ignore">*</span><span class="String">:pa</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:packadd</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E919</span><span class="Ignore">*</span>
+:pa[ckadd][!] <span class="Special">{name}</span>	在 <span class="Type">'packpath'</span> 里搜索可选的插件目录，然后执行找到的插件
+			文件。目录必须匹配:
+				<span class="PreProc">pack/*/opt/{name}</span><span class="Ignore"> ~</span>
+			如果目录还不在 <span class="Type">'runtimepath'</span>，加入之。
+			如果目录 pack/*/opt/<span class="Special">{name}</span>/after 存在，在
+			<span class="Type">'runtimepath'</span> 的尾部加入之。
+
+			注意 <span class="Special">{name}</span> 是目录名，而不是 .vim 文件名。所有匹配模式
+			的
+				<span class="PreProc">pack/*/opt/{name}/plugin/**/*.vim</span><span class="Ignore"> ~</span>
+			文件都被执行。这样可以允许 &quot;plugin&quot; 下使用子目录，就像
+			<span class="Type">'runtimepath'</span> 里的插件一样。
+
+			如果还未打开文件类型检测 (这通常是在 .vimrc 里的
+			&quot;syntax enable&quot; 或 &quot;filetype on&quot; 命令完成的)，也会寻找
+			&quot;<span class="Special">{name}</span>/ftdetect/*.vim&quot; 这样的文件。
+
+			如果加入可选的 !，不载入插件文件或 ftdetect 脚本，只把
+			匹配的目录加入 <span class="Type">'runtimepath'</span>。这可用于 .vimrc。插件会
+			随后在初始化时载入，见 <span class="Ignore">|</span><span class="Identifier">load-plugins</span><span class="Ignore">|</span>。
+
+			另见 <span class="Ignore">|</span><span class="Identifier">pack-add</span><span class="Ignore">|</span>。
+
+						<span class="Ignore">*</span><span class="String">:packl</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:packloadall</span><span class="Ignore">*</span>
+:packl[oadall][!]	载入 <span class="Type">'packpath'</span> 每个项目的 &quot;start&quot; 目录的所有软件包。
+
+			首先把所有找到的目录加入 <span class="Type">'runtimepath'</span>，然后执行所有目
+			录里找到的插件。这允许插件依赖于另一个插件的某个部分，
+			例如 &quot;autoload&quot; 目录。<span class="Ignore">|</span><span class="Identifier">packload-two-steps</span><span class="Ignore">|</span> 说明此功能
+			如何有用。
+
+			这一步通常在启动时在载入 .vimrc 文件后自动完成。用此命
+			令，可以在更早时执行这一步。
+
+			软件包只载入一次。此命令后不会再发生。但如果加入可选的
+			!，即使已经载入过，此命令还会再次载入软件包。
+
+			执行脚本发生错误时终止该脚本，后续的插件继续载入。
+			见 <span class="Ignore">|</span><span class="Identifier">packages</span><span class="Ignore">|</span>。
+
+:scripte[ncoding] <span class="Special">[encoding]</span>		<span class="Ignore">*</span><span class="String">:scripte</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:scriptencoding</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E167</span><span class="Ignore">*</span>
+			指定脚本使用的字符编码。后续以 <span class="Special">[encoding]</span> 编码的脚本行
+			会被转换成 <span class="Type">'encoding'</span> 选项所指定的编码，如果两者不同的
+			话。如:<span class="Ignore"> &gt;</span>
+<span class="Comment">				scriptencoding iso-8859-5</span>
+<span class="Comment">				scriptencoding cp932</span>
+<span class="Ignore">&lt;</span>
+			如果 <span class="Special">[encoding]</span> 为空，则不作任何转换。这可以用来避免对
+			一些行进行转换:<span class="Ignore"> &gt;</span>
+<span class="Comment">				scriptencoding euc-jp</span>
+<span class="Comment">				... 被转换的行 ...</span>
+<span class="Comment">				scriptencoding</span>
+<span class="Comment">				... 不被转换的行 ...</span>
+
+<span class="Ignore">&lt;</span>			如果系统不支持所需的转换，不会有错误信息，但转换也不会
+			发生。如果不能转换某一行，不报错，保留原来的行。
+
+			不要用 &quot;ucs-2&quot; 或者 &quot;ucs-4&quot;。Vim 不能用这些编码的脚本
+			(因为其中会有 NUL 字节)。如果一个待执行的脚本以一个
+			BOM (Byte Order Mark 字节顺序标记) 开头，Vim 会识别其
+			为 utf-8 编码，从而无须指定 &quot;:scriptencoding utf-8&quot;。
+
+			如果在 <span class="Ignore">|</span><span class="Identifier">.vimrc</span><span class="Ignore">|</span> 里设置 <span class="Type">'encoding'</span> 选项，
+			<span class="Ignore">`</span><span class="Comment">:scriptencoding</span><span class="Ignore">`</span> 必须在放在它后面。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">				set encoding=utf-8</span>
+<span class="Comment">				scriptencoding utf-8</span>
+<span class="Ignore">&lt;</span>
+			如果编译时没有指定 <span class="Ignore">|</span><span class="Identifier">+multi_byte</span><span class="Ignore">|</span> 特性，这个命令会被忽
+			略。
+			<span class="Special">{Vi 无此命令}</span>
+
+						<span class="Ignore">*</span><span class="String">:scr</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:scriptnames</span><span class="Ignore">*</span>
+:scr[iptnames]		列出所有执行过的脚本名字，以它们初次执行之顺序排列。排
+			列的次序号码被用作相应的脚本 ID <span class="Ignore">|</span><span class="Identifier">&lt;SID&gt;</span><span class="Ignore">|</span>。
+			<span class="Special">{Vi 无此功能}</span> {仅当编译时加入 <span class="Ignore">|</span><span class="Identifier">+eval</span><span class="Ignore">|</span> 特性才有功能}
+
+						<span class="Ignore">*</span><span class="String">:fini</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:finish</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E168</span><span class="Ignore">*</span>
+:fini[sh]		停止执行脚本。只能用在 Vim 脚本中，来快速跳过脚本的其
+			余内容。如果出现在 <span class="Ignore">|</span><span class="Identifier">:try</span><span class="Ignore">|</span> 之后但在相应的 <span class="Ignore">|</span><span class="Identifier">:finally</span><span class="Ignore">|</span>
+			(如果存在的话) 之前，&quot;:finally&quot; 到 <span class="Ignore">|</span><span class="Identifier">:endtry</span><span class="Ignore">|</span> 的内容还
+			会执行。执行完所有嵌套的 &quot;:try&quot; 层的 &quot;:finally&quot; 代码
+			后，最外层的 &quot;:endtry&quot; 才会最终真正停止脚本的执行。
+			<span class="Special">{Vi 无此功能}</span>
+
+所有的命令和命令序列可以通过把它们放在命名的寄存器里执行来重复调用。有两个方法
+可以把命令放在寄存器里:
+- 用记录命令 &quot;q&quot;。可以键入一串命令，在执行的同时它们被存入一个寄存器里。这很简
+  明，因为你能看见你所做的事情。如果你敲错了，用 &quot;p&quot; 把寄存器的内容 &quot;放置&quot; 在
+  一个文件里，然后编辑这个命令序列，把它们再次放回到 (比如，用删除命令) 寄存器
+  里。你也可以用大写名字的寄存器名来附加命令，从而继续上次的纪录。
+- 删除 (delete) 或者抽出 (yank) 命令序列到寄存器。
+
+常用的命令序列可以用 &quot;:map&quot; 命令映射到一个功能键上。
+
+另外一个办法则是把命令写到一个文件里，用 &quot;:source!&quot; 命令执行之。这对很长的命令
+序列有用。你甚至可以把它和 ':map' 命令混合使用，从而用一个功能键来储存复杂的功
+能。
+
+':source' 命令从文件里逐行读取 Ex 命令。如果其间需要键盘输入，你需要自己键入。
+'source!' 命令从脚本里逐字读取命令，就像你自己敲入每一个字符一样。
+
+示例: 如果你给出一个 ':!ls' 命令，你得到一个 <span class="Ignore">|</span><span class="Identifier">hit-enter</span><span class="Ignore">|</span> 提示。如果你用
+':source' 执行包含 '!ls' 一行的文件，你必须按一个回车。不过如果你用 ':source!'
+来执行包含 ':!ls' 的文件，其后的字符会依次读入，直到遇到一个 <span class="Special">&lt;CR&gt;</span> 为止。你不需
+要通过键盘键入这个 <span class="Special">&lt;CR&gt;</span>，除非 &quot;:!ls&quot; 是文件的最后一行。
+
+在脚本里当然也可以有 ':source[!]' 命令，从而可以建立一个自顶而下的脚本调用树。
+':source' 命令允许的嵌套深度由同时打开的最大的文件数目决定 (大概 15 个左右)，
+':source!' 命令许可的嵌套深度则最多为 15 层。
+
+在被执行的文件里，你可以在需要文件名的地方用 &quot;<span class="Special">&lt;sfile&gt;</span>&quot; 字符串 (直接的文本，不
+是一个特殊的键)。它会被被执行的文件的名字来代替。例如，如果你在 &quot;.vimrc&quot; 文件
+相同的目录里有一个 &quot;other.vimrc&quot; 文件，你可以在 &quot;.vimrc&quot; 里如此调用它:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:source &lt;sfile&gt;:h/other.vimrc</span>
+
+在脚本文件里，依赖于终端的键码由不依赖于终端的两个字符码代表。这样，他们就能在
+不同的终端里代表相同的意义。这里，第一个字符码是 0x80 或者 128，屏幕上显示
+为 &quot;~@&quot;。第二个字符可以在 <span class="Ignore">|</span><span class="Identifier">key-notation</span><span class="Ignore">|</span> 列表里找到。这些编码也可以用 <span class="Special">CTRL-V</span>
+加上一个三位数字的十进制码来键入。这个方法_不_适用于 <span class="Special">&lt;t_xx&gt;</span> termcap 代码，它们
+只能用在映射里。
+
+							<span class="Ignore">*</span><span class="String">:source_crnl</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">W15</span><span class="Ignore">*</span>
+MS-DOS、Win32 和 OS/2: 用 &quot;:source&quot; 执行的文件通常每行以 <span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 结尾。这没有
+问题。在 <span class="Type">'fileformats'</span> 非空并且第一行不以 <span class="Special">&lt;CR&gt;</span> 结尾的时候，用 <span class="Special">&lt;NL&gt;</span> 的行结尾
+(比如，Unix 编写的文件) 会被识别。不过，如果第一行里有 &quot;:map <span class="Special">&lt;F1&gt;</span> :help^M&quot; 这
+样的内容 (其中 ^M 是一个 <span class="Special">&lt;CR&gt;</span>)，这个机制会失败。如果第一行以
+<span class="Special">&lt;CR&gt;</span> 结尾，但其后的行不是，那你会得到错误信息，因为第一行里的 <span class="Special">&lt;CR&gt;</span> 会丢失。
+
+Mac Classic: 用 &quot;:source&quot; 执行的文件通常每行以 <span class="Special">&lt;CR&gt;</span> 结尾。这没有问题。在
+<span class="Type">'fileformats'</span> 非空并且第一行不以 <span class="Special">&lt;CR&gt;</span> 结尾的时候，用 <span class="Special">&lt;NL&gt;</span> 的行结尾 (比如，Unix
+编写的文件) 会被识别。如果用 <span class="Special">&lt;NL&gt;</span> 行结尾的时候，要小心第一行不要有 <span class="Special">&lt;CR&gt;</span>。
+
+在别的系统上，Vim 期待 &quot;:source&quot; 执行的文件以 <span class="Special">&lt;NL&gt;</span> 行结尾。这没有问题。如果你
+的文件用 <span class="Special">&lt;CR&gt;&lt;NL&gt;</span> 结束行 (比如，MS-DOS 编写的文件)，所有的行都会有一个附尾的
+<span class="Special">&lt;CR&gt;</span>。有些命令 (比如映射命令) 会因此有问题。这里不使用自动换行符识别机制，因为
+第一行出现以 <span class="Special">&lt;CR&gt;</span> 结尾的映射命令很常见，自动机制这时容易出错。
+
+							<span class="Ignore">*</span><span class="String">line-continuation</span><span class="Ignore">*</span>
+&quot;:source&quot; 执行的 Ex 命令脚本里的长行可以用通过在下一行的开始插入续行符 &quot;\&quot; (反
+斜杠) 来分开。反斜杠之前可以出现空格，它们将被忽略。
+
+示例: 如下几行<span class="Ignore"> &gt;</span>
+<span class="Comment">	:set comments=sr:/*,mb:*,el:*/,</span>
+<span class="Comment">		     \://,</span>
+<span class="Comment">		     \b:#,</span>
+<span class="Comment">		     \:%,</span>
+<span class="Comment">		     \n:&gt;,</span>
+<span class="Comment">		     \fb:-</span>
+会被解读为一行:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:set comments=sr:/*,mb:*,el:*/,://,b:#,:%,n:&gt;,fb:-</span>
+
+每行反斜杠之前的所有引导空白字符会被忽略。注意: 在此之前的一行的行尾的空格可能
+不能随便添加；这由命令分开的位置决定，那里也许可以也许不可以有额外的空格。
+
+需要空格时最好放在反斜杠之后。行尾的空格很难注意到，很可能会被意外删除掉。<span class="Ignore"> &gt;</span>
+<span class="Comment">	:syn match Comment</span>
+<span class="Comment">		\ &quot;very long regexp&quot;</span>
+<span class="Comment">		\ keepend</span>
+
+在用 &quot;:append&quot; 和 &quot;:insert&quot; 命令时，有一个问题:<span class="Ignore"> &gt;</span>
+<span class="Comment">   :1append</span>
+<span class="Comment">   \asdf</span>
+<span class="Comment">   .</span>
+反斜杠被看作续行符，所以这等价于以下命令:<span class="Ignore"> &gt;</span>
+<span class="Comment">   :1appendasdf</span>
+<span class="Comment">   .</span>
+要避免这一点，在 <span class="Type">'cpoptions'</span> 选项里加上 'C' 标志位:<span class="Ignore"> &gt;</span>
+<span class="Comment">   :set cpo+=C</span>
+<span class="Comment">   :1append</span>
+<span class="Comment">   \asdf</span>
+<span class="Comment">   .</span>
+<span class="Comment">   :set cpo-=C</span>
+
+要 注意 在函数里的命令里用到这些命令时，你需要在定义函数的时候加上 'C' 标志
+位，不是在执行函数的时候。<span class="Ignore"> &gt;</span>
+<span class="Comment">   :set cpo+=C</span>
+<span class="Comment">   :function Foo()</span>
+<span class="Comment">   :1append</span>
+<span class="Comment">   \asdf</span>
+<span class="Comment">   .</span>
+<span class="Comment">   :endfunction</span>
+<span class="Comment">   :set cpo-=C</span>
+
+原理:
+	许多程序用行尾的反斜杠来指示行要继续。如果这样，Vim 会和 Vi 不兼容。例
+	如下面的 Vi 映射:<span class="Ignore"> &gt;</span>
+<span class="Comment">		:map xx  asdf\</span>
+<span class="Ignore">&lt;</span>	因此，只能用特殊形式的出现在行首的反斜杠。
+
+<span class="PreProc">==============================================================================</span>
+5. 使用 Vim 软件包					<span class="Ignore">*</span><span class="String">packages</span><span class="Ignore">*</span>
+
+Vim 软件包是包含一个或多个插件的目录。和普通插件相比，它的优点是:
+- 软件包可作为归档下载，并可解压到单独的目录。这样文件就不会和其它插件的文件混
+  杂。这样方便更新和删除。
+- 软件包可以用 git、mercurial 等版本库。这样更新尤其方便。
+- 软件包可包含相互依赖的多个插件。
+- 软件包可包含启动时自动载入的插件和通过 :packadd 加入仅当需要时才载入的插件。
+
+<span class="PreProc">使用软件包并自动载入</span><span class="Ignore"> ~</span>
+
+让我们假定，你的 Vim 文件在 &quot;~/.vim&quot; 目录里，而你想加入来自 zip 归档
+&quot;/tmp/foopack.zip&quot; 的软件包:
+	% mkdir -p ~/.vim/pack/foo
+	% cd ~/.vim/pack/foo
+	% unzip /tmp/foopack.zip
+
+目录名 &quot;foo&quot; 是任意的，可以选任何名字。
+
+现在在 ~/.vim 里就有这些文件:
+	pack/foo/README.txt
+	pack/foo/start/foobar/plugin/foo.vim
+	pack/foo/start/foobar/syntax/some.vim
+	pack/foo/opt/foodebug/plugin/debugger.vim
+
+Vim 启动时，处理完 .vimrc 后，扫描 <span class="Type">'packpath'</span> 里的所有目录，寻找
+&quot;pack/*/start&quot; 目录里的插件。首先这些目录被加到 <span class="Type">'runtimepath'</span> 里。然后载入所有
+插。<span class="Ignore">|</span><span class="Identifier">packload-two-steps</span><span class="Ignore">|</span> 说明此功能如何有用。
+
+此例中，Vim 会找到 &quot;pack/foo/start/foobar/plugin/foo.vim&quot; 并把
+&quot;~/.vim/pack/foo/start/foobar&quot; 加入 <span class="Type">'runtimepath'</span>。
+
+如果 &quot;foobar&quot; 插件把 <span class="Type">'filetype'</span> 设为 &quot;some&quot;，Vim 会找到 syntax/some.vim
+文件，因为此目录在 <span class="Type">'runtimepath'</span> 里。
+
+如果有的话，Vim 也会载入 ftdetect 文件。
+
+注意 不自动载入 &quot;pack/foo/opt&quot; 里的文件，只载入 &quot;pack/foo/start&quot; 里的。下面的
+<span class="Ignore">|</span><span class="Identifier">pack-add</span><span class="Ignore">|</span> 说明 &quot;opt&quot; 目录的用法。
+
+如果关闭了插件的载入，不会自动载入软件包，见 <span class="Ignore">|</span><span class="Identifier">load-plugins</span><span class="Ignore">|</span>。
+
+要再早些载入软件包，以便更新 <span class="Type">'runtimepath'</span>:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:packloadall</span>
+这里即使关闭了插件载入也可以。自动载入只会发生一次。
+
+如果软件包有 &quot;after&quot; 目录，此目录加入 <span class="Type">'runtimepath'</span> 的尾部，这样那里的内容会较
+后载入。
+
+
+<span class="PreProc">使用单个插件并自动载入</span><span class="Ignore"> ~</span>
+
+如果没有软件包但有单个插件，需要建立额外的目录结构:
+	% mkdir -p ~/.vim/pack/foo/start/foobar
+	% cd ~/.vim/pack/foo/start/foobar
+	% unzip /tmp/someplugin.zip
+
+现在有这些文件:
+	pack/foo/start/foobar/plugin/foo.vim
+	pack/foo/start/foobar/syntax/some.vim
+
+此后，工作方式就和上面一样。
+
+
+<span class="PreProc">可选插件</span><span class="Ignore"> ~</span>
+							<span class="Ignore">*</span><span class="String">pack-add</span><span class="Ignore">*</span>
+要从软件包里载入可选插件，用 <span class="Ignore">`</span><span class="Comment">:packadd</span><span class="Ignore">`</span> 命令:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:packadd foodebug</span>
+从 <span class="Type">'packpath'</span> 里搜索 &quot;pack/*/opt/foodebug&quot;，找到
+~/.vim/pack/foo/opt/foodebug/plugin/debugger.vim 并执行之。
+
+可以只在满足某些条件时才这样做。例如，取决于 Vim 是否支持某特性或缺少某依赖关
+系。
+
+也可以在启动时载入可选插件，在 <span class="Ignore">|</span><span class="Identifier">.vimrc</span><span class="Ignore">|</span> 里放上:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:packadd! foodebug</span>
+额外的 &quot;!&quot; 确保 Vim 以 <span class="Ignore">|</span><span class="Identifier">--noplugin</span><span class="Ignore">|</span> 启动时不载入插件。
+
+软件包只包含 &quot;opt&quot; 目录的文件是完全正常的。每个插件只有在需要用的时候才载入。
+
+
+<span class="PreProc">什么放在哪里</span><span class="Ignore"> ~</span>
+
+因为通过 <span class="Ignore">`</span><span class="Comment">:colorscheme</span><span class="Ignore">`</span> 载入的色彩方案可在 &quot;pack/*/start&quot; 和 &quot;pack/*/opt&quot; 下找
+到，你可以把它们放在任何地方。我们建议你放在 &quot;pack/*/opt&quot; 底下，例如
+&quot;.vim/pack/mycolors/opt/dark/colors/very_dark.vim&quot;。
+
+文件类型插件应该在 &quot;pack/*/start&quot; 下，这样总能找到它们。除非某个文件类型有多于
+一个插件，而你想用 <span class="Ignore">`</span><span class="Comment">:packadd</span><span class="Ignore">`</span> 选择载入哪个。例如，取决于编译器版本:<span class="Ignore"> &gt;</span>
+<span class="Comment">	if foo_compiler_version &gt; 34</span>
+<span class="Comment">	  packadd foo_new</span>
+<span class="Comment">	else</span>
+<span class="Comment">	  packadd foo_old</span>
+<span class="Comment">	endif</span>
+
+软件包内最没用的是 &quot;after&quot; 目录。但不禁止。
+
+<span class="PreProc">==============================================================================</span>
+6. 建立 Vim 软件包					<span class="Ignore">*</span><span class="String">package-create</span><span class="Ignore">*</span>
+
+这里假定你在编写一个或多个插件，并想以软件包形式分发。
+
+两个无关的插件要用两个软件包，这样 Vim 用户可以选择要装什么。也可以决定用带可
+选插件的软件包，然后告知用户用 <span class="Ignore">`</span><span class="Comment">:packadd</span><span class="Ignore">`</span> 加入他们想要的.
+
+你要决定你如何分发软件包。可以建立一个归档或使用版本库。归档可以被更多的用户使
+用，但更新版本要困难一些。版本库可以方便的保持更新，但需要 &quot;git&quot; 之类的程序。
+也可以两者都用，github 可以自动为发布版建立归档。
+
+目录布局应该是这样:
+   start/foobar/plugin/foo.vim    	&quot; 总是载入，定义命令
+   start/foobar/plugin/bar.vim    	&quot; 总是载入，定义命令
+   start/foobar/autoload/foo.vim  	&quot; 使用 foo 命令时载入
+   start/foobar/doc/foo.txt       	&quot; foo.vim 的帮助
+   start/foobar/doc/tags          	&quot; 帮助标签
+   opt/fooextra/plugin/extra.vim  	&quot; 可选插件，定义命令
+   opt/fooextra/autoload/extra.vim  	&quot; 使用 extra 命令时载入
+   opt/fooextra/doc/extra.txt  	        &quot; extra.vim 的帮助
+   opt/fooextra/doc/tags  	        &quot; 帮助标签
+
+这样用户就可以:<span class="Ignore"> &gt;</span>
+<span class="Comment">	mkdir ~/.vim/pack/myfoobar</span>
+<span class="Comment">	cd ~/.vim/pack/myfoobar</span>
+<span class="Comment">	git clone <a href="https://github.com/you/foobar.git">https://github.com/you/foobar.git</a></span>
+
+这里 &quot;myfoobar&quot; 是用户可选的名字，唯一的条件是和其它软件包的名字不同。
+
+在你的文档里，你要解释插件的用途，并告知用户如何载入可选插件:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:packadd! fooextra</span>
+
+可以在你提供的插件之一加入此 packadd 命令，在需要可选插件时执行。
+
+运行 <span class="Ignore">`</span><span class="Comment">:helptags</span><span class="Ignore">`</span> 命令生成文档/标签文件。把此生成文件包含在软件包内，用户就可以
+把软件包放在自己的 pack 目录里，立即可以使用 help 命令。不要忘记改变插件帮助后
+重新运行此命令:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:helptags path/start/foobar/doc</span>
+<span class="Comment">	:helptags path/opt/fooextra/doc</span>
+
+
+<span class="PreProc">插件间的依赖关系</span><span class="Ignore"> ~</span>
+							<span class="Ignore">*</span><span class="String">packload-two-steps</span><span class="Ignore">*</span>
+假定你有两个插件，它们都依赖于同一个功能。可以把公共的功能放在 autoload 目录
+里，以便自动找到。你的软件包里有以下文件:
+
+	pack/foo/start/one/plugin/one.vim <span class="Ignore"> &gt;</span>
+<span class="Comment">		call foolib#getit()</span>
+<span class="Ignore">&lt;</span>	pack/foo/start/two/plugin/two.vim<span class="Ignore"> &gt;</span>
+<span class="Comment">		call foolib#getit()</span>
+<span class="Ignore">&lt;</span>	pack/foo/start/lib/autoload/foolib.vim<span class="Ignore"> &gt;</span>
+<span class="Comment">		func foolib#getit()</span>
+
+这样可行，因为软件包在载入时先把所有找到的目录加入 <span class="Type">'runtimepath'</span>，然后再执行这
+些插件。
+
+<span class="PreProc">==============================================================================</span>
+7. 调试脚本						<span class="Ignore">*</span><span class="String">debug-scripts</span><span class="Ignore">*</span>
+
+除了在自己的脚本里提示明显的消息，Vim 提供了调试模式来让你了解自己的代码在做什
+么。你可以单步执行脚本文件和函数和设置断点。
+
+请 注意: 调试模式远未完善。调试程序会对 Vim 的工作产生副作用。你不能用它调试一
+切细节。例如，调试信息会弄乱屏幕的显示。
+<span class="Special">{Vi 没有调试模式}</span>
+
+另外一个办法是设置 <span class="Type">'verbose'</span> 选项。设置一个比较大的数字，你会得到 Vim 在做什么
+的更详尽的信息。
+
+
+启 动 调 试 模 式						<span class="Ignore">*</span><span class="String">debug-mode</span><span class="Ignore">*</span>
+
+以下方法可以进入调试模式:
+1. 用 <span class="Ignore">|</span><span class="Identifier">-D</span><span class="Ignore">|</span> 参数启动 Vim&#0058;<span class="Ignore"> &gt;</span>
+<span class="Comment">	vim -D file.txt</span>
+<span class="Ignore">&lt;</span>  调试会在执行第一个 vimrc 文件的时候开始。这有助于了解 Vim 启动的时候干了些
+   什么。一个副作用是 Vim 会在初始化完成之前切换终端模式，这会有意想不到的后
+   果。
+   对只用 GUI 的版本 (Windows、Macintosh) 调试会在 GUI 窗口打开的一刻开始。要
+   提早进入调试，在 vimrc 文件里加上 &quot;:gui&quot; 命令。
+								<span class="Ignore">*</span><span class="String">:debug</span><span class="Ignore">*</span>
+2. 执行命令前加上 &quot;:debug&quot; 前缀。这样，调试只对这个命令进行。这对调试某一个特
+   定的脚本和用户函数，或者 autocommands 用到的脚本和函数有用。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:debug edit test.txt.gz</span>
+
+3. 在一个执行的文件和用户函数里设置断点。你可以在命令行里这么做:<span class="Ignore"> &gt;</span>
+<span class="Comment">	vim -c &quot;breakadd file */explorer.vim&quot; .</span>
+<span class="Ignore">&lt;</span>  这会启动 Vim 并在 &quot;explorer.vim&quot; 脚本的第一行停下。进入调试模式后也可以设置
+   断点。
+
+在调试模式里，每个命令都会在执行前被显示。注释行、空行和其他不执行的行会被跳
+过。如果一行里有两个 &quot;|&quot; 分隔的命令，它们被分别显示。
+
+
+调 试 模 式
+
+进入调试模式以后，可以使用通常的 Ex 命令。比如，要检查某变量的值:<span class="Ignore"> &gt;</span>
+<span class="Comment">	echo idx</span>
+在一个用户函数里，这会显示局域变量 &quot;idx&quot; 的值。在变量前加上 &quot;g:&quot; 可以得到全局
+变量的值:<span class="Ignore"> &gt;</span>
+<span class="Comment">	echo g:idx</span>
+所有的命令都在当前函数或脚本的上下文下执行。你可以设置选项，比如设置或者重设
+<span class="Type">'verbose'</span> 来显示当前发生的事情，但是你需要在执行你感兴趣的行之前设置它们:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:set verbose=20</span>
+
+要避免更新屏幕的命令，因为直到退出调试模式之前，无法看到它们的效果。例如，帮助
+命令:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:help</span>
+不会很有帮助。
+
+调试模式有自己的命令行历史。
+
+函数行的行号是相对于函数开始的地方的。如果你要知道你在哪里，在另外一个 Vim 里
+编辑包含这个函数的文件，先找到函数的开始处，然后用 &quot;99j&quot;，其中的 &quot;99&quot; 用实际的
+行号代替。
+
+另外，可以使用如下的命令:
+							<span class="Ignore">*</span><span class="String">&gt;cont</span><span class="Ignore">*</span>
+	cont		继续执行到下一个断点。
+							<span class="Ignore">*</span><span class="String">&gt;quit</span><span class="Ignore">*</span>
+	quit		终止执行。这和 <span class="Special">CTRL-C</span> 类似，但是还是有要执行的东西，并
+			不是所有的都中止。在遇到断点时还是会停下来。
+							<span class="Ignore">*</span><span class="String">&gt;next</span><span class="Ignore">*</span>
+	next		执行一个命令，并在它结束时返回调试模式。步过用户函数
+			调用和被执行的脚本。
+							<span class="Ignore">*</span><span class="String">&gt;step</span><span class="Ignore">*</span>
+	step		执行一个命令，并在它结束时返回调试模式。步入用户函数
+			调用和被执行的脚本。
+							<span class="Ignore">*</span><span class="String">&gt;interrupt</span><span class="Ignore">*</span>
+	interrupt	类似于 <span class="Special">CTRL-C</span>，但不同于 &quot;&gt;quit&quot;，这会在执行下个命令前
+			返回到调试模式。它有助于测试 <span class="Ignore">|</span><span class="Identifier">:finally</span><span class="Ignore">|</span> 和 <span class="Ignore">|</span><span class="Identifier">:catch</span><span class="Ignore">|</span>
+			对中断例外的处理。
+							<span class="Ignore">*</span><span class="String">&gt;finish</span><span class="Ignore">*</span>
+	finish		结束当前的脚本或者用户函数，并在调用该脚本或函数的行的
+			下一行之前返回到调试模式。
+							<span class="Ignore">*</span><span class="String">&gt;bt</span><span class="Ignore">*</span>
+							<span class="Ignore">*</span><span class="String">&gt;backtrace</span><span class="Ignore">*</span>
+							<span class="Ignore">*</span><span class="String">&gt;where</span><span class="Ignore">*</span>
+	backtrace	显示当前调试会话的调用堆栈回溯。
+	bt
+	where
+							<span class="Ignore">*</span><span class="String">&gt;frame</span><span class="Ignore">*</span>
+	frame <span class="Special">N</span>		转到 <span class="Special">N</span> 层堆栈回溯。+ 和 - 标记进行相对移动。例如，
+			&quot;:frame +3&quot; 往上三层堆栈。
+							<span class="Ignore">*</span><span class="String">&gt;up</span><span class="Ignore">*</span>
+	up		向上一层调用堆栈回溯。
+							<span class="Ignore">*</span><span class="String">&gt;down</span><span class="Ignore">*</span>
+	down		向下一层调用堆栈回溯。
+
+关于调试模式下的附加命令:
+- 没有它们的命令行自动补全。补全只对一般的 Ex 命令有效。
+- 除非有多于一个命令以相同字母开始，可以用一个字符来简写。&quot;f&quot; 代表 &quot;finish&quot;，
+  &quot;fr&quot; 代表 &quot;frame&quot;。
+- 按 <span class="Special">&lt;CR&gt;</span> 会重复上一个调试命令。在执行另一个命令之后，这个功能会被关掉 (因为不
+  知道你要重复什么)。
+- 如果你想调用相同的名字的 Ex 命令，在前面附加一个冒号: &quot;:cont&quot;、&quot;:next&quot;、
+  &quot;:finish&quot; (或者它们的缩写)。
+
+堆栈回溯显示函数调用的层级，例如:
+	<span class="PreProc">&gt;bt</span><span class="Ignore"> ~</span>
+	  <span class="PreProc">3 function One[3]</span><span class="Ignore"> ~</span>
+	  <span class="PreProc">2 Two[3]</span><span class="Ignore"> ~</span>
+	<span class="PreProc">-&gt;1 Three[3]</span><span class="Ignore"> ~</span>
+	  <span class="PreProc">0 Four</span><span class="Ignore"> ~</span>
+	<span class="PreProc">line 1: let four = 4</span><span class="Ignore"> ~</span>
+
+&quot;-&gt;&quot; 指向当前堆栈。用 &quot;up&quot;、&quot;down&quot; 和 &quot;frame <span class="Special">N</span>&quot; 可选择另一层堆栈。
+
+在当前栈中可以计算本地函数变量。还没有办法看到当前行所在的命令。
+
+
+定 义 断 点
+							<span class="Ignore">*</span><span class="String">:breaka</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:breakadd</span><span class="Ignore">*</span>
+:breaka[dd] func <span class="Special">[lnum]</span> <span class="Special">{name}</span>
+		在函数上设置断点。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">			:breakadd func Explore</span>
+<span class="Ignore">&lt;</span>		它不会检查函数名的合法性。这样，断点可以在函数定义之前设置。
+
+:breaka[dd] file <span class="Special">[lnum]</span> <span class="Special">{name}</span>
+		在一个脚本文件上设置断点。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">			:breakadd file 43 .vimrc</span>
+
+:breaka[dd] here
+		在当前文件的当前行上设置断点。类似于:<span class="Ignore"> &gt;</span>
+<span class="Comment">			:breakadd file &lt;cursor-line&gt; &lt;current-file&gt;</span>
+<span class="Ignore">&lt;</span>		注意 只能用于执行此文件时会执行的命令，不适用于该文件此处定义
+		的函数。
+
+其中 <span class="Special">[lnum]</span> 是断点所在的行号。Vim 会在它或它之后的行上停止。如果省略，就用行号
+1。
+
+							<span class="Ignore">*</span><span class="String">:debug-name</span><span class="Ignore">*</span>
+<span class="Special">{name}</span> 是用来匹配文件名或者函数名的模式。这和 autocommands 所有的模式类似。它
+必须是一个完整匹配 (如同它以 &quot;^&quot; 开头和 &quot;$&quot; 结尾一样)。&quot;*&quot; 匹配任何字符序列。
+它不用 <span class="Type">'ignorecase'</span> 选项，但是模式里可以用 &quot;\c&quot; 来忽略大小写 <span class="Ignore">|</span><span class="Identifier">/\c</span><span class="Ignore">|</span>。不要给函数
+名加上 ()！
+
+对脚本文件的匹配给予它的完整文件名。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">	breakadd file explorer</span>
+不会匹配。因为没有给出路径。 <span class="Ignore"> &gt;</span>
+<span class="Comment">	breakadd file *explorer.vim</span>
+匹配 &quot;.../plugin/explorer.vim&quot; 和 &quot;.../plugin/iexplorer.vim&quot;。<span class="Ignore"> &gt;</span>
+<span class="Comment">	breakadd file */explorer.vim</span>
+只匹配 &quot;.../plugin/explorer.vim&quot;。
+
+对函数名的匹配基于 &quot;:function&quot; 输出结果里它的显示方式。对于局部函数，这意味着
+函数名前会附加上类似 &quot;<span class="Special">&lt;SNR&gt;</span>99_&quot; 的字符串。
+
+注意函数先被载入然后再执行。载入时，检查 &quot;file&quot; 断点，而执行时检查 &quot;func&quot; 断
+点。
+
+
+删 除 断 点
+						<span class="Ignore">*</span><span class="String">:breakd</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:breakdel</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E161</span><span class="Ignore">*</span>
+:breakd[el] <span class="Special">{nr}</span>
+		删除断点 <span class="Special">{nr}</span>。用 <span class="Ignore">|</span><span class="Identifier">:breaklist</span><span class="Ignore">|</span> 可以看到每个断点的编号 <span class="Special">{nr}</span>。
+
+:breakd[el] *
+		删除所有断点。
+
+:breakd[el] func <span class="Special">[lnum]</span> <span class="Special">{name}</span>
+		删除函数断点。
+
+:breakd[el] file <span class="Special">[lnum]</span> <span class="Special">{name}</span>
+		删除脚本断点。
+
+:breakd[el] here
+		删除当前文件的当前行上的断点。
+
+如果 <span class="Special">[lnum]</span> 省略，删除该函数或者文件的第一个断点。
+<span class="Special">{name}</span> 必须和 &quot;:breakadd&quot; 所匹配的名字完全相同。&quot;explorer&quot;、&quot;*explorer.vim&quot; 和
+&quot;*explorer*&quot; 是不一样的。
+
+
+列 出 断 点
+							<span class="Ignore">*</span><span class="String">:breakl</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:breaklist</span><span class="Ignore">*</span>
+:breakl[ist]
+		列出所有的断点。
+
+
+不 常 用 的
+
+						<span class="Ignore">*</span><span class="String">:debugg</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:debuggreedy</span><span class="Ignore">*</span>
+:debugg[reedy]
+		从正常的输入流而不是直接从用户输入里读取调试模式命令。这只对测
+		试脚本有用。例如:<span class="Ignore"> &gt;</span>
+<span class="Comment">		  echo 'q^Mq' | vim -e -s -c debuggreedy -c 'breakadd file script.vim' -S script.vim</span>
+
+:0debugg[reedy]
+		撤销 &quot;:debuggreedy&quot;: 从用户那里直接读取调试模式命令，而不为调
+		试命令预读取。
+
+<span class="PreProc">==============================================================================</span>
+8. 刨视							<span class="Ignore">*</span><span class="String">profile</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">profiling</span><span class="Ignore">*</span>
+
+进行刨视意味着 Vim 测量执行函数和/或脚本时使用的时间。为此，需要 <span class="Ignore">|</span><span class="Identifier">+profile</span><span class="Ignore">|</span> 特
+性。只有 Vim 编译时使用了 &quot;huge&quot; (巨大) 特性包才会包含此特性。
+<span class="Special">{Vi 没有刨视功能}</span>
+
+你也可以用 <span class="Ignore">|</span><span class="Identifier">reltime()</span><span class="Ignore">|</span> 函数来测量时间。这只需要 <span class="Ignore">|</span><span class="Identifier">+reltime</span><span class="Ignore">|</span> 特性，它更常出现。
+
+关于语法高亮的刨视可见 <span class="Ignore">|</span><span class="Identifier">:syntime</span><span class="Ignore">|</span>。
+
+例如，要刨视 one_script.vim 脚本文件:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:profile start /tmp/one_script_profile</span>
+<span class="Comment">	:profile file one_script.vim</span>
+<span class="Comment">	:source one_script.vim</span>
+<span class="Comment">	:exit</span>
+
+
+:prof[ile] start <span class="Special">{fname}</span>			<span class="Ignore">*</span><span class="String">:prof</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:profile</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">E750</span><span class="Ignore">*</span>
+		启动刨视，退出时把结果写到 <span class="Special">{fname}</span> 文件。
+		扩展 <span class="Special">{fname}</span> 中的 &quot;~/&quot; 和环境变量。
+		如果 <span class="Special">{fname}</span> 已存在，安静地覆盖它。
+		变量 <span class="Ignore">|</span><span class="Identifier">v:profiling</span><span class="Ignore">|</span> 设为一。
+
+:prof[ile] pause
+		直到下个 &quot;:profile continue&quot; 为止，停止刨视。可用来执行一些不
+		需计算的操作 (例如，执行外部命令)。不能嵌套。
+
+:prof[ile] continue
+		在 &quot;:profile pause&quot; 之后出现，恢复刨视。
+
+:prof[ile] func <span class="Special">{pattern}</span>
+		刨视匹配模式 <span class="Special">{pattern}</span> 的函数。
+		<span class="Ignore">|</span><span class="Identifier">:debug-name</span><span class="Ignore">|</span> 说明如何使用 <span class="Special">{pattern}</span>。
+
+:prof[ile][!] file <span class="Special">{pattern}</span>
+		刨视匹配模式 <span class="Special">{pattern}</span> 的脚本。
+		<span class="Ignore">|</span><span class="Identifier">:debug-name</span><span class="Ignore">|</span> 说明如何使用 <span class="Special">{pattern}</span>。
+		只刨视脚本自身，不包括其中定义的函数。
+		如果加入 [!]，同时刨视脚本里定义的所有函数。
+		注意 只有在此命令后载入脚本完成时才会开始刨视。脚本自身不可以
+		启动 :profile 命令。
+
+
+:profd[el] ...						<span class="Ignore">*</span><span class="String">:profd</span><span class="Ignore">*</span> <span class="Ignore">*</span><span class="String">:profdel</span><span class="Ignore">*</span>
+		停止对指定参数的刨视，<span class="Ignore">|</span><span class="Identifier">:breakdel</span><span class="Ignore">|</span> 说明其中的参数。
+
+
+刨视总是用 &quot;:profile start fname&quot; 开始。Vim 退出时写入结果文件。这里是输出的示
+例，加上行号是为了方便解释:
+
+  <span class="PreProc">1 FUNCTION  Test2()</span><span class="Ignore"> ~</span>
+  <span class="PreProc">2 Called 1 time</span><span class="Ignore"> ~</span>
+  <span class="PreProc">3 Total time:   0.155251</span><span class="Ignore"> ~</span>
+  <span class="PreProc">4  Self time:   0.002006</span><span class="Ignore"> ~</span>
+  <span class="PreProc">5 </span><span class="Ignore"> ~</span>
+  <span class="PreProc">6 count  total (s)   self (s)</span><span class="Ignore"> ~</span>
+  <span class="PreProc">7	9	       0.000096   for i in range(8)</span><span class="Ignore"> ~</span>
+  <span class="PreProc">8	8   0.153655   0.000410     call Test3()</span><span class="Ignore"> ~</span>
+  <span class="PreProc">9	8	       0.000070   endfor</span><span class="Ignore"> ~</span>
+ <span class="PreProc">10				  &quot; Ask a question</span><span class="Ignore"> ~</span>
+ <span class="PreProc">11	1	       0.001341   echo input(&quot;give me an answer: &quot;)</span><span class="Ignore"> ~</span>
+
+头部 (行号 1-4) 给出整个函数的时间。&quot;Total&quot; 时间是函数执行时使用的时间。
+&quot;Self&quot; 时间是 &quot;Total&quot; 时间减去用于下面事项的时间:
+- 其它用户定义的函数
+- 执行脚本
+- 执行自动命令
+- 外部 (外壳) 命令
+
+行号 7-11 显示每个执行行花费的时间。不计算不执行的行。所以注释行从不参与计算。
+
+Count 列显示每行执行的次数。注意 到第 7 行的 &quot;for&quot; 命令执行次数比后面的行要多
+一。这是因为该行也被用来检测循环结束。
+
+Vim 花费在等待用户输入的时间完全不参与计算。所以 input() 提示后你的响应时间不
+相关。
+
+刨视给出关于时间花费在哪里的很好的指示，但要记住很多因素会影响输出结果:
+
+- 测量时间的准确度取决于 gettimeofday() 系统函数。精确度可能是 1/100 秒，但显
+  示的时间仍以微秒计。
+
+- 测量的是实际流逝的时间。如果其它进程繁忙，可能造成的延迟无法预测。你可能需要
+  多次运行刨视，并使用时间最少的结果。
+
+- 如果一行内执行多个命令，你只会得到一个时间。要看到个别命令的时间，把行分开。
+
+- 各行时间的加总几乎总会比整个函数的时间要少。中间有少许开销。
+
+- Vim 退出前删除的函数不会产生刨视信息。如果需要，你可以检查 <span class="Ignore">|</span><span class="Identifier">v:profiling</span><span class="Ignore">|</span> 变
+  量:<span class="Ignore"> &gt;</span>
+<span class="Comment">	:if !v:profiling</span>
+<span class="Comment">	:   delfunc MyFunc</span>
+<span class="Comment">	:endif</span>
+<span class="Ignore">&lt;</span>
+- 在多处理器系统中，因为睡眠模式或者为省电而减低处理器频率等因素影响，刨视结果
+  可能不正常。
+
+- &quot;self&quot; 时间对递归调用的函数是不正确的。
+
+
+ vim&#0058;tw=78:ts=8:ft=help:norl:
+</pre>
+</body>
+</html>
+<!-- vim: set foldmethod=manual : -->
