@@ -32,12 +32,13 @@ def vim2html anchors, file
   outfile = filename + '.html'
   lines = []
   File.foreach(file).with_index do |line, line_num|
-    if line_num > 26 and line !~ /<\/body>|<\/html>/
+    if line_num > 26 and line !~ /<\/body>|<\/html>|vim&#0058;tw=78:ts=8:ft=help:norl:/
       lines << line
     end
   end
 
   document = lines.join.gsub(/\n{3,}/, "\n\n")
+  document = document.gsub(/<span class="String">([\w.\-]*?)<\/span>/, '<span id="\1" class="String anchor">\1</span>')
   document = document.gsub(/<span class="Identifier">(\w\S+?)<\/span>/) do |m|
     anchor = anchors[$1] || '#'
     "<a href=\"#{anchor}\"><span class=\"Identifier\">#{$1}</span></a>"
