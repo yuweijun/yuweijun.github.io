@@ -1,12 +1,12 @@
 /**
  * Local Browser Database for Text Reader Application
- * Using IndexedDB for storing stories and reading history
+ * Using IndexedDB for storing books, stories and reading history
  */
 
 class TextReaderDB {
     constructor() {
         this.dbName = 'TextReaderDB';
-        this.version = 1;
+        this.version = 2; // Upgraded to version 2 for books table
         this.db = null;
     }
 
@@ -30,13 +30,31 @@ class TextReaderDB {
 
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
+                const oldVersion = event.oldVersion;
+
+                // Create books store (new in version 2)
+                if (!db.objectStoreNames.contains('books')) {
+                    const booksStore = db.createObjectStore('books', { keyPath: 'id' });
+                    booksStore.createIndex('bookName', 'bookName', { unique: false });
+                    booksStore.createIndex('uploadTime', 'uploadTime', { unique: false });
+                    console.log('Books store created');
+                }
 
                 // Create stories store
                 if (!db.objectStoreNames.contains('stories')) {
                     const storiesStore = db.createObjectStore('stories', { keyPath: 'id' });
                     storiesStore.createIndex('fileName', 'fileName', { unique: false });
                     storiesStore.createIndex('uploadTime', 'uploadTime', { unique: false });
+                    storiesStore.createIndex('bookId', 'bookId', { unique: false });
                     console.log('Stories store created');
+                } else if (oldVersion < 2) {
+                    // Add bookId index to existing stories store
+                    const transaction = event.target.transaction;
+                    const storiesStore = transaction.objectStore('stories');
+                    if (!storiesStore.indexNames.contains('bookId')) {
+                        storiesStore.createIndex('bookId', 'bookId', { unique: false });
+                        console.log('BookId index added to stories store');
+                    }
                 }
 
                 // Create histories store
@@ -51,6 +69,127 @@ class TextReaderDB {
     }
 
     /**
+     * Add a book to the database
+     */
+    async addBook(bookData) {
+        if (!this.db) await this.init();
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['books'], 'readwrite');
+            const store = transaction.objectStore('books');
+
+            const book = {
+                id: bookData.id || Date.now().toString(),
+                bookName: bookData.bookName,
+                uploadTime: bookData.uploadTime || new Date().toISOString(),
+                originalFileName: bookData.originalFileName || ''
+            };
+
+            const request = store.add(book);
+
+            request.onsuccess = () => {
+                resolve(book);
+            };
+
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    }
+
+    /**
+     * Get all books
+     */
+    async getAllBooks() {
+        if (!this.db) await this.init();
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['books'], 'readonly');
+            const store = transaction.objectStore('books');
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                resolve(request.result);
+            };
+
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    }
+
+    /**
+     * Get a book by ID
+     */
+    async getBookById(bookId) {
+        if (!this.db) await this.init();
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['books'], 'readonly');
+            const store = transaction.objectStore('books');
+            const request = store.get(bookId);
+
+            request.onsuccess = () => {
+                resolve(request.result);
+            };
+
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    }
+
+    /**
+     * Delete a book and all its stories
+     */
+    async deleteBook(bookId) {
+        if (!this.db) await this.init();
+
+        // First delete all stories belonging to this book
+        const stories = await this.getStoriesByBookId(bookId);
+        for (const story of stories) {
+            await this.deleteStory(story.id);
+        }
+
+        // Then delete the book
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['books'], 'readwrite');
+            const store = transaction.objectStore('books');
+            const request = store.delete(bookId);
+
+            request.onsuccess = () => {
+                resolve(true);
+            };
+
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    }
+
+    /**
+     * Get stories by book ID
+     */
+    async getStoriesByBookId(bookId) {
+        if (!this.db) await this.init();
+
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction(['stories'], 'readonly');
+            const store = transaction.objectStore('stories');
+            const index = store.index('bookId');
+            const request = index.getAll(bookId);
+
+            request.onsuccess = () => {
+                resolve(request.result);
+            };
+
+            request.onerror = () => {
+                reject(request.error);
+            };
+        });
+    }
+
+    /**
      * Add a story to the database
      */
     async addStory(storyData) {
@@ -59,17 +198,22 @@ class TextReaderDB {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction(['stories'], 'readwrite');
             const store = transaction.objectStore('stories');
-            
+
             const story = {
                 id: storyData.id || Date.now().toString(),
+                bookId: storyData.bookId || null, // Foreign key to books table
                 fileName: storyData.fileName,
                 originalFileName: storyData.originalFileName,
                 fileSize: storyData.fileSize,
                 uploadTime: storyData.uploadTime || new Date().toISOString(),
-                content: storyData.content || '', // Store the actual content
-                processedContent: storyData.processedContent || '', // Store the HTML formatted content
-                chapters: storyData.chapters || [], // Store chapter objects array
-                extractedTitle: storyData.extractedTitle || '' // Store the extracted title
+                content: storyData.content || '',
+                processedContent: storyData.processedContent || '',
+                chapters: storyData.chapters || [],
+                extractedTitle: storyData.extractedTitle || '',
+                isSplitFile: storyData.isSplitFile || false,
+                splitParentFile: storyData.splitParentFile || null,
+                splitIndex: storyData.splitIndex || null,
+                totalChunks: storyData.totalChunks || null
             };
 
             const request = store.add(story);
@@ -129,55 +273,19 @@ class TextReaderDB {
     /**
      * Update a story
      */
-    async updateStory(storyId, updates) {
-        if (!this.db) await this.init();
-
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['stories'], 'readwrite');
-            const store = transaction.objectStore('stories');
-            const getRequest = store.get(storyId);
-
-            getRequest.onsuccess = () => {
-                const story = getRequest.result;
-                if (story) {
-                    // Merge updates
-                    Object.assign(story, updates);
-                    const putRequest = store.put(story);
-                    
-                    putRequest.onsuccess = () => {
-                        resolve(story);
-                    };
-                    
-                    putRequest.onerror = () => {
-                        reject(putRequest.error);
-                    };
-                } else {
-                    reject(new Error('Story not found'));
-                }
-            };
-
-            getRequest.onerror = () => {
-                reject(getRequest.error);
-            };
-        });
-    }
-
-    /**
-     * Update an existing story
-     */
     async updateStory(story) {
         if (!this.db) await this.init();
-        
+
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction(['stories'], 'readwrite');
             const store = transaction.objectStore('stories');
             const request = store.put(story);
-            
+
             request.onsuccess = () => {
                 console.log('Story updated successfully:', story.id);
                 resolve(story);
             };
-            
+
             request.onerror = () => {
                 console.error('Failed to update story:', request.error);
                 reject(request.error);
@@ -215,7 +323,7 @@ class TextReaderDB {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction(['histories'], 'readwrite');
             const store = transaction.objectStore('histories');
-            
+
             const history = {
                 id: historyData.id || `${historyData.storyId}_${Date.now()}`,
                 storyId: historyData.storyId,
@@ -252,7 +360,6 @@ class TextReaderDB {
             const request = index.getAll(storyId);
 
             request.onsuccess = () => {
-                // Return the most recent history entry
                 const histories = request.result;
                 if (histories.length > 0) {
                     histories.sort((a, b) => new Date(b.lastReadTime) - new Date(a.lastReadTime));
@@ -296,25 +403,30 @@ class TextReaderDB {
         if (!this.db) await this.init();
 
         return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['stories', 'histories'], 'readwrite');
+            const transaction = this.db.transaction(['books', 'stories', 'histories'], 'readwrite');
+            const booksStore = transaction.objectStore('books');
             const storiesStore = transaction.objectStore('stories');
             const historiesStore = transaction.objectStore('histories');
 
+            const booksRequest = booksStore.clear();
             const storiesRequest = storiesStore.clear();
             const historiesRequest = historiesStore.clear();
 
             let completed = 0;
             const checkCompletion = () => {
                 completed++;
-                if (completed === 2) {
+                if (completed === 3) {
                     console.log('All data cleared successfully');
                     resolve();
                 }
             };
 
+            booksRequest.onsuccess = checkCompletion;
+            booksRequest.onerror = () => reject(booksRequest.error);
+
             storiesRequest.onsuccess = checkCompletion;
             storiesRequest.onerror = () => reject(storiesRequest.error);
-            
+
             historiesRequest.onsuccess = checkCompletion;
             historiesRequest.onerror = () => reject(historiesRequest.error);
         });

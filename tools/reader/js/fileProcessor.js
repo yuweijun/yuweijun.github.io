@@ -35,7 +35,6 @@ class LocalFileProcessor {
 
     /**
      * Convert Chinese number to Arabic numeral
-     * Supports: 零一二三四五六七八九十百千万亿
      */
     static chineseToArabic(chinese) {
         const chineseNums = {
@@ -46,7 +45,6 @@ class LocalFileProcessor {
 
         let result = 0;
         let temp = 0;
-        let lastUnit = 1;
 
         for (let i = 0; i < chinese.length; i++) {
             const char = chinese[i];
@@ -58,7 +56,6 @@ class LocalFileProcessor {
                 if (temp === 0) temp = 1;
                 result += temp * num;
                 temp = 0;
-                lastUnit = num;
             } else {
                 temp = temp * 10 + num;
             }
@@ -69,16 +66,13 @@ class LocalFileProcessor {
 
     /**
      * Extract chapter number from chapter title
-     * Supports both Chinese and Arabic numerals
      */
     static extractChapterNumber(title) {
-        // Try to match Chinese number pattern: 第*章/回/节
         const chineseMatch = title.match(/第\s*([一二三四五六七八九十百千万零]+)\s*[章节卷部篇回]\s*/);
         if (chineseMatch) {
             return LocalFileProcessor.chineseToArabic(chineseMatch[1]);
         }
 
-        // Try to match Arabic number pattern: 第123章/Chapter 123
         const arabicMatch = title.match(/第\s*(\d+)\s*[章节卷部篇回]|Chapter\s+(\d+)/i);
         if (arabicMatch) {
             return parseInt(arabicMatch[1] || arabicMatch[2], 10);
@@ -88,81 +82,80 @@ class LocalFileProcessor {
     }
 
     /**
-     * Create story data object
-     */
-    static createStoryData(options) {
-        const {
-            id,
-            fileName,
-            originalFileName,
-            fileSize,
-            content,
-            processedContent,
-            chapters,
-            extractedTitle,
-            isSplitFile = false,
-            splitParentFile = null,
-            splitIndex = null,
-            totalChunks = null
-        } = options;
-
-        return {
-            id,
-            fileName,
-            originalFileName,
-            fileSize,
-            uploadTime: new Date().toISOString(),
-            content,
-            processedContent,
-            chapters,
-            extractedTitle,
-            isSplitFile,
-            splitParentFile,
-            splitIndex,
-            totalChunks
-        };
-    }
-
-    /**
-     * Process file locally - save directly to database without splitting
+     * Process file - creates a book and saves stories
      */
     async processFile(file) {
         const fileContent = await this.readFileAsText(file);
+
+        // Create book first
+        const bookId = this.generateStoryId();
+        const bookName = LocalFileProcessor.extractTitle(fileContent);
+
+        const bookData = {
+            id: bookId,
+            bookName: bookName,
+            originalFileName: file.name,
+            uploadTime: new Date().toISOString()
+        };
+
+        await this.db.addBook(bookData);
+
+        // Create story
         const storyId = this.generateStoryId();
-        const storyTitle = LocalFileProcessor.extractTitle(fileContent);
-        const generatedFileName = `${storyTitle}.txt`;
+        const generatedFileName = `${bookName}.txt`;
         const processingResult = this.processContentWithChapters(fileContent);
 
-        const storyData = LocalFileProcessor.createStoryData({
+        const storyData = {
             id: storyId,
+            bookId: bookId, // Foreign key to book
             fileName: generatedFileName,
             originalFileName: file.name,
             fileSize: file.size,
             content: fileContent,
             processedContent: processingResult.htmlContent,
             chapters: processingResult.chapters,
-            extractedTitle: storyTitle
-        });
+            extractedTitle: bookName,
+            isSplitFile: false,
+            splitParentFile: null,
+            splitIndex: null,
+            totalChunks: null
+        };
 
         await this.db.addStory(storyData);
-        return storyId;
+
+        return { bookId, storyIds: [storyId] };
     }
 
     /**
-     * Process and split large file into chunks of specified chapter count
+     * Process and split large file into chunks
      */
     async processAndSplitFile(file) {
         const fileContent = await this.readFileAsText(file);
         const lines = fileContent.split('\n');
         const chapterBoundaries = this.detectChapterBoundaries(lines);
 
-        // If file has few chapters, process normally
+        // Create book first
+        const bookId = this.generateStoryId();
+        const bookName = file.name.replace(/\.[^/.]+$/, "");
+
+        const bookData = {
+            id: bookId,
+            bookName: bookName,
+            originalFileName: file.name,
+            uploadTime: new Date().toISOString()
+        };
+
+        await this.db.addBook(bookData);
+
+        // If file has few chapters, process as single story
         if (chapterBoundaries.length <= this.chaptersPerFile) {
-            return [await this.processFile(file)];
+            const result = await this.processSingleStory(file, bookId, fileContent);
+            return { bookId, storyIds: [result.storyId] };
         }
 
+        // Split file into chunks
         const storyIds = [];
-        const baseFileName = file.name.replace(/\.[^/.]+$/, "");
+        const baseFileName = bookName;
         const totalChunks = Math.ceil(chapterBoundaries.length / this.chaptersPerFile);
 
         for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
@@ -172,14 +165,44 @@ class LocalFileProcessor {
                 chunkIndex,
                 totalChunks,
                 baseFileName,
-                originalFileName: file.name
+                originalFileName: file.name,
+                bookId
             });
 
             await this.db.addStory(chunkData.storyData);
             storyIds.push(chunkData.storyId);
         }
 
-        return storyIds;
+        return { bookId, storyIds };
+    }
+
+    /**
+     * Process single story for book
+     */
+    async processSingleStory(file, bookId, fileContent) {
+        const storyId = this.generateStoryId();
+        const storyTitle = LocalFileProcessor.extractTitle(fileContent);
+        const generatedFileName = `${storyTitle}.txt`;
+        const processingResult = this.processContentWithChapters(fileContent);
+
+        const storyData = {
+            id: storyId,
+            bookId: bookId,
+            fileName: generatedFileName,
+            originalFileName: file.name,
+            fileSize: file.size,
+            content: fileContent,
+            processedContent: processingResult.htmlContent,
+            chapters: processingResult.chapters,
+            extractedTitle: storyTitle,
+            isSplitFile: false,
+            splitParentFile: null,
+            splitIndex: null,
+            totalChunks: null
+        };
+
+        await this.db.addStory(storyData);
+        return { storyId };
     }
 
     /**
@@ -192,12 +215,12 @@ class LocalFileProcessor {
             chunkIndex,
             totalChunks,
             baseFileName,
-            originalFileName
+            originalFileName,
+            bookId
         } = options;
 
         const startChapterIdx = chunkIndex * this.chaptersPerFile;
-        const endChapterIdx = Math.min((chunkIndex + 1) * this.chaptersPerFile,
-            chapterBoundaries.length);
+        const endChapterIdx = Math.min((chunkIndex + 1) * this.chaptersPerFile, chapterBoundaries.length);
 
         const startLineIdx = chapterBoundaries[startChapterIdx].lineIndex;
         const endLineIdx = endChapterIdx < chapterBoundaries.length
@@ -214,8 +237,9 @@ class LocalFileProcessor {
         const storyId = this.generateStoryId();
         const processingResult = this.processContentWithChapters(chunkContent);
 
-        const storyData = LocalFileProcessor.createStoryData({
+        const storyData = {
             id: storyId,
+            bookId: bookId,
             fileName: chunkFileName,
             originalFileName,
             fileSize: new Blob([chunkContent]).size,
@@ -227,33 +251,52 @@ class LocalFileProcessor {
             splitParentFile: originalFileName,
             splitIndex: chunkIndex + 1,
             totalChunks
-        });
+        };
 
         return { storyId, storyData };
     }
 
     /**
-     * Process text content from textarea - save directly without splitting
+     * Process text content from textarea
      */
     async processTextContent(content, fileName = 'pasted_content.txt') {
+        // Create book first
+        const bookId = this.generateStoryId();
+        const bookName = LocalFileProcessor.extractTitle(content);
+
+        const bookData = {
+            id: bookId,
+            bookName: bookName,
+            originalFileName: fileName,
+            uploadTime: new Date().toISOString()
+        };
+
+        await this.db.addBook(bookData);
+
+        // Create story
         const storyId = this.generateStoryId();
-        const storyTitle = LocalFileProcessor.extractTitle(content);
-        const generatedFileName = `${storyTitle}.txt`;
+        const generatedFileName = `${bookName}.txt`;
         const processingResult = this.processContentWithChapters(content);
 
-        const storyData = LocalFileProcessor.createStoryData({
+        const storyData = {
             id: storyId,
+            bookId: bookId,
             fileName: generatedFileName,
             originalFileName: fileName,
             fileSize: new Blob([content]).size,
-            content,
+            content: content,
             processedContent: processingResult.htmlContent,
             chapters: processingResult.chapters,
-            extractedTitle: storyTitle
-        });
+            extractedTitle: bookName,
+            isSplitFile: false,
+            splitParentFile: null,
+            splitIndex: null,
+            totalChunks: null
+        };
 
         await this.db.addStory(storyData);
-        return storyId;
+
+        return { bookId, storyIds: [storyId] };
     }
 
     /**
@@ -311,7 +354,6 @@ class LocalFileProcessor {
                 }
 
                 chapterIndex++;
-                // Extract chapter number from title for anchor ID
                 const chapterNum = LocalFileProcessor.extractChapterNumber(trimmedLine);
                 const anchorId = chapterNum !== null
                     ? `chapter-${chapterNum}`
@@ -328,7 +370,6 @@ class LocalFileProcessor {
                     htmlContent += '<div class="chapter-content">\n';
                     inChapterContent = true;
                 }
-                // Only wrap non-empty lines in div with chapter-content-row class
                 if (line.trim() !== '') {
                     htmlContent += `<div class="chapter-content-row">${this.escapeHtml(line)}</div>`;
                 }
@@ -364,7 +405,7 @@ class LocalFileProcessor {
     }
 
     /**
-     * Generate unique story ID
+     * Generate unique ID
      */
     generateStoryId() {
         return Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -387,6 +428,15 @@ class LocalFileProcessor {
     async deleteStory(storyId) {
         await this.db.deleteStory(storyId);
         console.log('Story deleted:', storyId);
+        return true;
+    }
+
+    /**
+     * Delete book and all its stories
+     */
+    async deleteBook(bookId) {
+        await this.db.deleteBook(bookId);
+        console.log('Book deleted:', bookId);
         return true;
     }
 }

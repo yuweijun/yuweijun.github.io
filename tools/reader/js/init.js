@@ -33,7 +33,8 @@ const appState = {
     currentPage: 1,
     itemsPerPage: 30,
     totalPages: 1,
-    allStories: [],
+    allBooks: [],
+    expandedBooks: new Set(), // Track expanded book IDs
     processor: null,
     db: null,
     isProcessing: false
@@ -41,22 +42,22 @@ const appState = {
 
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('Initializing Text Reader Application...');
-    
+
     try {
         // Initialize database and processor
         appState.db = new TextReaderDB();
         await appState.db.init();
         appState.processor = new LocalFileProcessor();
         console.log('Database and processor initialized successfully');
-        
+
         // Setup event listeners
         setupEventListeners();
-        
+
         // Load initial data
-        await loadStories();
-        
+        await loadBooks();
+
         console.log('Application initialization completed');
-        
+
     } catch (error) {
         console.error('Failed to initialize application:', error);
         showError('Failed to initialize application: ' + error.message);
@@ -67,23 +68,23 @@ function setupEventListeners() {
     // Text content input
     const textContent = document.getElementById('textContent');
     const processTextBtn = document.getElementById('processTextBtn');
-    
+
     if (textContent && processTextBtn) {
         textContent.addEventListener('input', function() {
             processTextBtn.disabled = this.value.trim().length === 0;
         });
     }
-    
+
     // File input
     const fileInput = document.getElementById('fileInput');
     const processFileBtn = document.getElementById('processFileBtn');
-    
+
     if (fileInput && processFileBtn) {
         fileInput.addEventListener('change', function() {
             processFileBtn.disabled = !this.files || this.files.length === 0;
         });
     }
-    
+
     // Process buttons
     if (processTextBtn) {
         processTextBtn.addEventListener('click', processTextContent);
@@ -91,52 +92,109 @@ function setupEventListeners() {
     if (processFileBtn) {
         processFileBtn.addEventListener('click', processSelectedFile);
     }
-    
+
     // Navigation buttons
     const refreshBtn = document.getElementById('refreshBtn');
     const prevPageBtn = document.getElementById('prevPageBtn');
     const nextPageBtn = document.getElementById('nextPageBtn');
     const clearAllBtn = document.getElementById('clearAllBtn');
-    
-    if (refreshBtn) refreshBtn.addEventListener('click', loadStories);
-    if (prevPageBtn) prevPageBtn.addEventListener('click', goToPreviousPage);
-    if (nextPageBtn) nextPageBtn.addEventListener('click', goToNextPage);
-    if (clearAllBtn) clearAllBtn.addEventListener('click', confirmClearAll);
+
+    if (refreshBtn) {
+        refreshBtn.addEventListener('click', async function() {
+            await loadBooks();
+        });
+    }
+
+    if (prevPageBtn) {
+        prevPageBtn.addEventListener('click', function() {
+            if (appState.currentPage > 1) {
+                appState.currentPage--;
+                displayBooks();
+                updatePagination();
+            }
+        });
+    }
+
+    if (nextPageBtn) {
+        nextPageBtn.addEventListener('click', function() {
+            if (appState.currentPage < appState.totalPages) {
+                appState.currentPage++;
+                displayBooks();
+                updatePagination();
+            }
+        });
+    }
+
+    if (clearAllBtn) {
+        clearAllBtn.addEventListener('click', async function() {
+            if (confirm('Are you sure you want to delete all books? This cannot be undone.')) {
+                try {
+                    await appState.db.clearAllData();
+                    await loadBooks();
+                    showSuccess('All books deleted successfully');
+                } catch (error) {
+                    showError('Failed to clear data: ' + error.message);
+                }
+            }
+        });
+    }
+
+    // Search input
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', debounce(function() {
+            appState.currentPage = 1;
+            displayBooks();
+            updatePagination();
+        }, 300));
+    }
+}
+
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
 }
 
 async function processTextContent() {
-    if (appState.isProcessing) return;
+    const textContent = document.getElementById('textContent');
+    const processTextBtn = document.getElementById('processTextBtn');
 
-    const content = document.getElementById('textContent').value.trim();
-    if (!content) {
+    if (!textContent || !textContent.value.trim()) {
         showError('Please enter some text content');
         return;
     }
 
     appState.isProcessing = true;
-    const processTextBtn = document.getElementById('processTextBtn');
     if (processTextBtn) processTextBtn.disabled = true;
 
     try {
         showLoading('Processing text content...');
 
-        const storyId = await appState.processor.processTextContent(content);
+        const result = await appState.processor.processTextContent(textContent.value);
 
         // Clear input
-        document.getElementById('textContent').value = '';
+        textContent.value = '';
+        if (processTextBtn) processTextBtn.disabled = true;
 
-        // Reload stories
-        await loadStories();
+        // Reload books
+        await loadBooks();
 
         hideLoading();
         showSuccess('Text content processed successfully!');
 
-        // Navigate to viewer
-        window.location.href = `viewer.html#view/${storyId}`;
+        // Navigate to view
+        window.location.href = `viewer.html#view/${result.storyIds[0]}`;
 
     } catch (error) {
         hideLoading();
-        showError('Failed to process text content: ' + error.message);
+        showError('Failed to process text: ' + error.message);
         if (processTextBtn) processTextBtn.disabled = false;
     } finally {
         appState.isProcessing = false;
@@ -144,9 +202,9 @@ async function processTextContent() {
 }
 
 async function processSelectedFile() {
-    if (appState.isProcessing) return;
-
     const fileInput = document.getElementById('fileInput');
+    const processFileBtn = document.getElementById('processFileBtn');
+
     if (!fileInput.files || fileInput.files.length === 0) {
         showError('Please select a file');
         return;
@@ -166,7 +224,6 @@ async function processSelectedFile() {
     }
 
     appState.isProcessing = true;
-    const processFileBtn = document.getElementById('processFileBtn');
     if (processFileBtn) processFileBtn.disabled = true;
 
     try {
@@ -182,17 +239,16 @@ async function processSelectedFile() {
 
         // Detect chapters to decide if splitting is needed
         const chapterBoundaries = appState.processor.detectChapters(fileContent);
-        let storyIds = [];
+        let result;
 
         if (chapterBoundaries.length > 50) {
             // Use splitting functionality for files with more than 50 chapters
-            storyIds = await appState.processor.processAndSplitFile(file);
+            result = await appState.processor.processAndSplitFile(file);
             hideLoading();
-            showSuccess(`File "${file.name}" split into ${storyIds.length} parts successfully!`);
+            showSuccess(`File "${file.name}" split into ${result.storyIds.length} parts successfully!`);
         } else {
             // Process normally
-            const storyId = await appState.processor.processFile(file);
-            storyIds = [storyId];
+            result = await appState.processor.processFile(file);
             hideLoading();
             showSuccess(`File "${file.name}" processed successfully!`);
         }
@@ -200,11 +256,11 @@ async function processSelectedFile() {
         // Clear input
         fileInput.value = '';
 
-        // Reload stories
-        await loadStories();
+        // Reload books
+        await loadBooks();
 
-        // Navigate to first part if multiple parts were created
-        window.location.href = `viewer.html#view/${storyIds[0]}`;
+        // Navigate to first story
+        window.location.href = `viewer.html#view/${result.storyIds[0]}`;
 
     } catch (error) {
         hideLoading();
@@ -215,318 +271,232 @@ async function processSelectedFile() {
     }
 }
 
-async function loadStories() {
+async function loadBooks() {
     try {
-        showLoading('Loading documents...');
-        
-        // Get all stories from database
-        const stories = await appState.db.getAllStories();
-        
+        showLoading('Loading books...');
+
+        // Get all books from database
+        const books = await appState.db.getAllBooks();
+
         // Sort by upload time (newest first)
-        stories.sort((a, b) => new Date(b.uploadTime) - new Date(a.uploadTime));
-        
-        appState.allStories = stories;
-        appState.totalPages = Math.ceil(stories.length / appState.itemsPerPage);
-        
+        books.sort((a, b) => new Date(b.uploadTime) - new Date(a.uploadTime));
+
+        // Load stories for each book
+        for (const book of books) {
+            book.stories = await appState.db.getStoriesByBookId(book.id);
+            // Sort stories by split index if they are split files
+            book.stories.sort((a, b) => {
+                if (a.splitIndex && b.splitIndex) {
+                    return a.splitIndex - b.splitIndex;
+                }
+                return new Date(a.uploadTime) - new Date(b.uploadTime);
+            });
+        }
+
+        appState.allBooks = books;
+        appState.totalPages = Math.ceil(books.length / appState.itemsPerPage);
+
         // Reset to first page if current page is invalid
         if (appState.currentPage > appState.totalPages) {
             appState.currentPage = 1;
         }
-        
-        displayStories();
+
+        displayBooks();
         updatePagination();
         hideLoading();
-        
+
     } catch (error) {
         hideLoading();
-        showError('Failed to load documents: ' + error.message);
+        showError('Failed to load books: ' + error.message);
     }
 }
 
-function displayStories() {
-    const storiesList = document.getElementById('storiesList');
+function displayBooks() {
+    const booksList = document.getElementById('storiesList');
     const emptyState = document.getElementById('emptyState');
     const loadingState = document.getElementById('loadingState');
-    
+
     // Hide loading and empty states
     if (loadingState) loadingState.style.display = 'none';
-    
-    if (appState.allStories.length === 0) {
+
+    if (appState.allBooks.length === 0) {
         if (emptyState) emptyState.style.display = 'block';
-        if (storiesList) storiesList.style.display = 'none';
+        if (booksList) booksList.style.display = 'none';
         const paginationControls = document.getElementById('paginationControls');
         if (paginationControls) paginationControls.style.display = 'none';
         return;
     }
-    
+
     if (emptyState) emptyState.style.display = 'none';
-    if (storiesList) storiesList.style.display = 'block';
-    
+    if (booksList) booksList.style.display = 'block';
+
+    // Filter books based on search
+    const searchInput = document.getElementById('searchInput');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+    let filteredBooks = appState.allBooks;
+    if (searchTerm) {
+        filteredBooks = appState.allBooks.filter(book =>
+            book.bookName.toLowerCase().includes(searchTerm) ||
+            book.stories.some(story =>
+                story.extractedTitle.toLowerCase().includes(searchTerm)
+            )
+        );
+    }
+
     // Calculate pagination
     const startIndex = (appState.currentPage - 1) * appState.itemsPerPage;
-    const endIndex = Math.min(startIndex + appState.itemsPerPage, appState.allStories.length);
-    const pageStories = appState.allStories.slice(startIndex, endIndex);
-    
-    // Generate HTML for stories
+    const endIndex = Math.min(startIndex + appState.itemsPerPage, filteredBooks.length);
+    const pageBooks = filteredBooks.slice(startIndex, endIndex);
+
+    // Generate HTML for books
     let html = '';
-    pageStories.forEach(story => {
-        const fileSize = formatFileSize(story.fileSize);
-        const title = escapeHtml(story.customTitle || story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''));
-        const splitBadge = story.isSplitFile ? ` (${story.splitIndex}/${story.totalChunks})` : '';
-        
+    pageBooks.forEach(book => {
+        const uploadDate = new Date(book.uploadTime).toLocaleString();
+        const isExpanded = appState.expandedBooks.has(book.id);
+        const expandIcon = isExpanded ? 'fa-chevron-down' : 'fa-chevron-right';
+        const storiesDisplay = isExpanded ? 'block' : 'none';
+
         html += `
-            <div class="story-item">
-                <div class="story-info">
-                    <a href="viewer.html#view/${story.id}" class="story-title">${title}${splitBadge}</a>
-                    <div class="story-meta">${fileSize}</div>
+            <div class="book-item" data-book-id="${book.id}">
+                <div class="book-header d-flex justify-content-between align-items-center">
+                    <div class="flex-grow-1" onclick="toggleBook('${book.id}')" style="cursor: pointer;">
+                        <h5 class="mb-1">
+                            <i class="fas ${expandIcon} me-2 text-muted"></i>
+                            <i class="fas fa-book text-primary me-2"></i>
+                            ${escapeHtml(book.bookName)}
+                            <span class="badge bg-secondary ms-2">${book.stories.length} parts</span>
+                        </h5>
+                        <div class="text-muted small">
+                            <i class="fas fa-calendar"></i> ${uploadDate}
+                        </div>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-danger delete-book-btn" data-book-id="${book.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="story-actions">
-                    <button class="btn btn-outline-secondary rename-btn" 
-                            data-story-id="${story.id}"
-                            data-original-name="${title}">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-outline-danger delete-btn" 
-                            data-story-id="${story.id}">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                <div class="book-stories ms-4 mt-2" style="display: ${storiesDisplay}">
+        `;
+
+        // Add stories under book
+        book.stories.forEach(story => {
+            const fileSize = formatFileSize(story.fileSize);
+            const storyTitle = escapeHtml(story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''));
+            const splitBadge = story.isSplitFile ? ` <span class="badge bg-info">Part ${story.splitIndex}/${story.totalChunks}</span>` : '';
+
+            html += `
+                <div class="story-item d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <div>
+                        <a href="viewer.html#view/${story.id}" class="text-decoration-none">
+                            <i class="fas fa-file-alt text-muted me-2"></i>
+                            ${storyTitle}${splitBadge}
+                        </a>
+                        <div class="text-muted small">
+                            <i class="fas fa-weight-hanging"></i> ${fileSize}
+                        </div>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <a href="viewer.html#view/${story.id}" class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-eye"></i> View
+                        </a>
+                        <button class="btn btn-sm btn-outline-danger delete-story-btn" data-story-id="${story.id}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+
+        html += `
                 </div>
             </div>
         `;
     });
-    
-    if (storiesList) storiesList.innerHTML = html;
-    
-    // Add event listeners to delete and rename buttons
-    document.querySelectorAll('.delete-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const storyId = this.getAttribute('data-story-id');
-            confirmDeleteStory(storyId);
+
+    if (booksList) booksList.innerHTML = html;
+
+    // Attach event listeners to delete buttons
+    attachDeleteListeners();
+}
+
+// Toggle book expand/collapse
+window.toggleBook = function(bookId) {
+    if (appState.expandedBooks.has(bookId)) {
+        appState.expandedBooks.delete(bookId);
+    } else {
+        appState.expandedBooks.add(bookId);
+    }
+    displayBooks();
+};
+
+function attachDeleteListeners() {
+    // Delete book buttons
+    document.querySelectorAll('.delete-book-btn').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const bookId = this.dataset.bookId;
+            const book = appState.allBooks.find(b => b.id === bookId);
+
+            if (confirm(`Are you sure you want to delete "${book?.bookName || 'this book'}" and all its parts?`)) {
+                try {
+                    await appState.processor.deleteBook(bookId);
+                    appState.expandedBooks.delete(bookId);
+                    await loadBooks();
+                    showSuccess('Book deleted successfully');
+                } catch (error) {
+                    showError('Failed to delete book: ' + error.message);
+                }
+            }
         });
     });
-    
-    document.querySelectorAll('.rename-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const storyId = this.getAttribute('data-story-id');
-            const originalName = this.getAttribute('data-original-name');
-            showRenameDialog(storyId, originalName);
+
+    // Delete story buttons
+    document.querySelectorAll('.delete-story-btn').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const storyId = this.dataset.storyId;
+
+            if (confirm('Are you sure you want to delete this story?')) {
+                try {
+                    await appState.processor.deleteStory(storyId);
+                    await loadBooks();
+                    showSuccess('Story deleted successfully');
+                } catch (error) {
+                    showError('Failed to delete story: ' + error.message);
+                }
+            }
         });
     });
 }
 
 function updatePagination() {
+    const currentPageEl = document.getElementById('currentPage');
+    const totalPagesEl = document.getElementById('totalPages');
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
     const paginationControls = document.getElementById('paginationControls');
-    const prevBtn = document.getElementById('prevPageBtn');
-    const nextBtn = document.getElementById('nextPageBtn');
-    const pageInfo = document.getElementById('pageInfo');
-    
+
     if (appState.totalPages <= 1) {
         if (paginationControls) paginationControls.style.display = 'none';
         return;
     }
-    
+
     if (paginationControls) paginationControls.style.display = 'flex';
-    if (prevBtn) prevBtn.disabled = appState.currentPage <= 1;
-    if (nextBtn) nextBtn.disabled = appState.currentPage >= appState.totalPages;
-    if (pageInfo) pageInfo.textContent = `${appState.currentPage} / ${appState.totalPages}`;
+    if (currentPageEl) currentPageEl.textContent = appState.currentPage;
+    if (totalPagesEl) totalPagesEl.textContent = appState.totalPages;
+
+    if (prevPageBtn) prevPageBtn.disabled = appState.currentPage <= 1;
+    if (nextPageBtn) nextPageBtn.disabled = appState.currentPage >= appState.totalPages;
 }
 
-function goToPreviousPage() {
-    if (appState.currentPage > 1) {
-        appState.currentPage--;
-        displayStories();
-        updatePagination();
-    }
-}
-
-function goToNextPage() {
-    if (appState.currentPage < appState.totalPages) {
-        appState.currentPage++;
-        displayStories();
-        updatePagination();
-    }
-}
-
-function showRenameDialog(storyId, currentName) {
-    const modalHtml = `
-        <div class="modal fade" id="renameModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Rename Document</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="mb-3">
-                            <label for="renameInput" class="form-label">New name:</label>
-                            <input type="text" class="form-control" id="renameInput" 
-                                   value="${currentName}" maxlength="100">
-                            <div class="form-text">Enter a new name for this document</div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="button" class="btn btn-primary" id="confirmRenameBtn">Rename</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Remove existing modal if present
-    const existingModal = document.getElementById('renameModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Add new modal to body
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    // Show modal
-    const modalElement = document.getElementById('renameModal');
-    const modal = new bootstrap.Modal(modalElement);
-    modal.show();
-    
-    // Focus the input field
-    setTimeout(() => {
-        document.getElementById('renameInput').focus();
-        document.getElementById('renameInput').select();
-    }, 100);
-    
-    // Handle rename confirmation
-    document.getElementById('confirmRenameBtn').addEventListener('click', async function() {
-        const newName = document.getElementById('renameInput').value.trim();
-        if (newName && newName !== currentName) {
-            try {
-                await renameStory(storyId, newName);
-                modal.hide();
-                showSuccess('Document renamed successfully');
-                await loadStories();
-            } catch (error) {
-                showError('Failed to rename document: ' + error.message);
-            }
-        } else {
-            modal.hide();
-        }
-    });
-    
-    // Handle Enter key in input
-    document.getElementById('renameInput').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') {
-            document.getElementById('confirmRenameBtn').click();
-        }
-    });
-}
-
-async function renameStory(storyId, newName) {
-    try {
-        // Get the story from database
-        const story = await appState.db.getStoryById(storyId);
-        if (!story) {
-            throw new Error('Story not found');
-        }
-        
-        // Update the story title
-        story.customTitle = newName;
-        
-        // Save updated story
-        await appState.db.updateStory(story);
-        
-    } catch (error) {
-        throw new Error('Failed to rename story: ' + error.message);
-    }
-}
-
-async function confirmDeleteStory(storyId) {
-    const story = appState.allStories.find(s => s.id === storyId);
-    if (!story) return;
-    
-    showConfirmDialog(
-        `Are you sure you want to delete "${escapeHtml(story.customTitle || story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''))}"?`,
-        async () => {
-            try {
-                await appState.processor.deleteStory(storyId);
-                showSuccess('Document deleted successfully');
-                await loadStories();
-            } catch (error) {
-                showError('Failed to delete document: ' + error.message);
-            }
-        }
-    );
-}
-
-async function confirmClearAll() {
-    if (appState.allStories.length === 0) return;
-    
-    showConfirmDialog(
-        `Are you sure you want to delete all ${appState.allStories.length} documents? This action cannot be undone.`,
-        async () => {
-            try {
-                showLoading('Clearing all documents...');
-                await appState.db.clearAllData();
-                showSuccess('All documents cleared successfully');
-                await loadStories();
-                hideLoading();
-            } catch (error) {
-                hideLoading();
-                showError('Failed to clear documents: ' + error.message);
-            }
-        }
-    );
-}
-
-// Utility functions
-function showLoading(message) {
-    const loadingState = document.getElementById('loadingState');
-    if (loadingState) {
-        loadingState.innerHTML = `
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">Loading...</span>
-            </div>
-            <p class="mt-2">${message}</p>
-        `;
-        loadingState.style.display = 'block';
-    }
-    
-    const emptyState = document.getElementById('emptyState');
-    const storiesList = document.getElementById('storiesList');
-    
-    if (emptyState) emptyState.style.display = 'none';
-    if (storiesList) storiesList.style.display = 'none';
-}
-
-function hideLoading() {
-    const loadingState = document.getElementById('loadingState');
-    if (loadingState) loadingState.style.display = 'none';
-}
-
-function showError(message) {
-    alert('Error: ' + message);
-}
-
-function showSuccess(message) {
-    console.log('Success:', message);
-}
-
-function showConfirmDialog(message, onConfirm) {
-    const modalBody = document.getElementById('confirmModalBody');
-    const confirmBtn = document.getElementById('confirmActionBtn');
-    const modalElement = document.getElementById('confirmModal');
-    
-    if (modalBody) modalBody.textContent = message;
-    
-    if (confirmBtn) {
-        confirmBtn.onclick = function() {
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            if (modal) modal.hide();
-            onConfirm();
-        };
-    }
-    
-    if (modalElement) {
-        const modal = new bootstrap.Modal(modalElement);
-        modal.show();
-    }
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
 function escapeHtml(text) {
@@ -535,21 +505,41 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-/**
- * Utility function to format file size
- */
-function formatFileSize(bytes) {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+function showLoading(message = 'Loading...') {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const loadingText = document.getElementById('loadingText');
+
+    if (loadingText) loadingText.textContent = message;
+    if (loadingOverlay) loadingOverlay.style.display = 'flex';
 }
 
-/**
- * Global utility functions
- */
-window.TextReaderUtils = {
-    formatFileSize: formatFileSize,
-    db: new TextReaderDB()
-};
+function hideLoading() {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    if (loadingOverlay) loadingOverlay.style.display = 'none';
+}
+
+function showError(message) {
+    const toast = document.getElementById('errorToast');
+    const toastBody = toast?.querySelector('.toast-body');
+
+    if (toastBody) toastBody.textContent = message;
+    if (toast) {
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    } else {
+        alert(message);
+    }
+}
+
+function showSuccess(message) {
+    const toast = document.getElementById('successToast');
+    const toastBody = toast?.querySelector('.toast-body');
+
+    if (toastBody) toastBody.textContent = message;
+    if (toast) {
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+    } else {
+        alert(message);
+    }
+}

@@ -28,7 +28,17 @@ const themes = {
     onedark: 'theme-onedark',
     darkgreen: 'theme-darkgreen',
     'maize-yello': 'theme-maize-yello',
-    'griege-dark': 'theme-griege-dark'
+    'griege-dark': 'theme-griege-dark',
+    rouge: 'theme-rouge',
+    onyx: 'theme-onyx',
+    almond: 'theme-almond',
+    autumn: 'theme-autumn',
+    aurora: 'theme-aurora',
+    meadow: 'theme-meadow',
+    seasky: 'theme-seasky',
+    lavender: 'theme-lavender',
+    bamboo: 'theme-bamboo',
+    ochre: 'theme-ochre'
 };
 
 function applyTheme(theme) {
@@ -317,6 +327,56 @@ async function initializeViewer() {
             }
         }
     });
+
+    // Setup pagination click handler - click in bottom 25dvh to scroll up one page
+    setupPaginationClickHandler();
+}
+
+function setupPaginationClickHandler() {
+    const contentContainer = document.querySelector('.content-container');
+    if (!contentContainer) return;
+
+    // Click handler for pagination
+    function handlePaginationClick(e) {
+        const rect = contentContainer.getBoundingClientRect();
+        const clickY = e.clientY - rect.top;
+        const containerHeight = rect.height;
+
+        // Check if click is in bottom 25% of the container (25dvh equivalent)
+        const bottomThreshold = containerHeight * 0.75;
+
+        if (clickY >= bottomThreshold) {
+            // Scroll up one page
+            const scrollAmount = containerHeight * 0.9; // 90% of viewport for overlap
+            contentContainer.scrollBy({
+                top: scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    }
+
+    // Add click listener
+    contentContainer.addEventListener('click', handlePaginationClick);
+
+    // Add touch listener for mobile
+    contentContainer.addEventListener('touchstart', function(e) {
+        const touch = e.touches[0];
+        const rect = contentContainer.getBoundingClientRect();
+        const touchY = touch.clientY - rect.top;
+        const containerHeight = rect.height;
+
+        // Check if touch is in bottom 25% of the container
+        const bottomThreshold = containerHeight * 0.75;
+
+        if (touchY >= bottomThreshold) {
+            e.preventDefault();
+            const scrollAmount = containerHeight * 0.9;
+            contentContainer.scrollBy({
+                top: scrollAmount,
+                behavior: 'smooth'
+            });
+        }
+    }, { passive: false });
 }
 
 function handleHashChange() {
