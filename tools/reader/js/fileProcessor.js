@@ -26,11 +26,91 @@ class LocalFileProcessor {
     }
 
     /**
-     * Extract title from first line (max 15 characters)
+     * Extract title from first line (max 30 characters)
+     * Used for pasted text content
      */
     static extractTitle(content) {
         const firstLine = content.split('\n')[0] || '';
-        return firstLine.substring(0, 15).trim() || 'Untitled';
+        return firstLine.substring(0, 30).trim() || 'Untitled';
+    }
+
+    /**
+     * Extract book name from filename (without extension)
+     * Used for uploaded files
+     */
+    static extractBookNameFromFileName(fileName) {
+        if (!fileName) return 'Untitled';
+        // Remove extension and decode URL-encoded characters
+        const nameWithoutExt = fileName.replace(/\.[^/.]+$/, '');
+        try {
+            // Try to decode in case it's URL-encoded
+            return decodeURIComponent(nameWithoutExt).trim() || 'Untitled';
+        } catch (e) {
+            return nameWithoutExt.trim() || 'Untitled';
+        }
+    }
+
+    /**
+     * Detect if text is valid UTF-8
+     * Returns true if text appears to be valid UTF-8
+     */
+    static isValidUtf8(text) {
+        try {
+            // Try to encode and decode - if it round-trips correctly, it's valid UTF-8
+            const encoded = new TextEncoder().encode(text);
+            const decoded = new TextDecoder('utf-8', { fatal: true }).decode(encoded);
+            return decoded === text;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    /**
+     * Convert text to UTF-8 encoding
+     * Attempts to detect common encodings (GBK, Big5) and convert to UTF-8
+     */
+    static async convertToUtf8(arrayBuffer, fileName) {
+        // First, try to detect encoding using common patterns
+        const bytes = new Uint8Array(arrayBuffer);
+
+        // Try UTF-8 first
+        try {
+            const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
+            const utf8Text = utf8Decoder.decode(bytes);
+            // Verify it's valid by re-encoding
+            if (LocalFileProcessor.isValidUtf8(utf8Text)) {
+                return utf8Text;
+            }
+        } catch (e) {
+            // Not valid UTF-8, try other encodings
+        }
+
+        // Try GBK (common Chinese encoding)
+        try {
+            const gbkDecoder = new TextDecoder('gbk', { fatal: false });
+            const gbkText = gbkDecoder.decode(bytes);
+            // Check if it contains common Chinese characters
+            if (/[\u4e00-\u9fa5]/.test(gbkText) && !gbkText.includes('\uFFFD')) {
+                return gbkText;
+            }
+        } catch (e) {
+            // GBK failed
+        }
+
+        // Try Big5 (Traditional Chinese encoding)
+        try {
+            const big5Decoder = new TextDecoder('big5', { fatal: false });
+            const big5Text = big5Decoder.decode(bytes);
+            if (/[\u4e00-\u9fa5]/.test(big5Text) && !big5Text.includes('\uFFFD')) {
+                return big5Text;
+            }
+        } catch (e) {
+            // Big5 failed
+        }
+
+        // Fallback: try UTF-8 without fatal error (will replace invalid chars)
+        const fallbackDecoder = new TextDecoder('utf-8', { fatal: false });
+        return fallbackDecoder.decode(bytes);
     }
 
     /**
@@ -83,13 +163,15 @@ class LocalFileProcessor {
 
     /**
      * Process file - creates a book and saves stories
+     * Uses filename (without extension) as book name for uploaded files
      */
     async processFile(file) {
         const fileContent = await this.readFileAsText(file);
 
         // Create book first
         const bookId = this.generateStoryId();
-        const bookName = LocalFileProcessor.extractTitle(fileContent);
+        // Use filename (without extension) as book name for uploaded files
+        const bookName = LocalFileProcessor.extractBookNameFromFileName(file.name);
 
         const bookData = {
             id: bookId,
@@ -128,6 +210,7 @@ class LocalFileProcessor {
 
     /**
      * Process and split large file into chunks
+     * Uses filename (without extension) as book name for uploaded files
      */
     async processAndSplitFile(file) {
         const fileContent = await this.readFileAsText(file);
@@ -136,7 +219,8 @@ class LocalFileProcessor {
 
         // Create book first
         const bookId = this.generateStoryId();
-        const bookName = file.name.replace(/\.[^/.]+$/, "");
+        // Use filename (without extension) as book name for uploaded files
+        const bookName = LocalFileProcessor.extractBookNameFromFileName(file.name);
 
         const bookData = {
             id: bookId,
@@ -258,10 +342,12 @@ class LocalFileProcessor {
 
     /**
      * Process text content from textarea
+     * Uses first 30 characters of first line as book name for pasted content
      */
     async processTextContent(content, fileName = 'pasted_content.txt') {
         // Create book first
         const bookId = this.generateStoryId();
+        // Use first 30 characters of first line as book name for pasted content
         const bookName = LocalFileProcessor.extractTitle(content);
 
         const bookData = {
@@ -393,15 +479,19 @@ class LocalFileProcessor {
     }
 
     /**
-     * Read file as text
+     * Read file as text with automatic encoding detection and conversion to UTF-8
      */
-    readFileAsText(file) {
-        return new Promise((resolve, reject) => {
+    async readFileAsText(file) {
+        // Read as ArrayBuffer first to detect encoding
+        const arrayBuffer = await new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.onload = (event) => resolve(event.target.result);
             reader.onerror = (error) => reject(error);
-            reader.readAsText(file, 'UTF-8');
+            reader.readAsArrayBuffer(file);
         });
+
+        // Convert to UTF-8 with automatic encoding detection
+        return await LocalFileProcessor.convertToUtf8(arrayBuffer, file.name);
     }
 
     /**

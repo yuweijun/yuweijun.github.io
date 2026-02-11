@@ -229,13 +229,8 @@ async function processSelectedFile() {
     try {
         showLoading(`Processing file: ${file.name}...`);
 
-        // Read file content to check chapter count
-        const fileContent = await new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onload = (event) => resolve(event.target.result);
-            reader.onerror = (error) => reject(error);
-            reader.readAsText(file, 'UTF-8');
-        });
+        // Read file content with automatic encoding detection to check chapter count
+        const fileContent = await appState.processor.readFileAsText(file);
 
         // Detect chapters to decide if splitting is needed
         const chapterBoundaries = appState.processor.detectChapters(fileContent);

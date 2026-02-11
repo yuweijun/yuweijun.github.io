@@ -259,18 +259,8 @@ async function initializeViewer() {
                 return;
             }
 
-            // Don't hide if touch is on content container (where we toggle from)
+            // Only hide when tapping on content container
             if (contentContainer.contains(e.target)) {
-                return;
-            }
-
-            // Check if touch is outside sidebar
-            const touch = e.changedTouches[0];
-            const sidebarRect = sidebar.getBoundingClientRect();
-            if (touch.clientY < sidebarRect.top ||
-                touch.clientY > sidebarRect.bottom ||
-                touch.clientX < sidebarRect.left ||
-                touch.clientX > sidebarRect.right) {
                 hideSidebar();
             }
         }, { passive: true });
@@ -1175,7 +1165,7 @@ let isPaused = false;
 let speechTextQueue = [];
 let currentSpeechIndex = 0;
 let chineseVoice = null;
-let speechRate = 1.5;
+let speechRate = 1.3;
 const MIN_SPEECH_RATE = 0.5;
 const MAX_SPEECH_RATE = 2.0;
 const SPEECH_RATE_STEP = 0.1;
