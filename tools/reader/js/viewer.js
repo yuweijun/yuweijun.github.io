@@ -9,10 +9,8 @@ let localFileProcessor = null;
 let storyId = null;
 
 // Auto-hide functionality variables
-let isHeaderHidden = false;  // Start visible
 let isSidebarHidden = false; // Start visible
 let isSidebarPinned = false;
-let isHeaderPinned = false;
 let lastScrollTop = 0;
 let lastScrollLeft = 0;
 let hideTimeout = null;
@@ -43,22 +41,6 @@ function applyTheme(theme) {
     if (themes[theme]) {
         document.body.classList.add(themes[theme]);
     }
-
-    // Update dropdown button text
-    const themeNames = {
-        default: 'Default Dark',
-        monokai: 'Monokai Pro',
-        dark: 'Deep Dark',
-        solarized: 'Solarized',
-        dracula: 'Dracula',
-        nord: 'Nord',
-        gruvbox: 'Gruvbox',
-        onedark: 'One Dark',
-        darkgreen: 'Dark Green',
-        'maize-yello': 'MaiZe Yello',
-        'griege-dark': 'Griege Dark'
-    };
-    document.getElementById('themeDropdown').innerHTML = `<i class="fas fa-palette"></i> ${themeNames[theme] || theme}`;
 
     // Save to localStorage
     localStorage.setItem('preferredViewerTheme', theme);
@@ -115,13 +97,6 @@ async function initializeViewer() {
     
     // Load story data from database to get the title
     const storyData = await db.getStoryById(storyId);
-    if (storyData) {
-        // Display story title
-        const titleElement = document.getElementById('storyTitleDisplay');
-        if (titleElement) {
-            titleElement.innerHTML = `<span>${escapeHtml(storyData.customTitle || storyData.extractedTitle || storyData.originalFileName.replace(/\.txt$/i, ''))}</span>`;
-        }
-    }
     
     // Load story segments if they exist
     if (storyData && storyData.segments) {
@@ -134,11 +109,19 @@ async function initializeViewer() {
     // Load the TXT file content
     await loadFileContent();
     
-    // Initialize chapters sidebar (always visible)
+    // Initialize chapters sidebar
     const sidebar = document.getElementById('chaptersSidebar');
     if (sidebar) {
-        sidebar.classList.add('visible');
-        sidebar.style.display = 'block'; // Ensure it's visible
+        if (isMobileView()) {
+            // Mobile: start hidden, will slide from bottom when toggled
+            sidebar.classList.add('hidden-bottom');
+            isSidebarHidden = true;
+        } else {
+            // Desktop: start visible
+            sidebar.classList.add('visible');
+            sidebar.style.display = 'block';
+            isSidebarHidden = false;
+        }
     }
     
     // Add search functionality
@@ -176,24 +159,154 @@ async function initializeViewer() {
     if (togglePinBtn) {
         togglePinBtn.addEventListener('click', togglePinSidebar);
     }
-    
+
+    // Setup double-click and tap to toggle sidebar on content container
+    const contentContainer = document.querySelector('.content-container');
+    if (contentContainer) {
+        // Helper function to check if point is in center area
+        function isInCenterArea(rect, x, y) {
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+            const centerAreaWidth = rect.width * 0.5;
+            const centerAreaHeight = rect.height * 0.5;
+            const centerLeft = centerX - centerAreaWidth / 2;
+            const centerRight = centerX + centerAreaWidth / 2;
+            const centerTop = centerY - centerAreaHeight / 2;
+            const centerBottom = centerY + centerAreaHeight / 2;
+
+            return x >= centerLeft && x <= centerRight &&
+                   y >= centerTop && y <= centerBottom;
+        }
+
+        // Double-click for desktop
+        contentContainer.addEventListener('dblclick', function(e) {
+            const rect = contentContainer.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            if (isInCenterArea(rect, clickX, clickY)) {
+                toggleSidebar();
+            }
+        });
+
+        // Double-tap for touch devices
+        let lastTapTime = 0;
+        let lastTapX = 0;
+        let lastTapY = 0;
+        const doubleTapDelay = 300; // ms
+        const doubleTapDistance = 30; // px
+
+        contentContainer.addEventListener('touchstart', function(e) {
+            const rect = contentContainer.getBoundingClientRect();
+            const touch = e.touches[0];
+            const tapX = touch.clientX - rect.left;
+            const tapY = touch.clientY - rect.top;
+
+            // Only process if in center area
+            if (!isInCenterArea(rect, tapX, tapY)) {
+                return;
+            }
+
+            const currentTime = new Date().getTime();
+            const timeDiff = currentTime - lastTapTime;
+            const distance = Math.sqrt(
+                Math.pow(tapX - lastTapX, 2) + Math.pow(tapY - lastTapY, 2)
+            );
+
+            if (timeDiff < doubleTapDelay && distance < doubleTapDistance) {
+                // Double tap detected
+                e.preventDefault();
+                toggleSidebar();
+                lastTapTime = 0; // Reset
+            } else {
+                // First tap
+                lastTapTime = currentTime;
+                lastTapX = tapX;
+                lastTapY = tapY;
+            }
+        }, { passive: false });
+
+        // Tap outside sidebar to close (for mobile)
+        let sidebarToggleTime = 0;
+        const TOGGLE_COOLDOWN = 500; // ms
+
+        // Track when sidebar is toggled
+        const originalToggleSidebar = toggleSidebar;
+        window.toggleSidebar = function() {
+            sidebarToggleTime = new Date().getTime();
+            return originalToggleSidebar.apply(this, arguments);
+        };
+
+        document.addEventListener('touchend', function(e) {
+            if (!isMobileView()) return;
+
+            const sidebar = document.getElementById('chaptersSidebar');
+            if (!sidebar || !sidebar.classList.contains('visible')) return;
+
+            // Don't hide if sidebar was just toggled (within cooldown period)
+            const timeSinceToggle = new Date().getTime() - sidebarToggleTime;
+            if (timeSinceToggle < TOGGLE_COOLDOWN) {
+                return;
+            }
+
+            // Don't hide if touch is on content container (where we toggle from)
+            if (contentContainer.contains(e.target)) {
+                return;
+            }
+
+            // Check if touch is outside sidebar
+            const touch = e.changedTouches[0];
+            const sidebarRect = sidebar.getBoundingClientRect();
+            if (touch.clientY < sidebarRect.top ||
+                touch.clientY > sidebarRect.bottom ||
+                touch.clientX < sidebarRect.left ||
+                touch.clientX > sidebarRect.right) {
+                hideSidebar();
+            }
+        }, { passive: true });
+    }
+
     // Load saved pin state
     const savedPinState = localStorage.getItem('sidebarPinned');
-    const savedHeaderPinState = localStorage.getItem('headerPinned');
-    if (savedPinState === 'true' || savedHeaderPinState === 'true') {
+    if (savedPinState === 'true') {
         isSidebarPinned = true;
-        isHeaderPinned = true;
         const sidebar = document.getElementById('chaptersSidebar');
-        const header = document.querySelector('.navigation-header');
         const pinIcon = document.getElementById('pinIcon');
-        if (sidebar && header && pinIcon) {
+        if (sidebar && pinIcon) {
             sidebar.classList.add('pinned');
-            header.classList.add('pinned');
             pinIcon.classList.remove('fa-thumbtack');
             pinIcon.classList.add('fa-lock');
-            pinIcon.parentElement.title = 'Unpin sidebar and header';
+            pinIcon.parentElement.title = 'Unpin sidebar';
         }
     }
+
+    // Handle window resize to update sidebar position
+    window.addEventListener('resize', function() {
+        const sidebar = document.getElementById('chaptersSidebar');
+        if (!sidebar) return;
+
+        if (isMobileView()) {
+            // Switching to mobile
+            sidebar.style.display = 'block';
+            if (isSidebarHidden) {
+                sidebar.classList.add('hidden-bottom');
+                sidebar.classList.remove('visible', 'hidden-left');
+            } else {
+                sidebar.classList.add('visible');
+                sidebar.classList.remove('hidden-bottom', 'hidden-left');
+            }
+        } else {
+            // Switching to desktop
+            if (isSidebarHidden) {
+                sidebar.classList.add('hidden-left');
+                sidebar.classList.remove('visible', 'hidden-bottom');
+            } else {
+                sidebar.classList.add('visible');
+                sidebar.style.display = 'block';
+                sidebar.classList.remove('hidden-left', 'hidden-bottom');
+            }
+        }
+    });
 }
 
 function handleHashChange() {
@@ -208,6 +321,40 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Check if mobile view
+function isMobileView() {
+    return window.innerWidth <= 768;
+}
+
+// Toggle sidebar visibility
+function toggleSidebar() {
+    const sidebar = document.getElementById('chaptersSidebar');
+    if (!sidebar) return;
+
+    if (isMobileView()) {
+        // Mobile: slide from bottom
+        if (isSidebarHidden) {
+            sidebar.classList.remove('hidden-bottom');
+            sidebar.classList.add('visible');
+            isSidebarHidden = false;
+        } else {
+            sidebar.classList.add('hidden-bottom');
+            sidebar.classList.remove('visible');
+            isSidebarHidden = true;
+        }
+    } else {
+        // Desktop: slide from left
+        if (isSidebarHidden) {
+            sidebar.classList.remove('hidden-left');
+            sidebar.style.display = 'block';
+            isSidebarHidden = false;
+        } else {
+            sidebar.classList.add('hidden-left');
+            isSidebarHidden = true;
+        }
+    }
 }
 
 /**
@@ -291,51 +438,42 @@ function extractChapterNumber(title) {
 
 // Auto-hide functionality
 function setupAutoHide() {
-    const header = document.querySelector('.navigation-header');
     const sidebar = document.getElementById('chaptersSidebar');
     const contentContainer = document.querySelector('.content-container');
-    
-    if (!header || !sidebar || !contentContainer) return;
-    
+    const textContent = document.querySelector('.text-content');
+
+    if (!sidebar || !contentContainer) return;
+
     // Add auto-hide classes
-    header.classList.add('auto-hide');
     sidebar.classList.add('auto-hide');
-    
-    // Mouse movement detection
-    let mouseMoveTimer = null;
-    
+
+    // Mouse movement detection - only show sidebar, don't auto-hide
     document.addEventListener('mousemove', function(e) {
-        // Check if mouse is near top (within 50px)
-        if (e.clientY <= 50) {
-            showHeader();
-            clearTimeout(hideTimeout);
-        }
         // Check if mouse is near left edge (within 50px) or entering sidebar area
-        else if ((e.clientX <= 50 || isMouseNearSidebar(e)) && !isSidebarPinned) {
+        if ((e.clientX <= 50 || isMouseNearSidebar(e)) && !isSidebarPinned) {
             showSidebar();
             clearTimeout(hideTimeout);
         }
-        // Auto-hide after delay when mouse moves away
-        // But don't hide if user is scrolling in sidebar
-        else if (!isSidebarPinned && !isScrollingInSidebar) {
-            clearTimeout(hideTimeout);
-            hideTimeout = setTimeout(() => {
-                if (!isSidebarPinned && !isScrollingInSidebar) {
-                    hideElements();
-                }
-            }, 1000);
-        }
     });
-    
+
     // Helper function to check if mouse is near sidebar
     function isMouseNearSidebar(e) {
         const sidebar = document.getElementById('chaptersSidebar');
         if (!sidebar) return false;
-        
+
         const rect = sidebar.getBoundingClientRect();
         // Check if mouse is within 30px of sidebar left edge or inside sidebar
-        return (e.clientX >= rect.left - 30 && e.clientX <= rect.right + 30 && 
+        return (e.clientX >= rect.left - 30 && e.clientX <= rect.right + 30 &&
                 e.clientY >= rect.top && e.clientY <= rect.bottom);
+    }
+
+    // Auto-hide only when clicking on text content
+    if (textContent) {
+        textContent.addEventListener('click', function(e) {
+            if (!isSidebarPinned && !isSidebarHidden) {
+                hideSidebar();
+            }
+        });
     }
     
     // Also detect mouse entering the sidebar area from the left
@@ -352,15 +490,6 @@ function setupAutoHide() {
         const currentScrollTop = contentContainer.scrollTop;
         const currentScrollLeft = contentContainer.scrollLeft;
 
-        // Show header when scrolling up
-        if (currentScrollTop < lastScrollTop) {
-            showHeader();
-        }
-        // Hide header when scrolling down
-        else if (currentScrollTop > lastScrollTop && currentScrollTop > 100) {
-            hideHeader();
-        }
-
         lastScrollTop = currentScrollTop;
         lastScrollLeft = currentScrollLeft;
 
@@ -374,30 +503,14 @@ function setupAutoHide() {
     // Scroll detection for chapters sidebar
     const sidebarContent = document.querySelector('.chapters-sidebar-content');
     if (sidebarContent) {
-        let scrollEndTimer = null;
-        
         sidebarContent.addEventListener('scroll', function() {
-            // User is actively scrolling in sidebar
+            // Just track scrolling state, don't auto-hide
             isScrollingInSidebar = true;
-            
-            // Clear any existing hide timeout
             clearTimeout(hideTimeout);
-            
-            // Clear previous scroll end timer
-            clearTimeout(scrollEndTimer);
-            
-            // Set timer to detect when scrolling stops
-            scrollEndTimer = setTimeout(() => {
+
+            setTimeout(() => {
                 isScrollingInSidebar = false;
-                // Only hide if not pinned and mouse is not over sidebar
-                if (!isSidebarPinned) {
-                    hideTimeout = setTimeout(() => {
-                        if (!isSidebarPinned && !isScrollingInSidebar) {
-                            hideElements();
-                        }
-                    }, 1000);
-                }
-            }, 150); // Wait 150ms after scrolling stops
+            }, 150);
         });
     }
     
@@ -410,68 +523,29 @@ function setupAutoHide() {
         });
         
         sidebar.addEventListener('mouseleave', function() {
+            // Don't auto-hide on mouse leave anymore
             isScrollingInSidebar = false;
-            if (!isSidebarPinned) {
-                // Don't hide immediately, give some time for user interaction
-                hideTimeout = setTimeout(() => {
-                    if (!isSidebarPinned && !isScrollingInSidebar) {
-                        hideElements();
-                    }
-                }, 1000); // 1 second delay before hiding
-            }
         });
     }
-    
-    // Touch devices support
-    document.addEventListener('touchstart', function() {
-        showElements();
-    });
-    
-    // Initially hide elements after delay
-    setTimeout(() => {
+
+    // Touch devices support - only show sidebar on touch, don't auto-hide
+    document.addEventListener('touchstart', function(e) {
         if (!isSidebarPinned) {
-            hideElements();
+            showSidebar();
         }
-    }, 1000);
-}
-
-function showElements() {
-    showHeader();
-    if (!isSidebarPinned) {
-        showSidebar();
-    }
-}
-
-function hideElements() {
-    if (!isHeaderPinned) {
-        hideHeader();
-    }
-    if (!isSidebarPinned) {
-        hideSidebar();
-    }
-}
-
-function showHeader() {
-    const header = document.querySelector('.navigation-header');
-    if (header) {
-        header.classList.remove('hidden-top');
-        isHeaderHidden = false;
-    }
-}
-
-function hideHeader() {
-    const header = document.querySelector('.navigation-header');
-    if (header && !isHeaderHidden && !isHeaderPinned) {
-        header.classList.add('hidden-top');
-        isHeaderHidden = true;
-    }
+    });
 }
 
 function showSidebar() {
     const sidebar = document.getElementById('chaptersSidebar');
     if (sidebar && !isSidebarPinned) {
-        sidebar.classList.remove('hidden-left');
-        sidebar.style.display = 'block'; // Ensure it's visible
+        if (isMobileView()) {
+            sidebar.classList.remove('hidden-bottom');
+            sidebar.classList.add('visible');
+        } else {
+            sidebar.classList.remove('hidden-left');
+            sidebar.style.display = 'block';
+        }
         isSidebarHidden = false;
     }
 }
@@ -479,41 +553,40 @@ function showSidebar() {
 function hideSidebar() {
     const sidebar = document.getElementById('chaptersSidebar');
     if (sidebar && !isSidebarPinned && !isSidebarHidden) {
-        sidebar.classList.add('hidden-left');
+        if (isMobileView()) {
+            sidebar.classList.add('hidden-bottom');
+            sidebar.classList.remove('visible');
+        } else {
+            sidebar.classList.add('hidden-left');
+        }
         isSidebarHidden = true;
     }
 }
 
 function togglePinSidebar() {
     const sidebar = document.getElementById('chaptersSidebar');
-    const header = document.querySelector('.navigation-header');
     const pinIcon = document.getElementById('pinIcon');
 
-    if (!sidebar || !header || !pinIcon) return;
+    if (!sidebar || !pinIcon) return;
 
     isSidebarPinned = !isSidebarPinned;
-    isHeaderPinned = isSidebarPinned; // Pin header together with sidebar
 
     if (isSidebarPinned) {
         sidebar.classList.add('pinned');
-        header.classList.add('pinned');
         pinIcon.classList.remove('fa-thumbtack');
         pinIcon.classList.add('fa-lock');
-        pinIcon.parentElement.title = 'Unpin sidebar and header';
+        pinIcon.parentElement.title = 'Unpin sidebar';
         showSidebar(); // Ensure sidebar is visible when pinned
-        showHeader(); // Ensure header is visible when pinned
     } else {
         sidebar.classList.remove('pinned');
-        header.classList.remove('pinned');
         pinIcon.classList.remove('fa-lock');
         pinIcon.classList.add('fa-thumbtack');
-        pinIcon.parentElement.title = 'Pin sidebar and header';
-        // Sidebar and header will auto-hide based on mouse movement
+        pinIcon.parentElement.title = 'Pin sidebar';
+        // Sidebar will auto-hide based on mouse movement
     }
 
     // Save pin state to localStorage
     localStorage.setItem('sidebarPinned', isSidebarPinned.toString());
-    localStorage.setItem('headerPinned', isHeaderPinned.toString());
 }
 
 async function loadFileContent() {
