@@ -66,6 +66,17 @@ class LocalFileProcessor {
     }
 
     /**
+     * Validate if file content is UTF-8 encoded
+     * Checks if first 512 characters contain Chinese commas (，)
+     * @param {string} content - File content
+     * @returns {boolean} - True if likely UTF-8, false otherwise
+     */
+    static isUtf8Encoded(content) {
+        const sample = content.substring(0, 512);
+        return /，/.test(sample);
+    }
+
+    /**
      * Convert text to UTF-8 encoding
      * Attempts to detect common encodings (GBK, Big5) and convert to UTF-8
      */
@@ -164,10 +175,56 @@ class LocalFileProcessor {
     /**
      * Process file - creates a book and saves stories
      * Uses filename (without extension) as book name for uploaded files
+     * Validates UTF-8 encoding before processing
      */
     async processFile(file) {
         const fileContent = await this.readFileAsText(file);
 
+        // Validate UTF-8 encoding
+        if (!LocalFileProcessor.isUtf8Encoded(fileContent)) {
+            // Replace content with error message
+            const errorMessage = "上传的文本文件编码必须为UTF-8格式";
+            const errorContent = errorMessage;
+            
+            // Create book with error message
+            const bookId = this.generateStoryId();
+            const bookName = LocalFileProcessor.extractBookNameFromFileName(file.name);
+
+            const bookData = {
+                id: bookId,
+                bookName: bookName + " (编码错误)",
+                originalFileName: file.name,
+                uploadTime: new Date().toISOString()
+            };
+
+            await this.db.addBook(bookData);
+
+            // Create story with error message
+            const storyId = this.generateStoryId();
+            const generatedFileName = `${bookName}_error.txt`;
+            const processingResult = this.processContentWithChapters(errorContent);
+
+            const storyData = {
+                id: storyId,
+                bookId: bookId,
+                fileName: generatedFileName,
+                originalFileName: file.name,
+                fileSize: new Blob([errorContent]).size,
+                content: errorContent,
+                processedContent: processingResult.htmlContent,
+                chapters: processingResult.chapters,
+                extractedTitle: bookName + " (编码错误)",
+                isSplitFile: false,
+                splitParentFile: null,
+                splitIndex: null,
+                totalChunks: null
+            };
+
+            await this.db.addStory(storyData);
+            return { bookId, storyIds: [storyId] };
+        }
+
+        // Continue with normal processing if UTF-8 validated
         // Create book first
         const bookId = this.generateStoryId();
         // Use filename (without extension) as book name for uploaded files
@@ -211,9 +268,55 @@ class LocalFileProcessor {
     /**
      * Process and split large file into chunks
      * Uses filename (without extension) as book name for uploaded files
+     * Validates UTF-8 encoding before processing
      */
     async processAndSplitFile(file) {
         const fileContent = await this.readFileAsText(file);
+        
+        // Validate UTF-8 encoding
+        if (!LocalFileProcessor.isUtf8Encoded(fileContent)) {
+            // Replace content with error message
+            const errorMessage = "上传的文本文件编码必须为UTF-8格式";
+            const errorContent = errorMessage;
+            
+            // Create book with error message
+            const bookId = this.generateStoryId();
+            const bookName = LocalFileProcessor.extractBookNameFromFileName(file.name);
+
+            const bookData = {
+                id: bookId,
+                bookName: bookName + " (编码错误)",
+                originalFileName: file.name,
+                uploadTime: new Date().toISOString()
+            };
+
+            await this.db.addBook(bookData);
+
+            // Create single story with error message
+            const storyId = this.generateStoryId();
+            const generatedFileName = `${bookName}_error.txt`;
+            const processingResult = this.processContentWithChapters(errorContent);
+
+            const storyData = {
+                id: storyId,
+                bookId: bookId,
+                fileName: generatedFileName,
+                originalFileName: file.name,
+                fileSize: new Blob([errorContent]).size,
+                content: errorContent,
+                processedContent: processingResult.htmlContent,
+                chapters: processingResult.chapters,
+                extractedTitle: bookName + " (编码错误)",
+                isSplitFile: false,
+                splitParentFile: null,
+                splitIndex: null,
+                totalChunks: null
+            };
+
+            await this.db.addStory(storyData);
+            return { bookId, storyIds: [storyId] };
+        }
+
         const lines = fileContent.split('\n');
         const chapterBoundaries = this.detectChapterBoundaries(lines);
 

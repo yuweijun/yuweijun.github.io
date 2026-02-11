@@ -20,25 +20,18 @@ let isScrollingInSidebar = false;
 const themes = {
     default: 'theme-default',
     monokai: 'theme-monokai',
-    dark: 'theme-dark',
     solarized: 'theme-solarized',
     dracula: 'theme-dracula',
     nord: 'theme-nord',
-    gruvbox: 'theme-gruvbox',
-    onedark: 'theme-onedark',
     darkgreen: 'theme-darkgreen',
     'maize-yello': 'theme-maize-yello',
     'griege-dark': 'theme-griege-dark',
     rouge: 'theme-rouge',
-    onyx: 'theme-onyx',
     almond: 'theme-almond',
     autumn: 'theme-autumn',
-    aurora: 'theme-aurora',
     meadow: 'theme-meadow',
-    seasky: 'theme-seasky',
     lavender: 'theme-lavender',
-    bamboo: 'theme-bamboo',
-    ochre: 'theme-ochre'
+    bamboo: 'theme-bamboo'
 };
 
 function applyTheme(theme) {

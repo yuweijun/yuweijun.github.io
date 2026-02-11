@@ -7,15 +7,18 @@
 const themes = {
     default: 'theme-default',
     monokai: 'theme-monokai',
-    dark: 'theme-dark',
     solarized: 'theme-solarized',
     dracula: 'theme-dracula',
     nord: 'theme-nord',
-    gruvbox: 'theme-gruvbox',
-    onedark: 'theme-onedark',
     darkgreen: 'theme-darkgreen',
     'maize-yello': 'theme-maize-yello',
-    'griege-dark': 'theme-griege-dark'
+    'griege-dark': 'theme-griege-dark',
+    rouge: 'theme-rouge',
+    almond: 'theme-almond',
+    autumn: 'theme-autumn',
+    meadow: 'theme-meadow',
+    lavender: 'theme-lavender',
+    bamboo: 'theme-bamboo'
 };
 
 function applyTheme() {
@@ -232,6 +235,14 @@ async function processSelectedFile() {
         // Read file content with automatic encoding detection to check chapter count
         const fileContent = await appState.processor.readFileAsText(file);
 
+        // Validate UTF-8 encoding
+        if (!LocalFileProcessor.isUtf8Encoded(fileContent)) {
+            hideLoading();
+            showError('上传的文本文件编码必须为UTF-8格式。请将文件转换为UTF-8编码后重新上传。');
+            if (processFileBtn) processFileBtn.disabled = false;
+            return;
+        }
+
         // Detect chapters to decide if splitting is needed
         const chapterBoundaries = appState.processor.detectChapters(fileContent);
         let result;
@@ -290,6 +301,11 @@ async function loadBooks() {
 
         appState.allBooks = books;
         appState.totalPages = Math.ceil(books.length / appState.itemsPerPage);
+        
+        // Automatically expand the first book if there are books
+        if (books.length > 0 && !appState.expandedBooks.has(books[0].id)) {
+            appState.expandedBooks.add(books[0].id);
+        }
 
         // Reset to first page if current page is invalid
         if (appState.currentPage > appState.totalPages) {
@@ -360,14 +376,10 @@ function displayBooks() {
                             <i class="fas ${expandIcon} me-2 text-muted"></i>
                             <i class="fas fa-book text-primary me-2"></i>
                             ${escapeHtml(book.bookName)}
-                            <span class="badge bg-secondary ms-2">${book.stories.length} parts</span>
                         </h5>
-                        <div class="text-muted small">
-                            <i class="fas fa-calendar"></i> ${uploadDate}
-                        </div>
                     </div>
                     <div class="btn-group" role="group">
-                        <button class="btn btn-sm btn-outline-danger delete-book-btn" data-book-id="${book.id}">
+                        <button class="btn btn-sm btn-link text-danger delete-book-btn" data-book-id="${book.id}">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -383,22 +395,14 @@ function displayBooks() {
 
             html += `
                 <div class="story-item d-flex justify-content-between align-items-center py-2 border-bottom">
-                    <div>
+                    <div class="d-flex align-items-center">
                         <a href="viewer.html#view/${story.id}" class="text-decoration-none">
                             <i class="fas fa-file-alt text-muted me-2"></i>
-                            ${storyTitle}${splitBadge}
+                            ${storyTitle}
                         </a>
-                        <div class="text-muted small">
-                            <i class="fas fa-weight-hanging"></i> ${fileSize}
-                        </div>
                     </div>
-                    <div class="btn-group" role="group">
-                        <a href="viewer.html#view/${story.id}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-eye"></i> View
-                        </a>
-                        <button class="btn btn-sm btn-outline-danger delete-story-btn" data-story-id="${story.id}">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                    <div class="text-muted small">
+                        ${fileSize}
                     </div>
                 </div>
             `;
