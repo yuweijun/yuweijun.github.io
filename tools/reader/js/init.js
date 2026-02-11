@@ -3,6 +3,31 @@
  * Handles database initialization and data synchronization
  */
 
+// Theme management
+const themes = {
+    default: 'theme-default',
+    monokai: 'theme-monokai',
+    dark: 'theme-dark',
+    solarized: 'theme-solarized',
+    dracula: 'theme-dracula',
+    nord: 'theme-nord',
+    gruvbox: 'theme-gruvbox',
+    onedark: 'theme-onedark',
+    darkgreen: 'theme-darkgreen',
+    'maize-yello': 'theme-maize-yello',
+    'griege-dark': 'theme-griege-dark'
+};
+
+function applyTheme() {
+    const savedTheme = localStorage.getItem('preferredViewerTheme') || 'default';
+    if (themes[savedTheme]) {
+        document.body.classList.add(themes[savedTheme]);
+    }
+}
+
+// Apply theme immediately
+applyTheme();
+
 // Application state
 const appState = {
     currentPage: 1,
@@ -245,43 +270,26 @@ function displayStories() {
     // Generate HTML for stories
     let html = '';
     pageStories.forEach(story => {
-        const uploadDate = new Date(story.uploadTime).toLocaleString();
         const fileSize = formatFileSize(story.fileSize);
+        const title = escapeHtml(story.customTitle || story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''));
+        const splitBadge = story.isSplitFile ? ` (${story.splitIndex}/${story.totalChunks})` : '';
         
         html += `
             <div class="story-item">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="flex-grow-1">
-                        <h5 class="mb-2">
-                            <a href="viewer.html#view/${story.id}" class="text-decoration-none">
-                                <i class="fas fa-file-alt text-primary"></i>
-                                ${escapeHtml(story.customTitle || story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''))}
-                                ${story.isSplitFile ? `<span class="badge bg-info ms-2">Part ${story.splitIndex}/${story.totalChunks}</span>` : ''}
-                            </a>
-                        </h5>
-                        <div class="file-info">
-                            <i class="fas fa-calendar"></i> ${uploadDate} |
-                            <i class="fas fa-weight-hanging"></i> ${fileSize}
-                            ${story.segmentCount && story.segmentCount > 1 ? 
-                                `| <i class="fas fa-cut"></i> ${story.segmentCount} segments` : ''}
-                            ${story.isSplitFile ? 
-                                `| <i class="fas fa-code-branch"></i> Split from ${story.splitParentFile}` : ''}
-                        </div>
-                    </div>
-                    <div class="btn-group" role="group">
-                        <a href="viewer.html#view/${story.id}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-eye"></i> View
-                        </a>
-                        <button class="btn btn-sm btn-outline-secondary rename-btn" 
-                                data-story-id="${story.id}"
-                                data-original-name="${escapeHtml(story.customTitle || story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''))}">
-                            <i class="fas fa-edit"></i> Rename
-                        </button>
-                        <button class="btn btn-sm btn-outline-danger delete-btn" 
-                                data-story-id="${story.id}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
+                <div class="story-info">
+                    <a href="viewer.html#view/${story.id}" class="story-title">${title}${splitBadge}</a>
+                    <div class="story-meta">${fileSize}</div>
+                </div>
+                <div class="story-actions">
+                    <button class="btn btn-outline-secondary rename-btn" 
+                            data-story-id="${story.id}"
+                            data-original-name="${title}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-outline-danger delete-btn" 
+                            data-story-id="${story.id}">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             </div>
         `;
@@ -320,7 +328,7 @@ function updatePagination() {
     if (paginationControls) paginationControls.style.display = 'flex';
     if (prevBtn) prevBtn.disabled = appState.currentPage <= 1;
     if (nextBtn) nextBtn.disabled = appState.currentPage >= appState.totalPages;
-    if (pageInfo) pageInfo.textContent = `Page ${appState.currentPage} of ${appState.totalPages}`;
+    if (pageInfo) pageInfo.textContent = `${appState.currentPage} / ${appState.totalPages}`;
 }
 
 function goToPreviousPage() {

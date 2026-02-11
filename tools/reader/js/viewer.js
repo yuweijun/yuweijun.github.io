@@ -291,12 +291,22 @@ async function initializeViewer() {
             if (isSidebarHidden) {
                 sidebar.classList.add('hidden-bottom');
                 sidebar.classList.remove('visible', 'hidden-left');
+                // Ensure body scroll is unlocked when sidebar is hidden
+                document.body.classList.remove('sidebar-open');
+                document.body.style.top = '';
             } else {
                 sidebar.classList.add('visible');
                 sidebar.classList.remove('hidden-bottom', 'hidden-left');
+                // Lock body scroll when sidebar is visible on mobile
+                savedScrollPosition = window.scrollY || document.documentElement.scrollTop;
+                document.body.classList.add('sidebar-open');
+                document.body.style.top = `-${savedScrollPosition}px`;
             }
         } else {
-            // Switching to desktop
+            // Switching to desktop - always unlock body scroll
+            document.body.classList.remove('sidebar-open');
+            document.body.style.top = '';
+            
             if (isSidebarHidden) {
                 sidebar.classList.add('hidden-left');
                 sidebar.classList.remove('visible', 'hidden-bottom');
@@ -336,12 +346,23 @@ function toggleSidebar() {
     if (isMobileView()) {
         // Mobile: slide from bottom
         if (isSidebarHidden) {
+            // Save scroll position and lock body scroll
+            savedScrollPosition = window.scrollY || document.documentElement.scrollTop;
+            document.body.classList.add('sidebar-open');
+            document.body.style.top = `-${savedScrollPosition}px`;
+            
             sidebar.classList.remove('hidden-bottom');
             sidebar.classList.add('visible');
             isSidebarHidden = false;
         } else {
             sidebar.classList.add('hidden-bottom');
             sidebar.classList.remove('visible');
+            
+            // Unlock body scroll and restore position
+            document.body.classList.remove('sidebar-open');
+            document.body.style.top = '';
+            window.scrollTo(0, savedScrollPosition);
+            
             isSidebarHidden = true;
         }
     } else {
@@ -488,10 +509,18 @@ function setupAutoHide() {
 
 }
 
+// Store scroll position when locking body
+let savedScrollPosition = 0;
+
 function showSidebar() {
     const sidebar = document.getElementById('chaptersSidebar');
     if (sidebar && !isSidebarPinned) {
         if (isMobileView()) {
+            // Save scroll position and lock body scroll
+            savedScrollPosition = window.scrollY || document.documentElement.scrollTop;
+            document.body.classList.add('sidebar-open');
+            document.body.style.top = `-${savedScrollPosition}px`;
+            
             sidebar.classList.remove('hidden-bottom');
             sidebar.classList.add('visible');
         } else {
@@ -508,6 +537,11 @@ function hideSidebar() {
         if (isMobileView()) {
             sidebar.classList.add('hidden-bottom');
             sidebar.classList.remove('visible');
+            
+            // Unlock body scroll and restore position
+            document.body.classList.remove('sidebar-open');
+            document.body.style.top = '';
+            window.scrollTo(0, savedScrollPosition);
         } else {
             sidebar.classList.add('hidden-left');
         }
