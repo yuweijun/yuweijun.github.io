@@ -253,9 +253,11 @@ function displayStories() {
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="flex-grow-1">
                         <h5 class="mb-2">
-                            <i class="fas fa-file-alt text-primary"></i>
-                            ${escapeHtml(story.customTitle || story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''))}
-                            ${story.isSplitFile ? `<span class="badge bg-info ms-2">Part ${story.splitIndex}/${story.totalChunks}</span>` : ''}
+                            <a href="viewer.html#view/${story.id}" class="text-decoration-none">
+                                <i class="fas fa-file-alt text-primary"></i>
+                                ${escapeHtml(story.customTitle || story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''))}
+                                ${story.isSplitFile ? `<span class="badge bg-info ms-2">Part ${story.splitIndex}/${story.totalChunks}</span>` : ''}
+                            </a>
                         </h5>
                         <div class="file-info">
                             <i class="fas fa-calendar"></i> ${uploadDate} |

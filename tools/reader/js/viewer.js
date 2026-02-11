@@ -88,10 +88,10 @@ document.addEventListener('DOMContentLoaded', async function() {
     try {
         // Listen for hash changes
         window.addEventListener('hashchange', handleHashChange);
-
+        
         // Initial load
         await initializeViewer();
-
+        
     } catch (error) {
         document.querySelector('.text-content').textContent = 'Error initializing viewer: ' + error.message;
     }
@@ -112,7 +112,7 @@ async function initializeViewer() {
 
     // Initialize database
     await db.init();
-
+    
     // Load story data from database to get the title
     const storyData = await db.getStoryById(storyId);
     if (storyData) {
@@ -122,25 +122,25 @@ async function initializeViewer() {
             titleElement.innerHTML = `<span>${escapeHtml(storyData.customTitle || storyData.extractedTitle || storyData.originalFileName.replace(/\.txt$/i, ''))}</span>`;
         }
     }
-
+    
     // Load story segments if they exist
     if (storyData && storyData.segments) {
         storySegments = storyData.segments;
     }
-
+    
     // Load reading history
     readingHistory = await db.getReadingHistory(storyId);
-
+    
     // Load the TXT file content
     await loadFileContent();
-
+    
     // Initialize chapters sidebar (always visible)
     const sidebar = document.getElementById('chaptersSidebar');
     if (sidebar) {
         sidebar.classList.add('visible');
         sidebar.style.display = 'block'; // Ensure it's visible
     }
-
+    
     // Add search functionality
     const searchInput = document.getElementById('chapterSearch');
     if (searchInput) {
@@ -148,10 +148,10 @@ async function initializeViewer() {
             filterChapters(this.value);
         });
     }
-
+    
     // Save reading progress periodically
     setInterval(saveReadingProgress, 30000); // Save every 30 seconds
-
+    
     // Save on page unload
     window.addEventListener('beforeunload', saveReadingProgress);
 
@@ -167,16 +167,16 @@ async function initializeViewer() {
             applyTheme(theme);
         });
     });
-
+    
     // Setup auto-hide functionality
     setupAutoHide();
-
+    
     // Setup pin toggle button
     const togglePinBtn = document.getElementById('togglePinBtn');
     if (togglePinBtn) {
         togglePinBtn.addEventListener('click', togglePinSidebar);
     }
-
+    
     // Load saved pin state
     const savedPinState = localStorage.getItem('sidebarPinned');
     const savedHeaderPinState = localStorage.getItem('headerPinned');
@@ -275,7 +275,7 @@ function chineseToArabic(chinese) {
  */
 function extractChapterNumber(title) {
     // Try to match Chinese number pattern: 第*章/回/节
-    const chineseMatch = title.match(/第\s*([一二三四五六七八九十百千万零]+)\s*[章节卷部篇回]\s*/);
+    const chineseMatch = title.match(/第\s*([一二三四五六七八九十百千万零]+)\s*[章节卷部篇回]/);
     if (chineseMatch) {
         return chineseToArabic(chineseMatch[1]);
     }
@@ -294,16 +294,16 @@ function setupAutoHide() {
     const header = document.querySelector('.navigation-header');
     const sidebar = document.getElementById('chaptersSidebar');
     const contentContainer = document.querySelector('.content-container');
-
+    
     if (!header || !sidebar || !contentContainer) return;
-
+    
     // Add auto-hide classes
     header.classList.add('auto-hide');
     sidebar.classList.add('auto-hide');
-
+    
     // Mouse movement detection
     let mouseMoveTimer = null;
-
+    
     document.addEventListener('mousemove', function(e) {
         // Check if mouse is near top (within 50px)
         if (e.clientY <= 50) {
@@ -326,18 +326,18 @@ function setupAutoHide() {
             }, 1000);
         }
     });
-
+    
     // Helper function to check if mouse is near sidebar
     function isMouseNearSidebar(e) {
         const sidebar = document.getElementById('chaptersSidebar');
         if (!sidebar) return false;
-
+        
         const rect = sidebar.getBoundingClientRect();
         // Check if mouse is within 30px of sidebar left edge or inside sidebar
-        return (e.clientX >= rect.left - 30 && e.clientX <= rect.right + 30 &&
+        return (e.clientX >= rect.left - 30 && e.clientX <= rect.right + 30 && 
                 e.clientY >= rect.top && e.clientY <= rect.bottom);
     }
-
+    
     // Also detect mouse entering the sidebar area from the left
     document.addEventListener('mouseover', function(e) {
         if (isMouseNearSidebar(e) && !isSidebarPinned) {
@@ -345,7 +345,7 @@ function setupAutoHide() {
             clearTimeout(hideTimeout);
         }
     });
-
+    
     // Scroll detection for main content
     let scrollTimer = null;
     contentContainer.addEventListener('scroll', function() {
@@ -370,22 +370,22 @@ function setupAutoHide() {
             updateCurrentChapterFromScroll();
         }, 100);
     });
-
+    
     // Scroll detection for chapters sidebar
     const sidebarContent = document.querySelector('.chapters-sidebar-content');
     if (sidebarContent) {
         let scrollEndTimer = null;
-
+        
         sidebarContent.addEventListener('scroll', function() {
             // User is actively scrolling in sidebar
             isScrollingInSidebar = true;
-
+            
             // Clear any existing hide timeout
             clearTimeout(hideTimeout);
-
+            
             // Clear previous scroll end timer
             clearTimeout(scrollEndTimer);
-
+            
             // Set timer to detect when scrolling stops
             scrollEndTimer = setTimeout(() => {
                 isScrollingInSidebar = false;
@@ -400,7 +400,7 @@ function setupAutoHide() {
             }, 150); // Wait 150ms after scrolling stops
         });
     }
-
+    
     // Mouse over/out detection for sidebar area
     if (sidebar) {
         sidebar.addEventListener('mouseenter', function() {
@@ -408,7 +408,7 @@ function setupAutoHide() {
             clearTimeout(hideTimeout);
             showSidebar();
         });
-
+        
         sidebar.addEventListener('mouseleave', function() {
             isScrollingInSidebar = false;
             if (!isSidebarPinned) {
@@ -421,12 +421,12 @@ function setupAutoHide() {
             }
         });
     }
-
+    
     // Touch devices support
     document.addEventListener('touchstart', function() {
         showElements();
     });
-
+    
     // Initially hide elements after delay
     setTimeout(() => {
         if (!isSidebarPinned) {
@@ -523,10 +523,10 @@ async function loadFileContent() {
         if (!storyData) {
             throw new Error('Story not found');
         }
-
+        
         // Use processed content if available, otherwise fall back to raw content
         fileContent = storyData.processedContent || storyData.content || '';
-
+        
         // Parse chapters regardless of content type to populate sidebar
         // Use raw content for chapter parsing since processed content already has HTML structure
         const contentForParsing = storyData.content || '';
@@ -538,7 +538,7 @@ async function loadFileContent() {
             // Restore original fileContent
             fileContent = originalFileContent;
         }
-
+        
         // If we have processed content, display it directly as HTML
         if (storyData.processedContent) {
             const textContent = document.getElementById('textContent');
@@ -549,10 +549,10 @@ async function loadFileContent() {
             // Display raw content
             displayCurrentPage();
         }
-
+        
         // Update chapters list in sidebar
         updateChaptersList();
-
+        
         // Set initial current chapter and position
         if (readingHistory) {
             // Restore from reading history
@@ -570,7 +570,7 @@ async function loadFileContent() {
 
 function restoreReadingPosition(history) {
     console.log('Restoring reading position from history:', history);
-
+    
     // Scroll to last position
     const contentContainer = document.querySelector('.content-container');
     if (contentContainer && history.lastScrollPosition) {
@@ -581,14 +581,14 @@ function restoreReadingPosition(history) {
             });
         }, 500);
     }
-
+    
     // Highlight last chapter if available
     if (history.lastChapterTitle && chapters.length > 0) {
-        const matchingChapter = chapters.find(ch =>
-            ch.title.includes(history.lastChapterTitle) ||
+        const matchingChapter = chapters.find(ch => 
+            ch.title.includes(history.lastChapterTitle) || 
             history.lastChapterTitle.includes(ch.title)
         );
-
+        
         if (matchingChapter) {
             currentChapter = {
                 id: matchingChapter.id,
@@ -604,10 +604,10 @@ async function saveReadingProgress() {
     try {
         const contentContainer = document.querySelector('.content-container');
         if (!contentContainer) return;
-
+        
         // Get current scroll position
         const scrollPosition = contentContainer.scrollTop;
-
+        
         // Get current chapter
         let currentChapterTitle = '';
         if (currentChapter) {
@@ -619,16 +619,16 @@ async function saveReadingProgress() {
                 currentChapterTitle = currentChapterObj.title;
             }
         }
-
+        
         // Save to database
         const historyData = {
             storyId: storyId,
             lastChapterTitle: currentChapterTitle,
             lastScrollPosition: scrollPosition
         };
-
+        
         await db.saveReadingHistory(historyData);
-
+        
     } catch (error) {
         // Silently handle saving errors
     }
@@ -636,13 +636,13 @@ async function saveReadingProgress() {
 
 function getCurrentChapterFromScrollPosition(scrollPosition) {
     if (!chapters || chapters.length === 0) return null;
-
+    
     const textContent = document.getElementById('textContent');
     if (!textContent) return null;
-
+    
     // Estimate character position from scroll position
     const estimatedCharPos = Math.floor((scrollPosition / textContent.scrollHeight) * fileContent.length);
-
+    
     // Find chapter containing this position
     for (let i = chapters.length - 1; i >= 0; i--) {
         const chapter = chapters[i];
@@ -650,7 +650,7 @@ function getCurrentChapterFromScrollPosition(scrollPosition) {
             return chapter;
         }
     }
-
+    
     return chapters[0];
 }
 
@@ -661,7 +661,7 @@ function parseChapters() {
 
     // Common chapter patterns - must match fileProcessor.js patterns
     const chapterPatterns = [
-        /^第?\s*([一二三四五六七八九十百千万\d]+)\s*[章节卷部篇回]\s*/, // Chinese chapters
+        /^第?\s*([一二三四五六七八九十百千万\d]+)\s*[章节卷部篇回]/, // Chinese chapters
         /^Chapter\s+(\d+)/i, // English chapters
         /^Section\s+(\d+)/i, // Sections
         /^[IVXLCDM]+\.\s/, // Roman numerals
@@ -1037,7 +1037,7 @@ document.addEventListener('keydown', function(e) {
             navigateWithinChapter(1);
             break;
     }
-
+    
     // Number key navigation (1-9)
     if (e.key >= '1' && e.key <= '9') {
         const chapterIndex = parseInt(e.key) - 1;
