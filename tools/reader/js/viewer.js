@@ -447,27 +447,7 @@ function setupAutoHide() {
     // Add auto-hide classes
     sidebar.classList.add('auto-hide');
 
-    // Mouse movement detection - only show sidebar, don't auto-hide
-    document.addEventListener('mousemove', function(e) {
-        // Check if mouse is near left edge (within 50px) or entering sidebar area
-        if ((e.clientX <= 50 || isMouseNearSidebar(e)) && !isSidebarPinned) {
-            showSidebar();
-            clearTimeout(hideTimeout);
-        }
-    });
-
-    // Helper function to check if mouse is near sidebar
-    function isMouseNearSidebar(e) {
-        const sidebar = document.getElementById('chaptersSidebar');
-        if (!sidebar) return false;
-
-        const rect = sidebar.getBoundingClientRect();
-        // Check if mouse is within 30px of sidebar left edge or inside sidebar
-        return (e.clientX >= rect.left - 30 && e.clientX <= rect.right + 30 &&
-                e.clientY >= rect.top && e.clientY <= rect.bottom);
-    }
-
-    // Auto-hide only when clicking on text content
+    // Hide sidebar when clicking on text content
     if (textContent) {
         textContent.addEventListener('click', function(e) {
             if (!isSidebarPinned && !isSidebarHidden) {
@@ -475,14 +455,6 @@ function setupAutoHide() {
             }
         });
     }
-    
-    // Also detect mouse entering the sidebar area from the left
-    document.addEventListener('mouseover', function(e) {
-        if (isMouseNearSidebar(e) && !isSidebarPinned) {
-            showSidebar();
-            clearTimeout(hideTimeout);
-        }
-    });
     
     // Scroll detection for main content
     let scrollTimer = null;
@@ -513,27 +485,7 @@ function setupAutoHide() {
             }, 150);
         });
     }
-    
-    // Mouse over/out detection for sidebar area
-    if (sidebar) {
-        sidebar.addEventListener('mouseenter', function() {
-            isScrollingInSidebar = true;
-            clearTimeout(hideTimeout);
-            showSidebar();
-        });
-        
-        sidebar.addEventListener('mouseleave', function() {
-            // Don't auto-hide on mouse leave anymore
-            isScrollingInSidebar = false;
-        });
-    }
 
-    // Touch devices support - only show sidebar on touch, don't auto-hide
-    document.addEventListener('touchstart', function(e) {
-        if (!isSidebarPinned) {
-            showSidebar();
-        }
-    });
 }
 
 function showSidebar() {
