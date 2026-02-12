@@ -140,9 +140,6 @@ async function initializeViewer() {
   // Setup auto-hide functionality
   setupAutoHide();
 
-  // Setup swipe-to-dismiss for mobile sidebar
-  setupSwipeToDismiss();
-
   // Setup pin toggle button
   const togglePinBtn = document.getElementById('togglePinBtn');
   if (togglePinBtn) {
@@ -296,16 +293,22 @@ function setupPaginationClickHandler() {
   const contentContainer = document.querySelector('.content-container');
   if (!contentContainer) return;
 
-  // Reduced bottom tap zone from 75% to 20% - less accidental taps
+  // Bottom 20% and left/right 25% areas trigger pagination
   const BOTTOM_TAP_THRESHOLD = 0.80; // Bottom 20% of screen
+  const SIDE_TAP_THRESHOLD = 0.25; // Left/right 25% of screen width
 
   function handlePaginationClick(e) {
     const rect = contentContainer.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
     const containerHeight = rect.height;
+    const containerWidth = rect.width;
     const bottomThreshold = containerHeight * BOTTOM_TAP_THRESHOLD;
+    const leftSideThreshold = containerWidth * SIDE_TAP_THRESHOLD;
+    const rightSideThreshold = containerWidth * (1 - SIDE_TAP_THRESHOLD);
 
-    if (clickY >= bottomThreshold) {
+    // Check if click is in bottom, left, or right pagination zones
+    if (clickY >= bottomThreshold || clickX <= leftSideThreshold || clickX >= rightSideThreshold) {
       const scrollAmount = containerHeight * 0.9;
       contentContainer.scrollBy({
         top: scrollAmount,
@@ -319,11 +322,16 @@ function setupPaginationClickHandler() {
   contentContainer.addEventListener('touchstart', function(e) {
     const touch = e.touches[0];
     const rect = contentContainer.getBoundingClientRect();
+    const touchX = touch.clientX - rect.left;
     const touchY = touch.clientY - rect.top;
     const containerHeight = rect.height;
+    const containerWidth = rect.width;
     const bottomThreshold = containerHeight * BOTTOM_TAP_THRESHOLD;
+    const leftSideThreshold = containerWidth * SIDE_TAP_THRESHOLD;
+    const rightSideThreshold = containerWidth * (1 - SIDE_TAP_THRESHOLD);
 
-    if (touchY >= bottomThreshold) {
+    // Check if touch is in bottom, left, or right pagination zones
+    if (touchY >= bottomThreshold || touchX <= leftSideThreshold || touchX >= rightSideThreshold) {
       e.preventDefault();
       const scrollAmount = containerHeight * 0.9;
       contentContainer.scrollBy({
@@ -446,61 +454,6 @@ function setupAutoHide() {
       }, 150);
     });
   }
-}
-
-// Swipe-to-dismiss gesture for mobile sidebar
-function setupSwipeToDismiss() {
-  const sidebar = document.getElementById('chaptersSidebar');
-  if (!sidebar) return;
-
-  let startY = 0;
-  let currentY = 0;
-  let isDragging = false;
-  const SWIPE_THRESHOLD = 50; // Minimum distance to trigger dismiss
-
-  sidebar.addEventListener('touchstart', function(e) {
-    if (!isMobileView() || !sidebar.classList.contains('visible')) return;
-    
-    // Only start drag from the header area (handle bar)
-    const header = sidebar.querySelector('.chapters-sidebar-header');
-    if (!header || !header.contains(e.target)) return;
-    
-    startY = e.touches[0].clientY;
-    isDragging = true;
-    sidebar.style.transition = 'none';
-  }, { passive: true });
-
-  sidebar.addEventListener('touchmove', function(e) {
-    if (!isDragging || !isMobileView()) return;
-    
-    currentY = e.touches[0].clientY;
-    const deltaY = currentY - startY;
-    
-    // Only allow dragging downward
-    if (deltaY > 0) {
-      sidebar.style.transform = `translateY(${deltaY}px)`;
-    }
-  }, { passive: true });
-
-  sidebar.addEventListener('touchend', function(e) {
-    if (!isDragging || !isMobileView()) return;
-    
-    isDragging = false;
-    sidebar.style.transition = 'transform 0.3s ease';
-    
-    const deltaY = currentY - startY;
-    
-    if (deltaY > SWIPE_THRESHOLD) {
-      // Swipe down - dismiss sidebar
-      hideSidebar();
-    } else {
-      // Reset position
-      sidebar.style.transform = '';
-    }
-    
-    startY = 0;
-    currentY = 0;
-  }, { passive: true });
 }
 
 // Store scroll position when locking body
