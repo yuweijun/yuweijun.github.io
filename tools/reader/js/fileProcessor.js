@@ -73,7 +73,7 @@ class LocalFileProcessor {
      */
     static isUtf8Encoded(content) {
         const sample = content.substring(0, 512);
-        return /，。,./.test(sample);
+        return /[，。,.]/.test(sample);
     }
 
     /**
