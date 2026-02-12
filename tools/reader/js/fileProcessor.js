@@ -73,7 +73,7 @@ class LocalFileProcessor {
      */
     static isUtf8Encoded(content) {
         const sample = content.substring(0, 512);
-        return /，/.test(sample);
+        return /，。,./.test(sample);
     }
 
     /**
@@ -185,7 +185,7 @@ class LocalFileProcessor {
             // Replace content with error message
             const errorMessage = "上传的文本文件编码必须为UTF-8格式";
             const errorContent = errorMessage;
-            
+
             // Create book with error message
             const bookId = this.generateStoryId();
             const bookName = LocalFileProcessor.extractBookNameFromFileName(file.name);
@@ -272,13 +272,13 @@ class LocalFileProcessor {
      */
     async processAndSplitFile(file) {
         const fileContent = await this.readFileAsText(file);
-        
+
         // Validate UTF-8 encoding
         if (!LocalFileProcessor.isUtf8Encoded(fileContent)) {
             // Replace content with error message
             const errorMessage = "上传的文本文件编码必须为UTF-8格式";
             const errorContent = errorMessage;
-            
+
             // Create book with error message
             const bookId = this.generateStoryId();
             const bookName = LocalFileProcessor.extractBookNameFromFileName(file.name);
