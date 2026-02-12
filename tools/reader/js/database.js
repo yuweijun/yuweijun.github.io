@@ -4,433 +4,448 @@
  */
 
 class TextReaderDB {
-    constructor() {
-        this.dbName = 'TextReaderDB';
-        this.version = 2; // Upgraded to version 2 for books table
-        this.db = null;
-    }
+  constructor() {
+    this.dbName = 'TextReaderDB';
+    this.version = 2;
+    this.db = null;
+  }
 
-    /**
-     * Initialize the database
-     */
-    async init() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open(this.dbName, this.version);
+  /**
+   * Initialize the database
+   */
+  async init() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open(this.dbName, this.version);
 
-            request.onerror = () => {
-                console.error('Database initialization failed:', request.error);
-                reject(request.error);
-            };
+      request.onerror = () => {
+        console.error('Database initialization failed:', request.error);
+        reject(request.error);
+      };
 
-            request.onsuccess = () => {
-                this.db = request.result;
-                console.log('Database initialized successfully');
-                resolve(this.db);
-            };
+      request.onsuccess = () => {
+        this.db = request.result;
+        resolve(this.db);
+      };
 
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                const oldVersion = event.oldVersion;
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        const oldVersion = event.oldVersion;
 
-                // Create books store (new in version 2)
-                if (!db.objectStoreNames.contains('books')) {
-                    const booksStore = db.createObjectStore('books', { keyPath: 'id' });
-                    booksStore.createIndex('bookName', 'bookName', { unique: false });
-                    booksStore.createIndex('uploadTime', 'uploadTime', { unique: false });
-                    console.log('Books store created');
-                }
-
-                // Create stories store
-                if (!db.objectStoreNames.contains('stories')) {
-                    const storiesStore = db.createObjectStore('stories', { keyPath: 'id' });
-                    storiesStore.createIndex('fileName', 'fileName', { unique: false });
-                    storiesStore.createIndex('uploadTime', 'uploadTime', { unique: false });
-                    storiesStore.createIndex('bookId', 'bookId', { unique: false });
-                    console.log('Stories store created');
-                } else if (oldVersion < 2) {
-                    // Add bookId index to existing stories store
-                    const transaction = event.target.transaction;
-                    const storiesStore = transaction.objectStore('stories');
-                    if (!storiesStore.indexNames.contains('bookId')) {
-                        storiesStore.createIndex('bookId', 'bookId', { unique: false });
-                        console.log('BookId index added to stories store');
-                    }
-                }
-
-                // Create histories store
-                if (!db.objectStoreNames.contains('histories')) {
-                    const historiesStore = db.createObjectStore('histories', { keyPath: 'id' });
-                    historiesStore.createIndex('storyId', 'storyId', { unique: false });
-                    historiesStore.createIndex('lastReadTime', 'lastReadTime', { unique: false });
-                    console.log('Histories store created');
-                }
-            };
-        });
-    }
-
-    /**
-     * Add a book to the database
-     */
-    async addBook(bookData) {
-        if (!this.db) await this.init();
-
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['books'], 'readwrite');
-            const store = transaction.objectStore('books');
-
-            const book = {
-                id: bookData.id || Date.now().toString(),
-                bookName: bookData.bookName,
-                uploadTime: bookData.uploadTime || new Date().toISOString(),
-                originalFileName: bookData.originalFileName || ''
-            };
-
-            const request = store.add(book);
-
-            request.onsuccess = () => {
-                resolve(book);
-            };
-
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
-
-    /**
-     * Get all books
-     */
-    async getAllBooks() {
-        if (!this.db) await this.init();
-
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['books'], 'readonly');
-            const store = transaction.objectStore('books');
-            const request = store.getAll();
-
-            request.onsuccess = () => {
-                resolve(request.result);
-            };
-
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
-
-    /**
-     * Get a book by ID
-     */
-    async getBookById(bookId) {
-        if (!this.db) await this.init();
-
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['books'], 'readonly');
-            const store = transaction.objectStore('books');
-            const request = store.get(bookId);
-
-            request.onsuccess = () => {
-                resolve(request.result);
-            };
-
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
-
-    /**
-     * Delete a book and all its stories
-     */
-    async deleteBook(bookId) {
-        if (!this.db) await this.init();
-
-        // First delete all stories belonging to this book
-        const stories = await this.getStoriesByBookId(bookId);
-        for (const story of stories) {
-            await this.deleteStory(story.id);
+        // Create books store (new in version 2)
+        if (!db.objectStoreNames.contains('books')) {
+          const booksStore = db.createObjectStore('books', { keyPath: 'id' });
+          booksStore.createIndex('bookName', 'bookName', { unique: false });
+          booksStore.createIndex('uploadTime', 'uploadTime', { unique: false });
         }
 
-        // Then delete the book
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['books'], 'readwrite');
-            const store = transaction.objectStore('books');
-            const request = store.delete(bookId);
+        // Create stories store
+        if (!db.objectStoreNames.contains('stories')) {
+          const storiesStore = db.createObjectStore('stories', { keyPath: 'id' });
+          storiesStore.createIndex('fileName', 'fileName', { unique: false });
+          storiesStore.createIndex('uploadTime', 'uploadTime', { unique: false });
+          storiesStore.createIndex('bookId', 'bookId', { unique: false });
+        } else if (oldVersion < 2) {
+          const transaction = event.target.transaction;
+          const storiesStore = transaction.objectStore('stories');
+          if (!storiesStore.indexNames.contains('bookId')) {
+            storiesStore.createIndex('bookId', 'bookId', { unique: false });
+          }
+        }
 
-            request.onsuccess = () => {
-                resolve(true);
-            };
+        // Create histories store
+        if (!db.objectStoreNames.contains('histories')) {
+          const historiesStore = db.createObjectStore('histories', { keyPath: 'id' });
+          historiesStore.createIndex('storyId', 'storyId', { unique: false });
+          historiesStore.createIndex('lastReadTime', 'lastReadTime', { unique: false });
+        }
+      };
+    });
+  }
 
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
+  /**
+   * Add a book to the database
+   */
+  async addBook(bookData) {
+    if (!this.db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['books'], 'readwrite');
+      const store = transaction.objectStore('books');
+
+      const book = {
+        id: bookData.id || Date.now().toString(),
+        bookName: bookData.bookName,
+        uploadTime: bookData.uploadTime || new Date().toISOString(),
+        originalFileName: bookData.originalFileName || ''
+      };
+
+      const request = store.add(book);
+
+      request.onsuccess = () => {
+        resolve(book);
+      };
+
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  }
+
+  /**
+   * Get all books
+   */
+  async getAllBooks() {
+    if (!this.db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['books'], 'readonly');
+      const store = transaction.objectStore('books');
+      const request = store.getAll();
+
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  }
+
+  /**
+   * Get a book by ID
+   */
+  async getBookById(bookId) {
+    if (!this.db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['books'], 'readonly');
+      const store = transaction.objectStore('books');
+      const request = store.get(bookId);
+
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
+
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  }
+
+  /**
+   * Delete a book and all its stories
+   */
+  async deleteBook(bookId) {
+    if (!this.db) await this.init();
+
+    // First delete all stories belonging to this book
+    const stories = await this.getStoriesByBookId(bookId);
+    for (const story of stories) {
+      await this.deleteStory(story.id);
     }
 
-    /**
-     * Get stories by book ID
-     */
-    async getStoriesByBookId(bookId) {
-        if (!this.db) await this.init();
+    // Then delete the book
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['books'], 'readwrite');
+      const store = transaction.objectStore('books');
+      const request = store.delete(bookId);
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['stories'], 'readonly');
-            const store = transaction.objectStore('stories');
-            const index = store.index('bookId');
-            const request = index.getAll(bookId);
+      request.onsuccess = () => {
+        resolve(true);
+      };
 
-            request.onsuccess = () => {
-                resolve(request.result);
-            };
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  }
 
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
+  /**
+   * Get stories by book ID
+   */
+  async getStoriesByBookId(bookId) {
+    if (!this.db) await this.init();
 
-    /**
-     * Add a story to the database
-     */
-    async addStory(storyData) {
-        if (!this.db) await this.init();
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['stories'], 'readonly');
+      const store = transaction.objectStore('stories');
+      const index = store.index('bookId');
+      const request = index.getAll(bookId);
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['stories'], 'readwrite');
-            const store = transaction.objectStore('stories');
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
 
-            const story = {
-                id: storyData.id || Date.now().toString(),
-                bookId: storyData.bookId || null, // Foreign key to books table
-                fileName: storyData.fileName,
-                originalFileName: storyData.originalFileName,
-                fileSize: storyData.fileSize,
-                uploadTime: storyData.uploadTime || new Date().toISOString(),
-                content: storyData.content || '',
-                processedContent: storyData.processedContent || '',
-                chapters: storyData.chapters || [],
-                extractedTitle: storyData.extractedTitle || '',
-                isSplitFile: storyData.isSplitFile || false,
-                splitParentFile: storyData.splitParentFile || null,
-                splitIndex: storyData.splitIndex || null,
-                totalChunks: storyData.totalChunks || null
-            };
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  }
 
-            const request = store.add(story);
+  /**
+   * Get all books with their stories in a single batch query
+   * Fixes N+1 query problem when loading books list
+   */
+  async getAllBooksWithStories() {
+    if (!this.db) await this.init();
 
-            request.onsuccess = () => {
-                resolve(story);
-            };
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['books', 'stories'], 'readonly');
+      const booksStore = transaction.objectStore('books');
+      const storiesStore = transaction.objectStore('stories');
 
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
+      const booksRequest = booksStore.getAll();
+      const storiesRequest = storiesStore.getAll();
 
-    /**
-     * Get all stories
-     */
-    async getAllStories() {
-        if (!this.db) await this.init();
+      let books = null;
+      let stories = null;
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['stories'], 'readonly');
-            const store = transaction.objectStore('stories');
-            const request = store.getAll();
+      booksRequest.onsuccess = () => {
+        books = booksRequest.result;
+        if (stories !== null) {
+          resolve(combineResults());
+        }
+      };
 
-            request.onsuccess = () => {
-                resolve(request.result);
-            };
+      storiesRequest.onsuccess = () => {
+        stories = storiesRequest.result;
+        if (books !== null) {
+          resolve(combineResults());
+        }
+      };
 
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
+      booksRequest.onerror = () => reject(booksRequest.error);
+      storiesRequest.onerror = () => reject(storiesRequest.error);
 
-    /**
-     * Get a story by ID
-     */
-    async getStoryById(storyId) {
-        if (!this.db) await this.init();
+      function combineResults() {
+        // Group stories by bookId
+        const storiesByBookId = {};
+        for (const story of stories) {
+          const bookId = story.bookId;
+          if (!storiesByBookId[bookId]) {
+            storiesByBookId[bookId] = [];
+          }
+          storiesByBookId[bookId].push(story);
+        }
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['stories'], 'readonly');
-            const store = transaction.objectStore('stories');
-            const request = store.get(storyId);
+        // Attach stories to books and sort
+        for (const book of books) {
+          book.stories = storiesByBookId[book.id] || [];
+          // Sort stories by split index if they are split files
+          book.stories.sort((a, b) => {
+            if (a.splitIndex && b.splitIndex) {
+              return a.splitIndex - b.splitIndex;
+            }
+            return new Date(a.uploadTime) - new Date(b.uploadTime);
+          });
+        }
 
-            request.onsuccess = () => {
-                resolve(request.result);
-            };
+        // Sort books by upload time (newest first)
+        books.sort((a, b) => new Date(b.uploadTime) - new Date(a.uploadTime));
 
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
+        return books;
+      }
+    });
+  }
 
-    /**
-     * Update a story
-     */
-    async updateStory(story) {
-        if (!this.db) await this.init();
+  /**
+   * Add a story to the database
+   */
+  async addStory(storyData) {
+    if (!this.db) await this.init();
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['stories'], 'readwrite');
-            const store = transaction.objectStore('stories');
-            const request = store.put(story);
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['stories'], 'readwrite');
+      const store = transaction.objectStore('stories');
 
-            request.onsuccess = () => {
-                console.log('Story updated successfully:', story.id);
-                resolve(story);
-            };
+      const story = {
+        id: storyData.id || Date.now().toString(),
+        bookId: storyData.bookId || null,
+        fileName: storyData.fileName,
+        originalFileName: storyData.originalFileName,
+        fileSize: storyData.fileSize,
+        uploadTime: storyData.uploadTime || new Date().toISOString(),
+        content: storyData.content || '',
+        processedContent: storyData.processedContent || '',
+        chapters: storyData.chapters || [],
+        extractedTitle: storyData.extractedTitle || '',
+        isSplitFile: storyData.isSplitFile || false,
+        splitParentFile: storyData.splitParentFile || null,
+        splitIndex: storyData.splitIndex || null,
+        totalChunks: storyData.totalChunks || null
+      };
 
-            request.onerror = () => {
-                console.error('Failed to update story:', request.error);
-                reject(request.error);
-            };
-        });
-    }
+      const request = store.add(story);
 
-    /**
-     * Delete a story
-     */
-    async deleteStory(storyId) {
-        if (!this.db) await this.init();
+      request.onsuccess = () => {
+        resolve(story);
+      };
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['stories'], 'readwrite');
-            const store = transaction.objectStore('stories');
-            const request = store.delete(storyId);
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  }
 
-            request.onsuccess = () => {
-                resolve(true);
-            };
+  /**
+   * Get a story by ID
+   */
+  async getStoryById(storyId) {
+    if (!this.db) await this.init();
 
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['stories'], 'readonly');
+      const store = transaction.objectStore('stories');
+      const request = store.get(storyId);
 
-    /**
-     * Add or update reading history
-     */
-    async saveReadingHistory(historyData) {
-        if (!this.db) await this.init();
+      request.onsuccess = () => {
+        resolve(request.result);
+      };
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['histories'], 'readwrite');
-            const store = transaction.objectStore('histories');
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  }
 
-            const history = {
-                id: historyData.id || `${historyData.storyId}_${Date.now()}`,
-                storyId: historyData.storyId,
-                lastChapterTitle: historyData.lastChapterTitle,
-                lastScrollPosition: historyData.lastScrollPosition || 0,
-                lastReadTime: new Date().toISOString(),
-                totalTimeRead: historyData.totalTimeRead || 0
-            };
+  /**
+   * Update a story
+   */
+  async updateStory(story) {
+    if (!this.db) await this.init();
 
-            const request = store.put(history);
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['stories'], 'readwrite');
+      const store = transaction.objectStore('stories');
+      const request = store.put(story);
 
-            request.onsuccess = () => {
-                console.log('Reading history saved:', history.id);
-                resolve(history);
-            };
+      request.onsuccess = () => {
+        resolve(story);
+      };
 
-            request.onerror = () => {
-                console.error('Failed to save reading history:', request.error);
-                reject(request.error);
-            };
-        });
-    }
+      request.onerror = () => {
+        console.error('Failed to update story:', request.error);
+        reject(request.error);
+      };
+    });
+  }
 
-    /**
-     * Get reading history for a story
-     */
-    async getReadingHistory(storyId) {
-        if (!this.db) await this.init();
+  /**
+   * Delete a story
+   */
+  async deleteStory(storyId) {
+    if (!this.db) await this.init();
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['histories'], 'readonly');
-            const store = transaction.objectStore('histories');
-            const index = store.index('storyId');
-            const request = index.getAll(storyId);
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['stories'], 'readwrite');
+      const store = transaction.objectStore('stories');
+      const request = store.delete(storyId);
 
-            request.onsuccess = () => {
-                const histories = request.result;
-                if (histories.length > 0) {
-                    histories.sort((a, b) => new Date(b.lastReadTime) - new Date(a.lastReadTime));
-                    resolve(histories[0]);
-                } else {
-                    resolve(null);
-                }
-            };
+      request.onsuccess = () => {
+        resolve(true);
+      };
 
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  }
 
-    /**
-     * Get all reading histories
-     */
-    async getAllHistories() {
-        if (!this.db) await this.init();
+  /**
+   * Add or update reading history
+   */
+  async saveReadingHistory(historyData) {
+    if (!this.db) await this.init();
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['histories'], 'readonly');
-            const store = transaction.objectStore('histories');
-            const request = store.getAll();
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['histories'], 'readwrite');
+      const store = transaction.objectStore('histories');
 
-            request.onsuccess = () => {
-                resolve(request.result);
-            };
+      const history = {
+        id: historyData.id || `${historyData.storyId}_${Date.now()}`,
+        storyId: historyData.storyId,
+        lastChapterTitle: historyData.lastChapterTitle,
+        lastScrollPosition: historyData.lastScrollPosition || 0,
+        lastReadTime: new Date().toISOString(),
+        totalTimeRead: historyData.totalTimeRead || 0
+      };
 
-            request.onerror = () => {
-                reject(request.error);
-            };
-        });
-    }
+      const request = store.put(history);
 
-    /**
-     * Clear all data (for testing/debugging)
-     */
-    async clearAllData() {
-        if (!this.db) await this.init();
+      request.onsuccess = () => {
+        resolve(history);
+      };
 
-        return new Promise((resolve, reject) => {
-            const transaction = this.db.transaction(['books', 'stories', 'histories'], 'readwrite');
-            const booksStore = transaction.objectStore('books');
-            const storiesStore = transaction.objectStore('stories');
-            const historiesStore = transaction.objectStore('histories');
+      request.onerror = () => {
+        console.error('Failed to save reading history:', request.error);
+        reject(request.error);
+      };
+    });
+  }
 
-            const booksRequest = booksStore.clear();
-            const storiesRequest = storiesStore.clear();
-            const historiesRequest = historiesStore.clear();
+  /**
+   * Get reading history for a story
+   */
+  async getReadingHistory(storyId) {
+    if (!this.db) await this.init();
 
-            let completed = 0;
-            const checkCompletion = () => {
-                completed++;
-                if (completed === 3) {
-                    console.log('All data cleared successfully');
-                    resolve();
-                }
-            };
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['histories'], 'readonly');
+      const store = transaction.objectStore('histories');
+      const index = store.index('storyId');
+      const request = index.getAll(storyId);
 
-            booksRequest.onsuccess = checkCompletion;
-            booksRequest.onerror = () => reject(booksRequest.error);
+      request.onsuccess = () => {
+        const histories = request.result;
+        if (histories.length > 0) {
+          histories.sort((a, b) => new Date(b.lastReadTime) - new Date(a.lastReadTime));
+          resolve(histories[0]);
+        } else {
+          resolve(null);
+        }
+      };
 
-            storiesRequest.onsuccess = checkCompletion;
-            storiesRequest.onerror = () => reject(storiesRequest.error);
+      request.onerror = () => {
+        reject(request.error);
+      };
+    });
+  }
 
-            historiesRequest.onsuccess = checkCompletion;
-            historiesRequest.onerror = () => reject(historiesRequest.error);
-        });
-    }
+  /**
+   * Clear all data (for testing/debugging)
+   */
+  async clearAllData() {
+    if (!this.db) await this.init();
+
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction(['books', 'stories', 'histories'], 'readwrite');
+      const booksStore = transaction.objectStore('books');
+      const storiesStore = transaction.objectStore('stories');
+      const historiesStore = transaction.objectStore('histories');
+
+      const booksRequest = booksStore.clear();
+      const storiesRequest = storiesStore.clear();
+      const historiesRequest = historiesStore.clear();
+
+      let completed = 0;
+      const checkCompletion = () => {
+        completed++;
+        if (completed === 3) {
+          resolve();
+        }
+      };
+
+      booksRequest.onsuccess = checkCompletion;
+      booksRequest.onerror = () => reject(booksRequest.error);
+
+      storiesRequest.onsuccess = checkCompletion;
+      storiesRequest.onerror = () => reject(storiesRequest.error);
+
+      historiesRequest.onsuccess = checkCompletion;
+      historiesRequest.onerror = () => reject(historiesRequest.error);
+    });
+  }
 }
 
 // Export for use in other modules
