@@ -159,17 +159,28 @@ async function processSelectedFile() {
     const chapterBoundaries = appState.processor.detectChapters(fileContent);
     let result;
 
+    console.log('Chapter boundaries detected:', chapterBoundaries.length);
+    if (chapterBoundaries.length > 0) {
+      console.log('First chapter:', chapterBoundaries[0].title);
+      console.log('Last chapter:', chapterBoundaries[chapterBoundaries.length - 1].title);
+    }
+
     // Check if we need to split based on chapter number
     let shouldSplit = false;
     if (chapterBoundaries.length > 0) {
       const lastChapterTitle = chapterBoundaries[chapterBoundaries.length - 1].title;
       const endChapterNum = window.extractChapterNumber(lastChapterTitle);
 
+      console.log('End chapter number:', endChapterNum);
+      console.log('(1 + endChapterNum) % 50:', endChapterNum !== null ? (1 + endChapterNum) % 50 : 'null');
+
       // Split if (1 + endChapterNum) is divisible by 50
       if (endChapterNum !== null) {
         shouldSplit = ((1 + endChapterNum) % 50) === 0;
       }
     }
+
+    console.log('Should split:', shouldSplit);
 
     if (shouldSplit) {
       // Use splitting functionality for files that end at chapter 49, 99, 149, etc.
