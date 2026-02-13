@@ -176,11 +176,11 @@ async function processSelectedFile() {
       console.log('Start chapter number:', startChapterNum);
       console.log('End chapter number:', endChapterNum);
 
-      // Split if chapter range is >= 49 (e.g., chapter 1 to 49, 50 to 99, etc.)
+      // Split if chapter range is >= 50 (e.g., chapter 1 to 50, 1 to 100, etc.)
       if (startChapterNum !== null && endChapterNum !== null) {
         const chapterRange = endChapterNum - startChapterNum;
         console.log('Chapter range:', chapterRange);
-        shouldSplit = chapterRange >= 49;
+        shouldSplit = chapterRange >= 50;
       }
     }
 
