@@ -20,7 +20,7 @@ function applyTheme() {
   // Disable transitions during initial theme load
   document.body.classList.add('no-transitions');
 
-  const savedTheme = localStorage.getItem('preferredViewerTheme') || 'default';
+  const savedTheme = localStorage.getItem('preferredViewerTheme') || 'maize-yello';
   if (window.themes[savedTheme]) {
     document.body.classList.add(window.themes[savedTheme]);
   }

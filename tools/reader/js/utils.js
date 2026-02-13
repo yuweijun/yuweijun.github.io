@@ -18,7 +18,7 @@ const themes = {
   monokai: 'theme-monokai',
   solarized: 'theme-solarized',
   'griege-dark': 'theme-griege-dark',
-  default: 'theme-default',
+  'midnight-cyan': 'theme-midnight-cyan',
   darkgreen: 'theme-darkgreen'
 };
 

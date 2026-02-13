@@ -133,7 +133,7 @@ async function initializeViewer() {
   window.addEventListener('beforeunload', saveReadingProgress);
 
   // Load saved theme
-  const savedTheme = localStorage.getItem('preferredViewerTheme') || 'default';
+  const savedTheme = localStorage.getItem('preferredViewerTheme') || 'maize-yello';
   applyTheme(savedTheme);
 
   // Add event listeners to theme options
