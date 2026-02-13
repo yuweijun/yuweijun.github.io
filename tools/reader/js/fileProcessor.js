@@ -334,9 +334,15 @@ class LocalFileProcessor {
     const chunkLines = lines.slice(startLineIdx, endLineIdx);
     const chunkContent = chunkLines.join('\n');
 
+    // Calculate chapter numbers for this chunk
+    const startChapterNum = startChapterIdx + 1;
+    const endChapterNum = endChapterIdx;
+
+    // Create title in format: "BookName 第 1 到 50 章"
+    const chunkTitle = `${baseFileName} 第 ${startChapterNum} 到 ${endChapterNum} 章`;
+
     const paddedIndex = (chunkIndex + 1).toString().padStart(3, '0');
     const chunkFileName = `${baseFileName}-${paddedIndex}.txt`;
-    const chunkTitle = `${baseFileName}-${paddedIndex}`;
 
     const storyId = this.generateStoryId();
     const processingResult = this.processContentWithChapters(chunkContent);
