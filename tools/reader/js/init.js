@@ -95,16 +95,8 @@ function setupEventListeners() {
   }
 
   // Navigation buttons
-  const refreshBtn = document.getElementById('refreshBtn');
   const prevPageBtn = document.getElementById('prevPageBtn');
   const nextPageBtn = document.getElementById('nextPageBtn');
-  const clearAllBtn = document.getElementById('clearAllBtn');
-
-  if (refreshBtn) {
-    refreshBtn.addEventListener('click', async function() {
-      await loadBooks();
-    });
-  }
 
   if (prevPageBtn) {
     prevPageBtn.addEventListener('click', function() {
@@ -122,28 +114,6 @@ function setupEventListeners() {
         appState.currentPage++;
         displayBooks();
         updatePagination();
-      }
-    });
-  }
-
-  if (clearAllBtn) {
-    clearAllBtn.addEventListener('click', async function() {
-      const confirmed = await window.showConfirm({
-        title: 'Delete All Books',
-        message: 'Are you sure you want to delete all books? This cannot be undone.',
-        confirmText: 'Delete All',
-        cancelText: 'Cancel',
-        destructive: true
-      });
-      
-      if (confirmed) {
-        try {
-          await appState.db.clearAllData();
-          await loadBooks();
-          showSuccess('All books deleted successfully');
-        } catch (error) {
-          showError('Failed to clear data: ' + error.message);
-        }
       }
     });
   }
