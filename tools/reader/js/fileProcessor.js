@@ -14,7 +14,7 @@ class LocalFileProcessor {
    */
   static get CHAPTER_PATTERNS() {
     return [
-      /^第?\s*([一二三四五六七八九十百千万\d]+)\s*[章节卷部篇回]\s*/,
+      /^第\s*([一二三四五六七八九十百千万\d]+)\s*[章节卷部篇回]\s*/,
       /^Chapter\s+(\d+)/i,
       /^Section\s+(\d+)/i,
       /^[IVXLCDM]+\.\s/,
