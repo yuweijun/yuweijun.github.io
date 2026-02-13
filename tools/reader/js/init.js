@@ -175,8 +175,8 @@ async function processSelectedFile() {
 
       // Split if the last chapter number is divisible by 50 (50, 100, 150, etc.)
       if (endChapterNum !== null) {
-        shouldSplit = endChapterNum % 50 === 0;
-        console.log('endChapterNum % 50:', endChapterNum % 50);
+        shouldSplit = endChapterNum > 50;
+        console.log('endChapterNum :', endChapterNum);
       }
     }
 
@@ -345,12 +345,12 @@ function attachDeleteListeners() {
   // Use event delegation - attach listener to parent container once
   const booksList = document.getElementById('storiesList');
   if (!booksList || booksList.dataset.delegated) return;
-  
+
   booksList.dataset.delegated = 'true';
   booksList.addEventListener('click', async function(e) {
     const deleteBtn = e.target.closest('.delete-book-btn');
     if (!deleteBtn) return;
-    
+
     e.stopPropagation();
     const bookId = deleteBtn.dataset.bookId;
     const book = appState.allBooks.find(b => b.id === bookId);
