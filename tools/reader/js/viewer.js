@@ -28,6 +28,9 @@ let lastScrollTop = 0;
 let isScrollingInSidebar = false;
 
 function applyTheme(theme) {
+  // Disable transitions during theme change to prevent flash
+  document.body.classList.add('no-transitions');
+
   // Remove all theme classes
   Object.values(window.themes).forEach(themeClass => {
     document.body.classList.remove(themeClass);
@@ -40,6 +43,11 @@ function applyTheme(theme) {
 
   // Save to localStorage
   localStorage.setItem('preferredViewerTheme', theme);
+
+  // Re-enable transitions after a brief delay
+  setTimeout(() => {
+    document.body.classList.remove('no-transitions');
+  }, 50);
 }
 
 // Get story ID from URL hash
@@ -323,6 +331,7 @@ function setupPaginationClickHandler() {
   let touchStartY = 0;
   let touchStartTime = 0;
   let isInPaginationZone = false;
+  let isDragging = false;
 
   contentContainer.addEventListener('touchstart', function(e) {
     const touch = e.touches[0];
@@ -338,13 +347,29 @@ function setupPaginationClickHandler() {
     touchStartX = touch.clientX;
     touchStartY = touch.clientY;
     touchStartTime = Date.now();
+    isDragging = false;
 
     // Check if touch is in bottom, left, or right pagination zones
     isInPaginationZone = (touchY >= bottomThreshold || touchX <= leftSideThreshold || touchX >= rightSideThreshold);
   }, { passive: true });
 
   contentContainer.addEventListener('touchmove', function(e) {
-    if (isInPaginationZone) {
+    if (!isInPaginationZone) {
+      return;
+    }
+
+    const touch = e.touches[0];
+    const moveX = Math.abs(touch.clientX - touchStartX);
+    const moveY = Math.abs(touch.clientY - touchStartY);
+
+    // Detect if user is dragging
+    if (moveX > 10 || moveY > 10) {
+      isDragging = true;
+    }
+
+    // Only prevent default if movement is primarily horizontal
+    // Allow vertical scrolling (up/down drag)
+    if (moveX > moveY) {
       e.preventDefault();
       e.stopPropagation();
     }
@@ -363,8 +388,8 @@ function setupPaginationClickHandler() {
       Math.pow(touchEndX - touchStartX, 2) + Math.pow(touchEndY - touchStartY, 2)
     );
 
-    // Only trigger pagination if it's a tap (short duration and minimal movement)
-    if (touchDuration < 300 && moveDistance < 10) {
+    // Only trigger pagination if it's a tap (short duration, minimal movement, not dragging)
+    if (!isDragging && touchDuration < 300 && moveDistance < 10) {
       e.preventDefault();
       const rect = contentContainer.getBoundingClientRect();
       const containerHeight = rect.height;
@@ -376,6 +401,7 @@ function setupPaginationClickHandler() {
     }
 
     isInPaginationZone = false;
+    isDragging = false;
   }, { passive: false });
 }
 
