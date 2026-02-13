@@ -334,9 +334,12 @@ class LocalFileProcessor {
     const chunkLines = lines.slice(startLineIdx, endLineIdx);
     const chunkContent = chunkLines.join('\n');
 
-    // Calculate chapter numbers for this chunk
-    const startChapterNum = startChapterIdx + 1;
-    const endChapterNum = endChapterIdx;
+    // Parse actual chapter numbers from chapter titles
+    const startChapterTitle = chapterBoundaries[startChapterIdx].title;
+    const endChapterTitle = chapterBoundaries[endChapterIdx - 1].title;
+
+    const startChapterNum = window.extractChapterNumber(startChapterTitle) || (startChapterIdx + 1);
+    const endChapterNum = window.extractChapterNumber(endChapterTitle) || endChapterIdx;
 
     // Create title in format: "第 1 ~ 50 章"
     const chunkTitle = `第 ${startChapterNum} ~ ${endChapterNum} 章`;
