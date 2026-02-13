@@ -196,7 +196,7 @@ class LocalFileProcessor {
   /**
    * Process and split large file into chunks
    */
-  async processAndSplitFile(file) {
+  async processAndSplitFile(file, forceSplit = false) {
     const fileContent = await this.readFileAsText(file);
 
     if (!LocalFileProcessor.isUtf8Encoded(fileContent)) {
@@ -253,7 +253,7 @@ class LocalFileProcessor {
 
     await this.db.addBook(bookData);
 
-    if (chapterBoundaries.length <= this.chaptersPerFile) {
+    if (!forceSplit && chapterBoundaries.length <= this.chaptersPerFile) {
       const result = await this.processSingleStory(file, bookId, fileContent);
       return { bookId, storyIds: [result.storyId] };
     }

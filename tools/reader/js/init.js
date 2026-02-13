@@ -173,7 +173,7 @@ async function processSelectedFile() {
 
     if (shouldSplit) {
       // Use splitting functionality for files that end at chapter 49, 99, 149, etc.
-      result = await appState.processor.processAndSplitFile(file);
+      result = await appState.processor.processAndSplitFile(file, true);
       hideLoading();
       showSuccess(`File "${file.name}" split into ${result.storyIds.length} parts successfully!`);
     } else {
