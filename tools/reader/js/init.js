@@ -159,8 +159,22 @@ async function processSelectedFile() {
     const chapterBoundaries = appState.processor.detectChapters(fileContent);
     let result;
 
-    if (chapterBoundaries.length > 50) {
-      // Use splitting functionality for files with more than 50 chapters
+    // Check if we need to split based on chapter number range
+    let shouldSplit = false;
+    if (chapterBoundaries.length > 0) {
+      const firstChapterTitle = chapterBoundaries[0].title;
+      const lastChapterTitle = chapterBoundaries[chapterBoundaries.length - 1].title;
+      const startChapterNum = window.extractChapterNumber(firstChapterTitle);
+      const endChapterNum = window.extractChapterNumber(lastChapterTitle);
+
+      // Split if the difference between end and start chapter numbers is >= 49
+      if (startChapterNum !== null && endChapterNum !== null) {
+        shouldSplit = (endChapterNum - startChapterNum) >= 49;
+      }
+    }
+
+    if (shouldSplit) {
+      // Use splitting functionality for files with large chapter range
       result = await appState.processor.processAndSplitFile(file);
       hideLoading();
       showSuccess(`File "${file.name}" split into ${result.storyIds.length} parts successfully!`);
