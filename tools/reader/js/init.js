@@ -200,9 +200,6 @@ async function processSelectedFile() {
     // Reload books
     await loadBooks();
 
-    // Navigate to first story
-    window.location.href = `viewer.html#view/${result.storyIds[0]}`;
-
   } catch (error) {
     hideLoading();
     showError('Failed to process file: ' + error.message);
