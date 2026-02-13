@@ -319,6 +319,11 @@ function setupPaginationClickHandler() {
 
   contentContainer.addEventListener('click', handlePaginationClick);
 
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let touchStartTime = 0;
+  let isInPaginationZone = false;
+
   contentContainer.addEventListener('touchstart', function(e) {
     const touch = e.touches[0];
     const rect = contentContainer.getBoundingClientRect();
@@ -330,15 +335,47 @@ function setupPaginationClickHandler() {
     const leftSideThreshold = containerWidth * SIDE_TAP_THRESHOLD;
     const rightSideThreshold = containerWidth * (1 - SIDE_TAP_THRESHOLD);
 
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+    touchStartTime = Date.now();
+
     // Check if touch is in bottom, left, or right pagination zones
-    if (touchY >= bottomThreshold || touchX <= leftSideThreshold || touchX >= rightSideThreshold) {
+    isInPaginationZone = (touchY >= bottomThreshold || touchX <= leftSideThreshold || touchX >= rightSideThreshold);
+  }, { passive: true });
+
+  contentContainer.addEventListener('touchmove', function(e) {
+    if (isInPaginationZone) {
       e.preventDefault();
+      e.stopPropagation();
+    }
+  }, { passive: false });
+
+  contentContainer.addEventListener('touchend', function(e) {
+    if (!isInPaginationZone) {
+      return;
+    }
+
+    const touch = e.changedTouches[0];
+    const touchEndX = touch.clientX;
+    const touchEndY = touch.clientY;
+    const touchDuration = Date.now() - touchStartTime;
+    const moveDistance = Math.sqrt(
+      Math.pow(touchEndX - touchStartX, 2) + Math.pow(touchEndY - touchStartY, 2)
+    );
+
+    // Only trigger pagination if it's a tap (short duration and minimal movement)
+    if (touchDuration < 300 && moveDistance < 10) {
+      e.preventDefault();
+      const rect = contentContainer.getBoundingClientRect();
+      const containerHeight = rect.height;
       const scrollAmount = containerHeight * 0.9;
       contentContainer.scrollBy({
         top: scrollAmount,
         behavior: 'smooth'
       });
     }
+
+    isInPaginationZone = false;
   }, { passive: false });
 }
 

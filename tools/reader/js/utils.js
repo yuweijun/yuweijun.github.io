@@ -4,21 +4,22 @@
  */
 
 // Theme management - shared across init.js and viewer.js
+// Sorted by background brightness (lightest to darkest)
 const themes = {
-  default: 'theme-default',
+  'maize-yello': 'theme-maize-yello',
+  autumn: 'theme-autumn',
+  lavender: 'theme-lavender',
+  almond: 'theme-almond',
+  rouge: 'theme-rouge',
+  meadow: 'theme-meadow',
+  bamboo: 'theme-bamboo',
+  nord: 'theme-nord',
+  dracula: 'theme-dracula',
   monokai: 'theme-monokai',
   solarized: 'theme-solarized',
-  dracula: 'theme-dracula',
-  nord: 'theme-nord',
-  darkgreen: 'theme-darkgreen',
-  'maize-yello': 'theme-maize-yello',
   'griege-dark': 'theme-griege-dark',
-  rouge: 'theme-rouge',
-  almond: 'theme-almond',
-  autumn: 'theme-autumn',
-  meadow: 'theme-meadow',
-  lavender: 'theme-lavender',
-  bamboo: 'theme-bamboo'
+  default: 'theme-default',
+  darkgreen: 'theme-darkgreen'
 };
 
 /**
