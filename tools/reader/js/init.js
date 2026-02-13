@@ -374,7 +374,6 @@ function displayBooks() {
         <div class="story-item d-flex justify-content-between align-items-center py-2 border-bottom">
           <div class="d-flex align-items-center">
             <a href="viewer.html#view/${story.id}" class="text-decoration-none">
-              <i class="fas fa-file-alt text-muted me-2"></i>
               ${storyTitle}
             </a>
           </div>
