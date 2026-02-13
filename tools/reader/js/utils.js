@@ -77,15 +77,20 @@ function extractChapterNumber(title) {
   // Try to match Chinese number pattern: 第*章/回/节
   const chineseMatch = title.match(/第\s*([一二三四五六七八九十百千万零]+)\s*[章节卷部篇回]/);
   if (chineseMatch) {
-    return chineseToArabic(chineseMatch[1]);
+    const result = chineseToArabic(chineseMatch[1]);
+    console.log('Chinese match:', title, '->', chineseMatch[1], '->', result);
+    return result;
   }
 
   // Try to match Arabic number pattern: 第123章/Chapter 123
   const arabicMatch = title.match(/第\s*(\d+)\s*[章节卷部篇回]|Chapter\s+(\d+)/i);
   if (arabicMatch) {
-    return parseInt(arabicMatch[1] || arabicMatch[2], 10);
+    const result = parseInt(arabicMatch[1] || arabicMatch[2], 10);
+    console.log('Arabic match:', title, '->', result);
+    return result;
   }
 
+  console.log('No match:', title);
   return null;
 }
 
