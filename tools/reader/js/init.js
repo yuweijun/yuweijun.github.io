@@ -174,9 +174,9 @@ async function processSelectedFile() {
       console.log('End chapter number:', endChapterNum);
       console.log('(1 + endChapterNum) % 50:', endChapterNum !== null ? (1 + endChapterNum) % 50 : 'null');
 
-      // Split if (1 + endChapterNum) is divisible by 50
+      // Split if chapter number matches pattern 50×n - 1 (49, 99, 149, 199, etc.)
       if (endChapterNum !== null) {
-        shouldSplit = ((1 + endChapterNum) % 50) === 0;
+        shouldSplit = (endChapterNum + 1) % 50 === 0;
       }
     }
 
