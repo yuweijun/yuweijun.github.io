@@ -258,9 +258,15 @@ class LocalFileProcessor {
       return { bookId, storyIds: [result.storyId] };
     }
 
+    // Calculate total chunks: first chunk has 49 chapters, rest have 50
+    const firstChunkSize = 49;
+    const remainingChapters = chapterBoundaries.length - firstChunkSize;
+    const totalChunks = remainingChapters > 0
+      ? 1 + Math.ceil(remainingChapters / this.chaptersPerFile)
+      : 1;
+
     const storyIds = [];
     const baseFileName = bookName;
-    const totalChunks = Math.ceil(chapterBoundaries.length / this.chaptersPerFile);
 
     for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
       const chunkData = this.createChunkData({
@@ -270,7 +276,8 @@ class LocalFileProcessor {
         totalChunks,
         baseFileName,
         originalFileName: file.name,
-        bookId
+        bookId,
+        firstChunkSize
       });
 
       await this.db.addStory(chunkData.storyData);
@@ -320,11 +327,19 @@ class LocalFileProcessor {
       totalChunks,
       baseFileName,
       originalFileName,
-      bookId
+      bookId,
+      firstChunkSize = this.chaptersPerFile
     } = options;
 
-    const startChapterIdx = chunkIndex * this.chaptersPerFile;
-    const endChapterIdx = Math.min((chunkIndex + 1) * this.chaptersPerFile, chapterBoundaries.length);
+    // First chunk uses firstChunkSize (49), subsequent chunks use chaptersPerFile (50)
+    let startChapterIdx, endChapterIdx;
+    if (chunkIndex === 0) {
+      startChapterIdx = 0;
+      endChapterIdx = Math.min(firstChunkSize, chapterBoundaries.length);
+    } else {
+      startChapterIdx = firstChunkSize + (chunkIndex - 1) * this.chaptersPerFile;
+      endChapterIdx = Math.min(startChapterIdx + this.chaptersPerFile, chapterBoundaries.length);
+    }
 
     const startLineIdx = chapterBoundaries[startChapterIdx].lineIndex;
     const endLineIdx = endChapterIdx < chapterBoundaries.length
