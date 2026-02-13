@@ -35,7 +35,7 @@ function escapeHtml(text) {
 
 /**
  * Convert Chinese number to Arabic numeral
- * Supports: 零一二三四五六七八九十百千万亿
+ * Supports: 零一二三四五六七八九十百千万亿 and uppercase 壹贰貳叁叄肆伍陆陸柒捌玖拾佰仟萬
  * @param {string} chinese - Chinese number string
  * @returns {number} - Arabic numeral
  */
@@ -43,7 +43,11 @@ function chineseToArabic(chinese) {
   const chineseNums = {
     '零': 0, '一': 1, '二': 2, '三': 3, '四': 4,
     '五': 5, '六': 6, '七': 7, '八': 8, '九': 9,
-    '十': 10, '百': 100, '千': 1000, '万': 10000, '亿': 100000000
+    '十': 10, '百': 100, '千': 1000, '万': 10000, '亿': 100000000,
+    // Uppercase/formal variants
+    '壹': 1, '贰': 2, '貳': 2, '叁': 3, '叄': 3, '肆': 4,
+    '伍': 5, '陆': 6, '陸': 6, '柒': 7, '捌': 8, '玖': 9,
+    '拾': 10, '佰': 100, '仟': 1000, '萬': 10000
   };
 
   let result = 0;
@@ -74,8 +78,8 @@ function chineseToArabic(chinese) {
  * @returns {number|null} - Chapter number or null if not found
  */
 function extractChapterNumber(title) {
-  // Try to match Chinese number pattern: 第*章/回/节
-  const chineseMatch = title.match(/第\s*([一二三四五六七八九十百千万零]+)\s*[章节卷部篇回]/);
+  // Try to match Chinese number pattern: 第*章/回/节 (including uppercase variants)
+  const chineseMatch = title.match(/第\s*([一二三四五六七八九十百千万零壹贰貳叁叄肆伍陆陸柒捌玖拾佰仟萬]+)\s*[章节卷部篇回]/);
   if (chineseMatch) {
     const result = chineseToArabic(chineseMatch[1]);
     console.log('Chinese match:', title, '->', chineseMatch[1], '->', result);
