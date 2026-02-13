@@ -338,8 +338,8 @@ class LocalFileProcessor {
     const startChapterNum = startChapterIdx + 1;
     const endChapterNum = endChapterIdx;
 
-    // Create title in format: "BookName 第 1 到 50 章"
-    const chunkTitle = `${baseFileName} 第 ${startChapterNum} 到 ${endChapterNum} 章`;
+    // Create title in format: "第 1 ~ 50 章"
+    const chunkTitle = `第 ${startChapterNum} ~ ${endChapterNum} 章`;
 
     const paddedIndex = (chunkIndex + 1).toString().padStart(3, '0');
     const chunkFileName = `${baseFileName}-${paddedIndex}.txt`;
