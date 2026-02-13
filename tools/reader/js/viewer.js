@@ -496,10 +496,38 @@ function setupAutoHide() {
 
   const sidebarContent = document.querySelector('.chapters-sidebar-content');
   if (sidebarContent) {
+    let sidebarScrollTimer = null;
     sidebarContent.addEventListener('scroll', function() {
       isScrollingInSidebar = true;
-      setTimeout(() => {
+
+      // Add scrolling class to disable hover during scroll
+      sidebarContent.classList.add('scrolling');
+
+      // Clear previous timer
+      clearTimeout(sidebarScrollTimer);
+
+      // Remove scrolling class after scroll stops
+      sidebarScrollTimer = setTimeout(() => {
         isScrollingInSidebar = false;
+        sidebarContent.classList.remove('scrolling');
+      }, 150);
+    });
+  }
+
+  // Also add scrolling detection for chapter list
+  const chapterList = document.querySelector('.chapter-list');
+  if (chapterList) {
+    let chapterListScrollTimer = null;
+    chapterList.addEventListener('scroll', function() {
+      // Add scrolling class to disable hover during scroll
+      chapterList.classList.add('scrolling');
+
+      // Clear previous timer
+      clearTimeout(chapterListScrollTimer);
+
+      // Remove scrolling class after scroll stops
+      chapterListScrollTimer = setTimeout(() => {
+        chapterList.classList.remove('scrolling');
       }, 150);
     });
   }
