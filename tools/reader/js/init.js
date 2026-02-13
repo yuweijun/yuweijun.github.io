@@ -66,16 +66,6 @@ document.addEventListener('DOMContentLoaded', async function() {
 });
 
 function setupEventListeners() {
-  // Text content input
-  const textContent = document.getElementById('textContent');
-  const processTextBtn = document.getElementById('processTextBtn');
-
-  if (textContent && processTextBtn) {
-    textContent.addEventListener('input', function() {
-      processTextBtn.disabled = this.value.trim().length === 0;
-    });
-  }
-
   // File input
   const fileInput = document.getElementById('fileInput');
   const processFileBtn = document.getElementById('processFileBtn');
@@ -86,10 +76,7 @@ function setupEventListeners() {
     });
   }
 
-  // Process buttons
-  if (processTextBtn) {
-    processTextBtn.addEventListener('click', processTextContent);
-  }
+  // Process button
   if (processFileBtn) {
     processFileBtn.addEventListener('click', processSelectedFile);
   }
@@ -126,45 +113,6 @@ function setupEventListeners() {
       displayBooks();
       updatePagination();
     }, 300));
-  }
-}
-
-async function processTextContent() {
-  const textContent = document.getElementById('textContent');
-  const processTextBtn = document.getElementById('processTextBtn');
-
-  if (!textContent || !textContent.value.trim()) {
-    showError('Please enter some text content');
-    return;
-  }
-
-  appState.isProcessing = true;
-  if (processTextBtn) processTextBtn.disabled = true;
-
-  try {
-    showLoading('Processing text content...');
-
-    const result = await appState.processor.processTextContent(textContent.value);
-
-    // Clear input
-    textContent.value = '';
-    if (processTextBtn) processTextBtn.disabled = true;
-
-    // Reload books
-    await loadBooks();
-
-    hideLoading();
-    showSuccess('Text content processed successfully!');
-
-    // Navigate to view
-    window.location.href = `viewer.html#view/${result.storyIds[0]}`;
-
-  } catch (error) {
-    hideLoading();
-    showError('Failed to process text: ' + error.message);
-    if (processTextBtn) processTextBtn.disabled = false;
-  } finally {
-    appState.isProcessing = false;
   }
 }
 
