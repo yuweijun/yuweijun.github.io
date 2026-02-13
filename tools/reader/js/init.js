@@ -165,22 +165,18 @@ async function processSelectedFile() {
       console.log('Last chapter:', chapterBoundaries[chapterBoundaries.length - 1].title);
     }
 
-    // Check if we need to split based on chapter range
+    // Check if we need to split based on chapter numbers
     let shouldSplit = false;
     if (chapterBoundaries.length > 0) {
-      const firstChapterTitle = chapterBoundaries[0].title;
       const lastChapterTitle = chapterBoundaries[chapterBoundaries.length - 1].title;
-      const startChapterNum = window.extractChapterNumber(firstChapterTitle);
       const endChapterNum = window.extractChapterNumber(lastChapterTitle);
 
-      console.log('Start chapter number:', startChapterNum);
       console.log('End chapter number:', endChapterNum);
 
-      // Split if chapter range is >= 50 (e.g., chapter 1 to 50, 1 to 100, etc.)
-      if (startChapterNum !== null && endChapterNum !== null) {
-        const chapterRange = endChapterNum - startChapterNum;
-        console.log('Chapter range:', chapterRange);
-        shouldSplit = chapterRange >= 50;
+      // Split if the last chapter number is divisible by 50 (50, 100, 150, etc.)
+      if (endChapterNum !== null) {
+        shouldSplit = endChapterNum % 50 === 0;
+        console.log('endChapterNum % 50:', endChapterNum % 50);
       }
     }
 

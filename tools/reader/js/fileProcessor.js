@@ -258,18 +258,36 @@ class LocalFileProcessor {
       return { bookId, storyIds: [result.storyId] };
     }
 
-    // Calculate total chunks: all chunks have 50 chapters
-    const totalChunks = Math.ceil(chapterBoundaries.length / this.chaptersPerFile);
+    // Split by chapter numbers at multiples of 50
+    const splitPoints = [];
+    for (let i = 0; i < chapterBoundaries.length; i++) {
+      const chapterTitle = chapterBoundaries[i].title;
+      const chapterNum = window.extractChapterNumber(chapterTitle);
+
+      // Split at chapters that are multiples of 50 (50, 100, 150, etc.)
+      if (chapterNum !== null && chapterNum % 50 === 0) {
+        splitPoints.push(i + 1); // Split after this chapter
+      }
+    }
+
+    // Add the end of the file as the last split point
+    if (splitPoints.length === 0 || splitPoints[splitPoints.length - 1] !== chapterBoundaries.length) {
+      splitPoints.push(chapterBoundaries.length);
+    }
 
     const storyIds = [];
     const baseFileName = bookName;
+    let startIdx = 0;
 
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      const chunkData = this.createChunkData({
+    for (let chunkIndex = 0; chunkIndex < splitPoints.length; chunkIndex++) {
+      const endIdx = splitPoints[chunkIndex];
+      const chunkData = this.createChunkDataByRange({
         lines,
         chapterBoundaries,
+        startIdx,
+        endIdx,
         chunkIndex,
-        totalChunks,
+        totalChunks: splitPoints.length,
         baseFileName,
         originalFileName: file.name,
         bookId
@@ -277,6 +295,7 @@ class LocalFileProcessor {
 
       await this.db.addStory(chunkData.storyData);
       storyIds.push(chunkData.storyId);
+      startIdx = endIdx;
     }
 
     return { bookId, storyIds };
@@ -309,6 +328,65 @@ class LocalFileProcessor {
 
     await this.db.addStory(storyData);
     return { storyId };
+  }
+
+  /**
+   * Create chunk data for split files by chapter range
+   */
+  createChunkDataByRange(options) {
+    const {
+      lines,
+      chapterBoundaries,
+      startIdx,
+      endIdx,
+      chunkIndex,
+      totalChunks,
+      baseFileName,
+      originalFileName,
+      bookId
+    } = options;
+
+    const startLineIdx = chapterBoundaries[startIdx].lineIndex;
+    const endLineIdx = endIdx < chapterBoundaries.length
+      ? chapterBoundaries[endIdx].lineIndex
+      : lines.length;
+
+    const chunkLines = lines.slice(startLineIdx, endLineIdx);
+    const chunkContent = chunkLines.join('\n');
+
+    // Parse actual chapter numbers from chapter titles
+    const startChapterTitle = chapterBoundaries[startIdx].title;
+    const endChapterTitle = chapterBoundaries[endIdx - 1].title;
+
+    const startChapterNum = window.extractChapterNumber(startChapterTitle) || (startIdx + 1);
+    const endChapterNum = window.extractChapterNumber(endChapterTitle) || endIdx;
+
+    // Create title in format: "第 1 ~ 50 章"
+    const chunkTitle = `第 ${startChapterNum} ~ ${endChapterNum} 章`;
+
+    const paddedIndex = (chunkIndex + 1).toString().padStart(3, '0');
+    const chunkFileName = `${baseFileName}-${paddedIndex}.txt`;
+
+    const storyId = this.generateStoryId();
+    const processingResult = this.processContentWithChapters(chunkContent);
+
+    const storyData = {
+      id: storyId,
+      bookId: bookId,
+      fileName: chunkFileName,
+      originalFileName,
+      fileSize: new Blob([chunkContent]).size,
+      content: chunkContent,
+      processedContent: processingResult.htmlContent,
+      chapters: processingResult.chapters,
+      extractedTitle: chunkTitle,
+      isSplitFile: true,
+      splitParentFile: originalFileName,
+      splitIndex: chunkIndex + 1,
+      totalChunks
+    };
+
+    return { storyId, storyData };
   }
 
   /**
