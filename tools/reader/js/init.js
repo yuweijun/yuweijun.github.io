@@ -368,13 +368,10 @@ function displayBooks() {
     book.stories.forEach((story, index) => {
       const fileSize = window.formatFileSize(story.fileSize);
       const storyTitle = window.escapeHtml(story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''));
-      const isLastStory = index === book.stories.length - 1;
-      const treeLineClass = isLastStory ? 'tree-item-last' : 'tree-item-child';
 
       html += `
-        <div class="story-item ${treeLineClass} d-flex justify-content-between align-items-center">
+        <div class="story-item d-flex justify-content-between align-items-center">
           <div class="d-flex align-items-center story-link-wrapper">
-            <i class="fas fa-file-alt tree-file-icon me-2"></i>
             <a href="viewer.html#view/${story.id}" class="text-decoration-none">
               ${storyTitle}
             </a>
