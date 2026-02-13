@@ -343,16 +343,15 @@ function displayBooks() {
   let html = '';
   pageBooks.forEach(book => {
     const isExpanded = appState.expandedBooks.has(book.id);
-    const expandIcon = isExpanded ? 'fa-chevron-down' : 'fa-chevron-right';
+    const folderIcon = isExpanded ? 'fa-folder-open' : 'fa-folder';
     const storiesDisplay = isExpanded ? 'block' : 'none';
 
     html += `
-      <div class="book-item" data-book-id="${book.id}">
+      <div class="book-item tree-item" data-book-id="${book.id}">
         <div class="book-header d-flex justify-content-between align-items-center">
-          <div class="flex-grow-1" onclick="toggleBook('${book.id}')" style="cursor: pointer;">
-            <h5 class="mb-1">
-              <i class="fas ${expandIcon} me-2 text-muted"></i>
-              <i class="fas fa-book text-primary me-2"></i>
+          <div class="flex-grow-1 d-flex align-items-center" onclick="toggleBook('${book.id}')" style="cursor: pointer;">
+            <i class="fas ${folderIcon} me-2 tree-folder-icon"></i>
+            <h5 class="mb-0">
               ${window.escapeHtml(book.bookName)}
             </h5>
           </div>
@@ -362,17 +361,20 @@ function displayBooks() {
             </button>
           </div>
         </div>
-        <div class="book-stories ms-4 mt-2" style="display: ${storiesDisplay}">
+        <div class="book-stories tree-children" style="display: ${storiesDisplay}">
     `;
 
     // Add stories under book
-    book.stories.forEach(story => {
+    book.stories.forEach((story, index) => {
       const fileSize = window.formatFileSize(story.fileSize);
       const storyTitle = window.escapeHtml(story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''));
+      const isLastStory = index === book.stories.length - 1;
+      const treeLineClass = isLastStory ? 'tree-item-last' : 'tree-item-child';
 
       html += `
-        <div class="story-item d-flex justify-content-between align-items-center py-2 border-bottom">
-          <div class="d-flex align-items-center">
+        <div class="story-item ${treeLineClass} d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center story-link-wrapper">
+            <i class="fas fa-file-alt tree-file-icon me-2"></i>
             <a href="viewer.html#view/${story.id}" class="text-decoration-none">
               ${storyTitle}
             </a>
