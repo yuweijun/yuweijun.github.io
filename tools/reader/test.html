@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test processFile Method</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      background-color: #f0f0f0;
+      border-radius: 3px;
+      white-space: pre-wrap;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+  </style>
+</head>
+<body>
+  <h1>Test processFile Method</h1>
+  <p>This page tests the refactored processFile method that splits files by 5000 lines.</p>
+
+  <div class="test-section">
+    <h3>Test 1: Small File (100 lines)</h3>
+    <button onclick="testSmallFile()">Run Test</button>
+    <div id="test1-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 2: Medium File (5000 lines)</h3>
+    <button onclick="testMediumFile()">Run Test</button>
+    <div id="test2-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 3: Large File (12345 lines - should split into 3 chunks)</h3>
+    <button onclick="testLargeFile()">Run Test</button>
+    <div id="test3-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 4: Very Large File (20000 lines - should split into 4 chunks)</h3>
+    <button onclick="testVeryLargeFile()">Run Test</button>
+    <div id="test4-result" class="result"></div>
+  </div>
+
+  <script src="js/utils.js"></script>
+  <script src="js/database.js"></script>
+  <script src="js/fileProcessor.js"></script>
+  <script>
+    // Helper function to create a test file with specified number of lines
+    function createTestFile(fileName, numLines) {
+      let content = '';
+      for (let i = 1; i <= numLines; i++) {
+        content += `第${i}章 测试章节标题\n`;
+        content += `这是第${i}章的内容。这是一些测试文本。\n`;
+        content += `继续添加更多内容以模拟真实文档。\n`;
+        content += `\n`;
+      }
+
+      const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+      return new File([blob], fileName, { type: 'text/plain' });
+    }
+
+    // Helper function to display results
+    function displayResult(elementId, result, isSuccess = true) {
+      const element = document.getElementById(elementId);
+      element.className = 'result ' + (isSuccess ? 'success' : 'error');
+      element.textContent = result;
+    }
+
+    // Test 1: Small file (should NOT be split)
+    async function testSmallFile() {
+      try {
+        const processor = new LocalFileProcessor();
+        const file = createTestFile('test-small.txt', 100);
+
+        displayResult('test1-result', 'Processing...');
+
+        const result = await processor.processFile(file);
+
+        const output = `✓ Test Passed!
+BookID: ${result.bookId}
+Story IDs: ${result.storyIds.length}
+Expected: 1 story (no split)
+Actual: ${result.storyIds.length} story${result.storyIds.length > 1 ? 's' : ''}
+
+${result.storyIds.length === 1 ? 'SUCCESS: File was NOT split (as expected)' : 'FAILED: File was split (unexpected)'}`;
+
+        displayResult('test1-result', output, result.storyIds.length === 1);
+      } catch (error) {
+        displayResult('test1-result', `✗ Test Failed!\n${error.message}`, false);
+      }
+    }
+
+    // Test 2: Medium file (exactly 5000 lines - should NOT be split)
+    async function testMediumFile() {
+      try {
+        const processor = new LocalFileProcessor();
+        const file = createTestFile('test-medium.txt', 1250); // 1250 * 4 = 5000 lines
+
+        displayResult('test2-result', 'Processing...');
+
+        const result = await processor.processFile(file);
+
+        const output = `✓ Test Passed!
+BookID: ${result.bookId}
+Story IDs: ${result.storyIds.length}
+Expected: 1 story (exactly 5000 lines, no split)
+Actual: ${result.storyIds.length} story${result.storyIds.length > 1 ? 's' : ''}
+
+${result.storyIds.length === 1 ? 'SUCCESS: File was NOT split (as expected)' : 'FAILED: File was split (unexpected)'}`;
+
+        displayResult('test2-result', output, result.storyIds.length === 1);
+      } catch (error) {
+        displayResult('test2-result', `✗ Test Failed!\n${error.message}`, false);
+      }
+    }
+
+    // Test 3: Large file (should be split into 3 chunks)
+    async function testLargeFile() {
+      try {
+        const processor = new LocalFileProcessor();
+        const file = createTestFile('test-large.txt', 3087); // 3087 * 4 = 12348 lines -> 3 chunks
+
+        displayResult('test3-result', 'Processing...');
+
+        const result = await processor.processFile(file);
+        const expectedChunks = 3;
+
+        // Verify split details
+        const stories = await Promise.all(
+          result.storyIds.map(id => processor.db.getStoryById(id))
+        );
+
+        let detailsOutput = '\n\nChunk Details:\n';
+        stories.forEach((story, idx) => {
+          detailsOutput += `Chunk ${idx + 1}: ${story.extractedTitle}\n`;
+          detailsOutput += `  - File: ${story.fileName}\n`;
+          detailsOutput += `  - Split: ${story.isSplitFile}, Index: ${story.splitIndex}/${story.totalChunks}\n`;
+        });
+
+        const output = `✓ Test Passed!
+BookID: ${result.bookId}
+Story IDs: ${result.storyIds.length}
+Expected: ${expectedChunks} chunks
+Actual: ${result.storyIds.length} chunks
+${detailsOutput}
+${result.storyIds.length === expectedChunks ? 'SUCCESS: File was split correctly!' : 'FAILED: Unexpected number of chunks'}`;
+
+        displayResult('test3-result', output, result.storyIds.length === expectedChunks);
+      } catch (error) {
+        displayResult('test3-result', `✗ Test Failed!\n${error.message}`, false);
+      }
+    }
+
+    // Test 4: Very large file (should be split into 4 chunks)
+    async function testVeryLargeFile() {
+      try {
+        const processor = new LocalFileProcessor();
+        const file = createTestFile('test-very-large.txt', 5000); // 5000 * 4 = 20000 lines -> 4 chunks
+
+        displayResult('test4-result', 'Processing...');
+
+        const result = await processor.processFile(file);
+        const expectedChunks = 4;
+
+        // Verify split details
+        const stories = await Promise.all(
+          result.storyIds.map(id => processor.db.getStoryById(id))
+        );
+
+        let detailsOutput = '\n\nChunk Details:\n';
+        stories.forEach((story, idx) => {
+          detailsOutput += `Chunk ${idx + 1}: ${story.extractedTitle}\n`;
+          detailsOutput += `  - File: ${story.fileName}\n`;
+          detailsOutput += `  - Split: ${story.isSplitFile}, Index: ${story.splitIndex}/${story.totalChunks}\n`;
+        });
+
+        const output = `✓ Test Passed!
+BookID: ${result.bookId}
+Story IDs: ${result.storyIds.length}
+Expected: ${expectedChunks} chunks
+Actual: ${result.storyIds.length} chunks
+${detailsOutput}
+${result.storyIds.length === expectedChunks ? 'SUCCESS: File was split correctly!' : 'FAILED: Unexpected number of chunks'}`;
+
+        displayResult('test4-result', output, result.storyIds.length === expectedChunks);
+      } catch (error) {
+        displayResult('test4-result', `✗ Test Failed!\n${error.message}`, false);
+      }
+    }
+  </script>
+</body>
+</html>
