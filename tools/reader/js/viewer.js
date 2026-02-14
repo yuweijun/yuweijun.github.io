@@ -573,12 +573,23 @@ async function loadFileContent() {
 
     fileContent = storyData.processedContent || storyData.content || '';
 
-    const contentForParsing = storyData.content || '';
-    if (contentForParsing) {
-      const originalFileContent = fileContent;
-      fileContent = contentForParsing;
-      parseChapters();
-      fileContent = originalFileContent;
+    // Use pre-parsed chapters from story data (with line-based anchors)
+    if (storyData.chapters && storyData.chapters.length > 0) {
+      chapters = storyData.chapters.map((ch, index) => ({
+        id: `chapter_${index}`,
+        title: ch.title,
+        anchorId: ch.anchorId,
+        lineNumber: ch.lineNumber
+      }));
+    } else {
+      // Fallback: parse chapters if not available in story data
+      const contentForParsing = storyData.content || '';
+      if (contentForParsing) {
+        const originalFileContent = fileContent;
+        fileContent = contentForParsing;
+        parseChapters();
+        fileContent = originalFileContent;
+      }
     }
 
     if (storyData.processedContent) {
@@ -682,7 +693,6 @@ function getCurrentChapterFromScrollPosition(scrollPosition) {
 function parseChapters() {
   chapters = [];
   const lines = fileContent.split('\n');
-  let chapterIndex = 0;
 
   const chapterPatterns = LocalFileProcessor.CHAPTER_PATTERNS;
 
@@ -692,15 +702,13 @@ function parseChapters() {
 
     for (const pattern of chapterPatterns) {
       if (pattern.test(line)) {
-        chapterIndex++;
-        const chapterNum = window.extractChapterNumber(line);
-        const anchorId = chapterNum !== null
-          ? `chapter-${chapterNum}`
-          : `chapter-${chapterIndex}`;
+        // Use line number as anchor ID
+        const anchorId = `line-${i}`;
         chapters.push({
           id: `chapter_${chapters.length}`,
           title: line,
-          anchorId: anchorId
+          anchorId: anchorId,
+          lineNumber: i
         });
         break;
       }
@@ -720,11 +728,12 @@ function updateChaptersList() {
 
   const chaptersToShow = filteredChapters.length > 0 ? filteredChapters : chapters;
 
-  chaptersToShow.forEach((chapter, index) => {
+  chaptersToShow.forEach((chapter, displayIndex) => {
     const li = document.createElement('li');
     li.className = 'chapter-item';
-    const chapterNum = window.extractChapterNumber(chapter.title);
-    li.dataset.index = chapterNum !== null ? chapterNum : index;
+    // Use the actual index in the chapters array for navigation
+    const actualIndex = chapter.originalIndex !== undefined ? chapter.originalIndex : chapters.indexOf(chapter);
+    li.dataset.index = actualIndex;
     li.textContent = truncateChapterTitle(chapter.title);
     li.title = chapter.title;
     li.addEventListener('click', function() {
@@ -822,8 +831,10 @@ function highlightCurrentChapter() {
 
   if (!currentChapter) return;
 
-  const chapterNum = window.extractChapterNumber(currentChapter.title);
-  const dataIndex = chapterNum !== null ? chapterNum : chapters.findIndex(ch => ch.title === currentChapter.title);
+  // Find the actual index of the current chapter in the chapters array
+  const dataIndex = chapters.findIndex(ch => ch.title === currentChapter.title);
+
+  if (dataIndex === -1) return;
 
   const currentChapterElement = document.querySelector(
     `.chapter-item[data-index="${dataIndex}"]`
@@ -915,7 +926,8 @@ function getChapterScrollPosition(chapterIndex) {
 
   if (!contentContainer) return 0;
 
-  const anchorId = chapter.anchorId || `chapter-${chapterIndex + 1}`;
+  // Use the anchorId stored in chapter data (line-based)
+  const anchorId = chapter.anchorId;
   const anchorElement = document.getElementById(anchorId);
 
   if (anchorElement) {

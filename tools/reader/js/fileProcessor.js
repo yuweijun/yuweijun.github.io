@@ -569,6 +569,7 @@ class LocalFileProcessor {
 
   /**
    * Process content by detecting chapters and extracting chapter list
+   * Uses line numbers as anchor IDs for more reliable navigation
    */
   processContentWithChapters(content) {
     const lines = content.split('\n');
@@ -576,7 +577,6 @@ class LocalFileProcessor {
 
     let htmlContent = '';
     let chapters = [];
-    let chapterIndex = 0;
     let inChapterContent = false;
 
     for (let i = 0; i < lines.length; i++) {
@@ -593,13 +593,14 @@ class LocalFileProcessor {
           inChapterContent = false;
         }
 
-        chapterIndex++;
-        const chapterNum = window.extractChapterNumber(trimmedLine);
-        const anchorId = chapterNum !== null
-          ? `chapter-${chapterNum}`
-          : `chapter-${chapterIndex}`;
+        // Use line number as anchor ID for reliable navigation
+        const anchorId = `line-${i}`;
 
-        chapters.push({ title: trimmedLine, anchorId });
+        chapters.push({
+          title: trimmedLine,
+          anchorId: anchorId,
+          lineNumber: i
+        });
 
         htmlContent += `<div id="${anchorId}" class="chapter-anchor"></div>\n`;
         htmlContent += `<div class="chapter-heading">${window.escapeHtml(trimmedLine)}</div>\n`;
