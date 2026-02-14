@@ -129,6 +129,39 @@ function formatFileSize(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+/**
+ * Apply theme to the page
+ * @param {string} theme - Theme name (optional, defaults to saved theme)
+ * @param {boolean} savePreference - Whether to save the theme preference (default: true)
+ */
+function applyTheme(theme, savePreference = true) {
+  // Disable transitions during theme change to prevent visual flash
+  document.body.classList.add('no-transitions');
+
+  // Determine which theme to apply
+  const themeToApply = theme || localStorage.getItem('preferredViewerTheme') || 'maize-yello';
+
+  // Remove all theme classes
+  Object.values(window.themes).forEach(themeClass => {
+    document.body.classList.remove(themeClass);
+  });
+
+  // Apply new theme class
+  if (window.themes[themeToApply]) {
+    document.body.classList.add(window.themes[themeToApply]);
+  }
+
+  // Save preference if requested
+  if (savePreference && theme) {
+    localStorage.setItem('preferredViewerTheme', themeToApply);
+  }
+
+  // Re-enable transitions after a brief delay
+  setTimeout(() => {
+    document.body.classList.remove('no-transitions');
+  }, 50);
+}
+
 // Export for use in other modules
 window.themes = themes;
 window.escapeHtml = escapeHtml;
@@ -136,3 +169,4 @@ window.chineseToArabic = chineseToArabic;
 window.extractChapterNumber = extractChapterNumber;
 window.debounce = debounce;
 window.formatFileSize = formatFileSize;
+window.applyTheme = applyTheme;

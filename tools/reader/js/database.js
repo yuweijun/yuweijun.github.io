@@ -63,74 +63,54 @@ class TextReaderDB {
   }
 
   /**
-   * Add a book to the database
+   * Generic database operation wrapper
+   * Reduces boilerplate Promise code
    */
-  async addBook(bookData) {
+  async executeDBOperation(storeName, mode, operation) {
     if (!this.db) await this.init();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['books'], 'readwrite');
-      const store = transaction.objectStore('books');
-
-      const book = {
-        id: bookData.id || Date.now().toString(),
-        bookName: bookData.bookName,
-        uploadTime: bookData.uploadTime || new Date().toISOString(),
-        originalFileName: bookData.originalFileName || ''
-      };
-
-      const request = store.add(book);
+      const transaction = this.db.transaction([storeName], mode);
+      const store = transaction.objectStore(storeName);
+      const request = operation(store);
 
       request.onsuccess = () => {
-        resolve(book);
+        resolve(request.result);
       };
 
       request.onerror = () => {
         reject(request.error);
       };
     });
+  }
+
+  /**
+   * Add a book to the database
+   */
+  async addBook(bookData) {
+    const book = {
+      id: bookData.id || Date.now().toString(),
+      bookName: bookData.bookName,
+      uploadTime: bookData.uploadTime || new Date().toISOString(),
+      originalFileName: bookData.originalFileName || ''
+    };
+
+    await this.executeDBOperation('books', 'readwrite', store => store.add(book));
+    return book;
   }
 
   /**
    * Get all books
    */
   async getAllBooks() {
-    if (!this.db) await this.init();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['books'], 'readonly');
-      const store = transaction.objectStore('books');
-      const request = store.getAll();
-
-      request.onsuccess = () => {
-        resolve(request.result);
-      };
-
-      request.onerror = () => {
-        reject(request.error);
-      };
-    });
+    return this.executeDBOperation('books', 'readonly', store => store.getAll());
   }
 
   /**
    * Get a book by ID
    */
   async getBookById(bookId) {
-    if (!this.db) await this.init();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['books'], 'readonly');
-      const store = transaction.objectStore('books');
-      const request = store.get(bookId);
-
-      request.onsuccess = () => {
-        resolve(request.result);
-      };
-
-      request.onerror = () => {
-        reject(request.error);
-      };
-    });
+    return this.executeDBOperation('books', 'readonly', store => store.get(bookId));
   }
 
   /**
@@ -146,19 +126,8 @@ class TextReaderDB {
     }
 
     // Then delete the book
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['books'], 'readwrite');
-      const store = transaction.objectStore('books');
-      const request = store.delete(bookId);
-
-      request.onsuccess = () => {
-        resolve(true);
-      };
-
-      request.onerror = () => {
-        reject(request.error);
-      };
-    });
+    await this.executeDBOperation('books', 'readwrite', store => store.delete(bookId));
+    return true;
   }
 
   /**
@@ -292,64 +261,28 @@ class TextReaderDB {
    * Get a story by ID
    */
   async getStoryById(storyId) {
-    if (!this.db) await this.init();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['stories'], 'readonly');
-      const store = transaction.objectStore('stories');
-      const request = store.get(storyId);
-
-      request.onsuccess = () => {
-        resolve(request.result);
-      };
-
-      request.onerror = () => {
-        reject(request.error);
-      };
-    });
+    return this.executeDBOperation('stories', 'readonly', store => store.get(storyId));
   }
 
   /**
    * Update a story
    */
   async updateStory(story) {
-    if (!this.db) await this.init();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['stories'], 'readwrite');
-      const store = transaction.objectStore('stories');
-      const request = store.put(story);
-
-      request.onsuccess = () => {
-        resolve(story);
-      };
-
-      request.onerror = () => {
-        console.error('Failed to update story:', request.error);
-        reject(request.error);
-      };
-    });
+    try {
+      await this.executeDBOperation('stories', 'readwrite', store => store.put(story));
+      return story;
+    } catch (error) {
+      console.error('Failed to update story:', error);
+      throw error;
+    }
   }
 
   /**
    * Delete a story
    */
   async deleteStory(storyId) {
-    if (!this.db) await this.init();
-
-    return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(['stories'], 'readwrite');
-      const store = transaction.objectStore('stories');
-      const request = store.delete(storyId);
-
-      request.onsuccess = () => {
-        resolve(true);
-      };
-
-      request.onerror = () => {
-        reject(request.error);
-      };
-    });
+    await this.executeDBOperation('stories', 'readwrite', store => store.delete(storyId));
+    return true;
   }
 
   /**

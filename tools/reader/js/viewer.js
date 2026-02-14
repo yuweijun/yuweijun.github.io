@@ -3,18 +3,10 @@
  * Handles the text viewing functionality with chapter navigation
  */
 
-// Fix iOS 100vh issue - set CSS custom property for true viewport height
-function setViewportHeight() {
-  const vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty('--vh', `${vh}px`);
+// Initialize iOS viewport height handling
+if (window.initializeIOSViewport) {
+  window.initializeIOSViewport();
 }
-
-// Set initial value and update on resize/orientation change
-setViewportHeight();
-window.addEventListener('resize', window.debounce(setViewportHeight, 100));
-window.addEventListener('orientationchange', () => {
-  setTimeout(setViewportHeight, 100);
-});
 
 // Auto-hide functionality variables
 let db = null;
@@ -26,29 +18,6 @@ let isSidebarHidden = false;
 let isSidebarPinned = false;
 let lastScrollTop = 0;
 let isScrollingInSidebar = false;
-
-function applyTheme(theme) {
-  // Disable transitions during theme change to prevent flash
-  document.body.classList.add('no-transitions');
-
-  // Remove all theme classes
-  Object.values(window.themes).forEach(themeClass => {
-    document.body.classList.remove(themeClass);
-  });
-
-  // Apply selected theme
-  if (window.themes[theme]) {
-    document.body.classList.add(window.themes[theme]);
-  }
-
-  // Save to localStorage
-  localStorage.setItem('preferredViewerTheme', theme);
-
-  // Re-enable transitions after a brief delay
-  setTimeout(() => {
-    document.body.classList.remove('no-transitions');
-  }, 50);
-}
 
 // Get story ID from URL hash
 function getStoryIdFromUrl() {

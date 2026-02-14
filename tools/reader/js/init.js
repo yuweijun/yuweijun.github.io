@@ -3,36 +3,15 @@
  * Handles database initialization and data synchronization
  */
 
-// Fix iOS 100vh issue - set CSS custom property for true viewport height
-function setViewportHeight() {
-  const vh = window.innerHeight * 0.01;
-  document.documentElement.style.setProperty('--vh', `${vh}px`);
+// Initialize iOS viewport height handling
+if (window.initializeIOSViewport) {
+  window.initializeIOSViewport();
 }
 
-// Set initial value and update on resize/orientation change
-setViewportHeight();
-window.addEventListener('resize', window.debounce(setViewportHeight, 100));
-window.addEventListener('orientationchange', () => {
-  setTimeout(setViewportHeight, 100);
-});
-
-function applyTheme() {
-  // Disable transitions during initial theme load
-  document.body.classList.add('no-transitions');
-
-  const savedTheme = localStorage.getItem('preferredViewerTheme') || 'maize-yello';
-  if (window.themes[savedTheme]) {
-    document.body.classList.add(window.themes[savedTheme]);
-  }
-
-  // Re-enable transitions after a brief delay
-  setTimeout(() => {
-    document.body.classList.remove('no-transitions');
-  }, 50);
+// Apply theme immediately using shared utility
+if (window.applyTheme) {
+  window.applyTheme();
 }
-
-// Apply theme immediately
-applyTheme();
 
 // Application state
 const appState = {
@@ -46,7 +25,7 @@ const appState = {
   isProcessing: false
 };
 
-document.addEventListener('DOMContentLoaded', async function() {
+document.addEventListener('DOMContentLoaded', async function () {
   try {
     // Initialize database and processor
     appState.db = new TextReaderDB();
@@ -71,7 +50,7 @@ function setupEventListeners() {
   const processFileBtn = document.getElementById('processFileBtn');
 
   if (fileInput && processFileBtn) {
-    fileInput.addEventListener('change', function() {
+    fileInput.addEventListener('change', function () {
       processFileBtn.disabled = !this.files || this.files.length === 0;
     });
   }
@@ -86,7 +65,7 @@ function setupEventListeners() {
   const nextPageBtn = document.getElementById('nextPageBtn');
 
   if (prevPageBtn) {
-    prevPageBtn.addEventListener('click', function() {
+    prevPageBtn.addEventListener('click', function () {
       if (appState.currentPage > 1) {
         appState.currentPage--;
         displayBooks();
@@ -96,7 +75,7 @@ function setupEventListeners() {
   }
 
   if (nextPageBtn) {
-    nextPageBtn.addEventListener('click', function() {
+    nextPageBtn.addEventListener('click', function () {
       if (appState.currentPage < appState.totalPages) {
         appState.currentPage++;
         displayBooks();
@@ -108,7 +87,7 @@ function setupEventListeners() {
   // Search input
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
-    searchInput.addEventListener('input', window.debounce(function() {
+    searchInput.addEventListener('input', window.debounce(function () {
       appState.currentPage = 1;
       displayBooks();
       updatePagination();
@@ -165,8 +144,8 @@ async function processSelectedFile() {
       console.log('Last chapter:', chapterBoundaries[chapterBoundaries.length - 1].title);
     }
 
-    // Check if we need to split based on chapter numbers
-    let shouldSplit = false;
+    // Check if we need to split based on chapter numbers or based line numbers
+    let shouldSplitByChapter = false;
     if (chapterBoundaries.length > 0) {
       const lastChapterTitle = chapterBoundaries[chapterBoundaries.length - 1].title;
       const endChapterNum = window.extractChapterNumber(lastChapterTitle);
@@ -175,14 +154,14 @@ async function processSelectedFile() {
 
       // Split if the last chapter number is divisible by 50 (50, 100, 150, etc.)
       if (endChapterNum !== null) {
-        shouldSplit = endChapterNum > 50;
+        shouldSplitByChapter = endChapterNum > 50;
         console.log('endChapterNum :', endChapterNum);
       }
     }
 
-    console.log('Should split:', shouldSplit);
+    console.log('Should split:', shouldSplitByChapter);
 
-    if (shouldSplit) {
+    if (shouldSplitByChapter) {
       // Use splitting functionality for files that end at chapter 49, 99, 149, etc.
       result = await appState.processor.processAndSplitFile(file, true);
       hideLoading();
@@ -332,7 +311,7 @@ function displayBooks() {
 }
 
 // Toggle book expand/collapse
-window.toggleBook = function(bookId) {
+window.toggleBook = function (bookId) {
   if (appState.expandedBooks.has(bookId)) {
     appState.expandedBooks.delete(bookId);
   } else {
@@ -347,7 +326,7 @@ function attachDeleteListeners() {
   if (!booksList || booksList.dataset.delegated) return;
 
   booksList.dataset.delegated = 'true';
-  booksList.addEventListener('click', async function(e) {
+  booksList.addEventListener('click', async function (e) {
     const deleteBtn = e.target.closest('.delete-book-btn');
     if (!deleteBtn) return;
 
