@@ -429,7 +429,7 @@ function toggleSidebar() {
  * Truncate chapter title to max 32 Chinese characters
  */
 function truncateChapterTitle(title) {
-  const maxChars = 32;
+  const maxChars = 34;
   let charCount = 0;
   let truncateIndex = title.length;
 
