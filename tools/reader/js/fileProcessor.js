@@ -225,7 +225,8 @@ class LocalFileProcessor {
       const chapterTitle = chapterBoundaries[i].title;
       const paddedIndex = (i + 1).toString().padStart(4, '0');
       const chunkFileName = `${bookName}-${paddedIndex}.txt`;
-      const processingResult = this.processContentWithChapters(chunkContent);
+      // Pass startLineIdx as offset to use absolute line numbers from original file
+      const processingResult = this.processContentWithChapters(chunkContent, startLineIdx);
 
       const storyData = {
         id: storyId,
@@ -597,8 +598,10 @@ class LocalFileProcessor {
   /**
    * Process content by detecting chapters and extracting chapter list
    * Uses line numbers as anchor IDs for more reliable navigation
+   * @param {string} content - The content to process
+   * @param {number} lineOffset - Offset to add to line numbers (for split chapters, default 0)
    */
-  processContentWithChapters(content) {
+  processContentWithChapters(content, lineOffset = 0) {
     const lines = content.split('\n');
     const patterns = LocalFileProcessor.CHAPTER_PATTERNS;
 
@@ -620,13 +623,14 @@ class LocalFileProcessor {
           inChapterContent = false;
         }
 
-        // Use line number as anchor ID for reliable navigation
-        const anchorId = `line-${i}`;
+        // Use absolute line number from original file
+        const absoluteLineNumber = i + lineOffset;
+        const anchorId = `line-${absoluteLineNumber}`;
 
         chapters.push({
           title: trimmedLine,
           anchorId: anchorId,
-          lineNumber: i
+          lineNumber: absoluteLineNumber
         });
 
         htmlContent += `<div id="${anchorId}" class="chapter-anchor"></div>\n`;
