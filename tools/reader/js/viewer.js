@@ -19,11 +19,11 @@ let isSidebarPinned = false;
 let lastScrollTop = 0;
 let isScrollingInSidebar = false;
 
-// 3-chapter sliding window state
-let prevStoryData = null;
+// 2-chapter sliding window state
+let prevStoryData = null; // Not used in 2-chapter window
 let currentStoryData = null;
 let nextStoryData = null;
-let loadedStories = []; // Track loaded story IDs [prev, current, next]
+let loadedStories = []; // Track loaded story IDs [current, next]
 let isLoadingChapter = false;
 
 // Get story ID from URL hash
@@ -87,7 +87,7 @@ async function initializeViewer() {
   // Load reading history
   readingHistory = await db.getReadingHistory(storyId);
 
-  // Load the TXT file content with 3-chapter window
+  // Load the TXT file content with 2-chapter window
   await loadFileContent();
 
   // Initialize chapters sidebar
@@ -640,8 +640,8 @@ async function loadFileContent() {
       throw new Error('Story not found');
     }
 
-    // Load 3-chapter window: previous, current, next
-    await load3ChapterWindow(startStory);
+    // Load 2-chapter window: current, next
+    await load2ChapterWindow(startStory);
 
     if (readingHistory) {
       restoreReadingPosition(readingHistory);
@@ -655,7 +655,7 @@ async function loadFileContent() {
   }
 }
 
-async function load3ChapterWindow(centerStory) {
+async function load2ChapterWindow(currentStory) {
   const textContent = document.getElementById('textContent');
   if (!textContent) return;
 
@@ -664,35 +664,18 @@ async function load3ChapterWindow(centerStory) {
   loadedStories = [];
 
   // Set current story
-  currentStoryData = centerStory;
-
-  // Load previous story if available
-  if (centerStory.prevStoryId) {
-    try {
-      prevStoryData = await window.localFileProcessor.db.getStoryById(centerStory.prevStoryId);
-      if (prevStoryData) {
-        loadedStories.push(prevStoryData.id);
-        const prevContent = prevStoryData.processedContent || prevStoryData.content || '';
-        textContent.innerHTML += `<div class="chapter-section" data-story-id="${prevStoryData.id}">${prevContent}</div>`;
-        textContent.innerHTML += '<div class="chapter-separator"></div>';
-      }
-    } catch (error) {
-      console.error('Error loading previous story:', error);
-      prevStoryData = null;
-    }
-  } else {
-    prevStoryData = null;
-  }
+  currentStoryData = currentStory;
+  prevStoryData = null; // Not used in 2-chapter window
 
   // Load current story
-  loadedStories.push(centerStory.id);
-  const currentContent = centerStory.processedContent || centerStory.content || '';
-  textContent.innerHTML += `<div class="chapter-section chapter-current" data-story-id="${centerStory.id}">${currentContent}</div>`;
+  loadedStories.push(currentStory.id);
+  const currentContent = currentStory.processedContent || currentStory.content || '';
+  textContent.innerHTML += `<div class="chapter-section chapter-current" data-story-id="${currentStory.id}">${currentContent}</div>`;
 
   // Load next story if available
-  if (centerStory.nextStoryId) {
+  if (currentStory.nextStoryId) {
     try {
-      nextStoryData = await window.localFileProcessor.db.getStoryById(centerStory.nextStoryId);
+      nextStoryData = await window.localFileProcessor.db.getStoryById(currentStory.nextStoryId);
       if (nextStoryData) {
         loadedStories.push(nextStoryData.id);
         textContent.innerHTML += '<div class="chapter-separator"></div>';
@@ -708,7 +691,7 @@ async function load3ChapterWindow(centerStory) {
   }
 
   updateChaptersList();
-  console.log('Loaded 3-chapter window:', prevStoryData ? prevStoryData.extractedTitle : 'none', '|', centerStory.extractedTitle, '|', nextStoryData ? nextStoryData.extractedTitle : 'none');
+  console.log('Loaded 2-chapter window:', currentStory.extractedTitle, '|', nextStoryData ? nextStoryData.extractedTitle : 'none');
 }
 
 async function handleScrollToNextChapter() {
@@ -723,11 +706,8 @@ async function handleScrollToNextChapter() {
       return;
     }
 
-    // Slide window forward: current becomes previous, next becomes current
-    prevStoryData = currentStoryData;
-    currentStoryData = nextStoryData;
-
-    // Remove the first section (old previous chapter)
+    // Slide window forward: next becomes current, load new next
+    // Remove the current chapter (first section)
     const firstSection = textContent.querySelector('.chapter-section');
     if (firstSection) {
       firstSection.remove();
@@ -738,7 +718,10 @@ async function handleScrollToNextChapter() {
       }
     }
 
-    // Update loaded stories
+    // Update state: next becomes current
+    currentStoryData = nextStoryData;
+
+    // Update loaded stories - remove first
     loadedStories.shift();
 
     // Update current marker
@@ -771,7 +754,7 @@ async function handleScrollToNextChapter() {
     }
 
     updateChaptersList();
-    console.log('Slid window forward:', prevStoryData ? prevStoryData.extractedTitle : 'none', '|', currentStoryData.extractedTitle, '|', nextStoryData ? nextStoryData.extractedTitle : 'none');
+    console.log('Slid window forward to 2-chapter:', currentStoryData.extractedTitle, '|', nextStoryData ? nextStoryData.extractedTitle : 'none');
 
   } catch (error) {
     console.error('Error handling scroll to next chapter:', error);
@@ -899,7 +882,7 @@ function updateChaptersList() {
       const li = document.createElement('li');
       li.className = 'chapter-item';
 
-      // Mark if chapter is currently loaded (in the 3-chapter window)
+      // Mark if chapter is currently loaded (in the 2-chapter window)
       const isLoaded = chapter.storyId && loadedStories.includes(chapter.storyId);
       if (isLoaded) {
         li.classList.add('loaded');
@@ -1073,7 +1056,7 @@ async function scrollToChapter(chapterIndexOrNum) {
     try {
       const targetStory = await window.localFileProcessor.db.getStoryById(chapter.storyId);
       if (targetStory) {
-        await load3ChapterWindow(targetStory);
+        await load2ChapterWindow(targetStory);
         // After loading, scroll to the chapter
         setTimeout(() => {
           scrollToChapterById(chapter.anchorId, chapter);
