@@ -883,48 +883,106 @@ function updateChaptersList() {
 
   const chaptersToShow = filteredChapters.length > 0 ? filteredChapters : chapters;
 
+  // If filtering is active, show all filtered results
+  if (filteredChapters.length > 0) {
+    chaptersToShow.forEach((chapter) => {
+      const li = document.createElement('li');
+      li.className = 'chapter-item';
+
+      // Mark if chapter is currently loaded (in the 3-chapter window)
+      const isLoaded = chapter.storyId && loadedStories.includes(chapter.storyId);
+      if (isLoaded) {
+        li.classList.add('loaded');
+      }
+
+      const actualIndex = chapter.originalIndex !== undefined ? chapter.originalIndex : chapters.indexOf(chapter);
+      li.dataset.index = actualIndex;
+      li.textContent = truncateChapterTitle(chapter.title);
+      li.title = chapter.title;
+      li.addEventListener('click', function() {
+        const chapterIndex = parseInt(this.dataset.index);
+        scrollToChapter(chapterIndex);
+      });
+      chapterList.appendChild(li);
+    });
+    return;
+  }
+
   // Show previous 10 + current + next 20 chapters (31 total)
-  let visibleChapters = chaptersToShow;
   const prevChaptersCount = 10;
   const nextChaptersCount = 20;
   const totalVisibleChapters = prevChaptersCount + 1 + nextChaptersCount; // 31
 
-  if (chaptersToShow.length > totalVisibleChapters && !filteredChapters.length) {
-    // Find current chapter index
-    let currentIndex = 0;
-    if (currentChapter) {
-      currentIndex = chapters.findIndex(ch => ch.title === currentChapter.title);
-      if (currentIndex === -1) currentIndex = 0;
-    }
-
-    // Calculate range: 10 before current, current, 20 after current
-    let startIndex = Math.max(0, currentIndex - prevChaptersCount);
-    let endIndex = Math.min(chapters.length, currentIndex + nextChaptersCount + 1);
-
-    // Adjust if we're near the beginning
-    if (currentIndex < prevChaptersCount) {
-      endIndex = Math.min(chapters.length, totalVisibleChapters);
-    }
-
-    // Adjust if we're near the end
-    if (currentIndex + nextChaptersCount >= chapters.length) {
-      startIndex = Math.max(0, chapters.length - totalVisibleChapters);
-    }
-
-    visibleChapters = chapters.slice(startIndex, endIndex);
-
-    // Add "..." indicator at the beginning if not starting from first chapter
-    if (startIndex > 0) {
+  // If total chapters is less than or equal to visible chapters, show all
+  if (chapters.length <= totalVisibleChapters) {
+    chapters.forEach((chapter) => {
       const li = document.createElement('li');
-      li.className = 'chapter-item chapter-ellipsis';
-      li.textContent = `... (${startIndex} more chapters above)`;
-      li.style.opacity = '0.5';
-      li.style.fontStyle = 'italic';
+      li.className = 'chapter-item';
+
+      const isLoaded = chapter.storyId && loadedStories.includes(chapter.storyId);
+      if (isLoaded) {
+        li.classList.add('loaded');
+      }
+
+      const actualIndex = chapters.indexOf(chapter);
+      li.dataset.index = actualIndex;
+      li.textContent = truncateChapterTitle(chapter.title);
+      li.title = chapter.title;
+      li.addEventListener('click', function() {
+        const chapterIndex = parseInt(this.dataset.index);
+        scrollToChapter(chapterIndex);
+      });
       chapterList.appendChild(li);
+    });
+    return;
+  }
+
+  // Find current chapter index - default to first loaded chapter
+  let currentIndex = 0;
+  if (currentChapter) {
+    const foundIndex = chapters.findIndex(ch => ch.title === currentChapter.title);
+    if (foundIndex !== -1) {
+      currentIndex = foundIndex;
+    }
+  } else if (loadedStories.length > 0) {
+    // Try to find the first loaded story's first chapter
+    const firstLoadedStoryId = loadedStories[0];
+    const foundIndex = chapters.findIndex(ch => ch.storyId === firstLoadedStoryId);
+    if (foundIndex !== -1) {
+      currentIndex = foundIndex;
     }
   }
 
-  visibleChapters.forEach((chapter, displayIndex) => {
+  // Calculate range: 10 before current, current, 20 after current
+  let startIndex = Math.max(0, currentIndex - prevChaptersCount);
+  let endIndex = Math.min(chapters.length, currentIndex + nextChaptersCount + 1);
+
+  // Ensure we always show exactly totalVisibleChapters when possible
+  const actualCount = endIndex - startIndex;
+  if (actualCount < totalVisibleChapters) {
+    if (startIndex === 0) {
+      // Near the beginning, extend forward
+      endIndex = Math.min(chapters.length, totalVisibleChapters);
+    } else if (endIndex === chapters.length) {
+      // Near the end, extend backward
+      startIndex = Math.max(0, chapters.length - totalVisibleChapters);
+    }
+  }
+
+  const visibleChapters = chapters.slice(startIndex, endIndex);
+
+  // Add "..." indicator at the beginning if not starting from first chapter
+  if (startIndex > 0) {
+    const li = document.createElement('li');
+    li.className = 'chapter-item chapter-ellipsis';
+    li.textContent = `... (${startIndex} more chapters above)`;
+    li.style.opacity = '0.5';
+    li.style.fontStyle = 'italic';
+    chapterList.appendChild(li);
+  }
+
+  // Render visible chapters
+  visibleChapters.forEach((chapter) => {
     const li = document.createElement('li');
     li.className = 'chapter-item';
 
@@ -935,7 +993,7 @@ function updateChaptersList() {
     }
 
     // Use the actual index in the chapters array for navigation
-    const actualIndex = chapter.originalIndex !== undefined ? chapter.originalIndex : chapters.indexOf(chapter);
+    const actualIndex = chapters.indexOf(chapter);
     li.dataset.index = actualIndex;
     li.textContent = truncateChapterTitle(chapter.title);
     li.title = chapter.title;
@@ -947,17 +1005,14 @@ function updateChaptersList() {
   });
 
   // Add "..." indicator at the end if not showing all chapters
-  if (chaptersToShow.length > totalVisibleChapters && !filteredChapters.length) {
-    const lastVisibleIndex = chapters.indexOf(visibleChapters[visibleChapters.length - 1]);
-    if (lastVisibleIndex < chapters.length - 1) {
-      const remainingCount = chapters.length - lastVisibleIndex - 1;
-      const li = document.createElement('li');
-      li.className = 'chapter-item chapter-ellipsis';
-      li.textContent = `... (${remainingCount} more chapters below)`;
-      li.style.opacity = '0.5';
-      li.style.fontStyle = 'italic';
-      chapterList.appendChild(li);
-    }
+  if (endIndex < chapters.length) {
+    const remainingCount = chapters.length - endIndex;
+    const li = document.createElement('li');
+    li.className = 'chapter-item chapter-ellipsis';
+    li.textContent = `... (${remainingCount} more chapters below)`;
+    li.style.opacity = '0.5';
+    li.style.fontStyle = 'italic';
+    chapterList.appendChild(li);
   }
 }
 
