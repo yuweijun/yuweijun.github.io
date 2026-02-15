@@ -19,6 +19,13 @@ let isSidebarPinned = false;
 let lastScrollTop = 0;
 let isScrollingInSidebar = false;
 
+// 3-chapter sliding window state
+let prevStoryData = null;
+let currentStoryData = null;
+let nextStoryData = null;
+let loadedStories = []; // Track loaded story IDs [prev, current, next]
+let isLoadingChapter = false;
+
 // Get story ID from URL hash
 function getStoryIdFromUrl() {
   const hash = window.location.hash;
@@ -65,13 +72,22 @@ async function initializeViewer() {
   // Initialize database
   await db.init();
 
-  // Load story data from database to get the title
+  // Load story data from database to get the title and book ID
   const storyData = await db.getStoryById(storyId);
+  if (!storyData) {
+    document.querySelector('.text-content').textContent = 'Story not found';
+    return;
+  }
+
+  // Load all chapter metadata from all stories in this book for the sidebar
+  if (storyData.bookId) {
+    await loadAllChapterMetadata(storyData.bookId);
+  }
 
   // Load reading history
   readingHistory = await db.getReadingHistory(storyId);
 
-  // Load the TXT file content
+  // Load the TXT file content with 3-chapter window
   await loadFileContent();
 
   // Initialize chapters sidebar
@@ -455,6 +471,15 @@ function setupAutoHide() {
   let scrollTimer = null;
   contentContainer.addEventListener('scroll', function() {
     const currentScrollTop = contentContainer.scrollTop;
+    const scrollHeight = contentContainer.scrollHeight;
+    const clientHeight = contentContainer.clientHeight;
+
+    // Check if scrolled into next chapter area (past 75% of total content)
+    const scrollPercentage = (currentScrollTop + clientHeight) / scrollHeight;
+    if (scrollPercentage > 0.75 && nextStoryData && currentStoryData) {
+      handleScrollToNextChapter();
+    }
+
     lastScrollTop = currentScrollTop;
 
     clearTimeout(scrollTimer);
@@ -564,44 +589,49 @@ function togglePinSidebar() {
   localStorage.setItem('sidebarPinned', isSidebarPinned.toString());
 }
 
+async function loadAllChapterMetadata(bookId) {
+  try {
+    // Get all stories for this book
+    const allStories = await db.getStoriesByBookId(bookId);
+
+    // Sort by splitIndex to maintain order
+    allStories.sort((a, b) => {
+      const aIndex = a.splitIndex || 0;
+      const bIndex = b.splitIndex || 0;
+      return aIndex - bIndex;
+    });
+
+    // Load chapter metadata from each story
+    chapters = [];
+    allStories.forEach(story => {
+      if (story.chapters && story.chapters.length > 0) {
+        story.chapters.forEach((ch) => {
+          chapters.push({
+            id: `chapter_${chapters.length}`,
+            title: ch.title,
+            anchorId: ch.anchorId,
+            lineNumber: ch.lineNumber,
+            storyId: story.id
+          });
+        });
+      }
+    });
+
+    console.log(`Loaded ${chapters.length} chapter metadata from ${allStories.length} stories`);
+  } catch (error) {
+    console.error('Error loading chapter metadata:', error);
+  }
+}
+
 async function loadFileContent() {
   try {
-    const storyData = await window.localFileProcessor.db.getStoryById(storyId);
-    if (!storyData) {
+    const startStory = await window.localFileProcessor.db.getStoryById(storyId);
+    if (!startStory) {
       throw new Error('Story not found');
     }
 
-    fileContent = storyData.processedContent || storyData.content || '';
-
-    // Use pre-parsed chapters from story data (with line-based anchors)
-    if (storyData.chapters && storyData.chapters.length > 0) {
-      chapters = storyData.chapters.map((ch, index) => ({
-        id: `chapter_${index}`,
-        title: ch.title,
-        anchorId: ch.anchorId,
-        lineNumber: ch.lineNumber
-      }));
-    } else {
-      // Fallback: parse chapters if not available in story data
-      const contentForParsing = storyData.content || '';
-      if (contentForParsing) {
-        const originalFileContent = fileContent;
-        fileContent = contentForParsing;
-        parseChapters();
-        fileContent = originalFileContent;
-      }
-    }
-
-    if (storyData.processedContent) {
-      const textContent = document.getElementById('textContent');
-      if (textContent) {
-        textContent.innerHTML = fileContent;
-      }
-    } else {
-      displayCurrentPage();
-    }
-
-    updateChaptersList();
+    // Load 3-chapter window: previous, current, next
+    await load3ChapterWindow(startStory);
 
     if (readingHistory) {
       restoreReadingPosition(readingHistory);
@@ -612,6 +642,131 @@ async function loadFileContent() {
 
   } catch (error) {
     document.querySelector('.text-content').textContent = 'Error loading file content: ' + error.message;
+  }
+}
+
+async function load3ChapterWindow(centerStory) {
+  const textContent = document.getElementById('textContent');
+  if (!textContent) return;
+
+  // Clear current content
+  textContent.innerHTML = '';
+  loadedStories = [];
+
+  // Set current story
+  currentStoryData = centerStory;
+
+  // Load previous story if available
+  if (centerStory.prevStoryId) {
+    try {
+      prevStoryData = await window.localFileProcessor.db.getStoryById(centerStory.prevStoryId);
+      if (prevStoryData) {
+        loadedStories.push(prevStoryData.id);
+        const prevContent = prevStoryData.processedContent || prevStoryData.content || '';
+        textContent.innerHTML += `<div class="chapter-section" data-story-id="${prevStoryData.id}">${prevContent}</div>`;
+        textContent.innerHTML += '<div class="chapter-separator"></div>';
+      }
+    } catch (error) {
+      console.error('Error loading previous story:', error);
+      prevStoryData = null;
+    }
+  } else {
+    prevStoryData = null;
+  }
+
+  // Load current story
+  loadedStories.push(centerStory.id);
+  const currentContent = centerStory.processedContent || centerStory.content || '';
+  textContent.innerHTML += `<div class="chapter-section chapter-current" data-story-id="${centerStory.id}">${currentContent}</div>`;
+
+  // Load next story if available
+  if (centerStory.nextStoryId) {
+    try {
+      nextStoryData = await window.localFileProcessor.db.getStoryById(centerStory.nextStoryId);
+      if (nextStoryData) {
+        loadedStories.push(nextStoryData.id);
+        textContent.innerHTML += '<div class="chapter-separator"></div>';
+        const nextContent = nextStoryData.processedContent || nextStoryData.content || '';
+        textContent.innerHTML += `<div class="chapter-section" data-story-id="${nextStoryData.id}">${nextContent}</div>`;
+      }
+    } catch (error) {
+      console.error('Error loading next story:', error);
+      nextStoryData = null;
+    }
+  } else {
+    nextStoryData = null;
+  }
+
+  updateChaptersList();
+  console.log('Loaded 3-chapter window:', prevStoryData ? prevStoryData.extractedTitle : 'none', '|', centerStory.extractedTitle, '|', nextStoryData ? nextStoryData.extractedTitle : 'none');
+}
+
+async function handleScrollToNextChapter() {
+  if (isLoadingChapter || !nextStoryData) return;
+
+  isLoadingChapter = true;
+
+  try {
+    const textContent = document.getElementById('textContent');
+    if (!textContent) {
+      isLoadingChapter = false;
+      return;
+    }
+
+    // Slide window forward: current becomes previous, next becomes current
+    prevStoryData = currentStoryData;
+    currentStoryData = nextStoryData;
+
+    // Remove the first section (old previous chapter)
+    const firstSection = textContent.querySelector('.chapter-section');
+    if (firstSection) {
+      firstSection.remove();
+      // Also remove separator
+      const firstSeparator = textContent.querySelector('.chapter-separator');
+      if (firstSeparator) {
+        firstSeparator.remove();
+      }
+    }
+
+    // Update loaded stories
+    loadedStories.shift();
+
+    // Update current marker
+    const currentSection = textContent.querySelector(`[data-story-id="${currentStoryData.id}"]`);
+    if (currentSection) {
+      // Remove old current marker
+      const oldCurrent = textContent.querySelector('.chapter-current');
+      if (oldCurrent) {
+        oldCurrent.classList.remove('chapter-current');
+      }
+      currentSection.classList.add('chapter-current');
+    }
+
+    // Load new next chapter if available
+    if (currentStoryData.nextStoryId) {
+      try {
+        nextStoryData = await window.localFileProcessor.db.getStoryById(currentStoryData.nextStoryId);
+        if (nextStoryData) {
+          loadedStories.push(nextStoryData.id);
+          textContent.innerHTML += '<div class="chapter-separator"></div>';
+          const nextContent = nextStoryData.processedContent || nextStoryData.content || '';
+          textContent.innerHTML += `<div class="chapter-section" data-story-id="${nextStoryData.id}">${nextContent}</div>`;
+        }
+      } catch (error) {
+        console.error('Error loading next story:', error);
+        nextStoryData = null;
+      }
+    } else {
+      nextStoryData = null;
+    }
+
+    updateChaptersList();
+    console.log('Slid window forward:', prevStoryData ? prevStoryData.extractedTitle : 'none', '|', currentStoryData.extractedTitle, '|', nextStoryData ? nextStoryData.extractedTitle : 'none');
+
+  } catch (error) {
+    console.error('Error handling scroll to next chapter:', error);
+  } finally {
+    isLoadingChapter = false;
   }
 }
 
@@ -728,9 +883,51 @@ function updateChaptersList() {
 
   const chaptersToShow = filteredChapters.length > 0 ? filteredChapters : chapters;
 
-  chaptersToShow.forEach((chapter, displayIndex) => {
+  // Virtual scrolling: show ~50 chapters around current chapter
+  let visibleChapters = chaptersToShow;
+  const maxVisibleChapters = 50;
+
+  if (chaptersToShow.length > maxVisibleChapters && !filteredChapters.length) {
+    // Find current chapter index
+    let currentIndex = 0;
+    if (currentChapter) {
+      currentIndex = chapters.findIndex(ch => ch.title === currentChapter.title);
+      if (currentIndex === -1) currentIndex = 0;
+    }
+
+    // Calculate range around current chapter
+    const halfRange = Math.floor(maxVisibleChapters / 2);
+    let startIndex = Math.max(0, currentIndex - halfRange);
+    let endIndex = Math.min(chapters.length, startIndex + maxVisibleChapters);
+
+    // Adjust if we're near the end
+    if (endIndex - startIndex < maxVisibleChapters) {
+      startIndex = Math.max(0, endIndex - maxVisibleChapters);
+    }
+
+    visibleChapters = chapters.slice(startIndex, endIndex);
+
+    // Add "..." indicator at the beginning if not starting from first chapter
+    if (startIndex > 0) {
+      const li = document.createElement('li');
+      li.className = 'chapter-item chapter-ellipsis';
+      li.textContent = `... (${startIndex} more chapters above)`;
+      li.style.opacity = '0.5';
+      li.style.fontStyle = 'italic';
+      chapterList.appendChild(li);
+    }
+  }
+
+  visibleChapters.forEach((chapter, displayIndex) => {
     const li = document.createElement('li');
     li.className = 'chapter-item';
+
+    // Mark if chapter is currently loaded (in the 3-chapter window)
+    const isLoaded = chapter.storyId && loadedStories.includes(chapter.storyId);
+    if (isLoaded) {
+      li.classList.add('loaded');
+    }
+
     // Use the actual index in the chapters array for navigation
     const actualIndex = chapter.originalIndex !== undefined ? chapter.originalIndex : chapters.indexOf(chapter);
     li.dataset.index = actualIndex;
@@ -742,6 +939,20 @@ function updateChaptersList() {
     });
     chapterList.appendChild(li);
   });
+
+  // Add "..." indicator at the end if not showing all chapters
+  if (chaptersToShow.length > maxVisibleChapters && !filteredChapters.length) {
+    const lastVisibleIndex = chapters.indexOf(visibleChapters[visibleChapters.length - 1]);
+    if (lastVisibleIndex < chapters.length - 1) {
+      const remainingCount = chapters.length - lastVisibleIndex - 1;
+      const li = document.createElement('li');
+      li.className = 'chapter-item chapter-ellipsis';
+      li.textContent = `... (${remainingCount} more chapters below)`;
+      li.style.opacity = '0.5';
+      li.style.fontStyle = 'italic';
+      chapterList.appendChild(li);
+    }
+  }
 }
 
 function filterChapters(searchTerm) {
@@ -775,7 +986,7 @@ function displayCurrentPage() {
   totalPages = 1;
 }
 
-function scrollToChapter(chapterIndexOrNum) {
+async function scrollToChapter(chapterIndexOrNum) {
   if (!chapters || chapters.length === 0) return;
 
   const contentContainer = document.querySelector('.content-container');
@@ -790,7 +1001,31 @@ function scrollToChapter(chapterIndexOrNum) {
 
   if (!chapter) return;
 
-  const targetAnchorId = chapter.anchorId || anchorId;
+  // Check if this chapter belongs to a loaded story
+  if (chapter.storyId && !loadedStories.includes(chapter.storyId)) {
+    // Need to load this chapter's story window
+    try {
+      const targetStory = await window.localFileProcessor.db.getStoryById(chapter.storyId);
+      if (targetStory) {
+        await load3ChapterWindow(targetStory);
+        // After loading, scroll to the chapter
+        setTimeout(() => {
+          scrollToChapterById(chapter.anchorId, chapter);
+        }, 100);
+      }
+    } catch (error) {
+      console.error('Error loading chapter:', error);
+    }
+    return;
+  }
+
+  scrollToChapterById(chapter.anchorId, chapter);
+}
+
+function scrollToChapterById(targetAnchorId, chapter) {
+  const contentContainer = document.querySelector('.content-container');
+  if (!contentContainer) return;
+
   const anchorElement = document.getElementById(targetAnchorId);
 
   if (anchorElement) {

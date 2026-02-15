@@ -113,7 +113,7 @@ class LocalFileProcessor {
 
   /**
    * Process file - creates a book and saves stories
-   * Splits file by every 5000 lines
+   * Splits file by individual chapters (1 chapter = 1 story)
    */
   async processFile(file) {
     const fileContent = await this.readFileAsText(file);
@@ -150,7 +150,9 @@ class LocalFileProcessor {
         isSplitFile: false,
         splitParentFile: null,
         splitIndex: null,
-        totalChunks: null
+        totalChunks: null,
+        prevStoryId: null,
+        nextStoryId: null
       };
 
       await this.db.addStory(storyData);
@@ -174,11 +176,12 @@ class LocalFileProcessor {
     if (lines.length > 0 && lines[lines.length - 1] === '') {
       lines.pop();
     }
-    const linesPerChunk = 5000;
-    const totalChunks = Math.ceil(lines.length / linesPerChunk);
 
-    // If file has 5000 lines or less, don't split
-    if (totalChunks === 1) {
+    // Detect chapter boundaries
+    const chapterBoundaries = this.detectChapterBoundaries(lines);
+
+    // If no chapters detected, save as single story
+    if (chapterBoundaries.length === 0) {
       const storyId = this.generateStoryId();
       const generatedFileName = `${bookName}.txt`;
       const processingResult = this.processContentWithChapters(fileContent);
@@ -196,25 +199,32 @@ class LocalFileProcessor {
         isSplitFile: false,
         splitParentFile: null,
         splitIndex: null,
-        totalChunks: null
+        totalChunks: null,
+        prevStoryId: null,
+        nextStoryId: null
       };
 
       await this.db.addStory(storyData);
       return { bookId, storyIds: [storyId] };
     }
 
-    // Split file into chunks of 5000 lines
+    // Split file by individual chapters
     const storyIds = [];
-    for (let chunkIndex = 0; chunkIndex < totalChunks; chunkIndex++) {
-      const startLine = chunkIndex * linesPerChunk;
-      const endLine = Math.min(startLine + linesPerChunk, lines.length);
-      const chunkLines = lines.slice(startLine, endLine);
+    const totalChapters = chapterBoundaries.length;
+
+    for (let i = 0; i < totalChapters; i++) {
+      const startLineIdx = chapterBoundaries[i].lineIndex;
+      const endLineIdx = i < totalChapters - 1
+        ? chapterBoundaries[i + 1].lineIndex
+        : lines.length;
+
+      const chunkLines = lines.slice(startLineIdx, endLineIdx);
       const chunkContent = chunkLines.join('\n');
 
       const storyId = this.generateStoryId();
-      const paddedIndex = (chunkIndex + 1).toString().padStart(3, '0');
+      const chapterTitle = chapterBoundaries[i].title;
+      const paddedIndex = (i + 1).toString().padStart(4, '0');
       const chunkFileName = `${bookName}-${paddedIndex}.txt`;
-      const chunkTitle = `${bookName} (${startLine + 1} ~ ${endLine})`;
       const processingResult = this.processContentWithChapters(chunkContent);
 
       const storyData = {
@@ -226,15 +236,32 @@ class LocalFileProcessor {
         content: chunkContent,
         processedContent: processingResult.htmlContent,
         chapters: processingResult.chapters,
-        extractedTitle: chunkTitle,
+        extractedTitle: chapterTitle,
         isSplitFile: true,
         splitParentFile: file.name,
-        splitIndex: chunkIndex + 1,
-        totalChunks: totalChunks
+        splitIndex: i + 1,
+        totalChunks: totalChapters,
+        prevStoryId: null,  // Will be set after all stories are created
+        nextStoryId: null   // Will be set after all stories are created
       };
 
       await this.db.addStory(storyData);
       storyIds.push(storyId);
+    }
+
+    // Update prev/next story IDs for navigation
+    for (let i = 0; i < storyIds.length; i++) {
+      const storyId = storyIds[i];
+      const story = await this.db.getStoryById(storyId);
+
+      if (i > 0) {
+        story.prevStoryId = storyIds[i - 1];
+      }
+      if (i < storyIds.length - 1) {
+        story.nextStoryId = storyIds[i + 1];
+      }
+
+      await this.db.updateStory(story);
     }
 
     return { bookId, storyIds };
