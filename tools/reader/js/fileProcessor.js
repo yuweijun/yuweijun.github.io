@@ -50,6 +50,15 @@ class LocalFileProcessor {
    * Truncate chapter title to 34 chars, preferring punctuation breaks
    */
   static truncateChapterTitle(title) {
+    // If title contains punctuation marks [,.，。], truncate before the first occurrence
+    const punctuationRegex = /[,.，。]/;
+    const match = title.match(punctuationRegex);
+
+    if (match) {
+      return title.substring(0, match.index);
+    }
+
+    // If no punctuation found, apply 34-character limit
     const maxChars = 34;
     let charCount = 0;
     let truncateIndex = title.length;
@@ -66,25 +75,9 @@ class LocalFileProcessor {
     }
 
     if (truncateIndex < title.length) {
-      // Try to find punctuation marks before the truncate point
-      const beforeTruncate = title.substring(0, truncateIndex);
-      const punctuationRegex = /[,.，。]/g;
-      let lastPunctuationIndex = -1;
-      let match;
-
-      // Find the last occurrence of punctuation
-      while ((match = punctuationRegex.exec(beforeTruncate)) !== null) {
-        lastPunctuationIndex = match.index;
-      }
-
-      // If found punctuation, truncate before it (don't include the punctuation)
-      if (lastPunctuationIndex > 0) {
-        return title.substring(0, lastPunctuationIndex);
-      }
-
-      // Otherwise, truncate normally with ellipsis
       return title.substring(0, truncateIndex) + '...';
     }
+
     return title;
   }
 
