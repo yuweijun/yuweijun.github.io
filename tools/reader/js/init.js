@@ -198,11 +198,6 @@ async function loadBooks() {
     appState.allBooks = books;
     appState.totalPages = Math.ceil(books.length / appState.itemsPerPage);
 
-    // Automatically expand the first book if there are books
-    if (books.length > 0 && !appState.expandedBooks.has(books[0].id)) {
-      appState.expandedBooks.add(books[0].id);
-    }
-
     // Reset to first page if current page is invalid
     if (appState.currentPage > appState.totalPages) {
       appState.currentPage = 1;
