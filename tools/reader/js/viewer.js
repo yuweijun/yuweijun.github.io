@@ -883,11 +883,13 @@ function updateChaptersList() {
 
   const chaptersToShow = filteredChapters.length > 0 ? filteredChapters : chapters;
 
-  // Virtual scrolling: show ~50 chapters around current chapter
+  // Show previous 10 + current + next 20 chapters (31 total)
   let visibleChapters = chaptersToShow;
-  const maxVisibleChapters = 50;
+  const prevChaptersCount = 10;
+  const nextChaptersCount = 20;
+  const totalVisibleChapters = prevChaptersCount + 1 + nextChaptersCount; // 31
 
-  if (chaptersToShow.length > maxVisibleChapters && !filteredChapters.length) {
+  if (chaptersToShow.length > totalVisibleChapters && !filteredChapters.length) {
     // Find current chapter index
     let currentIndex = 0;
     if (currentChapter) {
@@ -895,14 +897,18 @@ function updateChaptersList() {
       if (currentIndex === -1) currentIndex = 0;
     }
 
-    // Calculate range around current chapter
-    const halfRange = Math.floor(maxVisibleChapters / 2);
-    let startIndex = Math.max(0, currentIndex - halfRange);
-    let endIndex = Math.min(chapters.length, startIndex + maxVisibleChapters);
+    // Calculate range: 10 before current, current, 20 after current
+    let startIndex = Math.max(0, currentIndex - prevChaptersCount);
+    let endIndex = Math.min(chapters.length, currentIndex + nextChaptersCount + 1);
+
+    // Adjust if we're near the beginning
+    if (currentIndex < prevChaptersCount) {
+      endIndex = Math.min(chapters.length, totalVisibleChapters);
+    }
 
     // Adjust if we're near the end
-    if (endIndex - startIndex < maxVisibleChapters) {
-      startIndex = Math.max(0, endIndex - maxVisibleChapters);
+    if (currentIndex + nextChaptersCount >= chapters.length) {
+      startIndex = Math.max(0, chapters.length - totalVisibleChapters);
     }
 
     visibleChapters = chapters.slice(startIndex, endIndex);
@@ -941,7 +947,7 @@ function updateChaptersList() {
   });
 
   // Add "..." indicator at the end if not showing all chapters
-  if (chaptersToShow.length > maxVisibleChapters && !filteredChapters.length) {
+  if (chaptersToShow.length > totalVisibleChapters && !filteredChapters.length) {
     const lastVisibleIndex = chapters.indexOf(visibleChapters[visibleChapters.length - 1]);
     if (lastVisibleIndex < chapters.length - 1) {
       const remainingCount = chapters.length - lastVisibleIndex - 1;
