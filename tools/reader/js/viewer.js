@@ -918,10 +918,10 @@ function updateChaptersList() {
     return;
   }
 
-  // Show previous 10 + current + next 20 chapters (31 total)
-  const prevChaptersCount = 10;
+  // Show current + next 20 chapters (21 total)
+  const prevChaptersCount = 0;
   const nextChaptersCount = 20;
-  const totalVisibleChapters = prevChaptersCount + 1 + nextChaptersCount; // 31
+  const totalVisibleChapters = prevChaptersCount + 1 + nextChaptersCount; // 21
 
   // If total chapters is less than or equal to visible chapters, show all
   if (chapters.length <= totalVisibleChapters) {
@@ -963,20 +963,15 @@ function updateChaptersList() {
     }
   }
 
-  // Calculate range: 10 before current, current, 20 after current
-  let startIndex = Math.max(0, currentIndex - prevChaptersCount);
+  // Calculate range: current + 20 after current
+  let startIndex = currentIndex;
   let endIndex = Math.min(chapters.length, currentIndex + nextChaptersCount + 1);
 
   // Ensure we always show exactly totalVisibleChapters when possible
   const actualCount = endIndex - startIndex;
-  if (actualCount < totalVisibleChapters) {
-    if (startIndex === 0) {
-      // Near the beginning, extend forward
-      endIndex = Math.min(chapters.length, totalVisibleChapters);
-    } else if (endIndex === chapters.length) {
-      // Near the end, extend backward
-      startIndex = Math.max(0, chapters.length - totalVisibleChapters);
-    }
+  if (actualCount < totalVisibleChapters && endIndex === chapters.length) {
+    // Near the end, don't extend backward - just show remaining chapters
+    // This maintains the "current + next N" pattern
   }
 
   const visibleChapters = chapters.slice(startIndex, endIndex);
@@ -1115,6 +1110,7 @@ function scrollToChapterById(targetAnchorId, chapter) {
       title: chapter.title
     };
     highlightCurrentChapter();
+    updateChaptersList(); // Update chapter list to show current + next 20
   }
 }
 
