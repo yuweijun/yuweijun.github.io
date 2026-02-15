@@ -47,6 +47,48 @@ class LocalFileProcessor {
   }
 
   /**
+   * Truncate chapter title to 34 chars, preferring punctuation breaks
+   */
+  static truncateChapterTitle(title) {
+    const maxChars = 34;
+    let charCount = 0;
+    let truncateIndex = title.length;
+
+    for (let i = 0; i < title.length; i++) {
+      const char = title[i];
+      const isChinese = /[\u4e00-\u9fa5]/.test(char);
+      charCount += isChinese ? 1 : 0.5;
+
+      if (charCount > maxChars) {
+        truncateIndex = i;
+        break;
+      }
+    }
+
+    if (truncateIndex < title.length) {
+      // Try to find punctuation marks before the truncate point
+      const beforeTruncate = title.substring(0, truncateIndex);
+      const punctuationRegex = /[,.，。]/g;
+      let lastPunctuationIndex = -1;
+      let match;
+
+      // Find the last occurrence of punctuation
+      while ((match = punctuationRegex.exec(beforeTruncate)) !== null) {
+        lastPunctuationIndex = match.index;
+      }
+
+      // If found punctuation, truncate before it (don't include the punctuation)
+      if (lastPunctuationIndex > 0) {
+        return title.substring(0, lastPunctuationIndex);
+      }
+
+      // Otherwise, truncate normally with ellipsis
+      return title.substring(0, truncateIndex) + '...';
+    }
+    return title;
+  }
+
+  /**
    * Detect if text is valid UTF-8
    */
   static isValidUtf8(text) {
@@ -228,6 +270,9 @@ class LocalFileProcessor {
       // Pass startLineIdx as offset to use absolute line numbers from original file
       const processingResult = this.processContentWithChapters(chunkContent, startLineIdx);
 
+      // Truncate chapter title for display
+      const truncatedChapterTitle = LocalFileProcessor.truncateChapterTitle(chapterTitle);
+
       const storyData = {
         id: storyId,
         bookId: bookId,
@@ -237,7 +282,7 @@ class LocalFileProcessor {
         content: chunkContent,
         processedContent: processingResult.htmlContent,
         chapters: processingResult.chapters,
-        extractedTitle: chapterTitle,
+        extractedTitle: truncatedChapterTitle,
         isSplitFile: true,
         splitParentFile: file.name,
         splitIndex: i + 1,
@@ -627,8 +672,11 @@ class LocalFileProcessor {
         const absoluteLineNumber = i + lineOffset;
         const anchorId = `line-${absoluteLineNumber}`;
 
+        // Truncate chapter title for storage
+        const truncatedTitle = LocalFileProcessor.truncateChapterTitle(trimmedLine);
+
         chapters.push({
-          title: trimmedLine,
+          title: truncatedTitle,
           anchorId: anchorId,
           lineNumber: absoluteLineNumber
         });
