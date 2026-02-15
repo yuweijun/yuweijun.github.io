@@ -1050,6 +1050,22 @@ async function scrollToChapter(chapterIndexOrNum) {
 
   if (!chapter) return;
 
+  // Check if this chapter belongs to the next story (already loaded but not current)
+  if (chapter.storyId && nextStoryData && chapter.storyId === nextStoryData.id) {
+    // User clicked on next chapter - reload window to make it current
+    try {
+      await load2ChapterWindow(nextStoryData);
+      // After loading, scroll to the top
+      contentContainer.scrollTo({
+        top: 0,
+        behavior: 'smooth'
+      });
+    } catch (error) {
+      console.error('Error loading chapter:', error);
+    }
+    return;
+  }
+
   // Check if this chapter belongs to a loaded story
   if (chapter.storyId && !loadedStories.includes(chapter.storyId)) {
     // Need to load this chapter's story window
