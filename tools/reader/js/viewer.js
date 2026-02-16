@@ -34,6 +34,8 @@ let currentChapter = null;
 let totalPages = 1;
 let filteredChapters = [];
 let readingHistory = null;
+let currentBookId = null;
+let allBookStories = [];
 
 // Initialize
 document.addEventListener('DOMContentLoaded', async function() {
@@ -67,6 +69,19 @@ async function initializeViewer() {
 
   // Load story data from database to get the title
   const storyData = await db.getStoryById(storyId);
+
+  // Store bookId and load all stories in the book for cross-story search
+  currentBookId = storyData ? storyData.bookId : null;
+  if (currentBookId) {
+    allBookStories = await db.getStoriesByBookId(currentBookId);
+    // Sort by splitIndex if available
+    allBookStories.sort((a, b) => {
+      if (a.splitIndex && b.splitIndex) {
+        return a.splitIndex - b.splitIndex;
+      }
+      return 0;
+    });
+  }
 
   // Load reading history
   readingHistory = await db.getReadingHistory(storyId);
@@ -550,6 +565,97 @@ function togglePinSidebar() {
   localStorage.setItem('sidebarPinned', isSidebarPinned.toString());
 }
 
+/**
+ * Load a different story by ID and optionally scroll to a specific chapter
+ * Used when clicking cross-story search results
+ */
+async function loadStoryById(newStoryId, targetAnchorId, targetChapterTitle) {
+  try {
+    // Update current story ID
+    storyId = newStoryId;
+    
+    // Update URL hash without triggering hashchange reload
+    history.replaceState(null, '', `reader.html#view/${newStoryId}`);
+    
+    // Clear search input and filtered results
+    const searchInput = document.getElementById('chapterSearch');
+    if (searchInput) {
+      searchInput.value = '';
+    }
+    filteredChapters = [];
+    
+    // Load the new story content
+    const storyData = await db.getStoryById(newStoryId);
+    if (!storyData) {
+      throw new Error('Story not found');
+    }
+    
+    fileContent = storyData.processedContent || storyData.content || '';
+    
+    // Update chapters from new story
+    if (storyData.chapters && storyData.chapters.length > 0) {
+      chapters = storyData.chapters.map((ch, index) => ({
+        id: `chapter_${index}`,
+        title: ch.title,
+        anchorId: ch.anchorId,
+        lineNumber: ch.lineNumber
+      }));
+    } else {
+      chapters = [];
+    }
+    
+    // Render new content
+    const textContent = document.getElementById('textContent');
+    if (textContent) {
+      if (storyData.processedContent) {
+        textContent.innerHTML = fileContent;
+      } else {
+        textContent.textContent = fileContent;
+      }
+    }
+    
+    // Update chapter list in sidebar
+    updateChaptersList();
+    
+    // Find and set current chapter
+    if (targetChapterTitle) {
+      const matchingChapter = chapters.find(ch => ch.title === targetChapterTitle);
+      if (matchingChapter) {
+        currentChapter = {
+          id: matchingChapter.id,
+          title: matchingChapter.title
+        };
+      }
+    }
+    
+    // Scroll to the target chapter after content is rendered
+    setTimeout(() => {
+      if (targetAnchorId) {
+        const anchorElement = document.getElementById(targetAnchorId);
+        const contentContainer = document.querySelector('.content-container');
+        
+        if (anchorElement && contentContainer) {
+          const containerRect = contentContainer.getBoundingClientRect();
+          const anchorRect = anchorElement.getBoundingClientRect();
+          const scrollPosition = contentContainer.scrollTop +
+            (anchorRect.top - containerRect.top) - 20;
+          
+          contentContainer.scrollTo({
+            top: Math.max(0, scrollPosition),
+            behavior: 'smooth'
+          });
+        }
+      }
+      
+      highlightCurrentChapter();
+    }, 100);
+    
+  } catch (error) {
+    console.error('Error loading story:', error);
+    document.querySelector('.text-content').textContent = 'Error loading story: ' + error.message;
+  }
+}
+
 async function loadFileContent() {
   try {
     const storyData = await window.localFileProcessor.db.getStoryById(storyId);
@@ -717,15 +823,35 @@ function updateChaptersList() {
   chaptersToShow.forEach((chapter, displayIndex) => {
     const li = document.createElement('li');
     li.className = 'chapter-item';
-    // Use the actual index in the chapters array for navigation
-    const actualIndex = chapter.originalIndex !== undefined ? chapter.originalIndex : chapters.indexOf(chapter);
-    li.dataset.index = actualIndex;
-    li.textContent = truncateChapterTitle(chapter.title);
-    li.title = chapter.title;
-    li.addEventListener('click', function() {
-      const chapterIndex = parseInt(this.dataset.index);
-      scrollToChapter(chapterIndex);
-    });
+    
+    // Check if this is a cross-story result
+    if (chapter.isCurrentStory === false) {
+      // Cross-story chapter - load and render the other story
+      li.classList.add('cross-story-chapter');
+      li.dataset.storyId = chapter.storyId;
+      li.dataset.anchorId = chapter.anchorId;
+      li.innerHTML = `<span class="chapter-title-text">${truncateChapterTitle(chapter.title)}</span><span class="story-indicator">${truncateChapterTitle(chapter.storyTitle)}</span>`;
+      li.title = `${chapter.title} (${chapter.storyTitle})`;
+      li.addEventListener('click', async function() {
+        const targetStoryId = chapter.storyId;
+        const targetAnchorId = chapter.anchorId;
+        const targetChapterTitle = chapter.title;
+        
+        // Load the new story without page navigation
+        await loadStoryById(targetStoryId, targetAnchorId, targetChapterTitle);
+      });
+    } else {
+      // Current story chapter
+      const actualIndex = chapter.originalIndex !== undefined ? chapter.originalIndex : chapters.indexOf(chapter);
+      li.dataset.index = actualIndex;
+      li.textContent = truncateChapterTitle(chapter.title);
+      li.title = chapter.title;
+      li.addEventListener('click', function() {
+        const chapterIndex = parseInt(this.dataset.index);
+        scrollToChapter(chapterIndex);
+      });
+    }
+    
     chapterList.appendChild(li);
   });
 }
@@ -738,14 +864,46 @@ function filterChapters(searchTerm) {
   }
 
   const term = searchTerm.toLowerCase().trim();
-  filteredChapters = chapters.filter((chapter) => {
+  
+  // First, search current story's chapters
+  const currentStoryResults = chapters.filter((chapter) => {
     return chapter.title.toLowerCase().includes(term);
   }).map((chapter) => {
     return {
       ...chapter,
-      originalIndex: chapters.indexOf(chapter)
+      originalIndex: chapters.indexOf(chapter),
+      isCurrentStory: true,
+      storyId: storyId
     };
   });
+
+  // Then, search other stories in the same book
+  const otherStoryResults = [];
+  if (allBookStories && allBookStories.length > 1) {
+    for (const story of allBookStories) {
+      // Skip current story (already searched)
+      if (story.id === storyId) continue;
+      
+      if (story.chapters && story.chapters.length > 0) {
+        const matchedChapters = story.chapters.filter((ch) => {
+          return ch.title.toLowerCase().includes(term);
+        }).map((ch, index) => {
+          return {
+            title: ch.title,
+            anchorId: ch.anchorId,
+            lineNumber: ch.lineNumber,
+            isCurrentStory: false,
+            storyId: story.id,
+            storyTitle: story.extractedTitle || story.fileName
+          };
+        });
+        otherStoryResults.push(...matchedChapters);
+      }
+    }
+  }
+
+  // Combine results: current story first, then other stories
+  filteredChapters = [...currentStoryResults, ...otherStoryResults];
 
   updateChaptersList();
 }
@@ -990,6 +1148,237 @@ const MIN_SPEECH_RATE = 0.5;
 const MAX_SPEECH_RATE = 2.0;
 const SPEECH_RATE_STEP = 0.1;
 
+// Wake Lock to prevent screen sleep during TTS
+let wakeLock = null;
+
+// Screen dimming for energy saving during long TTS playback
+let speechStartTime = null;
+let screenDimTimer = null;
+let isScreenDimmed = false;
+const SCREEN_DIM_DELAY = 5 * 60 * 1000; // 5 minutes in milliseconds
+const SCREEN_DIM_OPACITY = 0.3;
+
+function createScreenDimOverlay() {
+  let overlay = document.getElementById('screenDimOverlay');
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.id = 'screenDimOverlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: black;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9999;
+      transition: opacity 1s ease;
+    `;
+    document.body.appendChild(overlay);
+    
+    // Touch to brighten screen temporarily
+    overlay.addEventListener('touchstart', brightenScreenTemporarily);
+    overlay.addEventListener('click', brightenScreenTemporarily);
+  }
+  return overlay;
+}
+
+function dimScreen() {
+  if (!isMobileView() || !isSpeaking || isPaused) return;
+  
+  const overlay = createScreenDimOverlay();
+  overlay.style.pointerEvents = 'auto';
+  overlay.style.opacity = (1 - SCREEN_DIM_OPACITY).toString();
+  isScreenDimmed = true;
+}
+
+function brightenScreen() {
+  const overlay = document.getElementById('screenDimOverlay');
+  if (overlay) {
+    overlay.style.opacity = '0';
+    overlay.style.pointerEvents = 'none';
+  }
+  isScreenDimmed = false;
+}
+
+function brightenScreenTemporarily() {
+  if (!isSpeaking || isPaused) {
+    brightenScreen();
+    return;
+  }
+  
+  // Brighten for 10 seconds then dim again
+  brightenScreen();
+  
+  clearTimeout(screenDimTimer);
+  screenDimTimer = setTimeout(() => {
+    if (isSpeaking && !isPaused && isMobileView()) {
+      dimScreen();
+    }
+  }, 10000); // 10 seconds
+}
+
+function startScreenDimTimer() {
+  if (!isMobileView()) return;
+  
+  speechStartTime = Date.now();
+  clearTimeout(screenDimTimer);
+  
+  screenDimTimer = setTimeout(() => {
+    if (isSpeaking && !isPaused) {
+      dimScreen();
+    }
+  }, SCREEN_DIM_DELAY);
+}
+
+function stopScreenDimTimer() {
+  clearTimeout(screenDimTimer);
+  screenDimTimer = null;
+  speechStartTime = null;
+  brightenScreen();
+}
+
+// Silent audio to keep browser active in background
+let silentAudio = null;
+let silentAudioContext = null;
+
+function createSilentAudio() {
+  if (silentAudio) return silentAudio;
+  
+  // Create a silent audio element
+  silentAudio = document.createElement('audio');
+  silentAudio.id = 'silentBackgroundAudio';
+  silentAudio.loop = true;
+  silentAudio.playsinline = true;
+  silentAudio.setAttribute('playsinline', '');
+  silentAudio.setAttribute('webkit-playsinline', '');
+  
+  // Create silent audio using Web Audio API and convert to blob
+  try {
+    silentAudioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const sampleRate = silentAudioContext.sampleRate;
+    const duration = 1; // 1 second of silence
+    const numChannels = 1;
+    const numFrames = sampleRate * duration;
+    
+    // Create audio buffer with silence
+    const audioBuffer = silentAudioContext.createBuffer(numChannels, numFrames, sampleRate);
+    
+    // Convert to WAV blob
+    const wavBlob = audioBufferToWav(audioBuffer);
+    silentAudio.src = URL.createObjectURL(wavBlob);
+  } catch (e) {
+    // Fallback: use a data URI for minimal silent audio
+    // This is a tiny valid MP3 file (silence)
+    silentAudio.src = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV1dXV//////////////////////////////////////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAAAAAAAAAAAAbD/k2jlAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+M4wAADCAHkCAAAAAANIAAAAAExBTUUzLjEwMFVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/jOMQoAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVf/jOMQoAAADSAAAAABVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVVQ==';
+  }
+  
+  document.body.appendChild(silentAudio);
+  return silentAudio;
+}
+
+// Helper function to convert AudioBuffer to WAV blob
+function audioBufferToWav(buffer) {
+  const numChannels = buffer.numberOfChannels;
+  const sampleRate = buffer.sampleRate;
+  const format = 1; // PCM
+  const bitDepth = 16;
+  
+  const bytesPerSample = bitDepth / 8;
+  const blockAlign = numChannels * bytesPerSample;
+  
+  const dataLength = buffer.length * blockAlign;
+  const bufferLength = 44 + dataLength;
+  
+  const arrayBuffer = new ArrayBuffer(bufferLength);
+  const view = new DataView(arrayBuffer);
+  
+  // WAV header
+  writeString(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataLength, true);
+  writeString(view, 8, 'WAVE');
+  writeString(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, format, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitDepth, true);
+  writeString(view, 36, 'data');
+  view.setUint32(40, dataLength, true);
+  
+  // Write silence (zeros)
+  const offset = 44;
+  for (let i = 0; i < buffer.length; i++) {
+    for (let channel = 0; channel < numChannels; channel++) {
+      const sample = 0; // silence
+      view.setInt16(offset + (i * blockAlign) + (channel * bytesPerSample), sample, true);
+    }
+  }
+  
+  return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+
+function writeString(view, offset, string) {
+  for (let i = 0; i < string.length; i++) {
+    view.setUint8(offset + i, string.charCodeAt(i));
+  }
+}
+
+async function startSilentAudio() {
+  const audio = createSilentAudio();
+  try {
+    // Resume audio context if suspended (required for autoplay)
+    if (silentAudioContext && silentAudioContext.state === 'suspended') {
+      await silentAudioContext.resume();
+    }
+    await audio.play();
+  } catch (e) {
+    console.warn('Silent audio play failed:', e.message);
+  }
+}
+
+function stopSilentAudio() {
+  if (silentAudio) {
+    silentAudio.pause();
+    silentAudio.currentTime = 0;
+  }
+}
+
+async function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    try {
+      wakeLock = await navigator.wakeLock.request('screen');
+      wakeLock.addEventListener('release', () => {
+        wakeLock = null;
+      });
+    } catch (err) {
+      // Wake lock request failed (e.g., low battery, tab not visible)
+      console.warn('Wake lock request failed:', err.message);
+    }
+  }
+}
+
+async function releaseWakeLock() {
+  if (wakeLock !== null) {
+    try {
+      await wakeLock.release();
+      wakeLock = null;
+    } catch (err) {
+      console.warn('Wake lock release failed:', err.message);
+    }
+  }
+}
+
+// Re-acquire wake lock when page becomes visible again
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState === 'visible' && isSpeaking && !isPaused) {
+    await requestWakeLock();
+  }
+});
+
 function initSpeechSynthesis() {
   if (!speechSynthesis) {
     console.warn('Speech synthesis not supported');
@@ -1127,7 +1516,7 @@ function toggleSpeech() {
   }
 }
 
-function startSpeech() {
+async function startSpeech() {
   speechTextQueue = getTextForSpeech();
   if (speechTextQueue.length === 0) return;
 
@@ -1139,26 +1528,55 @@ function startSpeech() {
   isSpeaking = true;
   isPaused = false;
   updateSpeechButton();
+
+  // Request wake lock to prevent screen sleep
+  await requestWakeLock();
+
+  // Start silent audio to keep browser active in background
+  await startSilentAudio();
+
+  // Start screen dim timer for mobile energy saving
+  startScreenDimTimer();
+
   speakNext();
 }
 
-function pauseSpeech() {
+async function pauseSpeech() {
   if (speechSynthesis) {
     speechSynthesis.cancel();
     isPaused = true;
     updateSpeechButton();
+
+    // Release wake lock when paused to save battery
+    await releaseWakeLock();
+
+    // Stop silent audio when paused
+    stopSilentAudio();
+
+    // Stop dim timer and brighten screen when paused
+    stopScreenDimTimer();
   }
 }
 
-function resumeSpeech() {
+async function resumeSpeech() {
   if (speechSynthesis) {
     isPaused = false;
     updateSpeechButton();
+
+    // Re-acquire wake lock when resuming
+    await requestWakeLock();
+
+    // Restart silent audio when resuming
+    await startSilentAudio();
+
+    // Restart screen dim timer when resuming
+    startScreenDimTimer();
+
     speakNext();
   }
 }
 
-function stopSpeech() {
+async function stopSpeech() {
   if (speechSynthesis) {
     speechSynthesis.cancel();
   }
@@ -1166,6 +1584,15 @@ function stopSpeech() {
   isPaused = false;
   currentSpeechIndex = 0;
   updateSpeechButton();
+
+  // Stop silent audio when stopped
+  stopSilentAudio();
+
+  // Stop dim timer and brighten screen when stopped
+  stopScreenDimTimer();
+
+  // Release wake lock when speech stops
+  await releaseWakeLock();
 }
 
 function speakNext() {

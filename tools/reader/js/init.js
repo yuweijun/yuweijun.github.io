@@ -287,7 +287,7 @@ function displayBooks() {
       const storyTitle = window.escapeHtml(story.extractedTitle || story.originalFileName.replace(/\.txt$/i, ''));
 
       html += `
-        <div class="story-item d-flex justify-content-between align-items-center" onclick="window.location.href='viewer.html#view/${story.id}'" style="cursor: pointer;">
+        <div class="story-item d-flex justify-content-between align-items-center" onclick=\"window.location.href='reader.html#view/${story.id}'\" style="cursor: pointer;">
           <div class="d-flex align-items-center story-link-wrapper">
             <span class="story-title">${storyTitle}</span>
           </div>

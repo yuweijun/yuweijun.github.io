@@ -26,6 +26,17 @@ class LocalFileProcessor {
   }
 
   /**
+   * Truncate chapter title at punctuation marks (comma, period - both English and Chinese)
+   */
+  static truncateTitleAtPunctuation(title) {
+    const match = title.match(/[,.，。]/);
+    if (match) {
+      return title.substring(0, match.index).trim();
+    }
+    return title;
+  }
+
+  /**
    * Extract title from first line (max 30 characters)
    */
   static extractTitle(content) {
@@ -551,7 +562,10 @@ class LocalFileProcessor {
 
       for (const pattern of patterns) {
         if (pattern.test(trimmedLine)) {
-          chapterBoundaries.push({ lineIndex: i, title: trimmedLine });
+          chapterBoundaries.push({
+            lineIndex: i,
+            title: LocalFileProcessor.truncateTitleAtPunctuation(trimmedLine)
+          });
           break;
         }
       }
@@ -597,7 +611,7 @@ class LocalFileProcessor {
         const anchorId = `line-${i}`;
 
         chapters.push({
-          title: trimmedLine,
+          title: LocalFileProcessor.truncateTitleAtPunctuation(trimmedLine),
           anchorId: anchorId,
           lineNumber: i
         });
