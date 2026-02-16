@@ -270,22 +270,17 @@ function setupPaginationClickHandler() {
   const contentContainer = document.querySelector('.content-container');
   if (!contentContainer) return;
 
-  // Bottom 20% and left/right 25% areas trigger pagination
+  // Bottom 20% area triggers pagination
   const BOTTOM_TAP_THRESHOLD = 0.80; // Bottom 20% of screen
-  const SIDE_TAP_THRESHOLD = 0.25; // Left/right 25% of screen width
 
   function handlePaginationClick(e) {
     const rect = contentContainer.getBoundingClientRect();
-    const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
     const containerHeight = rect.height;
-    const containerWidth = rect.width;
     const bottomThreshold = containerHeight * BOTTOM_TAP_THRESHOLD;
-    const leftSideThreshold = containerWidth * SIDE_TAP_THRESHOLD;
-    const rightSideThreshold = containerWidth * (1 - SIDE_TAP_THRESHOLD);
 
-    // Check if click is in bottom, left, or right pagination zones
-    if (clickY >= bottomThreshold || clickX <= leftSideThreshold || clickX >= rightSideThreshold) {
+    // Check if click is in bottom pagination zone
+    if (clickY >= bottomThreshold) {
       const scrollAmount = containerHeight * 0.9;
       contentContainer.scrollBy({
         top: scrollAmount,
@@ -296,7 +291,6 @@ function setupPaginationClickHandler() {
 
   contentContainer.addEventListener('click', handlePaginationClick);
 
-  let touchStartX = 0;
   let touchStartY = 0;
   let touchStartTime = 0;
   let isInPaginationZone = false;
@@ -305,21 +299,16 @@ function setupPaginationClickHandler() {
   contentContainer.addEventListener('touchstart', function(e) {
     const touch = e.touches[0];
     const rect = contentContainer.getBoundingClientRect();
-    const touchX = touch.clientX - rect.left;
     const touchY = touch.clientY - rect.top;
     const containerHeight = rect.height;
-    const containerWidth = rect.width;
     const bottomThreshold = containerHeight * BOTTOM_TAP_THRESHOLD;
-    const leftSideThreshold = containerWidth * SIDE_TAP_THRESHOLD;
-    const rightSideThreshold = containerWidth * (1 - SIDE_TAP_THRESHOLD);
 
-    touchStartX = touch.clientX;
     touchStartY = touch.clientY;
     touchStartTime = Date.now();
     hasMoved = false;
 
-    // Check if touch is in bottom, left, or right pagination zones
-    isInPaginationZone = (touchY >= bottomThreshold || touchX <= leftSideThreshold || touchX >= rightSideThreshold);
+    // Check if touch is in bottom pagination zone
+    isInPaginationZone = (touchY >= bottomThreshold);
   }, { passive: true });
 
   contentContainer.addEventListener('touchmove', function(e) {
@@ -336,12 +325,9 @@ function setupPaginationClickHandler() {
     }
 
     const touch = e.changedTouches[0];
-    const touchEndX = touch.clientX;
     const touchEndY = touch.clientY;
     const touchDuration = Date.now() - touchStartTime;
-    const moveDistance = Math.sqrt(
-      Math.pow(touchEndX - touchStartX, 2) + Math.pow(touchEndY - touchStartY, 2)
-    );
+    const moveDistance = Math.abs(touchEndY - touchStartY);
 
     // Only trigger pagination if it's a tap (short duration, minimal movement, no drag)
     if (touchDuration < 300 && moveDistance < 10) {
