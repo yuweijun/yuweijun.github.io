@@ -801,13 +801,11 @@ function scrollToChapter(chapterIndexOrNum) {
 function getCurrentChapterFromPage(page) {
   if (!chapters || chapters.length === 0) return null;
 
-  for (let i = chapters.length - 1; i >= 0; i--) {
-    return {
-      id: chapters[i].id,
-      title: chapters[i].title
-    };
-  }
-  return chapters[0];
+  // Return the first chapter when initially loading the page
+  return {
+    id: chapters[0].id,
+    title: chapters[0].title
+  };
 }
 
 function highlightCurrentChapter() {
