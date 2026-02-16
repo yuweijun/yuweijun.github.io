@@ -332,25 +332,14 @@ function attachDeleteListeners() {
 
     e.stopPropagation();
     const bookId = deleteBtn.dataset.bookId;
-    const book = appState.allBooks.find(b => b.id === bookId);
 
-    const confirmed = await window.showConfirm({
-      title: 'Delete Book',
-      message: `Are you sure you want to delete "${book?.bookName || 'this book'}" and all its parts?`,
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      destructive: true
-    });
-
-    if (confirmed) {
-      try {
-        await appState.processor.deleteBook(bookId);
-        appState.expandedBooks.delete(bookId);
-        await loadBooks();
-        showSuccess('Book deleted successfully');
-      } catch (error) {
-        showError('Failed to delete book: ' + error.message);
-      }
+    try {
+      await appState.processor.deleteBook(bookId);
+      appState.expandedBooks.delete(bookId);
+      await loadBooks();
+      showSuccess('Book deleted successfully');
+    } catch (error) {
+      showError('Failed to delete book: ' + error.message);
     }
   });
 }
