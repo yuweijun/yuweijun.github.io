@@ -1155,6 +1155,7 @@ let wakeLock = null;
 let speechStartTime = null;
 let screenDimTimer = null;
 let isScreenDimmed = false;
+let userActivityTimer = null;
 const SCREEN_DIM_DELAY = 5 * 60 * 1000; // 5 minutes in milliseconds
 const SCREEN_DIM_OPACITY = 0.3;
 
@@ -1208,15 +1209,45 @@ function brightenScreenTemporarily() {
     return;
   }
   
-  // Brighten for 10 seconds then dim again
+  // Brighten screen and reset the 5-minute inactivity timer
   brightenScreen();
+  resetUserActivityTimer();
+}
+
+function resetUserActivityTimer() {
+  // Clear any existing timer
+  clearTimeout(userActivityTimer);
   
-  clearTimeout(screenDimTimer);
-  screenDimTimer = setTimeout(() => {
+  // Start new 5-minute timer to dim screen again
+  userActivityTimer = setTimeout(() => {
     if (isSpeaking && !isPaused && isMobileView()) {
       dimScreen();
     }
-  }, 10000); // 10 seconds
+  }, SCREEN_DIM_DELAY);
+}
+
+let userActivityListenersSetup = false;
+
+function setupUserActivityListeners() {
+  // Only setup once to avoid duplicate listeners
+  if (userActivityListenersSetup) return;
+  userActivityListenersSetup = true;
+  
+  const events = ['touchstart', 'touchmove', 'click', 'scroll', 'keydown', 'mousemove'];
+  
+  events.forEach(eventType => {
+    document.addEventListener(eventType, handleUserActivity, { passive: true });
+  });
+}
+
+function handleUserActivity() {
+  // Only handle if speech is playing and screen is dimmed
+  if (!isSpeaking || isPaused) return;
+  
+  if (isScreenDimmed) {
+    // Exit dim status immediately on any user action
+    brightenScreenTemporarily();
+  }
 }
 
 function startScreenDimTimer() {
@@ -1224,6 +1255,10 @@ function startScreenDimTimer() {
   
   speechStartTime = Date.now();
   clearTimeout(screenDimTimer);
+  clearTimeout(userActivityTimer);
+  
+  // Setup user activity listeners for exiting dim mode
+  setupUserActivityListeners();
   
   screenDimTimer = setTimeout(() => {
     if (isSpeaking && !isPaused) {
@@ -1234,7 +1269,9 @@ function startScreenDimTimer() {
 
 function stopScreenDimTimer() {
   clearTimeout(screenDimTimer);
+  clearTimeout(userActivityTimer);
   screenDimTimer = null;
+  userActivityTimer = null;
   speechStartTime = null;
   brightenScreen();
 }
@@ -1516,7 +1553,7 @@ function toggleSpeech() {
   }
 }
 
-async function startSpeech() {
+function startSpeech() {
   speechTextQueue = getTextForSpeech();
   if (speechTextQueue.length === 0) return;
 
@@ -1525,20 +1562,62 @@ async function startSpeech() {
 
   currentSpeechIndex = getTextIndexFromScrollPosition(scrollTop);
 
+  // Cancel any pending speech to ensure clean state
+  // Do this first before any other operations
+  if (speechSynthesis.speaking || speechSynthesis.pending) {
+    speechSynthesis.cancel();
+  }
+
+  // Re-select voice if not already set (voices may have loaded async)
+  if (!chineseVoice) {
+    chineseVoice = selectChineseMaleVoice();
+  }
+
+  // Set state flags BEFORE speaking
+  // This ensures speakNext() has correct state when called
   isSpeaking = true;
   isPaused = false;
   updateSpeechButton();
 
-  // Request wake lock to prevent screen sleep
-  await requestWakeLock();
+  // IMPORTANT: Call speakNext() synchronously within user gesture
+  // On iOS/Safari, speech synthesis must be triggered synchronously
+  // in the user gesture event handler, not in async callbacks
+  // Create and speak the first utterance immediately in this synchronous block
+  if (currentSpeechIndex < speechTextQueue.length) {
+    const text = speechTextQueue[currentSpeechIndex];
+    speechUtterance = new SpeechSynthesisUtterance(text);
 
-  // Start silent audio to keep browser active in background
-  await startSilentAudio();
+    if (chineseVoice) {
+      speechUtterance.voice = chineseVoice;
+    }
+    speechUtterance.lang = 'zh-CN';
+    speechUtterance.rate = speechRate;
+    speechUtterance.pitch = 1.0;
 
-  // Start screen dim timer for mobile energy saving
+    speechUtterance.onend = () => {
+      if (isSpeaking && !isPaused) {
+        currentSpeechIndex++;
+        checkAutoScroll();
+        setTimeout(() => speakNext(), 0);
+      }
+    };
+
+    speechUtterance.onerror = (event) => {
+      if (event.error !== 'canceled' && event.error !== 'interrupted') {
+        console.error('Speech error:', event.error);
+      }
+    };
+
+    highlightSpeechLine(currentSpeechIndex);
+
+    // This MUST happen synchronously in the user gesture
+    speechSynthesis.speak(speechUtterance);
+  }
+
+  // Start async tasks after speech is triggered (non-blocking)
+  requestWakeLock();
+  startSilentAudio();
   startScreenDimTimer();
-
-  speakNext();
 }
 
 async function pauseSpeech() {
